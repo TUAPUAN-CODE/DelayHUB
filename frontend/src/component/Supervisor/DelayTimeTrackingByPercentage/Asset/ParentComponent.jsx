@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTip, ResponsiveContainer } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -515,6 +516,98 @@ const SearchDropdown = ({ value, onChange, options, placeholder = 'ทั้ง�
   );
 };
 
+// ── MultiSelectDropdown ───────────────────────────────────────────────────────
+const MultiSelectDropdown = ({ value, onChange, options, placeholder = 'ทั้งหมด', label }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const filtered = options.filter(o => o.toLowerCase().includes(query.toLowerCase()));
+  const isActive = value.length > 0;
+  const toggle = (item) => onChange(value.includes(item) ? value.filter(v => v !== item) : [...value, item]);
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      {label && <div style={labelStyle}>{label}</div>}
+      <button onClick={() => { setOpen(o => !o); setQuery(''); }} style={{
+        ...inputStyle, cursor: 'pointer', minWidth: 200,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        borderColor: isActive ? '#3B82F6' : '#D1D5DB',
+        background: isActive ? '#EFF6FF' : '#fff',
+        color: isActive ? '#1D4ED8' : '#6B7280',
+        fontWeight: isActive ? 600 : 400,
+      }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+          {value.length === 0 ? placeholder : `เลือก ${value.length} รายการ`}
+        </span>
+        <span style={{ fontSize: 10, opacity: 0.6, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 120,
+          background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 280, maxWidth: 360,
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: 8, fontSize: 12, color: '#9CA3AF', pointerEvents: 'none' }}>🔍</span>
+              <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="ค้นหาวัตถุดิบ..." style={{ ...inputStyle, paddingLeft: 26, width: '100%', fontSize: 12, height: 30 }} />
+              {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9CA3AF', padding: 0 }}>✕</button>}
+            </div>
+          </div>
+          <div style={{ padding: '5px 10px', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button onClick={() => onChange(filtered)}
+              style={{ fontSize: 11, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+              เลือกทั้งหมด ({filtered.length})
+            </button>
+            {value.length > 0 && (
+              <button onClick={() => onChange([])}
+                style={{ fontSize: 11, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+                ล้าง ({value.length})
+              </button>
+            )}
+          </div>
+          <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+            {filtered.length === 0
+              ? <div style={{ padding: '10px 12px', fontSize: 12, color: '#9CA3AF', textAlign: 'center' }}>ไม่พบ "{query}"</div>
+              : filtered.map(o => {
+                  const checked = value.includes(o);
+                  return (
+                    <div key={o} onClick={() => toggle(o)} style={{
+                      padding: '7px 12px', cursor: 'pointer', fontSize: 13,
+                      background: checked ? '#EFF6FF' : 'transparent',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}
+                      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = '#F9FAFB'; }}
+                      onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4,
+                        border: `1.5px solid ${checked ? '#3B82F6' : '#D1D5DB'}`,
+                        background: checked ? '#3B82F6' : '#fff',
+                        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                      </div>
+                      <span style={{ color: checked ? '#1D4ED8' : '#374151', fontWeight: checked ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {highlightMatch(o, query)}
+                      </span>
+                    </div>
+                  );
+                })}
+          </div>
+          <div style={{ padding: '5px 12px', borderTop: '1px solid #F3F4F6', fontSize: 11, color: '#9CA3AF' }}>
+            {filtered.length} รายการ · เลือกแล้ว {value.length}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── PercentileCell ────────────────────────────────────────────────────────────
 const PercentileCell = ({ value, standard, count, percentile }) => {
   const [hovered, setHovered] = useState(false);
@@ -707,6 +800,37 @@ const cellStyle = { padding: '10px 14px', borderBottom: '0.5px solid #F3F4F6', v
 const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
 const P_OPTIONS = Array.from({ length: 99 }, (_, i) => i + 1);
 
+const DBS_WEIGHT_DEFS = [
+  { key: 'dbs1', label: 'DBS1 Status', title: 'Delay ช่วงที่ 1', sub: 'เตรียมเสร็จ → เข้าห้องเย็น', color: '#3B82F6', bg: '#EFF6FF' },
+  { key: 'dbs2', label: 'DBS2 Status', title: 'Delay ช่วงที่ 2', sub: 'เข้าห้องเย็น → ออกห้องเย็น', color: '#8B5CF6', bg: '#F5F3FF' },
+  { key: 'dbs3', label: 'DBS3 Status', title: 'Delay ช่วงที่ 3', sub: 'ออกห้องเย็น → บรรจุเสร็จ',  color: '#F59E0B', bg: '#FFFBEB' },
+  { key: 'dbs4', label: 'DBS4 Status', title: 'Delay ช่วงที่ 4', sub: 'เตรียมเสร็จ → บรรจุเสร็จ',   color: '#10B981', bg: '#ECFDF5' },
+];
+
+const DelayChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const delay  = payload.find(p => p.dataKey === 'delay')?.value  ?? 0;
+  const normal = payload.find(p => p.dataKey === 'normal')?.value ?? 0;
+  const total  = delay + normal;
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 190 }}>
+      <div style={{ fontWeight: 600, marginBottom: 8, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{label}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 3 }}>
+        <span style={{ color: '#EF4444' }}>Delay</span>
+        <span style={{ fontWeight: 600, color: '#EF4444' }}>{delay.toFixed(3)} MT ({total > 0 ? (delay/total*100).toFixed(1) : 0}%)</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+        <span style={{ color: '#22C55E' }}>ปกติ</span>
+        <span style={{ fontWeight: 600, color: '#22C55E' }}>{normal.toFixed(3)} MT ({total > 0 ? (normal/total*100).toFixed(1) : 0}%)</span>
+      </div>
+      <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 5, display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: '#6B7280' }}>รวม</span>
+        <span style={{ fontWeight: 600, color: '#374151' }}>{total.toFixed(3)} MT</span>
+      </div>
+    </div>
+  );
+};
+
 const ProductionLineDelayDashboard = () => {
   const [rawData, setRawData]           = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -724,6 +848,8 @@ const ProductionLineDelayDashboard = () => {
   const [filterCode, setFilterCode]     = useState('');
   const [percentile, setPercentile]     = useState(80);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [selectedDbs, setSelectedDbs]    = useState('dbs1');
+  const [filterMatNames, setFilterMatNames] = useState([]);
 
   const fetchData = useCallback(async (sd = startDate, ed = endDate) => {
     try {
@@ -748,16 +874,18 @@ const ProductionLineDelayDashboard = () => {
   const uniqueBatchBefore = React.useMemo(() => [...new Set(rawData.map(r => r.batch_before).filter(v => v != null).map(String))].sort(), [rawData]);
   const uniqueBatchAfter  = React.useMemo(() => [...new Set(rawData.map(r => r.batch_after).filter(v => v != null).map(String))].sort(), [rawData]);
   const uniqueCodes       = React.useMemo(() => [...new Set(rawData.map(r => r.code).filter(Boolean))].sort(), [rawData]);
+  const uniqueMatNames    = React.useMemo(() => [...new Set(rawData.map(r => r.mat_name).filter(Boolean))].sort(), [rawData]);
 
   const filteredRaw = React.useMemo(() =>
     rawData.filter(r => {
+      if (filterMatNames.length > 0 && !filterMatNames.includes(r.mat_name)) return false;
       if (filterLine        && r.rmm_line_name !== filterLine)               return false;
       if (filterDoc         && r.doc_no        !== filterDoc)                return false;
       if (filterBatchBefore && String(r.batch_before) !== filterBatchBefore) return false;
       if (filterBatchAfter  && String(r.batch_after)  !== filterBatchAfter)  return false;
       if (filterCode        && r.code          !== filterCode)               return false;
       return true;
-    }), [rawData, filterLine, filterDoc, filterBatchBefore, filterBatchAfter, filterCode]);
+    }), [rawData, filterMatNames, filterLine, filterDoc, filterBatchBefore, filterBatchAfter, filterCode]);
 
   const rows = React.useMemo(() => {
     const grouped = buildGroupedRows(filteredRaw, groupBy, percentile);
@@ -796,6 +924,41 @@ const ProductionLineDelayDashboard = () => {
   // total batch count for dropdown label
   const totalBatchCount = React.useMemo(() => rows.reduce((s, r) => s + r.rows.length, 0), [rows]);
 
+  const dbsStats = React.useMemo(() => {
+    const compute = (statusField, dbsField) => {
+      const relevant = filteredRaw.filter(r => r[dbsField] != null);
+      const totalKg  = relevant.reduce((s, r) => s + (r.weight_RM || 0), 0);
+      const delayKg  = relevant.filter(r => r[statusField] === 'delay').reduce((s, r) => s + (r.weight_RM || 0), 0);
+      const totalMt  = totalKg / 1000;
+      const delayPct = totalKg > 0 ? (delayKg / totalKg * 100) : 0;
+      return { totalMt, delayPct, normalPct: 100 - delayPct };
+    };
+    return {
+      dbs1: compute('dbs1_status', 'DBS1'),
+      dbs2: compute('dbs2_status', 'DBS2'),
+      dbs3: compute('dbs3_status', 'DBS3'),
+      dbs4: compute('dbs4_status', 'DBS4'),
+    };
+  }, [filteredRaw]);
+
+  const chartData = React.useMemo(() => {
+    const statusField = `${selectedDbs}_status`;
+    const dbsField    = selectedDbs.toUpperCase();
+    const groups = {};
+    filteredRaw.forEach(r => {
+      if (r[dbsField] == null) return;
+      const d = r.sc_pack_date ? new Date(r.sc_pack_date) : null;
+      const key = d && !isNaN(d) ? d.toISOString().split('T')[0] : '(ไม่ระบุ)';
+      if (!groups[key]) groups[key] = { name: key, delay: 0, normal: 0 };
+      const w = (r.weight_RM || 0) / 1000;
+      if (r[statusField] === 'delay') groups[key].delay += w;
+      else groups[key].normal += w;
+    });
+    return Object.values(groups)
+      .map(g => ({ name: g.name, delay: +g.delay.toFixed(4), normal: +g.normal.toFixed(4) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredRaw, selectedDbs]);
+
   const handleSort = (field) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir(['name', 'rmm_line_name', 'doc_no', 'batch_before', 'batch_after', 'code'].includes(field) ? 'asc' : 'desc'); }
@@ -812,7 +975,7 @@ const ProductionLineDelayDashboard = () => {
   const handleReset = () => {
     setStartDate(''); setEndDate('');
     setGroupBy('mat_name'); setSortField('name'); setSortDir('asc');
-    setSearchTerm(''); setFilterLine(''); setFilterDoc('');
+    setSearchTerm(''); setFilterMatNames([]); setFilterLine(''); setFilterDoc('');
     setFilterBatchBefore(''); setFilterBatchAfter(''); setFilterCode('');
     setPercentile(80); setExpandedRows(new Set());
     fetchData('', '');
@@ -882,6 +1045,7 @@ const ProductionLineDelayDashboard = () => {
               <option value="doc_no">เลขเอกสาร</option>
             </select>
           </div>
+          <MultiSelectDropdown label="ชื่อวัตถุดิบ (RM)" value={filterMatNames} onChange={setFilterMatNames} options={uniqueMatNames} placeholder="ทั้งหมด" />
           <SearchDropdown label="ไลน์"                          value={filterLine}        onChange={setFilterLine}        options={uniqueLines}       placeholder="ทั้งหมด" />
           <SearchDropdown label="เลขเอกสาร"                     value={filterDoc}         onChange={setFilterDoc}         options={uniqueDocs}        placeholder="ทั้งหมด" />
           <SearchDropdown label="Code"                          value={filterCode}        onChange={setFilterCode}        options={uniqueCodes}       placeholder="ทั้งหมด" />
@@ -955,6 +1119,14 @@ const ProductionLineDelayDashboard = () => {
               📅 {startDate ? `ตั้งแต่ ${startDate}` : ''}{endDate ? ` ถึง ${endDate}` : ''}
             </div>
           )}
+          {filterMatNames.length > 0 && (
+            <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400, flexWrap: 'wrap' }}>
+              🧪 วัตถุดิบ:&nbsp;
+              {filterMatNames.slice(0, 3).map(n => <strong key={n} style={{ marginRight: 4 }}>{n}</strong>)}
+              {filterMatNames.length > 3 && <span style={{ color: '#6B7280' }}>+{filterMatNames.length - 3} อื่น</span>}
+              <button onClick={() => setFilterMatNames([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#1D4ED8', padding: 0, marginLeft: 2 }}>✕</button>
+            </div>
+          )}
           {filterLine && (
             <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               📍 ไลน์: <strong>{filterLine}</strong>
@@ -1014,6 +1186,92 @@ const ProductionLineDelayDashboard = () => {
           </div>
         ))}
       </div>
+
+      {/* ── DBS Weight Status Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginBottom: 16 }}>
+        {DBS_WEIGHT_DEFS.map(d => {
+          const s = dbsStats[d.key];
+          const isActive = selectedDbs === d.key;
+          return (
+            <div key={d.key} onClick={() => setSelectedDbs(d.key)} style={{
+              background: isActive ? d.bg : '#F9FAFB',
+              border: `1.5px solid ${isActive ? d.color : '#E5E7EB'}`,
+              borderRadius: 10, padding: '14px 16px', cursor: 'pointer',
+              transition: 'all 0.18s',
+              boxShadow: isActive ? `0 2px 12px ${d.color}33` : 'none',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: isActive ? d.color : '#6B7280', marginBottom: 1 }}>{d.label}</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 8 }}>{d.sub}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+                {s.totalMt.toFixed(2)} <span style={{ fontSize: 13, fontWeight: 400, color: '#6B7280' }}>MT</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                <span style={{ color: '#EF4444' }}>Delay</span>
+                <span style={{ fontWeight: 600, color: '#EF4444' }}>{s.delayPct.toFixed(2)}%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                <span style={{ color: '#22C55E' }}>ปกติ</span>
+                <span style={{ fontWeight: 600, color: '#22C55E' }}>{s.normalPct.toFixed(2)}%</span>
+              </div>
+              <div style={{ height: 5, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${s.delayPct}%`, background: '#EF4444', borderRadius: 3 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── DBS Delay Bar Chart ── */}
+      {chartData.length > 0 && (
+        <div style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+                {DBS_WEIGHT_DEFS.find(d => d.key === selectedDbs)?.title} — วิเคราะห์ Delay ตามน้ำหนัก
+              </div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                {DBS_WEIGHT_DEFS.find(d => d.key === selectedDbs)?.sub}
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12, alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 12, height: 12, background: '#22C55E', borderRadius: 2 }} />
+                <span style={{ color: '#6B7280' }}>ปกติ</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 12, height: 12, background: '#EF4444', borderRadius: 2 }} />
+                <span style={{ color: '#6B7280' }}>Delay</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {DBS_WEIGHT_DEFS.map(d => (
+              <button key={d.key} onClick={() => setSelectedDbs(d.key)} style={{
+                padding: '7px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                border: selectedDbs === d.key ? `1.5px solid ${d.color}` : '1px solid #E5E7EB',
+                background: selectedDbs === d.key ? `${d.color}18` : '#F9FAFB',
+                color: selectedDbs === d.key ? d.color : '#6B7280',
+                transition: 'all 0.18s',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: selectedDbs === d.key ? 600 : 400 }}>{d.title}</div>
+                <div style={{ fontSize: 10, opacity: 0.75, marginTop: 1 }}>{d.sub}</div>
+              </button>
+            ))}
+          </div>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 70 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6B7280' }} angle={-35} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} tickFormatter={v => v.toFixed(0)} unit=" MT" width={55} />
+              <RechartsTip content={<DelayChartTooltip />} />
+              <Bar dataKey="normal" name="ปกติ"  stackId="s" fill="#22C55E" />
+              <Bar dataKey="delay"  name="Delay" stackId="s" fill="#EF4444" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* ── legend ── */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12, fontSize: 11, color: '#6B7280', alignItems: 'center' }}>
