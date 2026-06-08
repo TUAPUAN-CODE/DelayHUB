@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed 's/.*\\\\.//')",
+      "Bash(find \"c:\\\\Users\\\\peera\\\\OneDrive\\\\Desktop\\\\PFCM\\\\PFCM/frontend/src\" -not -path \"*/node_modules/*\" -type f -name \"*.jsx\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

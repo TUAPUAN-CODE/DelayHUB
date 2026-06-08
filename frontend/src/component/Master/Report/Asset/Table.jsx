@@ -1,0 +1,2492 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, TablePagination, IconButton, Chip } from '@mui/material';
+import { LiaShoppingCartSolid } from 'react-icons/lia';
+import { InputAdornment } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/EditOutlined";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { FaRegCircle, FaRegCheckCircle, FaFileExcel, FaWeight } from "react-icons/fa";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { thSarabunBase64 } from "../../../../fonts/thSarabunBase64";
+import { thSarabunBoldBase64 } from "../../../../fonts/thSarabunBoldBase64";
+
+import axios from "axios";
+axios.defaults.withCredentials = true;
+import io from 'socket.io-client';
+const API_URL = import.meta.env.VITE_API_URL;
+
+// ─────────────────────────────────────────────────────────────
+// REMAP HELPER
+// ─────────────────────────────────────────────────────────────
+const getRemappedRow = (row) => {
+  const gid = Number(row.rm_group_id);
+
+  if (gid === 55) {
+    return {
+      _A: row.gm_date,
+      _B: row.start_mixed_date,
+      _C: row.rmit_date,
+      _D: null, _E: null, _D3: null, _E3: null,
+      _F: row.sc_pack_date,
+    };
+  }
+
+  if (gid === 85 || gid === 49) {
+    const colA = (row.out_cold_date && row.out_cold_date !== '-' && row.out_cold_date !== null)
+      ? row.out_cold_date
+      : (row.rmit_date_mix ?? null);
+    return {
+      _A: colA,
+      _B: row.start_mixed_date,
+      _C: row.rmit_date,
+      _D: null, _E: null, _D3: null, _E3: null,
+      _F: row.sc_pack_date,
+    };
+  }
+
+  // ✅ เพิ่ม case ใหม่สำหรับ gid = 46
+  if (gid === 46) {
+    return {
+      _A: null,
+      _B: row.rmit_date,        // ← B = rmit_date
+      _C: null,
+      _D: null,
+      _E: null,
+      _D3: null,
+      _E3: null,
+      _F: row.sc_pack_date,     // ← F = sc_pack_date
+    };
+  }
+
+  // default (gid อื่นๆ)
+  return {
+    _A: row.rmit_date,
+    _B: row.come_cold_date,
+    _C: row.out_cold_date,
+    _D: row.come_cold_date_two,
+    _E: row.out_cold_date_two,
+    _D3: row.come_cold_date_three,
+    _E3: row.out_cold_date_three,
+    _F: row.sc_pack_date,
+  };
+};
+
+const isSpecialGroup = (row) => {
+  const gid = Number(row.rm_group_id);
+  return gid === 55 || gid === 85 || gid === 49 || gid === 46;  // ✅ เพิ่ม 46
+};
+
+// ─────────────────────────────────────────────────────────────
+// COLUMN WIDTHS
+// ─────────────────────────────────────────────────────────────
+const CUSTOM_COLUMN_WIDTHS = {
+  delayTime: '180px',
+  weight: '120px',
+  prepDateTime: '200px',
+  confirm: '90px',
+  cart: '70px',
+  complete: '70px',
+  edit: '70px',
+  delete: '70px'
+};
+
+// ─────────────────────────────────────────────────────────────
+// DATE HELPERS
+// ─────────────────────────────────────────────────────────────
+const formatDateOnly = (dateTime) => {
+  if (!dateTime || dateTime === '-') return '';
+  return dateTime.split(' ')[0];
+};
+
+const calculateMinutesDifference = (startDate, endDate) => {
+  if (!startDate || startDate === '-' || !endDate || endDate === '-') return null;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+  const diffInMinutes = (end - start) / (1000 * 60);
+  return diffInMinutes >= 0 ? diffInMinutes : null;
+};
+
+const formatMinutesToTime = (minutes) => {
+  if (minutes === null || minutes === undefined) return '-';
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.floor(minutes % 60);
+  let timeString = '';
+  if (hours > 0) timeString += `${hours} h`;
+  if (mins > 0) {
+    if (timeString) timeString += ' ';
+    timeString += `${mins} m`;
+  }
+  return timeString || '-';
+};
+
+// ─────────────────────────────────────────────────────────────
+// DATETIME 24H HELPERS
+// ─────────────────────────────────────────────────────────────
+// แยก DB value -> { date, hour, minute }
+const splitDateTimeParts = (val) => {
+  if (!val || val === '-') return { date: '', hour: '', minute: '' };
+  const s = String(val).replace('T', ' ').split('.')[0];
+  const parts = s.split(' ');
+  if (parts.length < 2) return { date: parts[0] || '', hour: '', minute: '' };
+  const timeParts = parts[1].split(':');
+  return {
+    date: parts[0],
+    hour: timeParts[0] || '',
+    minute: timeParts[1] || '',
+  };
+};
+
+// รวม { date, hour, minute } -> "YYYY-MM-DD HH:mm:00"
+const joinDateTimeParts = (date, hour, minute) => {
+  if (!date) return null;
+  const h = (hour || '00').padStart(2, '0');
+  const m = (minute || '00').padStart(2, '0');
+  return `${date} ${h}:${m}:00`;
+};
+
+// ─────────────────────────────────────────────────────────────
+// DBS CALCULATIONS
+// ─────────────────────────────────────────────────────────────
+const calculateDBS1FromMapped = (mapped, row) => {
+  const gid = Number(row.rm_group_id);
+  if (gid === 49 || gid === 85 || gid === 46) return '-';  // ✅ เพิ่ม 46
+  return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._B));
+};
+
+const calculateDBS2FromMapped = (mapped, isSpecial = false) => {
+  if (isSpecial) return '-';
+  let totalMinutes = 0;
+  let hasData = false;
+  const cold1 = calculateMinutesDifference(mapped._B, mapped._C);
+  if (cold1 !== null) { totalMinutes += cold1; hasData = true; }
+  if (mapped._D && mapped._E) {
+    const cold2 = calculateMinutesDifference(mapped._D, mapped._E);
+    if (cold2 !== null) { totalMinutes += cold2; hasData = true; }
+  }
+  if (mapped._D3 && mapped._E3) {
+    const cold3 = calculateMinutesDifference(mapped._D3, mapped._E3);
+    if (cold3 !== null) { totalMinutes += cold3; hasData = true; }
+  }
+  return hasData ? formatMinutesToTime(totalMinutes) : '-';
+};
+
+const calculateDBS3FromMapped = (mapped, isSpecial = false) => {
+  if (isSpecial) return '-';
+  if (mapped._D && mapped._D !== '-' && mapped._E && mapped._E !== '-') {
+    const fc = calculateMinutesDifference(mapped._C, mapped._F);
+    const de = calculateMinutesDifference(mapped._D, mapped._E);
+    if (fc === null) return '-';
+    const result = fc - (de ?? 0);
+    return formatMinutesToTime(result >= 0 ? result : 0);
+  }
+  return formatMinutesToTime(calculateMinutesDifference(mapped._C, mapped._F));
+};
+const calculateDBS4FromMapped = (mapped, isSpecial = false, row = null) => {
+  const gid = Number(row?.rm_group_id);
+
+  // ✅ gid = 46: คำนวณจาก B → F
+  if (gid === 46) {
+    return formatMinutesToTime(calculateMinutesDifference(mapped._B, mapped._F));
+  }
+
+  if (isSpecial) {
+    const part2 = calculateMinutesDifference(mapped._C, mapped._F);
+    if (part2 !== null) return formatMinutesToTime(part2);
+    return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._F));
+  }
+
+  const dbs1Min = calculateMinutesDifference(mapped._A, mapped._B);
+  let lastColdOut = null;
+  if (mapped._E3 && mapped._E3 !== '-') lastColdOut = mapped._E3;
+  else if (mapped._E && mapped._E !== '-') lastColdOut = mapped._E;
+  else if (mapped._C && mapped._C !== '-') lastColdOut = mapped._C;
+  const dbs3Min = calculateMinutesDifference(lastColdOut, mapped._F);
+  if (dbs1Min !== null && dbs3Min !== null) return formatMinutesToTime(dbs1Min + dbs3Min);
+  return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._F));
+};
+
+const calcDBS4Minutes = (mapped, isSpecial, row = null) => {
+  const gid = Number(row?.rm_group_id);
+
+  // ✅ gid = 46: B → F
+  if (gid === 46) {
+    return calculateMinutesDifference(mapped._B, mapped._F);
+  }
+
+  if (isSpecial) {
+    const p2 = calculateMinutesDifference(mapped._C, mapped._F);
+    if (p2 !== null) return p2;
+    return calculateMinutesDifference(mapped._A, mapped._F);
+  }
+  const d1 = calculateMinutesDifference(mapped._A, mapped._B);
+  let lastOut = null;
+  if (mapped._E3 && mapped._E3 !== '-') lastOut = mapped._E3;
+  else if (mapped._E && mapped._E !== '-') lastOut = mapped._E;
+  else if (mapped._C && mapped._C !== '-') lastOut = mapped._C;
+  const d3 = calculateMinutesDifference(lastOut, mapped._F);
+  if (d1 !== null && d3 !== null) return d1 + d3;
+  return calculateMinutesDifference(mapped._A, mapped._F);
+};
+
+const calcDBS1Minutes = (mapped, row) => {
+  const gid = Number(row.rm_group_id);
+  if (gid === 49 || gid === 85 || gid === 46) return null;  // ✅ เพิ่ม 46
+  return calculateMinutesDifference(mapped._A, mapped._B);
+};
+
+const calcDBS2Minutes = (mapped, isSpecial) => {
+  if (isSpecial) return null;
+  let total = 0; let has = false;
+  const c1 = calculateMinutesDifference(mapped._B, mapped._C);
+  if (c1 !== null) { total += c1; has = true; }
+  if (mapped._D && mapped._E) {
+    const c2 = calculateMinutesDifference(mapped._D, mapped._E);
+    if (c2 !== null) { total += c2; has = true; }
+  }
+  if (mapped._D3 && mapped._E3) {
+    const c3 = calculateMinutesDifference(mapped._D3, mapped._E3);
+    if (c3 !== null) { total += c3; has = true; }
+  }
+  return has ? total : null;
+};
+
+const calcDBS3Minutes = (mapped, isSpecial) => {
+  if (isSpecial) return null;
+  if (mapped._D && mapped._D !== '-' && mapped._E && mapped._E !== '-') {
+    const fc = calculateMinutesDifference(mapped._C, mapped._F);
+    const de = calculateMinutesDifference(mapped._D, mapped._E);
+    if (fc === null) return null;
+    const result = fc - (de ?? 0);
+    return result >= 0 ? result : 0;
+  }
+  return calculateMinutesDifference(mapped._C, mapped._F);
+};
+
+// const calcDBS4Minutes = (mapped, isSpecial) => {
+//   if (isSpecial) {
+//     const p2 = calculateMinutesDifference(mapped._C, mapped._F);
+//     if (p2 !== null) return p2;
+//     return calculateMinutesDifference(mapped._A, mapped._F);
+//   }
+//   const d1 = calculateMinutesDifference(mapped._A, mapped._B);
+//   let lastOut = null;
+//   if (mapped._E3 && mapped._E3 !== '-') lastOut = mapped._E3;
+//   else if (mapped._E && mapped._E !== '-') lastOut = mapped._E;
+//   else if (mapped._C && mapped._C !== '-') lastOut = mapped._C;
+//   const d3 = calculateMinutesDifference(lastOut, mapped._F);
+//   if (d1 !== null && d3 !== null) return d1 + d3;
+//   return calculateMinutesDifference(mapped._A, mapped._F);
+// };
+
+const parseStandardDBSToMinutes = (val) => {
+  if (val === null || val === undefined || val === '-' || val === '') return null;
+  const n = parseFloat(val);
+  return isNaN(n) ? null : n * 60;
+};
+
+const calculateDBS1 = (row) => calculateDBS1FromMapped(getRemappedRow(row), row);
+const calculateDBS2 = (row) => calculateDBS2FromMapped(getRemappedRow(row), isSpecialGroup(row));
+const calculateDBS3 = (row) => calculateDBS3FromMapped(getRemappedRow(row), isSpecialGroup(row));
+const calculateDBS4 = (row) => calculateDBS4FromMapped(getRemappedRow(row), isSpecialGroup(row), row);
+
+// ─────────────────────────────────────────────────────────────
+// STATUS HELPERS
+// ─────────────────────────────────────────────────────────────
+const formatTime = (minutes) => {
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = Math.floor(minutes % 60);
+  let timeString = '';
+  if (days > 0) timeString += `${days}day`;
+  if (hours > 0) timeString += ` ${hours} h`;
+  if (mins > 0) timeString += ` ${mins} m`;
+  return timeString.trim();
+};
+
+const calculateTimeDifference = (dateString) => {
+  if (!dateString || dateString === '-') return 0;
+  const effectiveDate = new Date(dateString);
+  const currentDate = new Date();
+  const diffInMinutes = (currentDate - effectiveDate) / (1000 * 60);
+  return diffInMinutes > 0 ? diffInMinutes : 0;
+};
+
+const parseTimeValue = (timeStr) => {
+  if (!timeStr || timeStr === '-') return null;
+  const timeParts = timeStr.split('.');
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  return hours * 60 + minutes;
+};
+
+const getLatestColdRoomExitDate = (item) => {
+  const mapped = getRemappedRow(item);
+  if (mapped._E3 && mapped._E3 !== '-') return mapped._E3;
+  if (mapped._E && mapped._E !== '-') return mapped._E;
+  if (mapped._C && mapped._C !== '-') return mapped._C;
+  return '-';
+};
+
+const getItemStatus = (item) => {
+  const latestColdRoomExitDate = getLatestColdRoomExitDate(item);
+  const mapped = getRemappedRow(item);
+
+  let referenceDate = null;
+  let remainingTimeValue = null;
+  let standardTimeValue = null;
+  const defaultStatus = {
+    textColor: "#787878",
+    statusMessage: "-",
+    borderColor: "#969696",
+    hideDelayTime: true,
+    percentage: 0,
+    timeRemaining: 0
+  };
+
+  if (!item) return defaultStatus;
+
+  if ((latestColdRoomExitDate !== '-') &&
+    (!item.remaining_rework_time || item.remaining_rework_time === '-')) {
+    referenceDate = latestColdRoomExitDate;
+    remainingTimeValue = parseTimeValue(item.remaining_ctp_time);
+    standardTimeValue = parseTimeValue(item.DBS3);
+  } else if ((latestColdRoomExitDate === '-') &&
+    (!item.remaining_rework_time || item.remaining_rework_time === '-')) {
+    referenceDate = mapped._A;
+    remainingTimeValue = parseTimeValue(item.remaining_ptp_time);
+    standardTimeValue = parseTimeValue(item.DBS4);
+  } else if (item.remaining_rework_time && item.remaining_rework_time !== '-') {
+    referenceDate = item.qc_date;
+    remainingTimeValue = parseTimeValue(item.remaining_rework_time);
+    standardTimeValue = parseTimeValue(item.standard_rework_time);
+  }
+
+  if (!referenceDate || (!remainingTimeValue && !standardTimeValue)) {
+    return defaultStatus;
+  }
+
+  const elapsedMinutes = calculateTimeDifference(referenceDate);
+  let timeRemaining;
+  if (remainingTimeValue !== null) {
+    timeRemaining = remainingTimeValue - elapsedMinutes;
+  } else if (standardTimeValue !== null) {
+    timeRemaining = standardTimeValue - elapsedMinutes;
+  } else {
+    timeRemaining = 0;
+  }
+
+  let percentage = 0;
+  if (standardTimeValue) {
+    percentage = (elapsedMinutes / standardTimeValue) * 100;
+  }
+
+  let statusMessage;
+  if (timeRemaining > 0) {
+    statusMessage = `เหลืออีก ${formatTime(timeRemaining)}`;
+  } else {
+    statusMessage = `เลยกำหนด ${formatTime(Math.abs(timeRemaining))}`;
+  }
+
+  let textColor, borderColor;
+  if (timeRemaining < 0) {
+    textColor = "#FF0000"; borderColor = "#FF8175";
+  } else if (percentage >= 80) {
+    textColor = "#FFA500"; borderColor = "#FFF398";
+  } else {
+    textColor = "#008000"; borderColor = "#80FF75";
+  }
+
+  const isNegative = timeRemaining < 0;
+  const absoluteTimeRemaining = Math.abs(timeRemaining);
+  const hours = Math.floor(absoluteTimeRemaining / 60);
+  const minutes = Math.floor(absoluteTimeRemaining % 60);
+  const sign = isNegative ? '-' : '';
+  const formattedDelayTime = `${sign}${hours}.${minutes.toString().padStart(2, '0')}`;
+
+  return { textColor, statusMessage, borderColor, hideDelayTime: false, percentage, timeRemaining, formattedDelayTime };
+};
+
+// ─────────────────────────────────────────────────────────────
+// SHIFT HELPERS
+// ─────────────────────────────────────────────────────────────
+const parseDateTime = (dateTimeStr) => {
+  if (!dateTimeStr || dateTimeStr === '-') return null;
+  const str = String(dateTimeStr).replace('T', ' ').split('.')[0];
+  const parts = str.split(' ');
+  if (parts.length < 2) return null;
+  const datePart = parts[0];
+  const timePart = parts[1];
+  const [h, m] = timePart.split(':').map(Number);
+  return { datePart, hours: h, minutes: m, totalMinutes: h * 60 + m };
+};
+
+const getShiftFromDate = (dateTimeStr) => {
+  const parsed = parseDateTime(dateTimeStr);
+  if (!parsed) return null;
+  const { totalMinutes } = parsed;
+  return (totalMinutes >= 360 && totalMinutes < 1080) ? 'DS' : 'NS';
+};
+
+const isInShift = (dateTimeStr, baseDate, shift) => {
+  if (!dateTimeStr || dateTimeStr === '-') return false;
+  if (!baseDate || !shift) return false;
+  const str = String(dateTimeStr).replace('T', ' ').split('.')[0];
+  const parts = str.split(' ');
+  if (parts.length < 2) return false;
+  const datePart = parts[0];
+  const timePart = parts[1];
+  const [h, m] = timePart.split(':').map(Number);
+  const totalMinutes = h * 60 + m;
+
+  if (shift === 'DS') {
+    return datePart === baseDate && totalMinutes >= 360 && totalMinutes < 1080;
+  } else if (shift === 'NS') {
+    const isNightFirstHalf = datePart === baseDate && totalMinutes >= 1080;
+    const [y, mo, d] = baseDate.split('-').map(Number);
+    const nextDay = new Date(y, mo - 1, d + 1);
+    const nextDateStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+    const isNightSecondHalf = datePart === nextDateStr && totalMinutes < 360;
+    return isNightFirstHalf || isNightSecondHalf;
+  }
+  return false;
+};
+
+// ─────────────────────────────────────────────────────────────
+// ✅ CUSTOM 24H TIME PICKER (NO AM/PM)
+// ใช้ <select> สำหรับชั่วโมง (00-23) และนาที (00-59)
+// แสดงเลข 00-23 ทุก browser ไม่มี AM/PM แน่นอน
+// ─────────────────────────────────────────────────────────────
+const HOURS_24 = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES_60 = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+const DateTime24Input = ({ value, onChange, isOver, isEdited }) => {
+  const { date, hour, minute } = splitDateTimeParts(value);
+
+  const handleDateChange = (e) => {
+    const newDate = e.target.value;
+    onChange(joinDateTimeParts(newDate, hour, minute));
+  };
+
+  const handleHourChange = (e) => {
+    const newHour = e.target.value;
+    onChange(joinDateTimeParts(date, newHour, minute));
+  };
+
+  const handleMinuteChange = (e) => {
+    const newMinute = e.target.value;
+    onChange(joinDateTimeParts(date, hour, newMinute));
+  };
+
+  const inputBase = {
+    border: '1px solid transparent',
+    borderRadius: '4px',
+    padding: '3px 4px',
+    fontSize: '11px',
+    textAlign: 'center',
+    backgroundColor: 'transparent',
+    outline: 'none',
+    cursor: 'pointer',
+    color: isOver ? '#C62828' : 'inherit',
+    fontWeight: isEdited ? '600' : 'normal',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+
+  const selectStyle = {
+    ...inputBase,
+    width: '50px',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    MozAppearance: 'none',
+    paddingRight: '4px',
+    backgroundImage: 'none',
+  };
+
+  return (
+    <div
+      dir="ltr"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '3px',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '130px',
+      }}
+    >
+      {/* Date input */}
+      <input
+        type="date"
+        value={date}
+        onChange={handleDateChange}
+        style={{ ...inputBase, width: '120px' }}
+        onFocus={(e) => {
+          e.target.style.backgroundColor = '#fffef0';
+          e.target.style.border = '1px solid #FFC107';
+          e.target.style.boxShadow = '0 0 0 2px rgba(255,193,7,0.3)';
+        }}
+        onBlur={(e) => {
+          e.target.style.backgroundColor = 'transparent';
+          e.target.style.border = '1px solid transparent';
+          e.target.style.boxShadow = 'none';
+        }}
+      />
+
+      {/* Time selector: HH : MM (24h) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px',
+        backgroundColor: '#fafafa',
+        border: '1px solid #e0e0e0',
+        borderRadius: '6px',
+        padding: '2px 4px',
+      }}>
+        <select
+          value={hour}
+          onChange={handleHourChange}
+          style={selectStyle}
+          title="ชั่วโมง (00-23)"
+        >
+          <option value="">--</option>
+          {HOURS_24.map(h => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+
+        <span style={{
+          fontSize: '12px',
+          fontWeight: '700',
+          color: isOver ? '#C62828' : '#666',
+          padding: '0 1px',
+        }}>:</span>
+
+        <select
+          value={minute}
+          onChange={handleMinuteChange}
+          style={selectStyle}
+          title="นาที (00-59)"
+        >
+          <option value="">--</option>
+          {MINUTES_60.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// SEARCHABLE DROPDOWN
+// ─────────────────────────────────────────────────────────────
+const SearchableDropdown = ({ label, options, value, onChange, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef(null);
+
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (option) => { onChange(option); setIsOpen(false); setSearchTerm(''); };
+  const handleClear = () => { onChange(''); setSearchTerm(''); };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '200px' }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          borderRadius: '12px', cursor: 'pointer', backgroundColor: '#fff', height: '42px',
+          fontSize: '14px', color: value ? '#2196F3' : '#999', transition: 'all 0.3s ease',
+          boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: value ? '500' : '400' }}>
+          {value || placeholder}
+        </span>
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#2196F3' : '#666' }} />
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
+          border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 1000, maxHeight: '320px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          animation: 'slideDown 0.2s ease'
+        }}>
+          <div style={{ padding: '10px' }}>
+            <TextField
+              fullWidth size="small" placeholder="ค้นหา..." value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon style={{ fontSize: '18px', color: '#999' }} /></InputAdornment>,
+                sx: { height: '38px', fontSize: '13px', borderRadius: '8px' }
+              }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: '270px' }}>
+            {value && (
+              <div onClick={handleClear}
+                style={{ padding: '12px 14px', cursor: 'pointer', fontSize: '13px', color: '#ff4444', borderBottom: '1px solid #f0f0f0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff3f3'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <ClearIcon style={{ fontSize: '16px' }} /><span>ล้างตัวกรอง</span>
+              </div>
+            )}
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option, index) => (
+                <div key={index} onClick={() => handleSelect(option)}
+                  style={{
+                    padding: '12px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
+                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+                  onMouseLeave={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  {option}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '20px 14px', fontSize: '13px', color: '#999', textAlign: 'center' }}>ไม่พบข้อมูล</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// SEARCHABLE LINE DROPDOWN
+// ─────────────────────────────────────────────────────────────
+const SearchableLineDropdown = ({ value, onChange, options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef(null);
+
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', border: value ? '2px solid #00a6ff' : '1px solid #ddd',
+          borderRadius: '10px', cursor: 'pointer', backgroundColor: '#fff',
+          fontSize: '14px', color: value ? '#333' : '#999', transition: 'all 0.3s ease', boxSizing: 'border-box'
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '-- เลือก Line --'}</span>
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#00a6ff' : '#666', fontSize: '20px' }} />
+      </div>
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
+          border: '1px solid #e0e0e0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 1000, maxHeight: '300px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+        }}>
+          <div style={{ padding: '10px' }}>
+            <input
+              type="text" placeholder="ค้นหา Line..." value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+              onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: '240px' }}>
+            {value && (
+              <div onClick={() => { onChange(''); setIsOpen(false); setSearchTerm(''); }}
+                style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#ff4444', borderBottom: '1px solid #f0f0f0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff3f3'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <ClearIcon style={{ fontSize: '16px' }} /><span>ล้างตัวเลือก</span>
+              </div>
+            )}
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option, index) => (
+                <div key={index}
+                  onClick={() => { onChange(option); setIsOpen(false); setSearchTerm(''); }}
+                  style={{
+                    padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
+                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none', transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+                  onMouseLeave={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  {option}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '20px 14px', fontSize: '13px', color: '#999', textAlign: 'center' }}>ไม่พบข้อมูล</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// ROW COMPONENT
+// ─────────────────────────────────────────────────────────────
+const Row = ({
+  row, columnWidths, handleOpenModal, handleRowClick, handleOpenEditModal,
+  handleOpenDeleteModal, handleOpenEditLineModal, handleOpenSuccess,
+  handleConfirmRow, selectedColor, openRowId, setOpenRowId, index, displayColumns
+}) => {
+  const { borderColor, statusMessage, hideDelayTime, percentage, formattedDelayTime } = getItemStatus(row);
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#F0F8FF';
+
+  const mapped = getRemappedRow(row);
+  const special = isSpecialGroup(row);
+
+  const stdDBS1 = parseStandardDBSToMinutes(row.DBS1 ?? row.dbs1);
+  const stdDBS2 = parseStandardDBSToMinutes(row.DBS2 ?? row.dbs2);
+  const stdDBS3 = parseStandardDBSToMinutes(row.DBS3 ?? row.dbs3);
+  const stdDBS4 = parseStandardDBSToMinutes(row.DBS4 ?? row.dbs4);
+
+  const calcMin1 = calcDBS1Minutes(mapped, row);
+  const calcMin2 = calcDBS2Minutes(mapped, special);
+  const calcMin3 = calcDBS3Minutes(mapped, special);
+  const calcMin4 = calcDBS4Minutes(mapped, special, row);  // ✅ เพิ่ม row
+
+  const isOver1 = stdDBS1 !== null && calcMin1 !== null && calcMin1 > stdDBS1;
+  const isOver2 = !special && stdDBS2 !== null && calcMin2 !== null && calcMin2 > stdDBS2;
+  const isOver3 = !special && stdDBS3 !== null && calcMin3 !== null && calcMin3 > stdDBS3;
+  const isOver4 = stdDBS4 !== null && calcMin4 !== null && calcMin4 > stdDBS4;
+
+  const overFlags = {};
+  const displayRow = {};
+
+  displayColumns.forEach(col => {
+    switch (col) {
+      case 'tro_id':
+        displayRow[col] = row.tro_id;
+        break;
+      case 'dbs1':
+        displayRow[col] = calculateDBS1FromMapped(mapped, row);
+        overFlags[col] = isOver1;
+        break;
+      case 'dbs2':
+        displayRow[col] = calculateDBS2FromMapped(mapped, special);
+        overFlags[col] = isOver2;
+        break;
+      case 'dbs3':
+        displayRow[col] = calculateDBS3FromMapped(mapped, special);
+        overFlags[col] = isOver3;
+        break;
+      case 'dbs4':
+        displayRow[col] = calculateDBS4FromMapped(mapped, special, row);  // ✅ เพิ่ม row
+        overFlags[col] = isOver4;
+        break;
+      case 'rmit_date':
+        displayRow[col] = mapped._A ?? '-';
+        break;
+      case 'come_cold_date':
+        displayRow[col] = mapped._B ?? '-';
+        break;
+      case 'out_cold_date':
+        displayRow[col] = mapped._C ?? '-';
+        break;
+      case 'come_cold_date_two':
+        displayRow[col] = special ? '-' : (mapped._D ?? '-');
+        break;
+      case 'out_cold_date_two':
+        displayRow[col] = special ? '-' : (mapped._E ?? '-');
+        break;
+      case 'come_cold_date_three':
+        displayRow[col] = special ? '-' : (mapped._D3 ?? '-');
+        break;
+      case 'out_cold_date_three':
+        displayRow[col] = special ? '-' : (mapped._E3 ?? '-');
+        break;
+      case 'sc_pack_date':
+        displayRow[col] = mapped._F ?? '-';
+        break;
+      default: {
+        const value = row[col];
+        if (typeof value === 'boolean') {
+          displayRow[col] = value ? 'ผ่าน' : 'ไม่ผ่าน';
+        } else if (value === null || value === undefined || value === '') {
+          displayRow[col] = '-';
+        } else {
+          displayRow[col] = value;
+        }
+      }
+    }
+  });
+
+  const colorMatch =
+    (selectedColor === 'green' && borderColor === '#80FF75') ||
+    (selectedColor === 'yellow' && borderColor === '#FFF398') ||
+    (selectedColor === 'red' && borderColor === '#FF8175') ||
+    (selectedColor === 'gray' && borderColor === '#969696');
+
+  if (selectedColor && !colorMatch) return null;
+
+  const isOpen = openRowId === row.rmfp_id;
+
+  const [weight, setWeight] = useState(row.weight || '');
+  const [prepDateTime, setPrepDateTime] = useState(row.sc_pack_date || '');
+  const [errors, setErrors] = useState({ weight: '', prepDateTime: '' });
+
+  const validateInputs = () => {
+    const newErrors = { weight: '', prepDateTime: '' };
+    let isValid = true;
+    if (!weight || parseFloat(weight) <= 0) { newErrors.weight = 'น้ำหนักต้องมากกว่า 0'; isValid = false; }
+    if (!prepDateTime) { newErrors.prepDateTime = 'กรุณาระบุเวลา'; isValid = false; }
+    else {
+      const selectedDate = new Date(prepDateTime);
+      const now = new Date();
+      if (selectedDate > now) { newErrors.prepDateTime = 'เวลาต้องไม่เป็นอดีต'; isValid = false; }
+    }
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleConfirm = () => {
+    if (validateInputs()) {
+      handleConfirmRow({ mapping_id: row.mapping_id, weight: parseFloat(weight), sc_pack_date: prepDateTime });
+    }
+  };
+
+  return (
+    <>
+      <TableRow>
+        <TableCell style={{ height: "7px", padding: "0px", border: "0px solid" }}></TableCell>
+      </TableRow>
+      <TableRow
+        onClick={() => { setOpenRowId(isOpen ? null : row.rmfp_id); handleRowClick(row.rmfp_id); }}
+        style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+        onMouseEnter={(e) => {
+          const cells = e.currentTarget.querySelectorAll('td');
+          cells.forEach(cell => {
+            if (!cell.dataset.isover) {
+              cell.style.backgroundColor = index % 2 === 0 ? '#F5F9FF' : '#E8F4FF';
+            }
+          });
+        }}
+        onMouseLeave={(e) => {
+          const cells = e.currentTarget.querySelectorAll('td');
+          cells.forEach(cell => {
+            if (!cell.dataset.isover) {
+              cell.style.backgroundColor = backgroundColor;
+            }
+          });
+        }}
+      >
+        {Object.entries(displayRow).map(([key, value], idx) => {
+          const isOver = overFlags[key] === true;
+          return (
+            <TableCell
+              key={idx}
+              align="center"
+              data-isover={isOver ? 'true' : undefined}
+              style={{
+                width: columnWidths[idx],
+                borderLeft: "1px solid #E3F2FD",
+                borderTop: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
+                borderBottom: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
+                whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden',
+                textOverflow: 'ellipsis', fontSize: '14px', height: '48px', lineHeight: '1.5',
+                padding: '0px 12px',
+                backgroundColor: isOver ? '#FFF5F5' : backgroundColor,
+                color: isOver ? '#C62828' : '#353535ff',
+                fontWeight: isOver ? '700' : 'normal',
+                transition: 'background-color 0.2s ease'
+              }}
+            >
+              {isOver ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '17px', height: '17px', borderRadius: '50%',
+                    backgroundColor: '#D32F2F', color: '#fff',
+                    fontSize: '11px', fontWeight: '900', flexShrink: 0,
+                    boxShadow: '0 1px 3px rgba(211,47,47,0.4)'
+                  }}>!</span>
+                  {value || '-'}
+                </span>
+              ) : (value || '-')}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+      <TableRow>
+        <TableCell style={{ padding: "0px", border: "0px solid" }}></TableCell>
+      </TableRow>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// ฟิลด์วันที่ที่แก้ไขได้ใน Preview
+// ─────────────────────────────────────────────────────────────
+const EDITABLE_DATE_FIELDS = [
+  'rmit_date',
+  'come_cold_date',
+  'out_cold_date',
+  'come_cold_date_two',
+  'out_cold_date_two',
+  'come_cold_date_three',
+  'out_cold_date_three',
+  'sc_pack_date',
+];
+
+// ─────────────────────────────────────────────────────────────
+// MAIN TABLE COMPONENT
+// ─────────────────────────────────────────────────────────────
+const TableMainPrep = ({
+  handleOpenModal, data, handleRowClick, handleOpenEditModal,
+  handleOpenDeleteModal, handleOpenEditLineModal, handleOpenSuccess, onConfirmRow
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredRows, setFilteredRows] = useState(data);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [openRowId, setOpenRowId] = useState(null);
+  const [selectedLineName, setSelectedLineName] = useState('');
+  const [selectedDocNo, setSelectedDocNo] = useState('');
+  const [selectedMatName, setSelectedMatName] = useState('');
+  const [selectedSCPackDate, setselectedSCPackDate] = useState('');
+  const [exportLine, setExportLine] = useState('');
+  const [selectedShift, setSelectedShift] = useState('');
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
+  const lineOptions = [...new Set(data.map(row => row.line_name).filter(Boolean))].sort();
+  const [signatureData, setSignatureData] = useState({ recordedBy: '', reviewedBy: '', qcManager: '' });
+  const [exportDate, setExportDate] = useState('');
+  const [exportShift, setExportShift] = useState('');
+  const [exportPlant, setExportPlant] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const [editedCells, setEditedCells] = useState({});
+  const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const [saveEditsError, setSaveEditsError] = useState('');
+  const [saveEditsSuccess, setSaveEditsSuccess] = useState('');
+
+  const displayColumns = [
+    'production', 'mat_name', 'batch_after', 'group_no', 'weight_RM', 'detail',
+    'color', 'odor', 'texture',
+    'rmit_date', 'come_cold_date', 'out_cold_date',
+    'come_cold_date_two', 'out_cold_date_two',
+    'come_cold_date_three', 'out_cold_date_three',
+    'sc_pack_date',
+    'dbs1', 'dbs2', 'dbs3', 'dbs4'
+  ];
+
+  const uniqueLineNames = [...new Set(data.map(row => row.line_name).filter(Boolean))].sort();
+  const uniqueMatName = [...new Set(data.map(row => row.mat_name).filter(Boolean))].sort();
+  const uniqueDocNos = [...new Set(data.map(row => row.doc_no).filter(Boolean))].sort();
+  const uniqueSCPackDate = [...new Set(
+    data.flatMap(row => {
+      const packDate = row.sc_pack_date;
+      if (!packDate || packDate === '-') return [];
+      const str = String(packDate).replace('T', ' ').split('.')[0];
+      const parts = str.split(' ');
+      if (parts.length < 2) return [parts[0]];
+      const datePart = parts[0];
+      const totalMinutes = parts[1].split(':').slice(0, 2).map(Number)
+        .reduce((h, m, i) => i === 0 ? h + m * 60 : h + m, 0);
+      if (totalMinutes < 360) {
+        const [y, mo, d] = datePart.split('-').map(Number);
+        const prev = new Date(y, mo - 1, d - 1);
+        return [`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${String(prev.getDate()).padStart(2, '0')}`];
+      }
+      return [datePart];
+    })
+  )].sort((a, b) => new Date(a) - new Date(b));
+
+  const totalWeight = filteredRows.reduce((sum, row) => {
+    const weight = parseFloat(row.weight_RM) || 0;
+    return sum + weight;
+  }, 0);
+
+  const formatDateTimeForPDF = (dateTimeStr) => {
+    if (!dateTimeStr || dateTimeStr === '-') return '-';
+    try {
+      const s = String(dateTimeStr).replace('T', ' ').split('.')[0];
+      const parts = s.split(' ');
+      if (parts.length < 2) return s;
+      const [year, month, day] = parts[0].split('-');
+      const timePart = parts[1].slice(0, 5);
+      const buddhistYear = parseInt(year, 10) + 543;
+      return `${day}/${month}/${buddhistYear}\n${timePart}`;
+    } catch {
+      return dateTimeStr;
+    }
+  };
+
+  useEffect(() => {
+    let filtered = data;
+    if (searchTerm) {
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((value) =>
+          value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+    if (selectedLineName) filtered = filtered.filter(row => row.line_name === selectedLineName);
+    if (selectedDocNo) filtered = filtered.filter(row => row.doc_no === selectedDocNo);
+    if (selectedMatName) filtered = filtered.filter(row => row.mat_name === selectedMatName);
+    if (selectedSCPackDate || selectedShift) {
+      filtered = filtered.filter(row => {
+        const packDate = row.sc_pack_date;
+        if (!packDate || packDate === '-') return false;
+        if (selectedSCPackDate && selectedShift) return isInShift(packDate, selectedSCPackDate, selectedShift);
+        if (selectedSCPackDate && !selectedShift) return isInShift(packDate, selectedSCPackDate, 'DS') || isInShift(packDate, selectedSCPackDate, 'NS');
+        if (!selectedSCPackDate && selectedShift) return getShiftFromDate(packDate) === selectedShift;
+        return true;
+      });
+    }
+    setFilteredRows(filtered);
+    setPage(0);
+  }, [searchTerm, data, selectedLineName, selectedDocNo, selectedSCPackDate, selectedMatName, selectedShift]);
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (event) => { setRowsPerPage(parseInt(event.target.value, 10)); setPage(0); };
+  const handleFilterChange = (color) => setSelectedColor(color === selectedColor ? '' : color);
+
+  const handleOpenPDFPreview = () => {
+    const pageRows = filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    setPreviewData(pageRows.map(row => ({ ...row })));
+    setSignatureData({ recordedBy: '', reviewedBy: '', qcManager: '' });
+    const now = new Date();
+    setExportDate(now.toISOString().split('T')[0]);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    setExportShift((currentMinutes >= 360 && currentMinutes < 1080) ? 'DS' : 'NS');
+    setExportPlant('');
+    setExportLine(selectedLineName || '');
+    setEditedCells({});
+    setSaveEditsError('');
+    setSaveEditsSuccess('');
+    setShowPDFPreview(true);
+  };
+
+  const saveEditedRows = async () => {
+    const changedRows = previewData
+      .map((row, rowIdx) => {
+        const changedFields = {};
+        EDITABLE_DATE_FIELDS.forEach(field => {
+          const key = `${rowIdx}_${field}`;
+          if (editedCells[key]) {
+            changedFields[field] = row[field] ?? null;
+          }
+        });
+        if (Object.keys(changedFields).length === 0) return null;
+        return { mapping_id: row.mapping_id, ...changedFields };
+      })
+      .filter(Boolean);
+
+    if (changedRows.length === 0) {
+      setSaveEditsError('ไม่มีข้อมูลที่แก้ไข');
+      return;
+    }
+
+    setIsSavingEdits(true);
+    setSaveEditsError('');
+    setSaveEditsSuccess('');
+    try {
+      const response = await fetch(`${API_URL}/api/pack/data/time`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ rows: changedRows }),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`บันทึกไม่สำเร็จ: ${response.status} - ${errText}`);
+      }
+      await response.json();
+      setSaveEditsSuccess(`บันทึกสำเร็จ ${changedRows.length} แถว`);
+      setEditedCells({});
+    } catch (err) {
+      setSaveEditsError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSavingEdits(false);
+    }
+  };
+
+  const saveSignatureToAPI = async (sigData, dataRows) => {
+    const mappingIds = dataRows.map(row => row.mapping_id).filter(id => id !== null && id !== undefined);
+    const pdfBlob = await generatePDFBlob(previewData, signatureData);
+    const formData = new FormData();
+    formData.append('pdf', pdfBlob, 'report.pdf');
+    formData.append('recorded_by', sigData.recordedBy || '');
+    formData.append('reviewed_by', sigData.reviewedBy || '');
+    formData.append('qc_manager', sigData.qcManager || '');
+    formData.append('date', exportDate || '');
+    formData.append('shift', exportShift || '');
+    formData.append('line', exportLine || '');
+    formData.append('plant', exportPlant || '');
+    formData.append('mapping_ids', JSON.stringify(mappingIds));
+    const response = await fetch(`${API_URL}/api/pack/data/pdf`, { method: 'POST', body: formData });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`บันทึกไม่สำเร็จ: ${response.status} - ${errText}`);
+    }
+    return await response.json();
+  };
+
+  const generatePDFBlob = async (dataRows, sigData = {}) => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 5;
+
+    doc.addFileToVFS('Sarabun-Regular.ttf', thSarabunBase64);
+    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+    doc.addFileToVFS('Sarabun-Bold.ttf', thSarabunBoldBase64);
+    doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
+    doc.setFont('Sarabun', 'normal');
+    doc.setLineWidth(0.03);
+
+    const drawRect = (x, y, w, h) => { doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.1); doc.rect(x, y, w, h); };
+    const fillRect = (x, y, w, h, rgb) => { doc.setFillColor(...rgb); doc.rect(x, y, w, h, 'F'); };
+    const drawText = (text, x, y, opts = {}) => {
+      const { fontSize = 7, align = 'center', bold = false, color = [0, 0, 0] } = opts;
+      doc.setFontSize(fontSize);
+      doc.setFont('THSarabunNew', bold ? 'bold' : 'normal');
+      doc.setTextColor(...color);
+      doc.text(String(text ?? ''), x, y, { align });
+      doc.setLineWidth(0.1);
+    };
+    const drawCell = (text, x, y, w, h, opts = {}) => {
+      const { fill, fontSize = 7, bold = false, align = 'center' } = opts;
+      if (fill) fillRect(x, y, w, h, fill);
+      drawRect(x, y, w, h);
+      const lines = String(text ?? '').split('\n');
+      const lineH = fontSize * 0.42;
+      const totalH = lines.length * lineH;
+      const startY = y + (h - totalH) / 2 + lineH * 0.5;
+      lines.forEach((line, i) => {
+        const tx = align === 'center' ? x + w / 2 : align === 'right' ? x + w - 1.5 : x + 1.5;
+        drawText(line, tx, startY + i * lineH, { fontSize, bold, align });
+      });
+    };
+
+    drawText('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', pageW / 2, 9, { fontSize: 10, bold: true, align: 'center' });
+    drawText('รายงานควบคุมเวลากระบวนการผลิต โรงผลิตอาหารสัตว์เลี้ยง (Delay Time for Production Control Report)', pageW / 2, 15, { fontSize: 8, align: 'center' });
+    drawText('F3PFPF67-0-25/08/25', pageW - margin, 9, { fontSize: 6, align: 'right' });
+
+    const infoY = 20;
+    const infoItems = [
+      { label: 'Date:', value: exportDate, width: 35 },
+      { label: 'Shift:', value: exportShift, width: 20 },
+      { label: 'Line:', value: exportLine, width: 25 },
+      { label: 'Plant:', value: exportPlant, width: 25 },
+    ];
+    let infoX = margin;
+    infoItems.forEach(({ label, value, width }) => {
+      drawText(label, infoX, infoY, { fontSize: 7, align: 'left', bold: true });
+      const labelWidth = doc.getTextWidth(label);
+      const lineStartX = infoX + labelWidth + 1;
+      const lineEndX = lineStartX + width;
+      doc.setDrawColor(0, 0, 0);
+      doc.line(lineStartX, infoY + 1, lineEndX, infoY + 1);
+      if (value) drawText(value, lineStartX + width / 2, infoY - 0.5, { fontSize: 7, align: 'center', color: [33, 150, 243] });
+      infoX = lineEndX + 4;
+    });
+    drawText('Page:....../ .......', pageW - margin, infoY, { fontSize: 7, align: 'right' });
+
+    const tX = margin; const tY = 24; const tW = pageW - margin * 2;
+    const colCode = 14; const colRM = 30; const colBatch = 18; const batchCols = 10;
+    const batchCellW = colBatch / batchCols; const colWeight = 13; const colGrpNo = 11;
+    const colDate = 15; const colHist = 15; const sensoryCellW = 9; const colSensory = sensoryCellW * 3;
+    const colPrepA = 13; const colCold1 = 13; const colColdOut1 = 13;
+    const colCold2 = 13; const colColdOut2 = 13; const colPacked = 13;
+    const colDBS1 = 10; const colDBS2 = 10; const colDBS3 = 10; const colDBS4 = 10;
+    const colRemark = tW - colCode - colRM - colBatch - colWeight - colGrpNo
+      - colDate - colHist - colSensory
+      - colPrepA - colCold1 - colColdOut1
+      - colCold2 - colColdOut2 - colPacked
+      - colDBS1 - colDBS2 - colDBS3 - colDBS4;
+    const h1 = 7; const h2 = 14; const headerH = h1 + h2;
+    const hFill = [210, 228, 255];
+    const minRows = 17;
+    const bottomReserved = 75;
+    const availableH = pageH - (tY + headerH) - bottomReserved;
+    const rowH = Math.floor((availableH / minRows) * 10) / 10;
+
+    let cx = tX; const cy = tY;
+    drawCell('โค้ด\n(Product\nCode)', cx, cy, colCode, headerH, { fill: hFill, bold: true, fontSize: 10 }); cx += colCode;
+    drawCell('วัตถุดิบ\n(Raw Mat.)', cx, cy, colRM, headerH, { fill: hFill, bold: true, fontSize: 7 }); cx += colRM;
+    fillRect(cx, cy, colBatch, h1, hFill); drawRect(cx, cy, colBatch, h1);
+    drawText('Batch', cx + colBatch / 2, cy + h1 / 2 + 2.5, { fontSize: 7, bold: true });
+    for (let i = 0; i < batchCols; i++) drawCell('', cx + i * batchCellW, cy + h1, batchCellW, h2, { fill: hFill, fontSize: 6 });
+    cx += colBatch;
+    drawCell('น้ำหนัก\n(nn.)\nWeight\n(kgs.)', cx, cy, colWeight, headerH, { fill: hFill, bold: true, fontSize: 6 }); cx += colWeight;
+    drawCell('ชุดที่\n(Batch)', cx, cy, colGrpNo, headerH, { fill: hFill, bold: true, fontSize: 6 }); cx += colGrpNo;
+    drawCell('วันที่-\nเวลา\nเตรียม', cx, cy, colDate, headerH, { fill: hFill, bold: true, fontSize: 6 }); cx += colDate;
+    drawCell('Hist. /ความ\nหนืด / อุณหภูมิ\nHist./ Viscosity\n/Temp', cx, cy, colHist, headerH, { fill: hFill, bold: true, fontSize: 6 }); cx += colHist;
+    fillRect(cx, cy, colSensory, h1, hFill); drawRect(cx, cy, colSensory, h1);
+    drawText('Sensory', cx + colSensory / 2, cy + h1 / 2 + 2.5, { fontSize: 7, bold: true });
+    [['สี', 'Color'], ['กลิ่น', 'Odor'], ['เนื้อสัมผัส', 'Texture']].forEach(([th, en], i) => {
+      drawCell(`${th}\n${en}`, cx + i * sensoryCellW, cy + h1, sensoryCellW, h2, { fill: hFill, fontSize: 6 });
+    }); cx += colSensory;
+    const timeGroupW = colPrepA + colCold1 + colColdOut1 + colCold2 + colColdOut2 + colPacked;
+    fillRect(cx, cy, timeGroupW, h1, hFill); drawRect(cx, cy, timeGroupW, h1);
+    drawText('เวลา (Time)', cx + timeGroupW / 2, cy + h1 / 2 + 2.5, { fontSize: 7, bold: true });
+    const timeCols = [
+      { label: 'เตรียมเสร็จ\n(A)', w: colPrepA },
+      { label: 'เข้าห้องเย็น 1\n(B)', w: colCold1 },
+      { label: 'ออกห้องเย็น 1\n(C)', w: colColdOut1 },
+      { label: 'เข้าห้องเย็น 2\n(D)', w: colCold2 },
+      { label: 'ออกห้องเย็น 2\n(E)', w: colColdOut2 },
+      { label: 'บรรจุเสร็จ\n(F)', w: colPacked },
+    ];
+    let tcx = cx;
+    timeCols.forEach(tc => { drawCell(tc.label, tcx, cy + h1, tc.w, h2, { fill: hFill, fontSize: 5 }); tcx += tc.w; });
+    cx += timeGroupW;
+    const delayGroupW = colDBS1 + colDBS2 + colDBS3 + colDBS4;
+    fillRect(cx, cy, delayGroupW, h1, hFill); drawRect(cx, cy, delayGroupW, h1);
+    drawText('ดีเลย์ (Delay time) (hr.)', cx + delayGroupW / 2, cy + h1 / 2 + 2.5, { fontSize: 6, bold: true });
+    [{ label: '1\n(B-A)', w: colDBS1 }, { label: '2\n(C-B)', w: colDBS2 }, { label: '3\n(F-C)', w: colDBS3 }, { label: '4\n(B-A)+(F-C)', w: colDBS4 }]
+      .forEach(dc => { drawCell(dc.label, cx, cy + h1, dc.w, h2, { fill: hFill, fontSize: 6 }); cx += dc.w; });
+    drawCell('หมายเหตุ\n(Remark)', cx, cy, colRemark, headerH, { fill: hFill, bold: true, fontSize: 6 });
+
+    const toDisplay = (v) => {
+      if (v === null || v === undefined || v === '') return '-';
+      if (typeof v === 'boolean') return v ? 'ผ่าน' : 'ไม่ผ่าน';
+      return String(v);
+    };
+
+ const drawCellWithOverFlag = (text, rx, ry, w, rowH, opts, isOver) => {
+  const overFill = [255, 235, 235];
+  const fill = isOver ? overFill : opts.fill;
+  drawCell(toDisplay(text), rx, ry, w, rowH, { ...opts, fill });
+};
+
+    const pageRows = dataRows;
+    pageRows.forEach((row, i) => {
+      const ry = tY + headerH + i * rowH;
+      if (ry + rowH > pageH - 22) return;
+      const m = getRemappedRow(row);
+      const sp = isSpecialGroup(row);
+      const rowFill = i % 2 === 0 ? [255, 255, 255] : [240, 248, 255];
+
+      const s1 = parseStandardDBSToMinutes(row.DBS1 ?? row.dbs1);
+      const s2 = parseStandardDBSToMinutes(row.DBS2 ?? row.dbs2);
+      const s3 = parseStandardDBSToMinutes(row.DBS3 ?? row.dbs3);
+      const s4 = parseStandardDBSToMinutes(row.DBS4 ?? row.dbs4);
+      const c1 = calcDBS1Minutes(m, row);
+      const c2 = calcDBS2Minutes(m, sp);
+      const c3 = calcDBS3Minutes(m, sp);
+      const c4 = calcDBS4Minutes(m, sp, row);
+      const over1 = s1 !== null && c1 !== null && c1 > s1;
+      const over2 = !sp && s2 !== null && c2 !== null && c2 > s2;
+      const over3 = !sp && s3 !== null && c3 !== null && c3 > s3;
+      const over4 = s4 !== null && c4 !== null && c4 > s4;
+
+      let rx = tX;
+      const cell = (text, w, opts = {}) => { drawCell(toDisplay(text), rx, ry, w, rowH, { fill: rowFill, fontSize: 6, ...opts }); rx += w; };
+      const cellOver = (text, w, isOver, opts = {}) => { drawCellWithOverFlag(text, rx, ry, w, rowH, { fill: rowFill, fontSize: 6, ...opts }, isOver); rx += w; };
+
+      cell(row.production, colCode);
+      cell(row.mat_name, colRM, { align: 'left' });
+      const batchStr = String(row.batch_after ?? '').padEnd(batchCols, ' ');
+      for (let b = 0; b < batchCols; b++) cell(batchStr[b] || '', batchCellW, { fontSize: 5 });
+      cell(row.weight_RM, colWeight);
+      cell(row.group_no, colGrpNo);
+      cell(formatDateTimeForPDF(row.rmit_date), colDate, { fontSize: 5.5 });
+      cell(row.detail, colHist);
+      cell(row.color, sensoryCellW);
+      cell(row.odor, sensoryCellW);
+      cell(row.texture, sensoryCellW);
+      cell(formatDateTimeForPDF(m._A), colPrepA, { fontSize: 5 });
+      cell(formatDateTimeForPDF(m._B), colCold1, { fontSize: 5 });
+      cell(formatDateTimeForPDF(m._C), colColdOut1, { fontSize: 5 });
+      cell(sp ? '-' : formatDateTimeForPDF(m._D), colCold2, { fontSize: 5 });
+      cell(sp ? '-' : formatDateTimeForPDF(m._E), colColdOut2, { fontSize: 5 });
+      cell(formatDateTimeForPDF(m._F), colPacked, { fontSize: 5 });
+      cellOver(calculateDBS1FromMapped(m, row), colDBS1, over1);
+      cellOver(calculateDBS2FromMapped(m, sp), colDBS2, over2);
+      cellOver(calculateDBS3FromMapped(m, sp), colDBS3, over3);
+      cellOver(calculateDBS4FromMapped(m, sp, row), colDBS4, over4);
+      cell('', colRemark);
+    });
+
+    for (let e = pageRows.length; e < minRows; e++) {
+      const ry = tY + headerH + e * rowH; let rx = tX;
+      const emptyCell = (w) => { drawRect(rx, ry, w, rowH); rx += w; };
+      [colCode, colRM, ...Array(batchCols).fill(batchCellW), colWeight, colGrpNo, colDate, colHist,
+        sensoryCellW, sensoryCellW, sensoryCellW,
+        colPrepA, colCold1, colColdOut1, colCold2, colColdOut2, colPacked,
+        colDBS1, colDBS2, colDBS3, colDBS4, colRemark].forEach(emptyCell);
+    }
+
+    const finalY = tY + headerH + Math.max(pageRows.length, minRows) * rowH + 4;
+    const legendY = finalY + 8;
+    const noteRowH = 4;
+    const hFillLegend = [210, 228, 255];
+
+    const drawMatTable = (startX, startY, colMatW, colChW, rows) => {
+      drawCell('วัตถุดิบ', startX, startY, colMatW, noteRowH * 2, { fill: hFillLegend, bold: true, fontSize: 7 });
+      fillRect(startX + colMatW, startY, colChW * 4, noteRowH, hFillLegend);
+      drawRect(startX + colMatW, startY, colChW * 4, noteRowH);
+      drawText('ช่วงที่', startX + colMatW + (colChW * 4) / 2, startY + noteRowH / 2 + 1, { fontSize: 7, bold: true });
+      [1, 2, 3, 4].forEach((n, i) => drawCell(String(n), startX + colMatW + i * colChW, startY + noteRowH, colChW, noteRowH, { fill: hFillLegend, bold: true, fontSize: 7 }));
+      rows.forEach((r, i) => {
+        const ry = startY + noteRowH * 2 + i * noteRowH;
+        drawCell(r.mat, startX, ry, colMatW, noteRowH, { fontSize: 6, align: 'left' });
+        r.v.forEach((val, j) => drawCell(String(val), startX + colMatW + j * colChW, ry, colChW, noteRowH, { fontSize: 7 }));
+      });
+    };
+
+    const blk1X = margin; const colNote = 20; const colDesc = 25;
+    drawCell('หมายเหตุ', blk1X, legendY, colNote, noteRowH, { fill: hFillLegend, bold: true, fontSize: 7 });
+    drawCell('คำจำกัดความ', blk1X + colNote, legendY, colDesc, noteRowH, { fill: hFillLegend, bold: true, fontSize: 7 });
+    [{ note: 'ช่วงที่ 1', desc: 'เตรียมเสร็จ - เข้าห้องเย็น' }, { note: 'ช่วงที่ 2', desc: 'เข้าห้องเย็น - ออกห้องเย็น' }, { note: 'ช่วงที่ 3', desc: 'ออกห้องเย็น - บรรจุเสร็จ' }, { note: 'ช่วงที่ 4', desc: 'เตรียมเสร็จ - บรรจุเสร็จ' }]
+      .forEach((r, i) => { const ry = legendY + noteRowH + i * noteRowH; drawCell(r.note, blk1X, ry, colNote, noteRowH, { fontSize: 7 }); drawCell(r.desc, blk1X + colNote, ry, colDesc, noteRowH, { fontSize: 7, align: 'left' }); });
+
+    const blk2X = blk1X + colNote + colDesc + 4;
+    drawMatTable(blk2X, legendY, 25, 5, [
+      { mat: 'เนื้อสัตว์ (วัว/ เป็ด/ แกะ)', v: [3, 9, 2, 5] }, { mat: 'เนื้อไก่ (ไก่/ ไก่งวง)', v: [2, 5, 2, 4] },
+      { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [6, 6, 2, 8] },
+      { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 3, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
+    ]);
+    const blk3X = blk2X + 25 + 5 * 4 + 4;
+    drawMatTable(blk3X, legendY, 25, 5, [
+      { mat: 'ปลาสับสด/ เนื้อไก่สด', v: [1, 6, 1, 2] }, { mat: 'ผัก-ผลไม้สด/ ผัก+ผลไม้แช่/ ผัก+ผลไม้ต้มแช่', v: [2, 10, 2, 4] },
+      { mat: 'ผักต้ม/ ลวก/ ฟักทองต้ม', v: [2, 6, 2, 4] }, { mat: 'ปลากระตัก/ ปลาข้าวสาร', v: [2, 6, 2, 4] },
+      { mat: 'ข้าว/ ปลายข้าว', v: [2, 9, 2, 4] }, { mat: 'น้ำอบไก่/ น้ำอบ MDM', v: [1, '-', '-', '-'] },
+    ]);
+    const blk4X = blk3X + 25 + 5 * 4 + 4;
+    drawMatTable(blk4X, legendY, 25, 5, [
+      { mat: 'Chunk', v: [1, 12, 2, 3] }, { mat: 'Stuff Chunk (แท่ง)', v: [2, 48, 3, 5] },
+      { mat: 'Stuff Chunk (เส้น)', v: [2, 9, 3, 5] }, { mat: 'CCM/ MDM อบ', v: [4, 2, 2, 6] },
+      { mat: 'CCM/ MDM อบ (Cai 300)*', v: ['-', '-', '-', 3] }, { mat: 'สาวละสาย/ เกรวี่', v: ['-', 6, '-', 2] },
+    ]);
+
+    const legendBlockH = noteRowH * 2 + 6 * noteRowH;
+    const footerY = legendY + legendBlockH + 5;
+    drawText('เอกสารการควบคุม Delay time:', margin, footerY, { fontSize: 7, align: 'left' });
+    drawText('W3QCPF18, SQCIS001/ ISPP018', margin, footerY + 5, { fontSize: 7, align: 'left' });
+
+    const sigY = footerY + 5 + 8;
+    [
+      { label: 'Recorded by :', name: sigData.recordedBy || '', sub: '(Production Staff)', x: margin + 25 },
+      { label: 'Reviewed by :', name: sigData.reviewedBy || '', sub: '(Production Section Manager)', x: pageW / 2 },
+      { label: '', name: sigData.qcManager || '', sub: '(Quality Control Section Manager)', x: pageW - margin - 38 },
+    ].forEach(({ label, name, sub, x }) => {
+      if (label) drawText(label, x, sigY, { fontSize: 7, align: 'center' });
+      if (name) drawText(name, x, sigY + 4, { fontSize: 7, bold: true, align: 'center' });
+      drawText(sub, x, sigY + 7, { fontSize: 7, align: 'center' });
+    });
+
+    return doc.output('blob');
+  };
+
+  const exportToPDFWithData = async (dataRows, sigData = {}) => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 5;
+
+    doc.addFileToVFS('Sarabun-Regular.ttf', thSarabunBase64);
+    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+    doc.addFileToVFS('Sarabun-Bold.ttf', thSarabunBoldBase64);
+    doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
+    doc.setFont('Sarabun', 'normal');
+    doc.setLanguage('th');
+    doc.setLineWidth(0.05);
+
+    const drawRect = (x, y, w, h) => { doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.1); doc.rect(x, y, w, h); };
+    const fillRect = (x, y, w, h, rgb) => { doc.setFillColor(...rgb); doc.rect(x, y, w, h, 'F'); };
+    const drawText = (text, x, y, opts = {}) => {
+      const { fontSize = 8, align = 'center', bold = false, color = [0, 0, 0] } = opts;
+      doc.setFont('Sarabun', bold ? 'bold' : 'normal');
+      doc.setFontSize(fontSize);
+      doc.setTextColor(...color);
+      doc.text(String(text ?? '').normalize('NFC'), x, y, { align });
+    };
+    const drawCell = (text, x, y, w, h, opts = {}) => {
+      const { fill, fontSize = 8, bold = false, align = 'center' } = opts;
+      if (fill) fillRect(x, y, w, h, fill);
+      drawRect(x, y, w, h);
+      const lines = String(text ?? '').split('\n');
+      const lineH = fontSize * 0.5;
+      const totalH = lines.length * lineH;
+      const startY = y + (h - totalH) / 2 + lineH * 0.8;
+      lines.forEach((line, i) => {
+        const tx = align === 'center' ? x + w / 2 : align === 'right' ? x + w - 1.5 : x + 1.5;
+        drawText(line, tx, startY + i * lineH, { fontSize, bold, align });
+      });
+    };
+
+    const tX = margin; const tY = 29; const tW = pageW - margin * 2;
+    const colCode = 14; const colRM = 50; const colBatch = 18; const batchCols = 10;
+    const batchCellW = colBatch / batchCols; const colWeight = 10; const colGrpNo = 9;
+    const colDate = 15; const colHist = 15; const sensoryCellW = 7; const colSensory = sensoryCellW * 3;
+    const colPrepA = 13; const colCold1 = 13; const colColdOut1 = 13;
+    const colCold2 = 13; const colColdOut2 = 13; const colPacked = 13;
+    const colDBS1 = 10; const colDBS2 = 10; const colDBS3 = 10; const colDBS4 = 10;
+    const colRemark = tW - colCode - colRM - colBatch - colWeight - colGrpNo
+      - colDate - colHist - colSensory
+      - colPrepA - colCold1 - colColdOut1
+      - colCold2 - colColdOut2 - colPacked
+      - colDBS1 - colDBS2 - colDBS3 - colDBS4;
+    const h1 = 7; const h2 = 14; const headerH = h1 + h2; const hFill = [210, 228, 255];
+    const minRows = 17;
+    const bottomReserved = 80;
+    const availableH = pageH - (tY + headerH) - bottomReserved;
+    const rowH = Math.floor((availableH / minRows) * 10) / 10;
+
+    const drawPageHeader = (pageNumber, totalPages) => {
+      drawText('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', pageW / 2, 12, { fontSize: 16, bold: true, align: 'center' });
+      drawText('รายงานควบคุมเวลากระบวนการผลิต โรงผลิตอาหารสัตว์เลี้ยง (Delay Time for Production Control Report)', pageW / 2, 19, { fontSize: 10, align: 'center' });
+      drawText('F3PFPF67-0-25/08/25', pageW - margin, 12, { fontSize: 8, align: 'right' });
+      const infoY = 24;
+      const infoItems = [
+        { label: 'Date:', value: exportDate || '', dotWidth: 30 },
+        { label: 'Shift:', value: exportShift || '', dotWidth: 15 },
+        { label: 'Line:', value: exportLine || '', dotWidth: 20 },
+        { label: 'Plant:', value: exportPlant || '', dotWidth: 20 },
+      ];
+      let infoX = margin;
+      infoItems.forEach(({ label, value, dotWidth }) => {
+        drawText(label, infoX, infoY, { fontSize: 9, align: 'left' });
+        const labelWidth = doc.getTextWidth(label);
+        const lineStartX = infoX + labelWidth + 1;
+        const lineEndX = lineStartX + dotWidth;
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.2);
+        doc.line(lineStartX, infoY + 1, lineEndX, infoY + 1); doc.setLineWidth(0.5);
+        if (value) drawText(value, lineStartX + dotWidth / 2, infoY - 0.5, { fontSize: 9, align: 'center', color: [0, 0, 0] });
+        infoX = lineEndX + 4;
+      });
+      drawText(`Page: ${pageNumber} / ${totalPages}`, pageW - margin, infoY, { fontSize: 9, align: 'right' });
+    };
+
+    const drawTableHeader = () => {
+      let cx = tX; const cy = tY;
+      drawCell('โค้ด\n(Product\nCode)', cx, cy, colCode, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colCode;
+      drawCell('วัตถุดิบ\n(Raw Mat.)', cx, cy, colRM, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colRM;
+      fillRect(cx, cy, colBatch, h1, hFill); drawRect(cx, cy, colBatch, h1);
+      drawText('Batch', cx + colBatch / 2, cy + h1 / 2 + 2, { fontSize: 5, bold: true });
+      for (let i = 0; i < batchCols; i++) drawCell('', cx + i * batchCellW, cy + h1, batchCellW, h2, { fill: hFill, fontSize: 5 });
+      cx += colBatch;
+      drawCell('น้ำหนัก\n(kgs.)', cx, cy, colWeight, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colWeight;
+      drawCell('ชุดที่', cx, cy, colGrpNo, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colGrpNo;
+      drawCell('วันที่-\nเวลาเตรียม', cx, cy, colDate, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colDate;
+      drawCell('Hist./\nViscosity\n/Temp', cx, cy, colHist, headerH, { fill: hFill, bold: true, fontSize: 5 }); cx += colHist;
+      fillRect(cx, cy, colSensory, h1, hFill); drawRect(cx, cy, colSensory, h1);
+      drawText('Sensory', cx + colSensory / 2, cy + h1 / 2 + 2, { fontSize: 5, bold: true });
+      [['สี', 'Color'], ['กลิ่น', 'Odor'], ['เนื้อสัมผัส', 'Texture']].forEach(([th, en], i) =>
+        drawCell(`${th}\n${en}`, cx + i * sensoryCellW, cy + h1, sensoryCellW, h2, { fill: hFill, fontSize: 5 })
+      ); cx += colSensory;
+      const timeGroupW = colPrepA + colCold1 + colColdOut1 + colCold2 + colColdOut2 + colPacked;
+      fillRect(cx, cy, timeGroupW, h1, hFill); drawRect(cx, cy, timeGroupW, h1);
+      drawText('เวลา (Time)', cx + timeGroupW / 2, cy + h1 / 2 + 2, { fontSize: 5, bold: true });
+      [
+        { label: 'เตรียมเสร็จ\n(A)', w: colPrepA },
+        { label: 'เข้าห้องเย็น 1\n(B)', w: colCold1 },
+        { label: 'ออกห้องเย็น 1\n(C)', w: colColdOut1 },
+        { label: 'เข้าห้องเย็น 2\n(D)', w: colCold2 },
+        { label: 'ออกห้องเย็น 2\n(E)', w: colColdOut2 },
+        { label: 'บรรจุเสร็จ\n(F)', w: colPacked },
+      ].forEach((tc, i, arr) => {
+        let tcx2 = cx;
+        arr.slice(0, i).forEach(t => tcx2 += t.w);
+        drawCell(tc.label, tcx2, cy + h1, tc.w, h2, { fill: hFill, fontSize: 5 });
+      }); cx += timeGroupW;
+      const delayGroupW = colDBS1 + colDBS2 + colDBS3 + colDBS4;
+      fillRect(cx, cy, delayGroupW, h1, hFill); drawRect(cx, cy, delayGroupW, h1);
+      drawText('Delay time (hr.)', cx + delayGroupW / 2, cy + h1 / 2 + 2, { fontSize: 5, bold: true });
+      [{ label: '1\n(B-A)', w: colDBS1 }, { label: '2\n(C-B)', w: colDBS2 }, { label: '3\n(F-C)', w: colDBS3 }, { label: '4', w: colDBS4 }]
+        .forEach(dc => { drawCell(dc.label, cx, cy + h1, dc.w, h2, { fill: hFill, fontSize: 5 }); cx += dc.w; });
+      drawCell('หมายเหตุ\n(Remark)', cx, cy, colRemark, headerH, { fill: hFill, bold: true, fontSize: 5 });
+    };
+
+    const drawPageFooter = (sigData) => {
+      const finalY = tY + headerH + minRows * rowH + 4;
+      const legendY = finalY + 8;
+      const noteRowH = 4;
+      const hFillLegend = [210, 228, 255];
+
+      const drawMatTable2 = (startX, startY, colMatW, colChW, rows) => {
+        drawCell('วัตถุดิบ', startX, startY, colMatW, noteRowH * 2, { fill: hFillLegend, bold: true, fontSize: 5.5 });
+        fillRect(startX + colMatW, startY, colChW * 4, noteRowH, hFillLegend); drawRect(startX + colMatW, startY, colChW * 4, noteRowH);
+        drawText('ช่วงที่', startX + colMatW + (colChW * 4) / 2, startY + noteRowH / 2 + 1.2, { fontSize: 5.5, bold: true });
+        [1, 2, 3, 4].forEach((n, i) => drawCell(String(n), startX + colMatW + i * colChW, startY + noteRowH, colChW, noteRowH, { fill: hFillLegend, bold: true, fontSize: 5.5 }));
+        rows.forEach((r, i) => {
+          const ry = startY + noteRowH * 2 + i * noteRowH;
+          drawCell(r.mat, startX, ry, colMatW, noteRowH, { fontSize: 5.5, align: 'left' });
+          r.v.forEach((val, j) => drawCell(String(val), startX + colMatW + j * colChW, ry, colChW, noteRowH, { fontSize: 5.5 }));
+        });
+      };
+
+      const blk1X = margin; const colNote = 12.5; const colDesc = 32;
+      drawCell('หมายเหตุ', blk1X, legendY, colNote, noteRowH, { fill: hFillLegend, bold: true, fontSize: 5.5 });
+      drawCell('คำจำกัดความ', blk1X + colNote, legendY, colDesc, noteRowH, { fill: hFillLegend, bold: true, fontSize: 5.5 });
+      [{ note: 'ช่วงที่ 1', desc: 'เตรียมเสร็จ - เข้าห้องเย็น' }, { note: 'ช่วงที่ 2', desc: 'เข้าห้องเย็น - ออกห้องเย็น' }, { note: 'ช่วงที่ 3', desc: 'ออกห้องเย็น - บรรจุเสร็จ' }, { note: 'ช่วงที่ 4', desc: 'เตรียมเสร็จ - บรรจุเสร็จ' }]
+        .forEach((r, i) => { const ry = legendY + noteRowH + i * noteRowH; drawCell(r.note, blk1X, ry, colNote, noteRowH, { fontSize: 5.5 }); drawCell(r.desc, blk1X + colNote, ry, colDesc, noteRowH, { fontSize: 5.5, align: 'left' }); });
+      const blk2X = blk1X + colNote + colDesc + 4;
+      drawMatTable2(blk2X, legendY, 28, 5, [
+        { mat: 'เนื้อสัตว์ (วัว/ เป็ด/ แกะ)', v: [3, 9, 2, 5] }, { mat: 'เนื้อไก่ (ไก่/ ไก่งวง)', v: [2, 5, 2, 4] },
+        { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [6, 6, 2, 8] },
+        { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 3, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
+      ]);
+      const blk3X = blk2X + 28 + 5 * 4 + 4;
+      drawMatTable2(blk3X, legendY, 38, 5, [
+        { mat: 'ปลาสับสด/ เนื้อไก่สด', v: [1, 6, 1, 2] }, { mat: 'ผัก-ผลไม้สด/ ผัก+ผลไม้แช่/ ผัก+ผลไม้ต้มแช่', v: [2, 10, 2, 4] },
+        { mat: 'ผักต้ม/ ลวก/ ฟักทองต้ม', v: [2, 6, 2, 4] }, { mat: 'ปลากระตัก/ ปลาข้าวสาร', v: [2, 6, 2, 4] },
+        { mat: 'ข้าว/ ปลายข้าว', v: [2, 9, 2, 4] }, { mat: 'น้ำอบไก่/ น้ำอบ MDM', v: [1, '-', '-', '-'] },
+      ]);
+      const blk4X = blk3X + 38 + 5 * 4 + 4;
+      drawMatTable2(blk4X, legendY, 27, 5, [
+        { mat: 'Chunk', v: [1, 12, 2, 3] }, { mat: 'Stuff Chunk (แท่ง)', v: [2, 48, 3, 5] },
+        { mat: 'Stuff Chunk (เส้น)', v: [2, 9, 3, 5] }, { mat: 'CCM/ MDM อบ', v: [4, 2, 2, 6] },
+        { mat: 'CCM/ MDM อบ (Cai 300)*', v: ['-', '-', '-', 3] }, { mat: 'สาวละสาย/ เกรวี่', v: ['-', 6, '-', 2] },
+      ]);
+
+      const legendBlockH = noteRowH * 2 + 6 * noteRowH;
+      const footerY = legendY + legendBlockH + 5;
+      drawText('เอกสารการควบคุม Delay time:', margin, footerY, { fontSize: 8, align: 'left' });
+      drawText('W3QCPF18, SQCIS001/ ISPP018', margin, footerY + 5, { fontSize: 8, align: 'left' });
+
+      const sigY = footerY + 5 + 7;
+      [
+        { label: 'Recorded by :', name: sigData.recordedBy || '', sub: '(Production Staff)', x: margin + 40, lineWidth: 40 },
+        { label: 'Reviewed by :', name: sigData.reviewedBy || '', sub: '(Production Section Manager)', x: pageW / 2, lineWidth: 40 },
+        { label: '', name: sigData.qcManager || '', sub: '(Quality Control Section Manager)', x: pageW - margin - 38, lineWidth: 40 },
+      ].forEach(({ label, name, sub, x, lineWidth }) => {
+        if (label) { const labelWidth = doc.getTextWidth(label); drawText(label, x - lineWidth / 2 - labelWidth - 2, sigY, { fontSize: 8, align: 'left' }); }
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.2);
+        doc.line(x - lineWidth / 2, sigY + 1, x + lineWidth / 2, sigY + 1); doc.setLineWidth(0.5);
+        if (name) drawText(name, x, sigY - 0.5, { fontSize: 8, bold: true, align: 'center' });
+        drawText(sub, x, sigY + 5, { fontSize: 8, align: 'center' });
+      });
+    };
+
+    const toDisplay = (v, isSensory = false) => {
+      if (v === null || v === undefined || v === '') return '-';
+      if (typeof v === 'boolean') return isSensory ? (v ? 'ผ่าน' : 'ไม่ผ่าน') : (v ? '✓' : '✗');
+      return String(v);
+    };
+const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
+  const overFill = [255, 235, 235];
+  const fill = isOver ? overFill : opts.fill;
+  drawCell(toDisplay(text), rx, ry, w, rowH, { ...opts, fill });
+};
+
+    const totalPages = Math.ceil(dataRows.length / minRows);
+
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      if (pageNum > 1) doc.addPage();
+      drawPageHeader(pageNum, totalPages);
+      drawTableHeader();
+
+      const startIdx = (pageNum - 1) * minRows;
+      const endIdx = Math.min(startIdx + minRows, dataRows.length);
+      const pageRows = dataRows.slice(startIdx, endIdx);
+
+      pageRows.forEach((row, i) => {
+        const ry = tY + headerH + i * rowH;
+        const rowFill = i % 2 === 0 ? [255, 255, 255] : [240, 248, 255];
+        const m = getRemappedRow(row);
+        const sp = isSpecialGroup(row);
+
+        const s1 = parseStandardDBSToMinutes(row.DBS1 ?? row.dbs1);
+        const s2 = parseStandardDBSToMinutes(row.DBS2 ?? row.dbs2);
+        const s3 = parseStandardDBSToMinutes(row.DBS3 ?? row.dbs3);
+        const s4 = parseStandardDBSToMinutes(row.DBS4 ?? row.dbs4);
+        const c1 = calcDBS1Minutes(m, row);
+        const c2 = calcDBS2Minutes(m, sp);
+        const c3 = calcDBS3Minutes(m, sp);
+        const c4 = calcDBS4Minutes(m, sp, row);
+        const over1 = s1 !== null && c1 !== null && c1 > s1;
+        const over2 = !sp && s2 !== null && c2 !== null && c2 > s2;
+        const over3 = !sp && s3 !== null && c3 !== null && c3 > s3;
+        const over4 = s4 !== null && c4 !== null && c4 > s4;
+
+        let rx = tX;
+        const cell = (text, w, opts = {}, isSensory = false) => {
+          drawCell(toDisplay(text, isSensory), rx, ry, w, rowH, { fill: rowFill, fontSize: 8, ...opts }); rx += w;
+        };
+        const cellOver = (text, w, isOver, opts = {}) => {
+          drawCellWithOverFlagMP(text, rx, ry, w, rowH, { fill: rowFill, fontSize: 8, ...opts }, isOver); rx += w;
+        };
+
+        cell(row.production, colCode, { fontSize: 6.5, bold: true });
+        cell(row.mat_name, colRM, { align: 'left', fontSize: 6 });
+        const batchStr = String(row.batch_after ?? '').padEnd(batchCols, ' ');
+        for (let b = 0; b < batchCols; b++) cell(batchStr[b] || '', batchCellW, { fontSize: 5 });
+        cell(row.weight_RM, colWeight);
+        cell(row.group_no, colGrpNo);
+        cell(formatDateTimeForPDF(row.rmit_date), colDate, { fontSize: 5, bold: true });
+        cell(row.detail, colHist, { fontSize: 7, bold: true });
+        cell(row.color, sensoryCellW, { fontSize: 7 }, true);
+        cell(row.odor, sensoryCellW, { fontSize: 7 }, true);
+        cell(row.texture, sensoryCellW, { fontSize: 7 }, true);
+        cell(formatDateTimeForPDF(m._A), colPrepA, { fontSize: 5, bold: true });
+        cell(formatDateTimeForPDF(m._B), colCold1, { fontSize: 5, bold: true });
+        cell(formatDateTimeForPDF(m._C), colColdOut1, { fontSize: 5, bold: true });
+        cell(sp ? '-' : formatDateTimeForPDF(m._D), colCold2, { fontSize: 5, bold: true });
+        cell(sp ? '-' : formatDateTimeForPDF(m._E), colColdOut2, { fontSize: 5, bold: true });
+        cell(formatDateTimeForPDF(m._F), colPacked, { fontSize: 5, bold: true });
+        cellOver(calculateDBS1FromMapped(m, row), colDBS1, over1, { fontSize: 5, bold: true });
+        cellOver(calculateDBS2FromMapped(m, sp), colDBS2, over2, { fontSize: 5, bold: true });
+        cellOver(calculateDBS3FromMapped(m, sp), colDBS3, over3, { fontSize: 5, bold: true });
+        cellOver(calculateDBS4FromMapped(m, sp, row), colDBS4, over4, { fontSize: 5, bold: true });
+        cell('', colRemark);
+      });
+
+      const remainingRows = minRows - pageRows.length;
+      for (let e = 0; e < remainingRows; e++) {
+        const ry = tY + headerH + (pageRows.length + e) * rowH;
+        let rx = tX;
+        const emptyCell = (w) => { drawRect(rx, ry, w, rowH); rx += w; };
+        [colCode, colRM, ...Array(batchCols).fill(batchCellW), colWeight, colGrpNo, colDate, colHist,
+          sensoryCellW, sensoryCellW, sensoryCellW,
+          colPrepA, colCold1, colColdOut1, colCold2, colColdOut2, colPacked,
+          colDBS1, colDBS2, colDBS3, colDBS4, colRemark].forEach(emptyCell);
+      }
+
+      drawPageFooter(sigData);
+    }
+
+    doc.save(`F3PFPF67_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportToExcel = () => {
+    const headerNames = {
+      production: "แผนการผลิต", mat_name: "รายชื่อวัตถุดิบ", batch_after: "Batch",
+      group_no: "ชุดที่", rmit_date: "เวลาเตรียมเสร็จ", color: "สี", odor: "กลิ่น",
+      texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
+      come_cold_date: "เข้าห้องเย็น1", come_cold_date_two: "เข้าห้องเย็น2",
+      come_cold_date_three: "เข้าห้องเย็น3", out_cold_date: "ออกห้องเย็น1",
+      out_cold_date_two: "ออกห้องเย็น2", out_cold_date_three: "ออกห้องเย็น3",
+      sc_pack_date: "บรรจุเสร็จ", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4"
+    };
+
+    const exportData = filteredRows.map(row => {
+      const m = getRemappedRow(row);
+      const sp = isSpecialGroup(row);
+      const exportRow = {};
+      displayColumns.forEach(col => {
+        switch (col) {
+          case 'dbs1': exportRow[headerNames[col]] = calculateDBS1FromMapped(m, row); break;
+          case 'dbs2': exportRow[headerNames[col]] = calculateDBS2FromMapped(m, sp); break;
+          case 'dbs3': exportRow[headerNames[col]] = calculateDBS3FromMapped(m, sp); break;
+          case 'dbs4': exportRow[headerNames[col]] = calculateDBS4FromMapped(m, sp, row); break;  // ✅ เพิ่ม row
+          case 'rmit_date': exportRow[headerNames[col]] = m._A ?? '-'; break;
+          case 'come_cold_date': exportRow[headerNames[col]] = m._B ?? '-'; break;
+          case 'out_cold_date': exportRow[headerNames[col]] = m._C ?? '-'; break;
+          case 'come_cold_date_two': exportRow[headerNames[col]] = sp ? '-' : (m._D ?? '-'); break;
+          case 'out_cold_date_two': exportRow[headerNames[col]] = sp ? '-' : (m._E ?? '-'); break;
+          case 'come_cold_date_three': exportRow[headerNames[col]] = sp ? '-' : (m._D3 ?? '-'); break;
+          case 'out_cold_date_three': exportRow[headerNames[col]] = sp ? '-' : (m._E3 ?? '-'); break;
+          case 'sc_pack_date': exportRow[headerNames[col]] = m._F ?? '-'; break;
+          default: exportRow[headerNames[col]] = row[col] ?? '-';
+        }
+      });
+      return exportRow;
+    });
+
+    const headers = displayColumns.map(col => headerNames[col]);
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => headers.map(h => `"${row[h] || '-'}"`).join(','))
+    ].join('\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', `prep_data_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const totalCustomWidth = Object.values(CUSTOM_COLUMN_WIDTHS).reduce((sum, width) => sum + parseInt(width), 0);
+  const remainingWidth = `calc((100% - ${totalCustomWidth}px) / ${displayColumns.length})`;
+  const columnWidths = Array(displayColumns.length).fill(remainingWidth);
+
+  const headerNames = {
+    production: "แผนการผลิต", mat_name: "รายชื่อวัตถุดิบ", batch_after: "Batch",
+    group_no: "ชุดที่", rmit_date: "เวลาเตรียมเสร็จ (A)", color: "สี", odor: "กลิ่น",
+    texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
+    come_cold_date: "เข้าห้องเย็น1 (B)", come_cold_date_two: "เข้าห้องเย็น2 (D)",
+    come_cold_date_three: "เข้าห้องเย็น3", out_cold_date: "ออกห้องเย็น1 (C)",
+    out_cold_date_two: "ออกห้องเย็น2 (E)", out_cold_date_three: "ออกห้องเย็น3",
+    sc_pack_date: "บรรจุเสร็จ (F)", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4"
+  };
+
+  const getColumnWidth = (header) => {
+    if (["production"].includes(header)) return "150px";
+    if (header === "mat_name") return "200px";
+    if (["rmit_date", "color", "odor", "texture", "out_cold_date", "out_cold_date_two", "out_cold_date_three", "come_cold_date", "come_cold_date_two", "come_cold_date_three", "sc_pack_date"].includes(header)) return "150px";
+    if (["weight_RM"].includes(header)) return "90px";
+    if (header === "batch_after") return "120px";
+    if (header === "group_no") return "120px";
+    if (header === "detail") return "150px";
+    if (["dbs1", "dbs2", "dbs3", "dbs4"].includes(header)) return "130px";
+    return "150px";
+  };
+
+  const handleDeleteItemWithDelay = (row) => handleOpenDeleteModal({ ...row });
+
+  const editedCount = Object.keys(editedCells).length;
+
+  return (
+    <Paper sx={{
+      width: '100%', overflow: 'hidden',
+      boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
+      borderRadius: '16px',
+      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+    }}>
+      <style>{`
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .edit-dot { animation: pulse 1.5s infinite; }
+
+        /* Calendar/clock icons */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          opacity: 0.6;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
+        }
+
+        /* Custom 24h time selects */
+        .time24-select {
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: "tnum";
+        }
+      `}</style>
+
+      {/* Header */}
+      <Box sx={{ background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)', padding: '20px 24px', borderRadius: '16px 16px 0 0' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2, marginBottom: 2 }}>
+          <TextField
+            variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหา..."
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><SearchIcon style={{ color: '#2196F3' }} /></InputAdornment>,
+              sx: { height: "44px", backgroundColor: '#fff', borderRadius: '12px' }
+            }}
+            sx={{ "& .MuiOutlinedInput-root": { height: "44px", fontSize: "14px", borderRadius: "12px", color: "#546E7A", '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: '#2196F3' }, '&.Mui-focused fieldset': { borderColor: '#2196F3', borderWidth: '2px' } }, "& input": { padding: "10px" } }}
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton onClick={exportToExcel}
+              sx={{ backgroundColor: '#fff', color: '#4CAF50', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#E8F5E9', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(76,175,80,0.25)' } }}
+              title="Export เป็น CSV">
+              <FileDownloadIcon />
+            </IconButton>
+            <IconButton onClick={handleOpenPDFPreview}
+              sx={{ backgroundColor: '#fff', color: '#00a6ff', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#eeebff', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,166,255,0.25)' } }}
+              title="Export เป็น PDF">
+              <PictureAsPdfIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterListIcon sx={{ color: '#fff', fontSize: '20px' }} />
+            <span style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>ตัวกรองdd:</span>
+          </Box>
+          <SearchableDropdown label="Line Name" options={uniqueLineNames} value={selectedLineName} onChange={setSelectedLineName} placeholder="เลือก Line Name" />
+          <SearchableDropdown label="Doc No" options={uniqueDocNos} value={selectedDocNo} onChange={setSelectedDocNo} placeholder="เลือก Doc No" />
+          <SearchableDropdown label="sc_pack_date" options={uniqueSCPackDate} value={selectedSCPackDate} onChange={setselectedSCPackDate} placeholder="เลือกวันที่บรรจุเสร็จ" />
+          <SearchableDropdown label="Shift" options={['DS', 'NS']} value={selectedShift} onChange={setSelectedShift} placeholder="เลือก Shift" />
+          <SearchableDropdown label="mat_name" options={uniqueMatName} value={selectedMatName} onChange={setSelectedMatName} placeholder="เลือก วัตถุดิบ" />
+          <Chip
+            icon={<FaWeight style={{ fontSize: '16px' }} />}
+            label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
+            sx={{ backgroundColor: '#fff', color: '#2196F3', fontWeight: '600', fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite', '& .MuiChip-icon': { color: '#2196F3' } }}
+          />
+        </Box>
+      </Box>
+
+      {/* Table */}
+      <TableContainer
+        style={{ padding: '0px 20px' }}
+        sx={{
+          height: 'calc(68vh)', overflowY: 'auto', whiteSpace: 'nowrap',
+          '@media (max-width: 1200px)': { overflowX: 'scroll', minWidth: "200px" },
+          '&::-webkit-scrollbar': { width: '8px', height: '8px' },
+          '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
+          '&::-webkit-scrollbar-thumb': { background: '#2196F3', borderRadius: '10px', '&:hover': { background: '#1976D2' } }
+        }}
+      >
+        <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
+          <TableHead>
+            <TableRow sx={{ height: '48px' }}>
+              {displayColumns.map((header, index) => (
+                <TableCell key={index} align="center"
+                  style={{
+                    backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
+                    borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    borderRight: index === displayColumns.length - 1 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    fontSize: '14px', color: '#fff', padding: '12px', width: getColumnWidth(header), fontWeight: '600',
+                    borderTopLeftRadius: index === 0 ? '12px' : '0', borderTopRightRadius: index === displayColumns.length - 1 ? '12px' : '0',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>
+                    {headerNames[header] || header}
+                  </Box>
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
+            {filteredRows.length > 0 ? (
+              filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => (
+                <Row
+                  key={index} row={row} columnWidths={columnWidths}
+                  handleOpenModal={handleOpenModal} handleRowClick={handleRowClick}
+                  handleOpenEditModal={handleOpenEditModal} handleOpenEditLineModal={handleOpenEditLineModal}
+                  handleOpenDeleteModal={handleDeleteItemWithDelay} handleOpenSuccess={handleOpenSuccess}
+                  handleConfirmRow={onConfirmRow} selectedColor={selectedColor}
+                  openRowId={openRowId} index={index} setOpenRowId={setOpenRowId}
+                  displayColumns={displayColumns}
+                />
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={displayColumns.length} align="center"
+                  sx={{ padding: "40px", fontSize: "16px", color: "#90A4AE", fontWeight: '500' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <SearchIcon sx={{ fontSize: '48px', color: '#BBDEFB' }} />
+                    <span>ไม่มีรายการวัตถุดิบในขณะนี้</span>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        sx={{
+          borderTop: '1px solid #E3F2FD', backgroundColor: '#F8FBFF',
+          "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": { fontSize: '13px', color: "#546E7A", padding: "0px", fontWeight: '500' },
+          "& .MuiTablePagination-select": { fontSize: '13px', color: "#2196F3", fontWeight: '600' },
+          "& .MuiTablePagination-actions button": { color: "#2196F3", '&:hover': { backgroundColor: '#E3F2FD' } }
+        }}
+        rowsPerPageOptions={[100, 500, 1000]}
+        component="div" count={filteredRows.length} rowsPerPage={rowsPerPage} page={page}
+        onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage}
+        labelRowsPerPage="แถวต่อหน้า:"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} จาก ${count}`}
+      />
+
+      {/* ─── PDF Preview Modal ─── */}
+      {showPDFPreview && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#fff', borderRadius: '16px', width: '95vw', maxHeight: '90vh',
+            display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+
+            {/* Modal Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+              padding: '14px 20px', borderRadius: '16px 16px 0 0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <PictureAsPdfIcon style={{ color: '#fff', fontSize: '28px' }} />
+                <div style={{ color: '#fff', fontSize: '18px', fontWeight: '600' }}>ตรวจสอบก่อน Export PDF</div>
+                {editedCount > 0 && (
+                  <div style={{
+                    backgroundColor: '#FFC107', color: '#4E2A00', borderRadius: '20px',
+                    padding: '3px 12px', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>✎</span>
+                    แก้ไขแล้ว {editedCount} เซลล์
+                  </div>
+                )}
+              </div>
+              <IconButton onClick={() => {
+                setShowPDFPreview(false);
+                setSaveError('');
+                setSaveSuccess(false);
+                setEditedCells({});
+                setSaveEditsError('');
+                setSaveEditsSuccess('');
+              }} sx={{ color: '#fff', '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}>
+                <ClearIcon />
+              </IconButton>
+            </div>
+
+            {/* Info bar */}
+            <div style={{ padding: '14px 24px', borderBottom: '1px solid #cdeeff', backgroundColor: '#F0F8FF', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Date <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <input type="date" value={exportDate} onChange={(e) => setExportDate(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)'; }}
+                    onBlur={(e) => { e.target.style.border = '1px solid #ddd'; e.target.style.boxShadow = 'none'; }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Shift <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <select value={exportShift} onChange={(e) => setExportShift(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
+                  >
+                    <option value="">-- เลือก Shift --</option>
+                    <option value="DS">DS (Day Shift)</option>
+                    <option value="NS">NS (Night Shift)</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Line <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <SearchableLineDropdown value={exportLine} onChange={setExportLine} options={lineOptions} />
+                </div>
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Plant</label>
+                  <input type="text" value={exportPlant} onChange={(e) => setExportPlant(e.target.value)} placeholder="ระบุ Plant (ถ้ามี)"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FFC107' }} />
+                  <span>เซลล์ที่แก้ไขแล้ว (ยังไม่ได้บันทึก)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
+                  <span>บันทึกลงฐานข้อมูลแล้ว</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666' }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '2px', backgroundColor: '#FFCDD2', border: '1px solid #FFCDD2' }} />
+                  <span style={{ color: '#C62828', fontWeight: '600' }}>!</span>
+                  <span>เกินกำหนด DBS</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888', fontStyle: 'italic' }}>
+                  💡 เลือกชั่วโมง 00-23 และนาที 00-59 (รูปแบบ 24 ชั่วโมง)
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Table */}
+            <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1, padding: '12px 16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '1200px' }}>
+                <thead>
+                  <tr>
+                    {displayColumns.map((col, i) => (
+                      <th key={i} style={{
+                        backgroundColor: '#00a6ff', color: '#fff', padding: '10px 8px',
+                        textAlign: 'center', fontWeight: '600', whiteSpace: 'nowrap',
+                        border: '1px solid #0090e0', position: 'sticky', top: 0, zIndex: 10,
+                        fontSize: '12px'
+                      }}>
+                        {headerNames[col] || col}
+                        {EDITABLE_DATE_FIELDS.includes(col) && (
+                          <div style={{ fontSize: '10px', fontWeight: '400', opacity: 0.85, marginTop: '2px' }}>✎ แก้ไขได้</div>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewData.length > 0 ? (
+                    previewData.map((row, rowIdx) => {
+                      const m = getRemappedRow(row);
+                      const sp = isSpecialGroup(row);
+
+                      const s1 = parseStandardDBSToMinutes(row.DBS1 ?? row.dbs1);
+                      const s2 = parseStandardDBSToMinutes(row.DBS2 ?? row.dbs2);
+                      const s3 = parseStandardDBSToMinutes(row.DBS3 ?? row.dbs3);
+                      const s4 = parseStandardDBSToMinutes(row.DBS4 ?? row.dbs4);
+                      const c1 = calcDBS1Minutes(m, row);
+                      const c2 = calcDBS2Minutes(m, sp);
+                      const c3 = calcDBS3Minutes(m, sp);
+                      const c4 = calcDBS4Minutes(m, sp, row);
+                      const previewOverFlags = {
+                        dbs1: s1 !== null && c1 !== null && c1 > s1,
+                        dbs2: !sp && s2 !== null && c2 !== null && c2 > s2,
+                        dbs3: !sp && s3 !== null && c3 !== null && c3 > s3,
+                        dbs4: s4 !== null && c4 !== null && c4 > s4,
+                      };
+
+                      const rowBg = rowIdx % 2 === 0 ? '#fff' : '#F0F8FF';
+
+                      return (
+                        <tr key={rowIdx}>
+                          {displayColumns.map((col, colIdx) => {
+                            let cellValue;
+                            switch (col) {
+                              case 'dbs1': cellValue = calculateDBS1FromMapped(m, row); break;
+                              case 'dbs2': cellValue = calculateDBS2FromMapped(m, sp); break;
+                              case 'dbs3': cellValue = calculateDBS3FromMapped(m, sp); break;
+                              case 'dbs4': cellValue = calculateDBS4FromMapped(m, sp, row); break;
+                              case 'rmit_date': cellValue = m._A ?? ''; break;
+                              case 'come_cold_date': cellValue = m._B ?? ''; break;
+                              case 'out_cold_date': cellValue = m._C ?? ''; break;
+                              case 'come_cold_date_two': cellValue = sp ? '-' : (m._D ?? ''); break;
+                              case 'out_cold_date_two': cellValue = sp ? '-' : (m._E ?? ''); break;
+                              case 'come_cold_date_three': cellValue = sp ? '-' : (m._D3 ?? ''); break;
+                              case 'out_cold_date_three': cellValue = sp ? '-' : (m._E3 ?? ''); break;
+                              case 'sc_pack_date': cellValue = m._F ?? ''; break;
+                              default: cellValue = row[col] ?? '';
+                            }
+
+                            const isCalculated = ['dbs1', 'dbs2', 'dbs3', 'dbs4'].includes(col);
+                            const isReadOnly = sp && ['come_cold_date_two', 'out_cold_date_two', 'come_cold_date_three', 'out_cold_date_three'].includes(col);
+                            const isEditableDate = EDITABLE_DATE_FIELDS.includes(col) && !isReadOnly;
+                            const isOver = previewOverFlags[col] === true;
+                            const cellKey = `${rowIdx}_${col}`;
+                            const isEdited = editedCells[cellKey] === true;
+
+                            const getRawFieldValue = () => {
+                              if (col === 'rmit_date') return row.rmit_date ?? '';
+                              if (col === 'come_cold_date') return row.come_cold_date ?? '';
+                              if (col === 'out_cold_date') return row.out_cold_date ?? '';
+                              if (col === 'come_cold_date_two') return row.come_cold_date_two ?? '';
+                              if (col === 'out_cold_date_two') return row.out_cold_date_two ?? '';
+                              if (col === 'come_cold_date_three') return row.come_cold_date_three ?? '';
+                              if (col === 'out_cold_date_three') return row.out_cold_date_three ?? '';
+                              if (col === 'sc_pack_date') return row.sc_pack_date ?? '';
+                              return cellValue;
+                            };
+
+                            const getCellBg = () => {
+                              if (isOver) return '#FFF5F5';
+                              if (isEdited) return '#FFFDE7';
+                              return rowBg;
+                            };
+                            const getCellBorder = () => {
+                              if (isOver) return '1px solid #FFCDD2';
+                              if (isEdited) return '1px solid #FFC107';
+                              return '1px solid #cdeeff';
+                            };
+
+                            return (
+                              <td key={colIdx} style={{
+                                padding: '3px 5px',
+                                border: getCellBorder(),
+                                textAlign: 'center',
+                                whiteSpace: 'nowrap',
+                                backgroundColor: getCellBg(),
+                                position: 'relative',
+                                transition: 'background-color 0.2s',
+                              }}>
+                                {isEdited && (
+                                  <span className="edit-dot" style={{
+                                    position: 'absolute', top: '3px', right: '3px',
+                                    width: '7px', height: '7px', borderRadius: '50%',
+                                    backgroundColor: '#FFC107', display: 'inline-block',
+                                    boxShadow: '0 0 3px rgba(255,193,7,0.8)',
+                                    zIndex: 1,
+                                  }} title="มีการแก้ไข (ยังไม่บันทึก)" />
+                                )}
+
+                                {isCalculated ? (
+  <span style={{
+    color: isOver ? '#C62828' : '#555',
+    fontSize: '12px', fontWeight: isOver ? '700' : 'normal',
+    display: 'flex', alignItems: 'center', justifyContent: 'center'
+  }}>
+    {String(cellValue || '-')}
+  </span>
+
+                                ) : isEditableDate ? (
+                                  /* ✅ Custom 24h picker — ไม่มี AM/PM ทุก browser */
+                                  <DateTime24Input
+                                    value={getRawFieldValue()}
+                                    isOver={isOver}
+                                    isEdited={isEdited}
+                                    onChange={(newVal) => {
+                                      setPreviewData(prev => {
+                                        const updated = [...prev];
+                                        updated[rowIdx] = { ...updated[rowIdx], [col]: newVal };
+                                        return updated;
+                                      });
+                                      setEditedCells(prev => ({ ...prev, [cellKey]: true }));
+                                      setSaveEditsSuccess('');
+                                      setSaveEditsError('');
+                                    }}
+                                  />
+
+                                ) : isReadOnly ? (
+                                  <span style={{ color: '#bbb', fontSize: '12px' }}>-</span>
+
+                                ) : (
+                                  <input
+                                    value={String(cellValue)}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setPreviewData(prev => {
+                                        const updated = [...prev];
+                                        updated[rowIdx] = { ...updated[rowIdx], [col]: val };
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{
+                                      border: '1px solid transparent', borderRadius: '4px',
+                                      padding: '4px 6px', fontSize: '13px', textAlign: 'center',
+                                      width: '100%', minWidth: '80px',
+                                      backgroundColor: 'transparent', outline: 'none',
+                                    }}
+                                    onFocus={(e) => {
+                                      e.target.style.border = '1px solid #00a6ff';
+                                      e.target.style.backgroundColor = '#fff';
+                                      e.target.style.boxShadow = '0 0 0 2px rgba(0,166,255,0.15)';
+                                    }}
+                                    onBlur={(e) => {
+                                      e.target.style.border = '1px solid transparent';
+                                      e.target.style.backgroundColor = 'transparent';
+                                      e.target.style.boxShadow = 'none';
+                                    }}
+                                  />
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={displayColumns.length} style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
+                        ไม่มีข้อมูล
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Signature Section */}
+            <div style={{ padding: '14px 24px', borderTop: '1px solid #cdeeff', backgroundColor: '#FFFAFA', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'recordedBy', label: 'Recorded by', placeholder: 'ชื่อผู้บันทึก', sub: '(Production Staff)', required: true },
+                  { key: 'reviewedBy', label: 'Reviewed by', placeholder: 'ชื่อผู้ตรวจสอบ', sub: '(Production Section Manager)', required: true },
+                  { key: 'qcManager', label: 'QC Manager', placeholder: 'ชื่อผู้จัดการ QC', sub: '(Quality Control Section Manager)', required: false },
+                ].map(({ key, label, placeholder, sub, required }) => (
+                  <div key={key} style={{ flex: 1, minWidth: '200px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
+                      {label} {required && <span style={{ color: '#00a6ff' }}>*</span>}
+                    </label>
+                    <input type="text" value={signatureData[key]}
+                      onChange={(e) => { const val = e.target.value; setSignatureData(prev => ({ ...prev, [key]: val })); }}
+                      placeholder={placeholder}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
+                      onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                      onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
+                    />
+                    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '14px 24px', borderTop: '1px solid #cdeeff',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              gap: '12px', backgroundColor: '#FFF8F8',
+              borderRadius: '0 0 16px 16px', flexShrink: 0, flexWrap: 'wrap'
+            }}>
+              <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {saveEditsError && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    color: '#b71c1c', fontSize: '13px', backgroundColor: '#FFEBEE',
+                    padding: '7px 12px', borderRadius: '8px', border: '1px solid #FFCDD2',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    <ClearIcon style={{ fontSize: '15px' }} />
+                    {saveEditsError}
+                  </div>
+                )}
+                {saveEditsSuccess && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    color: '#1B5E20', fontSize: '13px', backgroundColor: '#E8F5E9',
+                    padding: '7px 12px', borderRadius: '8px', border: '1px solid #C8E6C9',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    ✓ {saveEditsSuccess}
+                  </div>
+                )}
+                {saveError && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    color: '#0b0082', fontSize: '13px', backgroundColor: '#ffffff',
+                    padding: '7px 12px', borderRadius: '8px', border: '1px solid #cdeeff',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    <ClearIcon style={{ fontSize: '15px' }} />
+                    {saveError}
+                  </div>
+                )}
+                {saveSuccess && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    color: '#2E7D32', fontSize: '13px', backgroundColor: '#E8F5E9',
+                    padding: '7px 12px', borderRadius: '8px', border: '1px solid #C8E6C9',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    ✓ บันทึกรายชื่อสำเร็จ กำลังสร้าง PDF...
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    setShowPDFPreview(false);
+                    setSaveError('');
+                    setSaveSuccess(false);
+                    setEditedCells({});
+                    setSaveEditsError('');
+                    setSaveEditsSuccess('');
+                  }}
+                  disabled={isSaving || isSavingEdits}
+                  style={{
+                    padding: '10px 20px', borderRadius: '10px', border: '1px solid #ddd',
+                    backgroundColor: '#fff', cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px', color: '#666',
+                    opacity: (isSaving || isSavingEdits) ? 0.6 : 1,
+                  }}
+                >
+                  ยกเลิก
+                </button>
+
+                {/* {editedCount > 0 && (
+                  <button
+                    onClick={saveEditedRows}
+                    disabled={isSavingEdits || isSaving}
+                    style={{
+                      padding: '10px 20px', borderRadius: '10px', border: 'none',
+                      background: isSavingEdits
+                        ? 'linear-gradient(135deg, #FFE082 0%, #FFB300 100%)'
+                        : 'linear-gradient(135deg, #FFD54F 0%, #FF8F00 100%)',
+                      color: '#4E2A00',
+                      cursor: (isSavingEdits || isSaving) ? 'not-allowed' : 'pointer',
+                      fontSize: '14px', fontWeight: '600',
+                      display: 'flex', alignItems: 'center', gap: '7px',
+                      opacity: (isSavingEdits || isSaving) ? 0.7 : 1,
+                      minWidth: '200px', justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(255,143,0,0.3)',
+                    }}
+                  >
+                    {isSavingEdits ? (
+                      <>
+                        <div style={{
+                          width: '14px', height: '14px',
+                          border: '2px solid rgba(78,42,0,0.3)',
+                          borderTop: '2px solid #4E2A00',
+                          borderRadius: '50%',
+                          animation: 'spin 0.8s linear infinite',
+                          flexShrink: 0,
+                        }} />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: '16px' }}>💾</span>
+                        บันทึกการแก้ไขเวลา ({editedCount} เซลล์)
+                      </>
+                    )}
+                  </button>
+                )} */}
+
+                {/* ปุ่มที่ 1: Export PDF เท่านั้น (ไม่บันทึกลงระบบ) */}
+                <button
+                  onClick={async () => {
+                    if (!exportDate) { setSaveError('กรุณาระบุวันที่'); return; }
+                    if (!exportShift) { setSaveError('กรุณาเลือก Shift'); return; }
+                    if (!exportLine) { setSaveError('กรุณาเลือก Line'); return; }
+                    if (!signatureData.recordedBy) { setSaveError('กรุณาระบุผู้บันทึก (Recorded by)'); return; }
+                    if (!signatureData.reviewedBy) { setSaveError('กรุณาระบุผู้ตรวจสอบ (Reviewed by)'); return; }
+
+                    setSaveError('');
+                    setSaveSuccess(false);
+                    setIsSaving(true);
+                    try {
+                      // Export PDF อย่างเดียว ไม่เรียก API บันทึก signature และไม่บันทึก edited cells
+                      await exportToPDFWithData(previewData, signatureData);
+                      setShowPDFPreview(false);
+                      setEditedCells({});
+                      setSaveEditsError('');
+                      setSaveEditsSuccess('');
+                    } catch (err) {
+                      console.error('Error:', err);
+                      setSaveError(err.message || 'เกิดข้อผิดพลาดในการสร้าง PDF');
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving || isSavingEdits}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    border: '2px solid #00a6ff',
+                    background: '#fff',
+                    color: '#00a6ff',
+                    cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    minWidth: '180px',
+                    justifyContent: 'center',
+                    opacity: (isSaving || isSavingEdits) ? 0.6 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSaving && !isSavingEdits) {
+                      e.currentTarget.style.background = '#F0F8FF';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,166,255,0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  title="สร้างไฟล์ PDF โดยไม่บันทึกข้อมูลลงระบบ"
+                >
+                  <PictureAsPdfIcon style={{ fontSize: '18px' }} />
+                  Export PDF เท่านั้น
+                </button>
+
+                {/* ปุ่มที่ 2: บันทึก & Export PDF (เดิม) */}
+                <button
+                  onClick={async () => {
+                    if (!exportDate) { setSaveError('กรุณาระบุวันที่'); return; }
+                    if (!exportShift) { setSaveError('กรุณาเลือก Shift'); return; }
+                    if (!exportLine) { setSaveError('กรุณาเลือก Line'); return; }
+                    if (!signatureData.recordedBy) { setSaveError('กรุณาระบุผู้บันทึก (Recorded by)'); return; }
+                    if (!signatureData.reviewedBy) { setSaveError('กรุณาระบุผู้ตรวจสอบ (Reviewed by)'); return; }
+
+                    if (editedCount > 0) {
+                      const ok = window.confirm(`มีการแก้ไขเวลา ${editedCount} เซลล์ที่ยังไม่ได้บันทึกลงฐานข้อมูล\nต้องการบันทึกก่อน Export PDF หรือไม่?`);
+                      if (ok) {
+                        await saveEditedRows();
+                      }
+                    }
+
+                    setSaveError(''); setSaveSuccess(false); setIsSaving(true);
+                    try {
+                      await saveSignatureToAPI(signatureData, previewData);
+                      setSaveSuccess(true);
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      await exportToPDFWithData(previewData, signatureData);
+                      setShowPDFPreview(false);
+                      setSaveSuccess(false);
+                      setEditedCells({});
+                      setSaveEditsError('');
+                      setSaveEditsSuccess('');
+                    } catch (err) {
+                      console.error('Error:', err);
+                      setSaveError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving || isSavingEdits}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: (isSaving || isSavingEdits)
+                      ? 'linear-gradient(135deg, #90CAF9 0%, #5C6BC0 100%)'
+                      : 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+                    color: '#fff',
+                    cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    minWidth: '180px',
+                    justifyContent: 'center',
+                  }}
+                  title="บันทึกข้อมูลลงระบบและสร้างไฟล์ PDF"
+                >
+                  {isSaving ? (
+                    <>
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTop: '2px solid #fff',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                      }} />
+                      กำลังบันทึก...
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '16px' }}>💾</span>
+                      บันทึก & Export PDF
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </Paper>
+  );
+};
+
+export default TableMainPrep;
