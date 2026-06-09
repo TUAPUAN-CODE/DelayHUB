@@ -61,37 +61,37 @@ const WorkplaceSelector = () => {
     {
       wp_id: "1",
       name: "หม้ออบ",
-      route: "http://172.48.0.115:5173/oven"
+      route: "http://172.20.10.5:5173/oven"
     },
     {
       wp_id: "2", 
       name: "จุดเตรียม",
-      route: "http://172.48.0.115:5173/prep"
+      route: "http://172.20.10.5:5173/prep"
     },
     {
       wp_id: "3",
       name: "ตรวจสอบคุณภาพ",
-      route: "http://172.48.0.115:5173/qualitycontrol"
+      route: "http://172.20.10.5:5173/qualitycontrol"
     },
     {
       wp_id: "4",
       name: "บรรจุ",
-      route: "http://172.48.0.115:5173/line/selectwp"
+      route: "http://172.20.10.5:5173/line/selectwp"
     },
     {
       wp_id: "5",
       name: "ห้องเย็น",
-      route: "http://172.48.0.115:5173/coldStorage"
+      route: "http://172.20.10.5:5173/coldStorage"
     },
     {
       wp_id: "6",
       name: "Supervisor",
-      route: "http://172.48.0.115:5173/sup"
+      route: "http://172.20.10.5:5173/sup"
     },
      {
       wp_id: "7",
       name: "ห้องเย็นใหญ่",
-      route: "http://172.48.0.115:5173/coldStorages"
+      route: "http://172.20.10.5:5173/coldStorages"
     }
   ];
 

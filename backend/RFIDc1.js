@@ -7,7 +7,7 @@ const READER_PORT = 49152;
 const dbConfig = {
     user: 'PFCM_v1.9',
     password: '987654321.Com',
-    server: '172.48.0.115',
+    server: '172.20.10.5',
     database: 'PFCMv2',
     options: {
         encrypt: false,

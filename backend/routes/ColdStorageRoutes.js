@@ -2563,6 +2563,19 @@ ORDER BY
                     console.log(`✅ History updated: mapping_id=${mapping_id}`);
                 }
 
+                // ถ้า location = จุดเตรียม → clear tro_id ใน TrolleyRMMapping + คืนสถานะรถเข็น
+                if (location === 'จุดเตรียม') {
+                    await new sql.Request(transaction)
+                        .input("tro_id", sql.NVarChar, tro_id)
+                        .query(`UPDATE TrolleyRMMapping SET tro_id = NULL WHERE tro_id = @tro_id;`);
+
+                    await new sql.Request(transaction)
+                        .input("tro_id", sql.NVarChar, tro_id)
+                        .query(`UPDATE Trolley SET tro_status = 1 WHERE tro_id = @tro_id;`);
+
+                    console.log(`✅ Trolley released: tro_id=${tro_id}, location=จุดเตรียม`);
+                }
+
                 await transaction.commit();
                 console.log(`✅ Transaction committed: tro_id=${tro_id}`);
 
@@ -3671,6 +3684,7 @@ SELECT
 
     rmf.rm_group_id AS rmf_rm_group_id,
     rmg.rm_group_id AS rmg_rm_group_id,
+    rmg.rm_group_name,
 
     rmm.tro_id,
     rmm.rm_cold_status,
@@ -3816,6 +3830,45 @@ ORDER BY rmm.mapping_id DESC
         } catch (error) {
             console.error("Error fetching data:", error);
             res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+ router.get("/coldstorages/cs2", async (req, res) => {
+        try {
+            const { start_defrost_from, start_defrost_to, withdraw_from, withdraw_to } = req.query;
+            const pool = await connectToDatabase();
+            const request = pool.request();
+
+            let extraWhere = '';
+            if (start_defrost_from) { request.input('sdf', sql.NVarChar, start_defrost_from); extraWhere += ` AND s.start_defrost_date >= @sdf`; }
+            if (start_defrost_to)   { request.input('sdt', sql.NVarChar, start_defrost_to);   extraWhere += ` AND s.start_defrost_date <= @sdt`; }
+            if (withdraw_from)      { request.input('wdf', sql.NVarChar, withdraw_from);       extraWhere += ` AND s.withdraw_date >= @wdf`; }
+            if (withdraw_to)        { request.input('wdt', sql.NVarChar, withdraw_to);         extraWhere += ` AND s.withdraw_date <= @wdt`; }
+
+            const result = await request.query(`
+                SELECT
+                    s.sap_re_id,
+                    s.hu,
+                    s.batch,
+                    s.mat,
+                    CONVERT(varchar, s.start_defrost_date,     120) AS start_defrost_date,
+                    CONVERT(varchar, s.end_defrost_date,       120) AS end_defrost_date,
+                    CONVERT(varchar, s.withdraw_date,          120) AS withdraw_date,
+                    CONVERT(varchar, s.start_defrost_date_two, 120) AS start_defrost_date_two,
+                    CONVERT(varchar, s.end_defrost_date_two,   120) AS end_defrost_date_two,
+                    CONVERT(varchar, s.withdraw_date_two,      120) AS withdraw_date_two,
+                    CONVERT(varchar, s.input_pd_date,          120) AS input_pd_date,
+                    CONVERT(varchar, s.input_pd_date_two,      120) AS input_pd_date_two
+                FROM SAP_Receive s
+                WHERE 1=1 ${extraWhere}
+                ORDER BY s.sap_re_id DESC
+            `);
+
+            res.json({ success: true, data: result.recordset });
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            res.status(500).json({ success: false, error: "Internal Server Error" });
         }
     });
 

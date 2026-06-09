@@ -55,6 +55,8 @@ import CheckinSAP from "./CheckinSAP/BatchSAPPage.jsx";
 import Dashboardrmoutprocess from "./Dashboardrmoutprocess/RoomTable.jsx";
 import Dashboardrminprocess from "./dashboardrminprocess/RoomTable.jsx";
 import Roomtableoutprocess from "./RoomTablermoutprocess/RoomTable.jsx";
+import RoomTableCS from "./RoomTablecs/RoomTable.jsx";
+
 
 function AppColdStorages() {
   return (
@@ -149,6 +151,11 @@ function AppColdStorages() {
         <Route
           path="/dashboardrmoutprocess"
           element={<Dashboardrmoutprocess />}
+        />
+
+        <Route
+          path="/RoomTableCS"
+          element={<RoomTableCS />}
         />
       </Routes>
     </div>

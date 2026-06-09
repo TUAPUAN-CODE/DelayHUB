@@ -3193,7 +3193,7 @@ module.exports = (io) => {
     const {
       license_plate,
       rmfpID,
-      batchAfterArray, // Array จาก frontend [{batch_before, batch_after}]
+      batchAfterArray, 
       ntray,
       recorder,
       weightTotal,
@@ -3419,6 +3419,9 @@ module.exports = (io) => {
       }
       if (Dest === "รอCheckin" && deliveryType === "รอกลับมาเตรียม") {
         rm_status = "รอกลับมาเตรียม";
+      }
+      if (deliveryType === "ส่งห้องเย็นใหญ่") {
+        rm_status = "รอQCตรวจสอบ";
       }
 
       // 9️⃣ Insert TrolleyRMMapping
@@ -6799,11 +6802,11 @@ module.exports = (io) => {
       const rmTypeIdsArray = rm_type_ids.split(',');
       const pool = await connectToDatabase();
 
-      // ✅ Query ที่เพิ่มการ JOIN ตาราง Batch เพื่อดึง batch_after
       const query = `
       SELECT
-        rmf.rmfp_id,
-        STRING_AGG(b.batch_after, ', ') AS batch_after,
+        rmm.rmfp_id,
+        b.batch_before,
+        b.batch_after,
         rm.mat,
         rm.mat_name,
         rmm.dest,
@@ -6816,9 +6819,9 @@ module.exports = (io) => {
         htr.cooked_date,
         htr.edit_rework
       FROM
-        RMForProd rmf
+        TrolleyRMMapping rmm
       JOIN
-        TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
+        RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
       JOIN
         ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
       JOIN
@@ -6832,28 +6835,13 @@ module.exports = (io) => {
       JOIN
         History htr ON rmm.mapping_id = htr.mapping_id
       LEFT JOIN
-        Batch b ON rmm.mapping_id = b.mapping_id  
-      WHERE 
-        rmm.stay_place IN ('ออกห้องเย็น', 'หม้ออบ', 'จุดเตรียม')
+        Batch b ON rmm.mapping_id = b.mapping_id
+      WHERE
+        rmm.stay_place IN ('ออกห้องเย็น', 'หม้ออบ', 'จุดเตรียม','ออกห้องเย็นใหญ่')
         AND rmm.dest = 'จุดเตรียม'
-        AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม', 'QcCheck รอ MD', 'รอกลับมาเตรียม', 'รอ Qc','QcCheck')
+        AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม', 'QcCheck รอ MD', 'รอกลับมาเตรียม', 'รอ Qc','QcCheck','QcCheck')
         AND rmf.rm_group_id = rmg.rm_group_id
         AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
-      GROUP BY
-        rmf.rmfp_id,
-        rmf.batch,
-        rm.mat,
-        rm.mat_name,
-        rmm.dest,
-        rmm.stay_place,
-        p.doc_no,
-        rmm.rmm_line_name,
-        rmg.rm_type_id,
-        rmm.tro_id,
-        rmm.mapping_id,
-        rmm.level_eu,
-        htr.cooked_date,
-        htr.edit_rework
       ORDER BY
         htr.cooked_date DESC
     `;
@@ -8031,107 +8019,107 @@ module.exports = (io) => {
     }
   });
 
-  router.get("/prep/matimport/fetchRMForProd", async (req, res) => {
-    try {
-      const { rm_type_ids } = req.query;
+  // router.get("/prep/matimport/fetchRMForProd", async (req, res) => {
+  //   try {
+  //     const { rm_type_ids } = req.query;
 
-      if (!rm_type_ids) {
-        return res.status(400).json({ success: false, error: "RM Type IDs are required" });
-      }
+  //     if (!rm_type_ids) {
+  //       return res.status(400).json({ success: false, error: "RM Type IDs are required" });
+  //     }
 
-      const rmTypeIdsArray = rm_type_ids.split(',');
-      const pool = await connectToDatabase();
+  //     const rmTypeIdsArray = rm_type_ids.split(',');
+  //     const pool = await connectToDatabase();
 
-      // SQL query ดึงข้อมูลพร้อม batch_after
-      const query = `
-      SELECT
-        rmf.rmfp_id,
-        STRING_AGG(b.batch_after, ',') AS batch_after_array
-        rm.mat,
-        rm.mat_name,
-        rmm.dest,
-        rmm.stay_place,
-        CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
-        rmg.rm_type_id,
-        rmm.tro_id,
-        rmm.mapping_id,
-        rmm.level_eu,
-        htr.cooked_date,
-        htr.edit_rework, 
-      FROM
-        RMForProd rmf
-      JOIN
-        TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
-      JOIN
-        ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
-      JOIN
-        RawMat rm ON pr.mat = rm.mat
-      JOIN
-        Production p ON pr.prod_id = p.prod_id
-      JOIN
-        RawMatCookedGroup rmcg ON rm.mat = rmcg.mat
-      JOIN
-        RawMatGroup rmg ON rmcg.rm_group_id = rmg.rm_group_id
-      JOIN
-        History htr ON rmm.mapping_id = htr.mapping_id
-      LEFT JOIN
-        Batch b ON rmm.mapping_id = b.mapping_id
-      WHERE 
-        rmm.stay_place IN ('ออกห้องเย็น' ,'หม้ออบ','จุดเตรียม')
-        AND rmm.dest = 'จุดเตรียม'
-        AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม','QcCheck รอ MD','รอกลับมาเตรียม','รอ Qc','QcCheck')
-        AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
-      GROUP BY
-        rmf.rmfp_id,
-        rmf.batch,
-        rm.mat,
-        rm.mat_name,
-        rmm.dest,
-        rmm.stay_place,
-        p.doc_no,
-        rmm.rmm_line_name,
-        rmg.rm_type_id,
-        rmm.tro_id,
-        rmm.mapping_id,
-        rmm.level_eu,
-        htr.cooked_date,
-        htr.edit_rework
-      ORDER BY
-        htr.cooked_date DESC
-    `;
+  //     // SQL query ดึงข้อมูลพร้อม batch_after
+  //     const query = `
+  //     SELECT
+  //       rmf.rmfp_id,
+  //       STRING_AGG(b.batch_after, ',') AS batch_after_array
+  //       rm.mat,
+  //       rm.mat_name,
+  //       rmm.dest,
+  //       rmm.stay_place,
+  //       CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+  //       rmg.rm_type_id,
+  //       rmm.tro_id,
+  //       rmm.mapping_id,
+  //       rmm.level_eu,
+  //       htr.cooked_date,
+  //       htr.edit_rework, 
+  //     FROM
+  //       RMForProd rmf
+  //     JOIN
+  //       TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
+  //     JOIN
+  //       ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
+  //     JOIN
+  //       RawMat rm ON pr.mat = rm.mat
+  //     JOIN
+  //       Production p ON pr.prod_id = p.prod_id
+  //     JOIN
+  //       RawMatCookedGroup rmcg ON rm.mat = rmcg.mat
+  //     JOIN
+  //       RawMatGroup rmg ON rmcg.rm_group_id = rmg.rm_group_id
+  //     JOIN
+  //       History htr ON rmm.mapping_id = htr.mapping_id
+  //     LEFT JOIN
+  //       Batch b ON rmm.mapping_id = b.mapping_id
+  //     WHERE 
+  //       rmm.stay_place IN ('ออกห้องเย็น' ,'หม้ออบ','จุดเตรียม')
+  //       AND rmm.dest = 'จุดเตรียม'
+  //       AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม','QcCheck รอ MD','รอกลับมาเตรียม','รอ Qc','QcCheck')
+  //       AND rmf.rm_group_id = rmg.rm_group_id
+  //       AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+  //     GROUP BY
+  //       rmf.rmfp_id,
+  //       rmf.batch,
+  //       rm.mat,
+  //       rm.mat_name,
+  //       rmm.dest,
+  //       rmm.stay_place,
+  //       p.doc_no,
+  //       rmm.rmm_line_name,
+  //       rmg.rm_type_id,
+  //       rmm.tro_id,
+  //       rmm.mapping_id,
+  //       rmm.level_eu,
+  //       htr.cooked_date,
+  //       htr.edit_rework
+  //     ORDER BY
+  //       htr.cooked_date DESC
+  //   `;
 
-      const result = await pool.request().query(query);
+  //     const result = await pool.request().query(query);
 
-      // แปลงวันที่เหมือนเดิม
-      const formattedData = result.recordset.map(item => {
-        const date = new Date(item.cooked_date);
-        const year = date.getUTCFullYear();
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const hours = String(date.getUTCHours()).padStart(2, '0');
-        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  //     // แปลงวันที่เหมือนเดิม
+  //     const formattedData = result.recordset.map(item => {
+  //       const date = new Date(item.cooked_date);
+  //       const year = date.getUTCFullYear();
+  //       const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  //       const day = String(date.getUTCDate()).padStart(2, '0');
+  //       const hours = String(date.getUTCHours()).padStart(2, '0');
+  //       const minutes = String(date.getUTCMinutes()).padStart(2, '0');
 
-        item.CookedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+  //       item.CookedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
 
-        delete item.cooked_date;
+  //       delete item.cooked_date;
 
-        // แปลง batch_after_array เป็น array จริง ๆ
-        if (item.batch_after_array) {
-          item.batch_after_array = item.batch_after_array.split(',');
-        } else {
-          item.batch_after_array = [];
-        }
+  //       // แปลง batch_after_array เป็น array จริง ๆ
+  //       if (item.batch_after_array) {
+  //         item.batch_after_array = item.batch_after_array.split(',');
+  //       } else {
+  //         item.batch_after_array = [];
+  //       }
 
-        return item;
-      });
+  //       return item;
+  //     });
 
-      res.json({ success: true, data: formattedData });
-    } catch (err) {
-      console.error("SQL error", err);
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
+  //     res.json({ success: true, data: formattedData });
+  //   } catch (err) {
+  //     console.error("SQL error", err);
+  //     res.status(500).json({ success: false, error: err.message });
+  //   }
+  // });
 
 
   // router.post("/prep/matimport/add/saveTrolley", async (req, res) => {

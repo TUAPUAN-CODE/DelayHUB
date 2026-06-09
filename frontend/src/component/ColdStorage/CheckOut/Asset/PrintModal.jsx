@@ -803,6 +803,14 @@ const MaterialItem = ({
                 วัตถุดิบที่ {index + 1}
             </Typography>
 
+            <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+                <InlineInfoItem
+                    label="รายการ"
+                    value={item.mapping_id != null ? String(item.mapping_id) : "ไม่มีข้อมูล"}
+                    fontSizes={fontSizes}
+                />
+            </Box>
+
             <Box sx={{
                 ml: 0.5,
                 '@media print': {

@@ -157,7 +157,26 @@ const calculateDBS1FromMapped = (mapped, row) => {
   return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._B));
 };
 
-const calculateDBS2FromMapped = (mapped, isSpecial = false) => {
+const CS_WAIT_ROUNDS = [
+  { come: 'cs_come_cold_date',       out: 'cs_out_cold_date',       p1: 'at_pd_storage_purpose',   p2: 'storage_purpose'   },
+  { come: 'cs_come_cold_date_two',   out: 'cs_out_cold_date_two',   p1: 'at_pd_storage_purpose_2', p2: 'storage_purpose_2' },
+  { come: 'cs_come_cold_date_three', out: 'cs_out_cold_date_three', p1: 'at_pd_storage_purpose_3', p2: 'storage_purpose_3' },
+];
+const CS_WAIT_PURPOSE = 'ฝากเก็บเพื่อรอผลิต';
+
+const getCsWaitMinutes = (row) => {
+  if (!row) return 0;
+  let total = 0;
+  CS_WAIT_ROUNDS.forEach(({ come, out, p1, p2 }) => {
+    if (row[p1] === CS_WAIT_PURPOSE || row[p2] === CS_WAIT_PURPOSE) {
+      const mins = calculateMinutesDifference(row[come], row[out]);
+      if (mins !== null) total += mins;
+    }
+  });
+  return total;
+};
+
+const calculateDBS2FromMapped = (mapped, isSpecial = false, row = null) => {
   if (isSpecial) return '-';
   let totalMinutes = 0;
   let hasData = false;
@@ -171,6 +190,8 @@ const calculateDBS2FromMapped = (mapped, isSpecial = false) => {
     const cold3 = calculateMinutesDifference(mapped._D3, mapped._E3);
     if (cold3 !== null) { totalMinutes += cold3; hasData = true; }
   }
+  const csMin = getCsWaitMinutes(row);
+  if (csMin > 0) { totalMinutes += csMin; hasData = true; }
   return hasData ? formatMinutesToTime(totalMinutes) : '-';
 };
 
@@ -248,7 +269,7 @@ const calcDBS1Minutes = (mapped, row) => {
   return calculateMinutesDifference(mapped._A, mapped._B);
 };
 
-const calcDBS2Minutes = (mapped, isSpecial) => {
+const calcDBS2Minutes = (mapped, isSpecial, row = null) => {
   if (isSpecial) return null;
   let total = 0; let has = false;
   const c1 = calculateMinutesDifference(mapped._B, mapped._C);
@@ -261,6 +282,8 @@ const calcDBS2Minutes = (mapped, isSpecial) => {
     const c3 = calculateMinutesDifference(mapped._D3, mapped._E3);
     if (c3 !== null) { total += c3; has = true; }
   }
+  const csMin = getCsWaitMinutes(row);
+  if (csMin > 0) { total += csMin; has = true; }
   return has ? total : null;
 };
 
@@ -294,7 +317,7 @@ const parseStandardDBSToMinutes = (val) => {
 };
 
 const calculateDBS1 = (row) => calculateDBS1FromMapped(getRemappedRow(row), row);
-const calculateDBS2 = (row) => calculateDBS2FromMapped(getRemappedRow(row), isSpecialGroup(row));
+const calculateDBS2 = (row) => calculateDBS2FromMapped(getRemappedRow(row), isSpecialGroup(row), row);
 const calculateDBS3 = (row) => calculateDBS3FromMapped(getRemappedRow(row), isSpecialGroup(row));
 const calculateDBS4 = (row) => calculateDBS4FromMapped(getRemappedRow(row), isSpecialGroup(row), row);
 
@@ -783,7 +806,7 @@ const Row = ({
   const stdDBS4 = parseStandardDBSToMinutes(row.DBS4 ?? row.dbs4);
 
   const calcMin1 = calcDBS1Minutes(mapped, row);
-  const calcMin2 = calcDBS2Minutes(mapped, special);
+  const calcMin2 = calcDBS2Minutes(mapped, special, row);
   const calcMin3 = calcDBS3Minutes(mapped, special);
   const calcMin4 = calcDBS4Minutes(mapped, special, row);
 
@@ -811,7 +834,7 @@ const Row = ({
         overFlags[col] = isOver1;
         break;
       case 'dbs2':
-        displayRow[col] = calculateDBS2FromMapped(mapped, special);
+        displayRow[col] = calculateDBS2FromMapped(mapped, special, row);
         overFlags[col] = isOver2;
         break;
       case 'dbs3':
@@ -1687,13 +1710,15 @@ const TableMainPrep = ({
 
   const exportToExcel = () => {
     const headerNames = {
-      production: "แผนการผลิต", mat_name: "รายชื่อวัตถุดิบ", batch_after: "Batch",
-      group_no: "ชุดที่", rmit_date: "เวลาเตรียมเสร็จ", color: "สี", odor: "กลิ่น",
-      texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
-      come_cold_date: "เข้าห้องเย็น1", come_cold_date_two: "เข้าห้องเย็น2",
-      come_cold_date_three: "เข้าห้องเย็น3", out_cold_date: "ออกห้องเย็น1",
-      out_cold_date_two: "ออกห้องเย็น2", out_cold_date_three: "ออกห้องเย็น3",
-      sc_pack_date: "บรรจุเสร็จ", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4",
+      mapping_id: "รายการ", withdraw_date: "เวลาส่งออกจากห้องเย็นใหญ่", production: "แผนการผลิต", mat_name: "รายชื่อวัตถุดิบ", batch_after: "Batch",
+      group_no: "ชุดที่",
+      rmit_date: "เวลาเตรียมเสร็จ (A)\nสำหรับ Loaf สุก เวลาออกห้องเย็น\nสำหรับ Loaf ดิบ เวลาบดเสร็จ",
+      color: "สี", odor: "กลิ่น", texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
+      come_cold_date: "เข้าห้องเย็น1 (B)\nสำหรับ Loaf สุก เวลาเริ่มผสม\nสำหรับ Loaf ดิบ เวลาเริ่มผสม",
+      come_cold_date_two: "เข้าห้องเย็น2 (D)", come_cold_date_three: "เข้าห้องเย็น3",
+      out_cold_date: "ออกห้องเย็น1 (C)\nสำหรับ Loaf สุก เวลาผสมเสร็จ\nสำหรับ Loaf ดิบ เวลาผสมเสร็จ",
+      out_cold_date_two: "ออกห้องเย็น2 (E)", out_cold_date_three: "ออกห้องเย็น3",
+      sc_pack_date: "บรรจุเสร็จ (F)", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4",
       remark_dalay: "หมายเหตุ"
     };
 
@@ -1704,7 +1729,7 @@ const TableMainPrep = ({
       displayColumns.forEach(col => {
         switch (col) {
           case 'dbs1': exportRow[headerNames[col]] = calculateDBS1FromMapped(m, row); break;
-          case 'dbs2': exportRow[headerNames[col]] = calculateDBS2FromMapped(m, sp); break;
+          case 'dbs2': exportRow[headerNames[col]] = calculateDBS2FromMapped(m, sp, row); break;
           case 'dbs3': exportRow[headerNames[col]] = calculateDBS3FromMapped(m, sp); break;
           case 'dbs4': exportRow[headerNames[col]] = calculateDBS4FromMapped(m, sp, row); break;
           case 'rmit_date': exportRow[headerNames[col]] = m._A ?? '-'; break;
@@ -1724,7 +1749,7 @@ const TableMainPrep = ({
 
     const headers = displayColumns.map(col => headerNames[col]);
     const csvContent = [
-      headers.join(','),
+      headers.map(h => `"${(h ?? '').toString().replace(/"/g, '""')}"`).join(','),
       ...exportData.map(row => headers.map(h => `"${(row[h] ?? '-').toString().replace(/"/g, '""')}"`).join(','))
     ].join('\n');
     const BOM = '\uFEFF';
@@ -1744,10 +1769,12 @@ const TableMainPrep = ({
 
   const headerNames = {
     mapping_id: "รายการ", withdraw_date: "เวลาส่งออกจากห้องเย็นใหญ่", production: "แผนการผลิต", mat_name: "รายชื่อวัตถุดิบ", batch_after: "Batch",
-    group_no: "ชุดที่", rmit_date: "เวลาเตรียมเสร็จ (A) </br> สำหรับ Loaf สุก เวลาออกห้องเย็น  </br> สำหรับ Loaf ดิบ เวลาบดเสร็จ ", color: "สี", odor: "กลิ่น",
-    texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
-    come_cold_date: "เข้าห้องเย็น1 (B)  </br> สำหรับ Loaf สุก เวลาเริ่มผสม </br> สำหรับ Loaf ดิบ เวลาเริ่มผสม ", come_cold_date_two: "เข้าห้องเย็น2 (D)",
-    come_cold_date_three: "เข้าห้องเย็น3", out_cold_date: "ออกห้องเย็น1 (C) </br> สำหรับ Loaf สุก เวลาผสมเสร็จ </br> สำหรับ Loaf ดิบ เวลาผสมเสร็จ",
+    group_no: "ชุดที่",
+    rmit_date: "เวลาเตรียมเสร็จ (A)\nสำหรับ Loaf สุก เวลาออกห้องเย็น\nสำหรับ Loaf ดิบ เวลาบดเสร็จ",
+    color: "สี", odor: "กลิ่น", texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
+    come_cold_date: "เข้าห้องเย็น1 (B)\nสำหรับ Loaf สุก เวลาเริ่มผสม\nสำหรับ Loaf ดิบ เวลาเริ่มผสม",
+    come_cold_date_two: "เข้าห้องเย็น2 (D)", come_cold_date_three: "เข้าห้องเย็น3",
+    out_cold_date: "ออกห้องเย็น1 (C)\nสำหรับ Loaf สุก เวลาผสมเสร็จ\nสำหรับ Loaf ดิบ เวลาผสมเสร็จ",
     out_cold_date_two: "ออกห้องเย็น2 (E)", out_cold_date_three: "ออกห้องเย็น3",
     sc_pack_date: "บรรจุเสร็จ (F)", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4",
     remark_dalay: "หมายเหตุ"
@@ -1962,8 +1989,10 @@ const TableMainPrep = ({
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}
                 >
-                  <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>
-                    {headerNames[header] || header}
+                  <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px', whiteSpace: 'pre-line' }}>
+                    {(headerNames[header] || header).split('\n').map((line, i, arr) => (
+                      <React.Fragment key={i}>{line}{i < arr.length - 1 && <br />}</React.Fragment>
+                    ))}
                   </Box>
                 </TableCell>
               ))}

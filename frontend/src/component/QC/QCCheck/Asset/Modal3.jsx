@@ -569,7 +569,7 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 								marginBottom: '2mm',
 							},
 						}}>
-							ข้อมูลการตรวจสอบคุณภาพtest
+							ข้อมูลการตรวจสอบคุณภาพ
 						</Typography>
 						{qcData?.prepare_mor_night && qcData?.prepare_mor_night !== "-" && (
 							<Typography variant="h6" sx={{
@@ -667,6 +667,18 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 								margin: '2px 0',
 							},
 						}}>
+							รายการ : {mapping_id || "ไม่มีข้อมูล"}
+						</Typography>
+
+						<Typography variant="h6" className="print-text" sx={{
+							color: "#464646",
+							fontSize: "22px",
+							margin: "10px",
+							'@media print': {
+								fontSize: '10px',
+								margin: '2px 0',
+							},
+						}}>
 							ชื่อวัตถุดิบ : {mat_name || "ไม่มีข้อมูล"}
 						</Typography>
 
@@ -681,6 +693,8 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 						}}>
 							รหัสวัตถุดิบ (mat) : {mat || "ไม่มีข้อมูล"}
 						</Typography>
+
+
 
 						{mat_2x && (
 							<Typography variant="h6" className="print-text" sx={{

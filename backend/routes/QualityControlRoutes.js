@@ -169,7 +169,7 @@ LEFT JOIN (
 ) b ON rmm.mapping_id = b.mapping_id
 WHERE
     rmm.stay_place IN ('จุดเตรียม', 'หม้ออบ')
-    AND rmm.dest    IN ('รอCheckin')
+    AND rmm.dest    IN ('รอCheckin','ห้องเย็นใหญ่')
     AND rmm.rm_status IN ('รอQCตรวจสอบ', 'รอ MD')
     AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
 GROUP BY

@@ -48,6 +48,29 @@ const Row = ({
         </TableCell>
       </TableRow>
       <TableRow >
+        <TableCell
+          align="center"
+          style={{
+            borderTop: '1px solid #e0e0e0',
+            borderBottom: '1px solid #e0e0e0',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            fontSize: '14px',
+            height: '40px',
+            lineHeight: '1.5',
+            padding: '0px 10px',
+            color: "#787878",
+            borderLeft: "1px solid #e0e0e0",
+            borderTopLeftRadius: "8px",
+            borderBottomLeftRadius: "8px",
+            backgroundColor: backgroundColor,
+            width: '80px',
+          }}
+        >
+          {mapping_id || '-'}
+        </TableCell>
         {Object.values(displayRow).map((value, idx) => (
           <TableCell
             key={idx}
@@ -65,9 +88,7 @@ const Row = ({
               lineHeight: '1.5',
               padding: '0px 10px',
               color: "#787878",
-              borderLeft: idx === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
-              borderTopLeftRadius: idx === 0 ? "8px" : "0px",
-              borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
+              borderLeft: "1px solid #f2f2f2",
               backgroundColor: backgroundColor
             }}
           >
@@ -396,8 +417,14 @@ const TableMainPrep = ({
           <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
             <TableHead style={{ marginBottom: "10px" }}>
               <TableRow sx={{ height: '40px' }}>
-                <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
-                  <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch</Box>
+                <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "80px" }}>
+                  <Box style={{ fontSize: '16px', color: '#ffffff' }}>รายการที่</Box>
+                </TableCell>
+                <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                  <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch ป้าย Tag</Box>
+                </TableCell>
+                <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                  <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch หลังเตรียม</Box>
                 </TableCell>
                 <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
                   <Box style={{ fontSize: '16px', color: '#ffffff' }}>Material</Box>

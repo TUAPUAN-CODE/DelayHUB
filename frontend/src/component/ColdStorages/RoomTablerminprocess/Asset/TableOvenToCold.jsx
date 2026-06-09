@@ -285,28 +285,40 @@ const tableColumns = [
 const CS_SORT_FIELDS = [{ field: 'cs_come_cold_date', label: 'เวลาเข้าห้องเย็นใหญ่' }];
 
 // ─── Export helpers ────────────────────────────────────────────────────────────
+const getLatestCsComeColdDate = (row) => {
+  const dates = [row.cs_come_cold_date, row.cs_come_cold_date_two, row.cs_come_cold_date_three, row.cs_come_cold_date_four].filter(Boolean);
+  if (dates.length === 0) return null;
+  return fmtDT(new Date(Math.max(...dates.map(d => new Date(d)))));
+};
+
 const EXPORT_HEADERS = [
-  'Batch', 'Material', 'รายชื่อวัตถุดิบ', 'แผนการผลิต', 'ป้ายทะเบียน',
-  'น้ำหนัก (กก.)', 'ชื่อห้องเย็น', 'หัวหน้าส่วนงานผลิต', 'หัวหน้าส่วนงานห้องเย็นห้องเย็น',
-  'วัตถุประสงค์การจัดเก็บ', 'Histamine (ppm)',
-  'เข้าห้องเย็นใหญ่ 1', 'ออกห้องเย็นใหญ่ 1',
-  'เข้าห้องเย็นใหญ่ 2', 'ออกห้องเย็นใหญ่ 2',
-  'เข้าห้องเย็นใหญ่ 3', 'ออกห้องเย็นใหญ่ 3',
-  'เข้าห้องเย็นใหญ่ 4', 'ออกห้องเย็นใหญ่ 4',
+  'ลำดับ', 'วันที่ฝาก', 'ชนิด', 'แหล่งผลิต',
+  'mat', 'material description', 'batch',
+  'เวลารับของ', 'จำนวน KG.', 'หมายเหตุ', 'วันที่ครบกำหนด',
+  'ผู้ส่ง', 'ผู้รับ', 'สาเหตุการฝากเก็บ', 'ห้องเย็น', '',
 ];
 
-const rowToExportData = (row) => [
-  row.batch, row.mat, row.mat_name, row.production, row.tro_id,
-  row.weight_RM, row.cs_name, row.receiver_out_cold, row.rd_section_colds,
-  row.storage_purpose, row.histamine,
-  fmtDT(row.cs_come_cold_date), fmtDT(row.cs_out_cold_date),
-  fmtDT(row.cs_come_cold_date_two), fmtDT(row.cs_out_cold_date_two),
-  fmtDT(row.cs_come_cold_date_three), fmtDT(row.cs_out_cold_date_three),
-  fmtDT(row.cs_come_cold_date_four), fmtDT(row.cs_out_cold_date_four),
+const rowToExportData = (row, index) => [
+  index + 1,
+  getLatestCsComeColdDate(row),
+  row.rm_group_name,
+  'PF',
+  row.mat,
+  row.mat_name,
+  row.batch,
+  getLatestCsComeColdDate(row),
+  row.weight_RM,
+  null,
+  null,
+  row.receiver_out_cold,
+  row.rd_section_colds,
+  row.storage_purpose,
+  row.cs_name,
+  null,
 ];
 
 const exportToExcel = (rows) => {
-  const wsData = [EXPORT_HEADERS, ...rows.map(rowToExportData)];
+  const wsData = [EXPORT_HEADERS, ...rows.map((row, i) => rowToExportData(row, i))];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
   // ── style header row ─────────────────────────────────────────────────────
@@ -330,9 +342,9 @@ const exportToExcel = (rows) => {
 const exportToPDF = (rows) => {
   const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
 
-  const tableRows = rows.map(row => `
+  const tableRows = rows.map((row, i) => `
     <tr>
-      ${rowToExportData(row).map((v, i) => `<td style="border:1px solid #ddd;padding:4px 6px;font-size:11px;white-space:nowrap;${i === 10 && v != null ? `color:${v > 100 ? '#494848' : v > 50 ? '#f57c00' : '#2e7d32'};font-weight:600` : ''}">${v ?? '-'}</td>`).join('')}
+      ${rowToExportData(row, i).map(v => `<td style="border:1px solid #ddd;padding:4px 6px;font-size:11px;white-space:nowrap;">${v ?? '-'}</td>`).join('')}
     </tr>`).join('');
 
   const html = `

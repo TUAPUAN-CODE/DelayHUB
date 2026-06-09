@@ -107,7 +107,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     cors: {
       origin: [
         `http://${process.env.DB_SERVER}:5173`,
-        "http://172.48.0.115:5173",
+        "http://172.20.10.5:5173",
         "http://pfcm.thaiunion.co.th",
       ],
       credentials: true,
@@ -134,7 +134,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   // Enhanced Redis configuration
   const pubClient = createClient({
     socket: {
-      host: '172.48.0.115',
+      host: '172.20.10.5',
       port: 6379,
       tls: {
         servername: undefined

@@ -109,6 +109,7 @@ const SIDEBAR_SECTIONS = [
       { name: "2) เริ่มละลาย",         href: "/ColdStorages/ScanSAPPage/defrost" },
       { name: "3) ละลายเสร็จ",         href: "/ColdStorages/ScanSAPPageEDF/end/defrost" },
       { name: "4) จ่ายลงไลน์",         href: "/ColdStorages/products" },
+      { name: "5) Monitor",         href: "/ColdStorages/RoomTableCS" },
       // { name: "Dashboard",      href: "/ColdStorages/dashboardrmoutprocess" },
 
     ],
