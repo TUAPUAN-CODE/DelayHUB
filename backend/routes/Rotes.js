@@ -477,10 +477,10 @@ module.exports = (io) => {
     }
   });
 
- router.get('/report/rm-delay', async (req, res) => {
+  router.get('/report/rm-delay', async (req, res) => {
     try {
       const { start_date, end_date } = req.query;
-      const pool = await connectToDatabase(); 
+      const pool = await connectToDatabase();
       const request = pool.request();
 
       request.input('start_date', sql.Date, start_date || null);
@@ -609,13 +609,13 @@ WHERE (@start_date IS NULL OR rmit_date_fac >= @start_date)
         message: err.message
       });
     }
-});
+  });
 
- 
-router.get('/report/rm-delay/line', async (req, res) => {
+
+  router.get('/report/rm-delay/line', async (req, res) => {
     try {
       const { start_date, end_date } = req.query;
-      const pool = await connectToDatabase(); 
+      const pool = await connectToDatabase();
       const request = pool.request();
 
       request.input('start_date', sql.Date, start_date || null);
@@ -723,45 +723,45 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         message: err.message
       });
     }
-});
+  });
 
 
-const validatePkgDgSuppPayload = (body) => {
-  const errors = [];
-  if (!body.batch_prefix || String(body.batch_prefix).trim() === "") {
-    errors.push("batch_prefix is required");
-  }
-  if (body.start_pos === undefined || body.start_pos === null || body.start_pos === "") {
-    errors.push("start_pos is required");
-  } else if (isNaN(Number(body.start_pos)) || Number(body.start_pos) < 0) {
-    errors.push("start_pos must be a non-negative number");
-  }
-  if (body.length === undefined || body.length === null || body.length === "") {
-    errors.push("length is required");
-  } else if (isNaN(Number(body.length)) || Number(body.length) <= 0) {
-    errors.push("length must be a positive number");
-  }
-  if (!body.supp || String(body.supp).trim() === "") {
-    errors.push("supp is required");
-  }
-  if (!body.vender || String(body.vender).trim() === "") {
-    errors.push("vender is required");
-  }
-  return errors;
-};
- 
-// ═════════════════════════════════════════════════════════════
-// GET /api/PkgDgSupp           — list all (รองรับ ?search=)
-// ═════════════════════════════════════════════════════════════
-router.get("/PkgDgSupp", async (req, res) => {
-  const { search } = req.query;
-  try {
-    const pool = await connectToDatabase();
-    if (!pool) {
-      return res.status(500).json({ success: false, error: "Database connection failed" });
+  const validatePkgDgSuppPayload = (body) => {
+    const errors = [];
+    if (!body.batch_prefix || String(body.batch_prefix).trim() === "") {
+      errors.push("batch_prefix is required");
     }
- 
-    let query = `
+    if (body.start_pos === undefined || body.start_pos === null || body.start_pos === "") {
+      errors.push("start_pos is required");
+    } else if (isNaN(Number(body.start_pos)) || Number(body.start_pos) < 0) {
+      errors.push("start_pos must be a non-negative number");
+    }
+    if (body.length === undefined || body.length === null || body.length === "") {
+      errors.push("length is required");
+    } else if (isNaN(Number(body.length)) || Number(body.length) <= 0) {
+      errors.push("length must be a positive number");
+    }
+    if (!body.supp || String(body.supp).trim() === "") {
+      errors.push("supp is required");
+    }
+    if (!body.vender || String(body.vender).trim() === "") {
+      errors.push("vender is required");
+    }
+    return errors;
+  };
+
+  // ═════════════════════════════════════════════════════════════
+  // GET /api/PkgDgSupp           — list all (รองรับ ?search=)
+  // ═════════════════════════════════════════════════════════════
+  router.get("/PkgDgSupp", async (req, res) => {
+    const { search } = req.query;
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(500).json({ success: false, error: "Database connection failed" });
+      }
+
+      let query = `
       SELECT
         pkg_dg_supp_id,
         batch_prefix,
@@ -771,84 +771,84 @@ router.get("/PkgDgSupp", async (req, res) => {
         vender
       FROM dbo.PKG_DG_Supp
     `;
-    const request = pool.request();
- 
-    if (search && String(search).trim() !== "") {
-      query += `
+      const request = pool.request();
+
+      if (search && String(search).trim() !== "") {
+        query += `
         WHERE batch_prefix LIKE @s
            OR supp        LIKE @s
            OR vender      LIKE @s
       `;
-      request.input("s", sql.NVarChar, `%${search}%`);
-    }
- 
-    query += ` ORDER BY pkg_dg_supp_id DESC`;
- 
-    const result = await request.query(query);
-    return res.json({ success: true, data: result.recordset });
-  } catch (err) {
-    console.error("GET /PkgDgSupp error:", err);
-    return res.status(500).json({
-      success: false,
-      error: "Internal Server Error",
-      details: err.message,
-    });
-  }
-});
- 
-// ═════════════════════════════════════════════════════════════
-// POST /api/PkgDgSupp/bulkImport   — bulk import
-// ⚠️ ต้องอยู่ก่อน /:id เพื่อกัน route conflict
-// body: { rows: [ { batch_prefix, start_pos, length, supp, vender }, ... ] }
-// ═════════════════════════════════════════════════════════════
-router.post("/PkgDgSupp/bulkImport", async (req, res) => {
-  const io = req.app.get("io");
-  const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
- 
-  if (!rows || rows.length === 0) {
-    return res.status(400).json({ success: false, error: "No rows provided" });
-  }
-  if (rows.length > 10000) {
-    return res.status(400).json({ success: false, error: "Too many rows (max 10,000 per request)" });
-  }
- 
-  let pool;
-  try {
-    pool = await connectToDatabase();
-    if (!pool) {
-      return res.status(500).json({ success: false, error: "Database connection failed" });
-    }
-  } catch (err) {
-    return res.status(500).json({ success: false, error: "DB connection failed: " + err.message });
-  }
- 
-  let inserted = 0;
-  let updated = 0;
-  let failed = 0;
-  const errors = [];
- 
-  const transaction = new sql.Transaction(pool);
-  try {
-    await transaction.begin();
- 
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const validateErrs = validatePkgDgSuppPayload(r);
-      if (validateErrs.length > 0) {
-        failed++;
-        errors.push({ row: i + 1, error: validateErrs.join(", ") });
-        continue;
+        request.input("s", sql.NVarChar, `%${search}%`);
       }
- 
-      try {
-        const request = new sql.Request(transaction);
-        const result = await request
-          .input("batch_prefix", sql.NVarChar, String(r.batch_prefix).trim())
-          .input("start_pos",    sql.Int,      Number(r.start_pos))
-          .input("length",       sql.Int,      Number(r.length))
-          .input("supp",         sql.NVarChar, String(r.supp).trim())
-          .input("vender",       sql.NVarChar, String(r.vender).trim())
-          .query(`
+
+      query += ` ORDER BY pkg_dg_supp_id DESC`;
+
+      const result = await request.query(query);
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("GET /PkgDgSupp error:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Internal Server Error",
+        details: err.message,
+      });
+    }
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // POST /api/PkgDgSupp/bulkImport   — bulk import
+  // ⚠️ ต้องอยู่ก่อน /:id เพื่อกัน route conflict
+  // body: { rows: [ { batch_prefix, start_pos, length, supp, vender }, ... ] }
+  // ═════════════════════════════════════════════════════════════
+  router.post("/PkgDgSupp/bulkImport", async (req, res) => {
+    const io = req.app.get("io");
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ success: false, error: "No rows provided" });
+    }
+    if (rows.length > 10000) {
+      return res.status(400).json({ success: false, error: "Too many rows (max 10,000 per request)" });
+    }
+
+    let pool;
+    try {
+      pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(500).json({ success: false, error: "Database connection failed" });
+      }
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "DB connection failed: " + err.message });
+    }
+
+    let inserted = 0;
+    let updated = 0;
+    let failed = 0;
+    const errors = [];
+
+    const transaction = new sql.Transaction(pool);
+    try {
+      await transaction.begin();
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const validateErrs = validatePkgDgSuppPayload(r);
+        if (validateErrs.length > 0) {
+          failed++;
+          errors.push({ row: i + 1, error: validateErrs.join(", ") });
+          continue;
+        }
+
+        try {
+          const request = new sql.Request(transaction);
+          const result = await request
+            .input("batch_prefix", sql.NVarChar, String(r.batch_prefix).trim())
+            .input("start_pos", sql.Int, Number(r.start_pos))
+            .input("length", sql.Int, Number(r.length))
+            .input("supp", sql.NVarChar, String(r.supp).trim())
+            .input("vender", sql.NVarChar, String(r.vender).trim())
+            .query(`
             MERGE dbo.PKG_DG_Supp AS target
             USING (SELECT @batch_prefix AS batch_prefix, @supp AS supp) AS src
               ON target.batch_prefix = src.batch_prefix AND target.supp = src.supp
@@ -862,126 +862,126 @@ router.post("/PkgDgSupp/bulkImport", async (req, res) => {
               VALUES (@batch_prefix, @start_pos, @length, @supp, @vender)
             OUTPUT $action AS action;
           `);
- 
-        const action = result.recordset[0]?.action;
-        if (action === "INSERT") inserted++;
-        else if (action === "UPDATE") updated++;
-      } catch (rowErr) {
-        failed++;
-        errors.push({ row: i + 1, error: rowErr.message });
+
+          const action = result.recordset[0]?.action;
+          if (action === "INSERT") inserted++;
+          else if (action === "UPDATE") updated++;
+        } catch (rowErr) {
+          failed++;
+          errors.push({ row: i + 1, error: rowErr.message });
+        }
       }
+
+      await transaction.commit();
+
+      if (io) io.emit("pkgDgSupp:bulkImported", { inserted, updated, failed });
+
+      return res.json({
+        success: true,
+        total: rows.length,
+        inserted,
+        updated,
+        failed,
+        errors: errors.slice(0, 50),
+      });
+    } catch (err) {
+      try { await transaction.rollback(); } catch (_) { /* ignore */ }
+      console.error("POST /PkgDgSupp/bulkImport error:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Bulk import failed",
+        details: err.message,
+        inserted, updated, failed,
+      });
     }
- 
-    await transaction.commit();
- 
-    if (io) io.emit("pkgDgSupp:bulkImported", { inserted, updated, failed });
- 
-    return res.json({
-      success: true,
-      total: rows.length,
-      inserted,
-      updated,
-      failed,
-      errors: errors.slice(0, 50),
-    });
-  } catch (err) {
-    try { await transaction.rollback(); } catch (_) { /* ignore */ }
-    console.error("POST /PkgDgSupp/bulkImport error:", err);
-    return res.status(500).json({
-      success: false,
-      error: "Bulk import failed",
-      details: err.message,
-      inserted, updated, failed,
-    });
-  }
-});
- 
-// ═════════════════════════════════════════════════════════════
-// POST /api/PkgDgSupp        — create
-// ═════════════════════════════════════════════════════════════
-router.post("/PkgDgSupp", async (req, res) => {
-  const io = req.app.get("io");
-  const errors = validatePkgDgSuppPayload(req.body);
-  if (errors.length > 0) {
-    return res.status(400).json({ success: false, error: errors.join(", ") });
-  }
- 
-  try {
-    const pool = await connectToDatabase();
-    const result = await pool.request()
-      .input("batch_prefix", sql.NVarChar, String(req.body.batch_prefix).trim())
-      .input("start_pos",    sql.Int,      Number(req.body.start_pos))
-      .input("length",       sql.Int,      Number(req.body.length))
-      .input("supp",         sql.NVarChar, String(req.body.supp).trim())
-      .input("vender",       sql.NVarChar, String(req.body.vender).trim())
-      .query(`
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // POST /api/PkgDgSupp        — create
+  // ═════════════════════════════════════════════════════════════
+  router.post("/PkgDgSupp", async (req, res) => {
+    const io = req.app.get("io");
+    const errors = validatePkgDgSuppPayload(req.body);
+    if (errors.length > 0) {
+      return res.status(400).json({ success: false, error: errors.join(", ") });
+    }
+
+    try {
+      const pool = await connectToDatabase();
+      const result = await pool.request()
+        .input("batch_prefix", sql.NVarChar, String(req.body.batch_prefix).trim())
+        .input("start_pos", sql.Int, Number(req.body.start_pos))
+        .input("length", sql.Int, Number(req.body.length))
+        .input("supp", sql.NVarChar, String(req.body.supp).trim())
+        .input("vender", sql.NVarChar, String(req.body.vender).trim())
+        .query(`
         INSERT INTO dbo.PKG_DG_Supp (batch_prefix, start_pos, length, supp, vender)
         OUTPUT INSERTED.*
         VALUES (@batch_prefix, @start_pos, @length, @supp, @vender)
       `);
- 
-    const newRow = result.recordset[0];
- 
-    if (io) io.emit("pkgDgSupp:created", newRow);
- 
-    return res.status(201).json({ success: true, data: newRow });
-  } catch (err) {
-    console.error("POST /PkgDgSupp error:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
- 
-// ═════════════════════════════════════════════════════════════
-// GET /api/PkgDgSupp/:id    — single record
-// ═════════════════════════════════════════════════════════════
-router.get("/PkgDgSupp/:id(\\d+)", async (req, res) => {
-  const id = Number(req.params.id);
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ success: false, error: "Invalid ID" });
-  }
-  try {
-    const pool = await connectToDatabase();
-    const result = await pool.request()
-      .input("id", sql.Int, id)
-      .query(`
+
+      const newRow = result.recordset[0];
+
+      if (io) io.emit("pkgDgSupp:created", newRow);
+
+      return res.status(201).json({ success: true, data: newRow });
+    } catch (err) {
+      console.error("POST /PkgDgSupp error:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // GET /api/PkgDgSupp/:id    — single record
+  // ═════════════════════════════════════════════════════════════
+  router.get("/PkgDgSupp/:id(\\d+)", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, error: "Invalid ID" });
+    }
+    try {
+      const pool = await connectToDatabase();
+      const result = await pool.request()
+        .input("id", sql.Int, id)
+        .query(`
         SELECT pkg_dg_supp_id, batch_prefix, start_pos, length, supp, vender
         FROM dbo.PKG_DG_Supp
         WHERE pkg_dg_supp_id = @id
       `);
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ success: false, error: "Not found" });
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, error: "Not found" });
+      }
+      return res.json({ success: true, data: result.recordset[0] });
+    } catch (err) {
+      console.error("GET /PkgDgSupp/:id error:", err);
+      return res.status(500).json({ success: false, error: err.message });
     }
-    return res.json({ success: true, data: result.recordset[0] });
-  } catch (err) {
-    console.error("GET /PkgDgSupp/:id error:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
- 
-// ═════════════════════════════════════════════════════════════
-// PUT /api/PkgDgSupp/:id   — update
-// ═════════════════════════════════════════════════════════════
-router.put("/PkgDgSupp/:id(\\d+)", async (req, res) => {
-  const io = req.app.get("io");
-  const id = Number(req.params.id);
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ success: false, error: "Invalid ID" });
-  }
-  const errors = validatePkgDgSuppPayload(req.body);
-  if (errors.length > 0) {
-    return res.status(400).json({ success: false, error: errors.join(", ") });
-  }
- 
-  try {
-    const pool = await connectToDatabase();
-    const result = await pool.request()
-      .input("id",           sql.Int,      id)
-      .input("batch_prefix", sql.NVarChar, String(req.body.batch_prefix).trim())
-      .input("start_pos",    sql.Int,      Number(req.body.start_pos))
-      .input("length",       sql.Int,      Number(req.body.length))
-      .input("supp",         sql.NVarChar, String(req.body.supp).trim())
-      .input("vender",       sql.NVarChar, String(req.body.vender).trim())
-      .query(`
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // PUT /api/PkgDgSupp/:id   — update
+  // ═════════════════════════════════════════════════════════════
+  router.put("/PkgDgSupp/:id(\\d+)", async (req, res) => {
+    const io = req.app.get("io");
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, error: "Invalid ID" });
+    }
+    const errors = validatePkgDgSuppPayload(req.body);
+    if (errors.length > 0) {
+      return res.status(400).json({ success: false, error: errors.join(", ") });
+    }
+
+    try {
+      const pool = await connectToDatabase();
+      const result = await pool.request()
+        .input("id", sql.Int, id)
+        .input("batch_prefix", sql.NVarChar, String(req.body.batch_prefix).trim())
+        .input("start_pos", sql.Int, Number(req.body.start_pos))
+        .input("length", sql.Int, Number(req.body.length))
+        .input("supp", sql.NVarChar, String(req.body.supp).trim())
+        .input("vender", sql.NVarChar, String(req.body.vender).trim())
+        .query(`
         UPDATE dbo.PKG_DG_Supp
         SET batch_prefix = @batch_prefix,
             start_pos    = @start_pos,
@@ -991,58 +991,58 @@ router.put("/PkgDgSupp/:id(\\d+)", async (req, res) => {
         OUTPUT INSERTED.*
         WHERE pkg_dg_supp_id = @id
       `);
- 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ success: false, error: "Not found" });
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, error: "Not found" });
+      }
+      const updatedRow = result.recordset[0];
+
+      if (io) io.emit("pkgDgSupp:updated", updatedRow);
+
+      return res.json({ success: true, data: updatedRow });
+    } catch (err) {
+      console.error("PUT /PkgDgSupp/:id error:", err);
+      return res.status(500).json({ success: false, error: err.message });
     }
-    const updatedRow = result.recordset[0];
- 
-    if (io) io.emit("pkgDgSupp:updated", updatedRow);
- 
-    return res.json({ success: true, data: updatedRow });
-  } catch (err) {
-    console.error("PUT /PkgDgSupp/:id error:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
- 
-// ═════════════════════════════════════════════════════════════
-// DELETE /api/PkgDgSupp/:id
-// ═════════════════════════════════════════════════════════════
-router.delete("/PkgDgSupp/:id(\\d+)", async (req, res) => {
-  const io = req.app.get("io");
-  const id = Number(req.params.id);
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ success: false, error: "Invalid ID" });
-  }
-  try {
-    const pool = await connectToDatabase();
-    const result = await pool.request()
-      .input("id", sql.Int, id)
-      .query(`
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // DELETE /api/PkgDgSupp/:id
+  // ═════════════════════════════════════════════════════════════
+  router.delete("/PkgDgSupp/:id(\\d+)", async (req, res) => {
+    const io = req.app.get("io");
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, error: "Invalid ID" });
+    }
+    try {
+      const pool = await connectToDatabase();
+      const result = await pool.request()
+        .input("id", sql.Int, id)
+        .query(`
         DELETE FROM dbo.PKG_DG_Supp
         OUTPUT DELETED.pkg_dg_supp_id
         WHERE pkg_dg_supp_id = @id
       `);
- 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ success: false, error: "Not found" });
-    }
-    const deletedId = result.recordset[0].pkg_dg_supp_id;
- 
-    if (io) io.emit("pkgDgSupp:deleted", { pkg_dg_supp_id: deletedId });
- 
-    return res.json({ success: true, deleted_id: deletedId });
-  } catch (err) {
-    console.error("DELETE /PkgDgSupp/:id error:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
 
-router.get('/report/rm-delay/%tie/line', async (req, res) => {
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, error: "Not found" });
+      }
+      const deletedId = result.recordset[0].pkg_dg_supp_id;
+
+      if (io) io.emit("pkgDgSupp:deleted", { pkg_dg_supp_id: deletedId });
+
+      return res.json({ success: true, deleted_id: deletedId });
+    } catch (err) {
+      console.error("DELETE /PkgDgSupp/:id error:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.get('/report/rm-delay/%tie/line', async (req, res) => {
     try {
       const { start_date, end_date } = req.query;
-      const pool = await connectToDatabase(); 
+      const pool = await connectToDatabase();
       const request = pool.request();
 
       request.input('start_date', sql.Date, start_date || null);
@@ -1067,7 +1067,8 @@ WITH base AS (
         trmp.weight_RM,
         trmp.rmm_line_name,
         h.rmit_date,
-        rm.mat,
+        m.mat,
+        m.mat_2x,
         
         CASE 
             WHEN CAST(h.rmit_date AS time) < '06:00:00'
@@ -1182,6 +1183,7 @@ WITH base AS (
     JOIN RawMat rm ON rm.mat = pr.mat
     JOIN Production p ON pr.prod_id = p.prod_id
 	JOIN Batch b on trmp.mapping_id = b.mapping_id
+    JOIN Mat m on trmp.mapping_id = m.mapping_id
 
     WHERE trmp.dest = N'บรรจุเสร็จ'
       AND trmp.stay_place = N'บรรจุเสร็จ'
@@ -1235,7 +1237,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         message: err.message
       });
     }
-});
+  });
 
   router.get("/checkEditHistoryOnTrolleyAll", async (req, res) => {
     const { tro_id } = req.query;
@@ -2113,44 +2115,44 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
 
   router.put("/MatOnTrolley/updateProduction", async (req, res) => {
-  const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
-  const io = req.app.get("io");
+    const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
+    const io = req.app.get("io");
 
-  console.log("BODY:", req.body);
+    console.log("BODY:", req.body);
 
-  try {
-    const pool = await connectToDatabase();
+    try {
+      const pool = await connectToDatabase();
 
-    // =====================================================
-    // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
-    // =====================================================
-    const result = await pool.request()
-      .input("prod_id", sql.Int, ProdID)
-      .input("mat", sql.VarChar(50), mat)
-      .query(`
+      // =====================================================
+      // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
+      // =====================================================
+      const result = await pool.request()
+        .input("prod_id", sql.Int, ProdID)
+        .input("mat", sql.VarChar(50), mat)
+        .query(`
         SELECT prod_rm_id
         FROM ProdRawMat
         WHERE prod_id = @prod_id AND mat = @mat
       `);
 
-    if (result.recordset.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
-      });
-    }
+      if (result.recordset.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
+        });
+      }
 
-    const ProdRMID = result.recordset[0].prod_rm_id;
+      const ProdRMID = result.recordset[0].prod_rm_id;
 
-    // =====================================================
-    // 2️⃣ Update TrolleyRMMapping
-    // =====================================================
-    await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .input("prod_rm_id", sql.Int, ProdRMID)
-      .input("rmm_line_name", sql.VarChar(50), line_name || null)
-      .input("weight_RM", sql.Float, weight ? parseFloat(weight) : null)
-      .query(`
+      // =====================================================
+      // 2️⃣ Update TrolleyRMMapping
+      // =====================================================
+      await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .input("prod_rm_id", sql.Int, ProdRMID)
+        .input("rmm_line_name", sql.VarChar(50), line_name || null)
+        .input("weight_RM", sql.Float, weight ? parseFloat(weight) : null)
+        .query(`
         UPDATE TrolleyRMMapping
         SET rmm_line_name = @rmm_line_name,
             tro_production_id = @prod_rm_id,
@@ -2158,12 +2160,12 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         WHERE mapping_id = @mapping_id
       `);
 
-    // =====================================================
-    // 3️⃣ ดึง production ใหม่
-    // =====================================================
-    const pullProduction = await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .query(`
+      // =====================================================
+      // 3️⃣ ดึง production ใหม่
+      // =====================================================
+      const pullProduction = await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .query(`
         SELECT
           rmm.mapping_id,
           CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production
@@ -2173,143 +2175,143 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         WHERE rmm.mapping_id = @mapping_id
       `);
 
-    if (pullProduction.recordset.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบข้อมูล production"
-      });
-    }
+      if (pullProduction.recordset.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "ไม่พบข้อมูล production"
+        });
+      }
 
-    const production = pullProduction.recordset[0].production;
+      const production = pullProduction.recordset[0].production;
 
-    // =====================================================
-    // 4️⃣ ตรวจสอบ History
-    // =====================================================
-    const checkHistory = await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .query(`
+      // =====================================================
+      // 4️⃣ ตรวจสอบ History
+      // =====================================================
+      const checkHistory = await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .query(`
         SELECT two_prod, three_prod
         FROM History
         WHERE mapping_id = @mapping_id
       `);
 
-    let updateField = "";
+      let updateField = "";
 
-    if (checkHistory.recordset.length > 0) {
-      const { two_prod } = checkHistory.recordset[0];
+      if (checkHistory.recordset.length > 0) {
+        const { two_prod } = checkHistory.recordset[0];
 
-      // ✅ Logic ใหม่
-      if (two_prod === null) {
-        updateField = "two_prod";
+        // ✅ Logic ใหม่
+        if (two_prod === null) {
+          updateField = "two_prod";
+        } else {
+          // ถ้า two_prod มีค่าแล้ว
+          // ไม่ว่า three_prod จะว่างหรือไม่
+          // ให้ update ทับ three_prod
+          updateField = "three_prod";
+        }
       } else {
-        // ถ้า two_prod มีค่าแล้ว
-        // ไม่ว่า three_prod จะว่างหรือไม่
-        // ให้ update ทับ three_prod
-        updateField = "three_prod";
+        return res.status(400).json({
+          success: false,
+          message: "ไม่พบข้อมูล History"
+        });
       }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบข้อมูล History"
-      });
-    }
 
-    // =====================================================
-    // 5️⃣ Update History
-    // =====================================================
-    let updateQuery = "";
+      // =====================================================
+      // 5️⃣ Update History
+      // =====================================================
+      let updateQuery = "";
 
-    if (updateField === "two_prod") {
-      updateQuery = `
+      if (updateField === "two_prod") {
+        updateQuery = `
         UPDATE History
         SET two_prod = @production,
             name_edit_prod_two = @name_edit_prod
         WHERE mapping_id = @mapping_id
       `;
-    } else {
-      updateQuery = `
+      } else {
+        updateQuery = `
         UPDATE History
         SET three_prod = @production,
             name_edit_prod_three = @name_edit_prod
         WHERE mapping_id = @mapping_id
       `;
+      }
+
+      await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .input("production", sql.NVarChar(200), production)
+        .input("name_edit_prod", sql.NVarChar(100), name_edit_prod || null)
+        .query(updateQuery);
+
+      // =====================================================
+      // 6️⃣ Emit Socket
+      // =====================================================
+      const formattedData = {
+        mapping_id,
+        ProdID,
+        mat,
+        line_name,
+        message: "Production updated",
+        update_field: updateField
+      };
+
+      io.to("saveRMForProdRoom").emit("dataUpdated", formattedData);
+      io.to("QcCheckRoom").emit("dataUpdated", formattedData);
+
+      return res.status(200).json({
+        success: true,
+        message: "แก้ไขแผนการผลิตเสร็จสิ้น",
+        update_field: updateField
+      });
+
+    } catch (err) {
+      console.error("SQL ERROR:", err);
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
-
-    await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .input("production", sql.NVarChar(200), production)
-      .input("name_edit_prod", sql.NVarChar(100), name_edit_prod || null)
-      .query(updateQuery);
-
-    // =====================================================
-    // 6️⃣ Emit Socket
-    // =====================================================
-    const formattedData = {
-      mapping_id,
-      ProdID,
-      mat,
-      line_name,
-      message: "Production updated",
-      update_field: updateField
-    };
-
-    io.to("saveRMForProdRoom").emit("dataUpdated", formattedData);
-    io.to("QcCheckRoom").emit("dataUpdated", formattedData);
-
-    return res.status(200).json({
-      success: true,
-      message: "แก้ไขแผนการผลิตเสร็จสิ้น",
-      update_field: updateField
-    });
-
-  } catch (err) {
-    console.error("SQL ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
+  });
 
   router.put("/MatOnTrolley/updateProduction/incs", async (req, res) => {
-  const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
-  const io = req.app.get("io");
+    const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
+    const io = req.app.get("io");
 
-  console.log("BODY:", req.body);
+    console.log("BODY:", req.body);
 
-  try {
-    const pool = await connectToDatabase();
+    try {
+      const pool = await connectToDatabase();
 
-    // =====================================================
-    // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
-    // =====================================================
-    const result = await pool.request()
-      .input("prod_id", sql.Int, ProdID)
-      .input("mat", sql.VarChar(50), mat)
-      .query(`
+      // =====================================================
+      // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
+      // =====================================================
+      const result = await pool.request()
+        .input("prod_id", sql.Int, ProdID)
+        .input("mat", sql.VarChar(50), mat)
+        .query(`
         SELECT prod_rm_id
         FROM ProdRawMat
         WHERE prod_id = @prod_id AND mat = @mat
       `);
 
-    if (result.recordset.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
-      });
-    }
+      if (result.recordset.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
+        });
+      }
 
-    const ProdRMID = result.recordset[0].prod_rm_id;
+      const ProdRMID = result.recordset[0].prod_rm_id;
 
-    // =====================================================
-    // 2️⃣ Update TrolleyRMMapping
-    // =====================================================
-    await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .input("prod_rm_id", sql.Int, ProdRMID)
-      .input("rmm_line_name", sql.VarChar(50), line_name || null)
-      .input("weight_RM", sql.Float, weight ? parseFloat(weight) : null)
-      .query(`
+      // =====================================================
+      // 2️⃣ Update TrolleyRMMapping
+      // =====================================================
+      await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .input("prod_rm_id", sql.Int, ProdRMID)
+        .input("rmm_line_name", sql.VarChar(50), line_name || null)
+        .input("weight_RM", sql.Float, weight ? parseFloat(weight) : null)
+        .query(`
         UPDATE TrolleyRMMapping
         SET rmm_line_name = @rmm_line_name,
             tro_production_id = @prod_rm_id,
@@ -2317,12 +2319,12 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         WHERE mapping_id = @mapping_id
       `);
 
-    // =====================================================
-    // 3️⃣ ดึง production ใหม่
-    // =====================================================
-    const pullProduction = await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .query(`
+      // =====================================================
+      // 3️⃣ ดึง production ใหม่
+      // =====================================================
+      const pullProduction = await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .query(`
         SELECT
           rmm.mapping_id,
           CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production
@@ -2332,103 +2334,103 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         WHERE rmm.mapping_id = @mapping_id
       `);
 
-    if (pullProduction.recordset.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบข้อมูล production"
-      });
-    }
+      if (pullProduction.recordset.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "ไม่พบข้อมูล production"
+        });
+      }
 
-    const production = pullProduction.recordset[0].production;
+      const production = pullProduction.recordset[0].production;
 
-    // =====================================================
-    // 4️⃣ ตรวจสอบ History
-    // =====================================================
-    const checkHistory = await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .query(`
+      // =====================================================
+      // 4️⃣ ตรวจสอบ History
+      // =====================================================
+      const checkHistory = await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .query(`
         SELECT two_prod, three_prod
         FROM History
         WHERE mapping_id = @mapping_id
       `);
 
-    let updateField = "";
+      let updateField = "";
 
-    if (checkHistory.recordset.length > 0) {
-      const { two_prod } = checkHistory.recordset[0];
+      if (checkHistory.recordset.length > 0) {
+        const { two_prod } = checkHistory.recordset[0];
 
-      // ✅ Logic ใหม่
-      if (two_prod === null) {
-        updateField = "two_prod";
+        // ✅ Logic ใหม่
+        if (two_prod === null) {
+          updateField = "two_prod";
+        } else {
+          // ถ้า two_prod มีค่าแล้ว
+          // ไม่ว่า three_prod จะว่างหรือไม่
+          // ให้ update ทับ three_prod
+          updateField = "three_prod";
+        }
       } else {
-        // ถ้า two_prod มีค่าแล้ว
-        // ไม่ว่า three_prod จะว่างหรือไม่
-        // ให้ update ทับ three_prod
-        updateField = "three_prod";
+        return res.status(400).json({
+          success: false,
+          message: "ไม่พบข้อมูล History"
+        });
       }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบข้อมูล History"
-      });
-    }
 
-    // =====================================================
-    // 5️⃣ Update History
-    // =====================================================
-    let updateQuery = "";
+      // =====================================================
+      // 5️⃣ Update History
+      // =====================================================
+      let updateQuery = "";
 
-    if (updateField === "two_prod") {
-      updateQuery = `
+      if (updateField === "two_prod") {
+        updateQuery = `
         UPDATE History
         SET two_prod = @production,
             name_edit_prod_two = @name_edit_prod
         WHERE mapping_id = @mapping_id
       `;
-    } else {
-      updateQuery = `
+      } else {
+        updateQuery = `
         UPDATE History
         SET three_prod = @production,
             name_edit_prod_three = @name_edit_prod
         WHERE mapping_id = @mapping_id
       `;
+      }
+
+      await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .input("production", sql.NVarChar(200), production)
+        .input("name_edit_prod", sql.NVarChar(100), name_edit_prod || null)
+        .query(updateQuery);
+
+      // =====================================================
+      // 6️⃣ Emit Socket
+      // =====================================================
+      const formattedData = {
+        mapping_id,
+        ProdID,
+        mat,
+        line_name,
+        message: "Production updated",
+        update_field: updateField
+      };
+
+      io.to("saveRMForProdRoom").emit("dataUpdated", formattedData);
+      io.to("QcCheckRoom").emit("dataUpdated", formattedData);
+
+      return res.status(200).json({
+        success: true,
+        message: "แก้ไขแผนการผลิตเสร็จสิ้น",
+        update_field: updateField
+      });
+
+    } catch (err) {
+      console.error("SQL ERROR:", err);
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
-
-    await pool.request()
-      .input("mapping_id", sql.Int, mapping_id)
-      .input("production", sql.NVarChar(200), production)
-      .input("name_edit_prod", sql.NVarChar(100), name_edit_prod || null)
-      .query(updateQuery);
-
-    // =====================================================
-    // 6️⃣ Emit Socket
-    // =====================================================
-    const formattedData = {
-      mapping_id,
-      ProdID,
-      mat,
-      line_name,
-      message: "Production updated",
-      update_field: updateField
-    };
-
-    io.to("saveRMForProdRoom").emit("dataUpdated", formattedData);
-    io.to("QcCheckRoom").emit("dataUpdated", formattedData);
-
-    return res.status(200).json({
-      success: true,
-      message: "แก้ไขแผนการผลิตเสร็จสิ้น",
-      update_field: updateField
-    });
-
-  } catch (err) {
-    console.error("SQL ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
+  });
 
 
   router.put("/MatOnTrolley/updateProductionAll", async (req, res) => {

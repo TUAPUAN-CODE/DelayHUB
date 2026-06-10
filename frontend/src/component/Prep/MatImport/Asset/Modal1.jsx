@@ -72,7 +72,7 @@ const Modal1 = ({
   useEffect(() => {
     const storedUser = localStorage.getItem("user_id");
     const userId = storedUser ? parseInt(storedUser, 10) : null;
-    const allowedUsers = [6590019, 4590390, 6760051,6760052];
+    const allowedUsers = [6590019, 4590390, 6760051,6760051];
     setIsEditableUser(allowedUsers.includes(userId));
   }, []);
 

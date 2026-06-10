@@ -48,6 +48,7 @@ const TABLE_COLS = [
   { id: 'hu',                   name: 'HU',                width: '110px' },
   { id: 'batch',                name: 'Batch',             width: '120px' },
   { id: 'mat',                  name: 'Material',          width: '100px' },
+  { id: 'mat_name',             name: 'ชื่อ Material',     width: '180px' },
   { id: 'start_defrost_date',   name: 'เริ่มละลาย(1)',     width: '140px' },
   { id: 'end_defrost_date',     name: 'ละลายเสร็จ(1)',     width: '140px' },
   { id: 'withdraw_date',        name: 'ส่งออก(1)',          width: '140px' },

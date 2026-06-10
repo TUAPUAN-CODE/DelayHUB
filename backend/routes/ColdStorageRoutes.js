@@ -3851,6 +3851,7 @@ ORDER BY rmm.mapping_id DESC
                     s.hu,
                     s.batch,
                     s.mat,
+                    rm.mat_name,
                     CONVERT(varchar, s.start_defrost_date,     120) AS start_defrost_date,
                     CONVERT(varchar, s.end_defrost_date,       120) AS end_defrost_date,
                     CONVERT(varchar, s.withdraw_date,          120) AS withdraw_date,
@@ -3860,6 +3861,7 @@ ORDER BY rmm.mapping_id DESC
                     CONVERT(varchar, s.input_pd_date,          120) AS input_pd_date,
                     CONVERT(varchar, s.input_pd_date_two,      120) AS input_pd_date_two
                 FROM SAP_Receive s
+                JOIN rawmat rm ON s.mat = rm.mat
                 WHERE 1=1 ${extraWhere}
                 ORDER BY s.sap_re_id DESC
             `);

@@ -96,6 +96,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   // ✅ ถ้า rm_type_id เป็น 2 หรือ 3 ให้ทั้งสอง DateTimePicker เป็น read-only
   const isReadOnlyTime = [999, 888].includes(rmTypeId);
 
+  //เซ็ทรหัสแก้ไขเวลาไม่ได้
+  const SYNC_TIME_USER_IDS = [6760051];
+  const isSyncTime = SYNC_TIME_USER_IDS.includes(Number(localStorage.getItem('user_id')));
+
   useEffect(() => {
     if (open && data) {
       if (data.batchAfterArray && Array.isArray(data.batchAfterArray)) {
@@ -117,7 +121,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       const formattedDateTime = convertToLocalTime(CookedDateTime);
       if (formattedDateTime) {
         setCookedTime(formattedDateTime);
-        if ([999, 888].includes(rmTypeId)) {
+        if ([999, 888].includes(rmTypeId) || isSyncTime) {
           setPreparedTime(formattedDateTime);
         }
       }
@@ -149,8 +153,8 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     fetchProcessTypes();
     if (open) {
       fetchUserDataFromLocalStorage();
-      // ✅ ตั้งเวลาเตรียมเสร็จเฉพาะเมื่อไม่ใช่ read-only mode
-      if (![999, 888].includes(rmTypeId)) {
+      // ✅ ตั้งเวลาเตรียมเสร็จเฉพาะเมื่อไม่ใช่ read-only mode และไม่ใช่ sync mode
+      if (![999, 888].includes(rmTypeId) && !isSyncTime) {
         const now = new Date();
         setPreparedTime(convertToThaiTime(now.toISOString()));
       }
@@ -220,12 +224,12 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     }
   }, [open, data, rmTypeId]);
 
-  // ✅ sync preparedTime ทุกครั้งที่ cookedTime เปลี่ยนใน read-only mode
+  // ✅ sync preparedTime ทุกครั้งที่ cookedTime เปลี่ยนใน read-only mode หรือ sync mode
   useEffect(() => {
-    if (isReadOnlyTime && cookedTime) {
+    if ((isReadOnlyTime || isSyncTime) && cookedTime) {
       setPreparedTime(cookedTime);
     }
-  }, [cookedTime, isReadOnlyTime]);
+  }, [cookedTime, isReadOnlyTime, isSyncTime]);
 
   useEffect(() => {
     if (open && CookedDateTime) {
@@ -463,13 +467,13 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
             />
           </LocalizationProvider>
 
-          {/* ✅ เวลาเตรียมเสร็จ — read-only และ sync กับ cookedTime เมื่อ rm_type_id 2,3 */}
+          {/* ✅ เวลาเตรียมเสร็จ — read-only และ sync กับ cookedTime เมื่อ rm_type_id 2,3 หรือ isSyncTime */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
               label="เวลาเตรียมเสร็จ/ผสมเสร็จ"
-              value={isReadOnlyTime ? (cookedTime ? dayjs(cookedTime) : null) : (preparedTime ? dayjs(preparedTime) : null)}
+              value={(isReadOnlyTime || isSyncTime) ? (cookedTime ? dayjs(cookedTime) : null) : (preparedTime ? dayjs(preparedTime) : null)}
               onChange={(newValue) => {
-                if (isReadOnlyTime) return;
+                if (isReadOnlyTime || isSyncTime) return;
                 if (newValue && newValue.isAfter(dayjs())) {
                   setPreparedTimeError(true); setTimeValid(false);
                   setErrorMessage("ไม่สามารถเลือกเวลาอนาคตเป็นเวลาการเตรียมเสร็จได้");
@@ -479,17 +483,17 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
                 setPreparedTime(newValue ? newValue.format("YYYY-MM-DDTHH:mm") : "");
                 setPreparedTimeError(false); setTimeValid(true);
               }}
-              maxDateTime={isReadOnlyTime ? undefined : dayjs()}
+              maxDateTime={(isReadOnlyTime || isSyncTime) ? undefined : dayjs()}
               ampm={false}
               timeSteps={{ minutes: 1 }}
-              readOnly={isReadOnlyTime}
+              readOnly={isReadOnlyTime || isSyncTime}
               slotProps={{
                 textField: {
                   fullWidth: true, size: "small", required: true,
                   sx: readOnlyTextFieldSx({ marginBottom: "16px" }),
                   error: preparedTimeError,
                   helperText: preparedTimeError ? "กรุณากรอกวันที่เตรียมเสร็จที่ถูกต้อง และไม่ใช่เวลาอนาคต" : "",
-                  InputProps: { readOnly: isReadOnlyTime },
+                  InputProps: { readOnly: isReadOnlyTime || isSyncTime },
                 },
               }}
             />

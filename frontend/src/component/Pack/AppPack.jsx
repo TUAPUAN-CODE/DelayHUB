@@ -16,7 +16,7 @@ import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import CSCheckOutPage from "./CheckOut/CheckOutPage.jsx"
 import ScanBarcodePage from "./ScanSAP/ScanBatcodePage.jsx"
 import ManageRawmatPack from "./ManageRawmat/ManagePage.jsx"
-import ReportRawmatPack from "./ReportRawmat/ManagePage.jsx"
+import ReportRawmatPack from "./ReportRawmatEditTIME/ManagePage.jsx"
 import TrackTrolley from "./TrackTrolley/TrackTrolley.jsx";
 import ReportDelay from "./ReportDelay/ManagePage.jsx"
 import Managedelaymaster from "./ManageDelay/ManagePage.jsx";
@@ -24,6 +24,7 @@ import CheckInPage from "./CheckIn/CheckInPage.jsx";
 import IncludeRawmatPage from "./IncludeRawmatPack/IncludeRawmatPage.jsx";
 import Pull_History from "./PullHistory/ManagePage.jsx";
 import ReportPull from "./ReportPull/ManagePage.jsx";
+import ReportRawmatPackuser from "./ReportRawmatNotEditTIME/ManagePage.jsx";
 
 function AppPack() {
   return (
@@ -56,13 +57,14 @@ function AppPack() {
         <Route path="/CheckOut" element={<CSCheckOutPage />} />
         <Route path="/ScanBarcodePage" element={<ScanBarcodePage />} />
         <Route path="/ManageRawmatPack" element={<ManageRawmatPack />} />
-        <Route path="/ReportRawmatPack" element={<ReportRawmatPack />} />
+        <Route path="/Report/sup" element={<ReportRawmatPack />} />
         <Route path="/ReportDelay" element={<ReportDelay />} />
         <Route path="/Managedelaymaster" element={<Managedelaymaster />} />
         <Route path="/CheckInPagePack" element={<CheckInPage />} />
         <Route path="/IncludeRawmatPagePack" element={<IncludeRawmatPage />} />
         <Route path="/Pull_History" element={<Pull_History />} />
         <Route path="/ReportPull" element={<ReportPull />} />
+        <Route path="/ReportRawmatPackuser" element={<ReportRawmatPackuser />} />
 
       </Routes>
     </div>

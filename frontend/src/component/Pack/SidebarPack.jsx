@@ -23,7 +23,8 @@ const SIDEBAR_ITEMS = [
     ? [{ name: "รายงาน Delay +RM", icon: BarChart2, href: "/packaging/managedelaymaster" }]
     : []),
 
-	{ name: "Report", icon: BarChart2, href: "/packaging/ReportRawmatPack" },
+	// { name: "Report", icon: BarChart2, href: "/packaging/Report/sup" },
+	{ name: "Report", icon: BarChart2, href: "/packaging/ReportRawmatPackuser" },
 	// { name: "ประวัติ Report", icon: BarChart2, href: "/packaging/Pull_History" },
 	{ name: "ประวัติ Report", icon: BarChart2, href: "/packaging/ReportPull" },
 	// { name: "ขอวัตถุดิบ", icon: BarChart2, href: "/packaging/Request/Rawmat" },

@@ -21,7 +21,8 @@ function buildGroupedRows(data, groupBy, percentile) {
       cold: r.cold, prep_to_pack: r.prep_to_pack,
       line_set: new Set(), doc_set: new Set(),
       batch_before_set: new Set(), batch_after_set: new Set(),
-      code_set: new Set(),
+      code_set: new Set(), mat_set: new Set(), mat_2x_set: new Set(),
+      weight_total: 0,
     };
     groups[key].rows.push(r);
     if (r.rmm_line_name)  groups[key].line_set.add(r.rmm_line_name);
@@ -29,6 +30,9 @@ function buildGroupedRows(data, groupBy, percentile) {
     if (r.batch_before)   groups[key].batch_before_set.add(r.batch_before);
     if (r.batch_after)    groups[key].batch_after_set.add(r.batch_after);
     if (r.code)           groups[key].code_set.add(r.code);
+    if (r.mat)            groups[key].mat_set.add(r.mat);
+    if (r.mat_2x)         groups[key].mat_2x_set.add(r.mat_2x);
+    groups[key].weight_total += (r.weight_RM || 0);
   });
   return Object.entries(groups).map(([name, g]) => ({
     name, rm_type_name: g.rm_type_name, rm_group_name: g.rm_group_name,
@@ -37,6 +41,9 @@ function buildGroupedRows(data, groupBy, percentile) {
     batch_before:   [...g.batch_before_set].sort().join(', '),
     batch_after:    [...g.batch_after_set].sort().join(', '),
     code:           [...g.code_set].sort().join(', '),
+    mat:            [...g.mat_set].sort().join(', '),
+    mat_2x:         [...g.mat_2x_set].sort().join(', '),
+    weight_total:   Math.round(g.weight_total * 10) / 10,
     total: g.rows.length,
     rows: g.rows,
     prep_to_cold: g.prep_to_cold, cold_to_pack: g.cold_to_pack,
@@ -667,6 +674,9 @@ const BatchDetailRows = ({ rows, colSpan }) => {
                     { label: 'เลขเอกสาร', sub: null },
                     { label: 'Code', sub: null },
                     { label: 'ไลน์', sub: null },
+                    { label: 'MAT', sub: null },
+                    { label: 'MAT 2x', sub: null },
+                    { label: 'น้ำหนัก (kg)', sub: null },
                     { label: 'Batch จากป้าย Tag ห้องเย็น', sub: null },
                     { label: 'Batch หลังเตรียม', sub: null },
                     { label: 'สถานะ', sub: null },
@@ -705,6 +715,15 @@ const BatchDetailRows = ({ rows, colSpan }) => {
                       </td>
                       <td style={dtCell}>
                         {row.rmm_line_name ? <span style={{ fontSize: 11, background: '#EFF6FF', color: '#1D4ED8', padding: '2px 7px', borderRadius: 20 }}>{row.rmm_line_name}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}
+                      </td>
+                      <td style={dtCell}>
+                        {row.mat ? <span style={{ fontSize: 11, background: '#F3F4F6', color: '#374151', padding: '2px 7px', borderRadius: 20 }}>{row.mat}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}
+                      </td>
+                      <td style={dtCell}>
+                        {row.mat_2x ? <span style={{ fontSize: 11, background: '#FFF7ED', color: '#9A3412', padding: '2px 7px', borderRadius: 20 }}>{row.mat_2x}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}
+                      </td>
+                      <td style={{ ...dtCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {row.weight_RM != null ? row.weight_RM.toLocaleString() : <span style={{ color: '#D1D5DB' }}>-</span>}
                       </td>
                       <td style={dtCell}>
                         {row.batch_before != null ? <span style={{ fontSize: 11, background: '#FEF3C7', color: '#92400E', padding: '2px 7px', borderRadius: 20 }}>{row.batch_before}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}
@@ -848,7 +867,7 @@ const ProductionLineDelayDashboard = () => {
   const [filterCode, setFilterCode]     = useState('');
   const [percentile, setPercentile]     = useState(80);
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [selectedDbs, setSelectedDbs]    = useState('dbs1');
+  const [selectedDbs, setSelectedDbs]    = useState(null);
   const [filterMatNames, setFilterMatNames] = useState([]);
 
   const fetchData = useCallback(async (sd = startDate, ed = endDate) => {
@@ -924,6 +943,17 @@ const ProductionLineDelayDashboard = () => {
   // total batch count for dropdown label
   const totalBatchCount = React.useMemo(() => rows.reduce((s, r) => s + r.rows.length, 0), [rows]);
 
+  const tableRows = React.useMemo(() => {
+    if (!selectedDbs) return rows;
+    return rows.filter(r => {
+      if (selectedDbs === 'dbs1') return r.dbs1 != null && r.prep_to_cold != null && r.dbs1 > r.prep_to_cold;
+      if (selectedDbs === 'dbs2') return r.dbs2 != null && r.cold         != null && r.dbs2 > r.cold;
+      if (selectedDbs === 'dbs3') return r.dbs3 != null && r.cold_to_pack != null && r.dbs3 > r.cold_to_pack;
+      if (selectedDbs === 'dbs4') return r.dbs4 != null && r.prep_to_pack != null && r.dbs4 > r.prep_to_pack;
+      return true;
+    });
+  }, [rows, selectedDbs]);
+
   const dbsStats = React.useMemo(() => {
     const compute = (statusField, dbsField) => {
       const relevant = filteredRaw.filter(r => r[dbsField] != null);
@@ -942,6 +972,7 @@ const ProductionLineDelayDashboard = () => {
   }, [filteredRaw]);
 
   const chartData = React.useMemo(() => {
+    if (!selectedDbs) return [];
     const statusField = `${selectedDbs}_status`;
     const dbsField    = selectedDbs.toUpperCase();
     const groups = {};
@@ -1015,6 +1046,9 @@ const ProductionLineDelayDashboard = () => {
     { key: 'name',          label: 'ชื่อ',                         sub: null, minW: 160 },
     { key: 'rm_type_name',  label: 'RM Type',                      sub: null, minW: 100 },
     { key: 'rm_group_name', label: 'RM Group',                     sub: null, minW: 100 },
+    { key: 'mat',           label: 'MAT',                          sub: null, minW: 100 },
+    { key: 'mat_2x',        label: 'MAT 2x',                       sub: null, minW: 100 },
+    { key: 'weight_total',  label: 'น้ำหนัก',                      sub: '(kg)', minW: 100 },
     { key: 'rmm_line_name', label: 'ไลน์',                         sub: null, minW: 120 },
     { key: 'doc_no',        label: 'เลขเอกสาร',                    sub: null, minW: 130 },
     { key: 'code',          label: 'Code',                         sub: null, minW: 100 },
@@ -1193,7 +1227,7 @@ const ProductionLineDelayDashboard = () => {
           const s = dbsStats[d.key];
           const isActive = selectedDbs === d.key;
           return (
-            <div key={d.key} onClick={() => setSelectedDbs(d.key)} style={{
+            <div key={d.key} onClick={() => setSelectedDbs(prev => prev === d.key ? null : d.key)} style={{
               background: isActive ? d.bg : '#F9FAFB',
               border: `1.5px solid ${isActive ? d.color : '#E5E7EB'}`,
               borderRadius: 10, padding: '14px 16px', cursor: 'pointer',
@@ -1284,14 +1318,31 @@ const ProductionLineDelayDashboard = () => {
         ))}
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>▶ คลิกแถวเพื่อดู batch detail</span>
         <span style={{ marginLeft: 'auto', color: '#9CA3AF' }}>
-          {rows.length} กลุ่ม · {filteredRaw.length} batch{activeFilters ? ' (กรองแล้ว)' : ''}
+          {tableRows.length} กลุ่ม{selectedDbs ? ` (delay ${selectedDbs.toUpperCase()})` : ''} · {filteredRaw.length} batch{activeFilters ? ' (กรองแล้ว)' : ''}
         </span>
       </div>
 
       {/* ── table ── */}
-      {rows.length === 0 ? (
+      {selectedDbs && (
+        <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {(() => {
+            const d = DBS_WEIGHT_DEFS.find(x => x.key === selectedDbs);
+            return (
+              <>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20, background: d.bg, color: d.color, border: `1px solid ${d.color}` }}>
+                  ▼ กรอง: {d.label} — delay เท่านั้น ({tableRows.length} กลุ่ม)
+                </span>
+                <button onClick={() => setSelectedDbs(null)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #D1D5DB', background: '#fff', color: '#6B7280', cursor: 'pointer' }}>
+                  ล้างการกรอง
+                </button>
+              </>
+            );
+          })()}
+        </div>
+      )}
+      {tableRows.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#9CA3AF', fontSize: 13, border: '0.5px solid #F3F4F6', borderRadius: 12 }}>
-          {searchTerm ? `ไม่พบผลลัพธ์สำหรับ "${searchTerm}"` : 'ไม่มีข้อมูล'}
+          {selectedDbs ? `ไม่พบกลุ่มที่ delay ใน ${selectedDbs.toUpperCase()}` : searchTerm ? `ไม่พบผลลัพธ์สำหรับ "${searchTerm}"` : 'ไม่มีข้อมูล'}
         </div>
       ) : (
         <div style={{ border: '0.5px solid #E5E7EB', borderRadius: 12, overflowX: 'auto' }}>
@@ -1310,7 +1361,7 @@ const ProductionLineDelayDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => {
+              {tableRows.map((r, i) => {
                 const isExpanded = expandedRows.has(r.name);
                 const hasDelay =
                   (r.dbs1 != null && r.prep_to_cold != null && r.dbs1 > r.prep_to_cold) ||
@@ -1339,6 +1390,11 @@ const ProductionLineDelayDashboard = () => {
                       </td>
                       <td style={{ ...cellStyle, color: '#6B7280' }}>{r.rm_type_name || '-'}</td>
                       <td style={{ ...cellStyle, color: '#6B7280' }}>{r.rm_group_name || '-'}</td>
+                      <MultiValueCell value={r.mat}    searchTerm={searchTerm} />
+                      <MultiValueCell value={r.mat_2x} searchTerm={searchTerm} />
+                      <td style={{ ...cellStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#374151' }}>
+                        {r.weight_total != null ? r.weight_total.toLocaleString() : '-'}
+                      </td>
                       <MultiValueCell value={r.rmm_line_name} searchTerm={searchTerm} />
                       <MultiValueCell value={r.doc_no}        searchTerm={searchTerm} />
                       <td style={cellStyle}>
