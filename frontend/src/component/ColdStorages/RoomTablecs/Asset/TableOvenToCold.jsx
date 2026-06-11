@@ -21,9 +21,9 @@ const diffHours = (a, b) => {
 
 // ─── Card Definitions ─────────────────────────────────────────────────────────
 const CARD_DEFS = [
-  { key: 'c1', label: 'เริ่มละลาย(1)\nยังไม่ละลายเสร็จ',       color: '#006064', bg: '#E0F7FA', check: r => r.start_defrost_date && !r.end_defrost_date },
+  { key: 'c1', label: 'บันทึกเวลาเริ่มละลาย(1)\nแต่ไม่บันทึกเวลาละลายเสร็จ',       color: '#006064', bg: '#E0F7FA', check: r => r.start_defrost_date && !r.end_defrost_date },
   { key: 'c2', label: 'ละลายเสร็จ(1)\nยังไม่ส่งออก',            color: '#BF360C', bg: '#FBE9E7', check: r => r.end_defrost_date && !r.withdraw_date },
-  { key: 'c3', label: 'เริ่มละลาย(2)\nยังไม่ละลายเสร็จ',       color: '#006064', bg: '#E0F7FA', check: r => r.start_defrost_date_two && !r.end_defrost_date_two },
+  { key: 'c3', label: 'บันทึกเวลาเริ่มละลาย(2)\nแต่ไม่บันทึกเวลาละลายเสร็จ',       color: '#006064', bg: '#E0F7FA', check: r => r.start_defrost_date_two && !r.end_defrost_date_two },
   { key: 'c4', label: 'ละลายเสร็จ(2)\nยังไม่ส่งออก',            color: '#BF360C', bg: '#FBE9E7', check: r => r.end_defrost_date_two && !r.withdraw_date_two },
   { key: 'c5', label: 'ละลายวัตถุดิบรอบที่1\nเกิน 4 ชม.',                   color: '#E65100', bg: '#FFF3E0', check: r => r.start_defrost_date && r.end_defrost_date && diffHours(r.start_defrost_date, r.end_defrost_date) > 4 },
   { key: 'c6', label: 'ละลายวัตถุดิบรอบที่2\nเกิน 4 ชม.',                   color: '#E65100', bg: '#FFF3E0', check: r => r.start_defrost_date_two && r.end_defrost_date_two && diffHours(r.start_defrost_date_two, r.end_defrost_date_two) > 4 },

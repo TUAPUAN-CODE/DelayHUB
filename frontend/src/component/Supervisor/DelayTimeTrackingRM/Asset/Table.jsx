@@ -422,7 +422,7 @@ const ProductionLineDelayDashboard = () => {
       const params = new URLSearchParams();
       if (sd) params.append('start_date', sd);
       if (ed) params.append('end_date', ed);
-      const res = await fetch(`${API_URL}/api/report/rm-delay/%tie/line?${params}`, {
+      const res = await fetch(`${API_URL}/api/report/rm-delay/tie/line?${params}`, {
         headers: { 'Content-Type': 'application/json' }, credentials: 'include',
       });
       if (!res.ok) throw new Error('โหลดข้อมูลล้มเหลว');

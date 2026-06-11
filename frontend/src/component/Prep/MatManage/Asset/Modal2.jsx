@@ -133,7 +133,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       try {
         const firstName = localStorage.getItem("first_name") || "";
         if (firstName) setOperator(`${firstName}`.trim());
-      } catch (error) {}
+      } catch (error) { }
     };
 
     const fetchProcessTypes = async () => {
@@ -147,7 +147,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           ];
           setEuOptions(numbers);
         }
-      } catch (error) {}
+      } catch (error) { }
     };
 
     fetchProcessTypes();
@@ -238,7 +238,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
         const [day, month, year] = datePart.split("/");
         const formattedDateTime = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${timePart}`;
         setCookedTime(formattedDateTime);
-      } catch (error) {}
+      } catch (error) { }
     }
   }, [open, CookedDateTime]);
 
@@ -318,7 +318,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     setErrorMessage("");
 
     // ✅ ถ้าเป็น read-only mode ให้ preparedTime = cookedTime เสมอ
-    const effectivePreparedTime = isReadOnlyTime ? cookedTime : preparedTime;
+    const effectivePreparedTime =
+      (isReadOnlyTime || isSyncTime)
+        ? cookedTime
+        : preparedTime;
 
     const updatedData = {
       ...data,
@@ -389,7 +392,9 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   const readOnlyTextFieldSx = (base = {}) => ({
     ...base,
     "& .MuiInputBase-root": {
-      backgroundColor: isReadOnlyTime ? "#f5f5f5" : "inherit",
+      backgroundColor: (isReadOnlyTime || isSyncTime)
+        ? "#f5f5f5"
+        : "inherit",
     },
   });
 
@@ -445,7 +450,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
               label="เวลาอบเสร็จ/ต้มเสร็จ"
               value={cookedTime ? dayjs(cookedTime) : null}
               onChange={(newValue) => {
-                if (isReadOnlyTime) return;
+                if (isReadOnlyTime || isSyncTime) return;
                 if (newValue && newValue.isAfter(dayjs())) {
                   setErrorMessage("ไม่สามารถเลือกเวลาอนาคตเป็นเวลาอบเสร็จ/ต้มเสร็จได้");
                   setSnackbarOpen(true);
@@ -453,15 +458,15 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
                 }
                 setCookedTime(newValue ? newValue.format("YYYY-MM-DDTHH:mm") : "");
               }}
-              maxDateTime={isReadOnlyTime ? undefined : dayjs()}
+              maxDateTime={(isReadOnlyTime || isSyncTime) ? undefined : dayjs()}
               ampm={false}
               timeSteps={{ minutes: 1 }}
-              readOnly={isReadOnlyTime}
+              readOnly={isReadOnlyTime || isSyncTime}
               slotProps={{
                 textField: {
                   fullWidth: true, size: "small", required: true,
                   sx: readOnlyTextFieldSx({ marginBottom: "16px" }),
-                  InputProps: { readOnly: isReadOnlyTime },
+                  InputProps: { readOnly: isReadOnlyTime || isSyncTime },
                 },
               }}
             />

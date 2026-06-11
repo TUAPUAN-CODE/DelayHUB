@@ -1039,7 +1039,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     }
   });
 
-  router.get('/report/rm-delay/%tie/line', async (req, res) => {
+  router.get('/report/rm-delay/tie/line', async (req, res) => {
     try {
       const { start_date, end_date } = req.query;
       const pool = await connectToDatabase();
