@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import TracebackModal from './TracebackModal';
 axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -111,6 +112,9 @@ const TIME_EVENTS = [
   { key: 'gm_date', label: 'เวลาบดวัตถุดิบ', icon: '📋', color: '#3f3f3f' },
   { key: 'sc_pack_date', label: 'เวลาบรรจุเสร็จ', icon: '🏁', color: '#ffc800' },
 ];
+
+// option list สำหรับ dropdown เลือก "จุดเวลา" (ใช้กับฟีเจอร์หา diff ที่เกินกี่ชม.)
+const TIME_EVENT_OPTIONS = TIME_EVENTS.map(e => ({ key: e.key, label: e.label }));
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 function parseDate(val) {
@@ -330,6 +334,7 @@ const labelStyle = { fontSize: 11, color: '#6B7280', marginBottom: 4, display: '
 const inputStyle = { fontSize: 13, padding: '6px 10px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, background: '#fff', color: '#111827', outline: 'none', boxSizing: 'border-box' };
 const btnPrimary = { fontSize: 13, padding: '0 18px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#3B82F6', color: '#fff', fontWeight: 600 };
 const btnSecondary = { fontSize: 13, padding: '0 14px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, cursor: 'pointer', background: '#fff', color: '#374151' };
+const btnWarn = { fontSize: 13, padding: '0 18px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#F59E0B', color: '#fff', fontWeight: 600 };
 const cellStyle = { padding: '10px 14px', borderBottom: '0.5px solid #F3F4F6', verticalAlign: 'middle' };
 const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
 
@@ -496,6 +501,9 @@ const EMPTY_FILTERS = {
   rmm_line_name: '', doc_no: '', code: ''
 };
 
+// ฟิลเตอร์ใหม่: หาช่วงเวลาที่ห่างกันเกินกี่ชั่วโมง ระหว่าง 2 จุดเวลาที่เลือก
+const EMPTY_DELAY = { startKey: '', endKey: '', hours: '' };
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const ProductionLineDelayDashboard = () => {
   const [rawData, setRawData] = useState([]);
@@ -503,10 +511,16 @@ const ProductionLineDelayDashboard = () => {
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);  // เปิดหน้ามายังไม่ดึงข้อมูล
   const [timelineRow, setTimelineRow] = useState(null);
+  const [tracebackRow, setTracebackRow] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('sc_pack_date');
   const [sortDir, setSortDir] = useState('desc');
+
+  // ── ฟีเจอร์ใหม่: ค้นหาช่วงเวลาที่ "ห่างกันเกิน N ชั่วโมง" ระหว่าง 2 จุดเวลาที่เลือก ──
+  const [delayFilter, setDelayFilter] = useState(EMPTY_DELAY);   // ค่าที่กำลังตั้งอยู่ใน input
+  const [delayActive, setDelayActive] = useState(false);          // true เมื่อกด "ค้นหา/Sort" แล้ว
+  const [delayError, setDelayError] = useState('');
 
   // dropdown options
   const [optLines, setOptLines] = useState([]);
@@ -557,6 +571,39 @@ const ProductionLineDelayDashboard = () => {
     }
   }, []);
 
+  // ── ฟังก์ชันสำหรับฟีเจอร์ "หาช่วงเวลาห่างเกิน N ชั่วโมง" ──────────────────────
+  const handleDelaySearch = () => {
+    if (!delayFilter.startKey || !delayFilter.endKey) {
+      setDelayError('กรุณาเลือกจุดเวลาเริ่มต้นและจุดเวลาสิ้นสุดให้ครบ');
+      return;
+    }
+    if (delayFilter.hours === '' || isNaN(Number(delayFilter.hours))) {
+      setDelayError('กรุณาระบุจำนวนชั่วโมงที่ต้องการ');
+      return;
+    }
+    setDelayError('');
+    setDelayActive(true);
+    // เมื่อ active แล้วให้ sort เรียงตามระยะเวลาห่าง (มากไปน้อย) โดยอัตโนมัติ
+    setSortField('__diffMins');
+    setSortDir('desc');
+  };
+
+  const handleDelayReset = () => {
+    setDelayFilter(EMPTY_DELAY);
+    setDelayActive(false);
+    setDelayError('');
+    if (sortField === '__diffMins') {
+      setSortField('sc_pack_date');
+      setSortDir('desc');
+    }
+  };
+
+  const setDF = (key, val) => setDelayFilter(p => ({ ...p, [key]: val }));
+
+  // label ของจุดเวลาที่เลือกไว้ (ใช้แสดงผล)
+  const startLabel = TIME_EVENT_OPTIONS.find(o => o.key === delayFilter.startKey)?.label || '';
+  const endLabel = TIME_EVENT_OPTIONS.find(o => o.key === delayFilter.endKey)?.label || '';
+
   // ── filter / sort ────────────────────────────────────────────────────────────
   const displayData = React.useMemo(() => {
     let data = rawData;
@@ -569,7 +616,23 @@ const ProductionLineDelayDashboard = () => {
         String(r.hu ?? '').toLowerCase().includes(q)
       );
     }
+
+    // ── ฟิลเตอร์ช่วงเวลาห่างเกิน N ชั่วโมง ──
+    if (delayActive && delayFilter.startKey && delayFilter.endKey && delayFilter.hours !== '') {
+      const thresholdMins = Number(delayFilter.hours) * 60;
+      data = data
+        .map(r => ({ ...r, __diffMins: diffMins(r[delayFilter.startKey], r[delayFilter.endKey]) }))
+        .filter(r => r.__diffMins != null && r.__diffMins > thresholdMins);
+    }
+
     return [...data].sort((a, b) => {
+      if (sortField === '__diffMins') {
+        const av = a.__diffMins, bv = b.__diffMins;
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
       let av = a[sortField], bv = b[sortField];
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
@@ -577,7 +640,7 @@ const ProductionLineDelayDashboard = () => {
       if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv, 'th') : bv.localeCompare(av, 'th');
       return sortDir === 'asc' ? av - bv : bv - av;
     });
-  }, [rawData, searchTerm, sortField, sortDir]);
+  }, [rawData, searchTerm, sortField, sortDir, delayActive, delayFilter]);
 
   const metrics = React.useMemo(() => ({
     total: displayData.length,
@@ -597,6 +660,7 @@ const ProductionLineDelayDashboard = () => {
     setSearchTerm('');
     setRawData([]);
     setSearched(false);
+    handleDelayReset();
   };
 
   const setF = (key, val) => setFilters(p => ({ ...p, [key]: val }));
@@ -612,7 +676,10 @@ const ProductionLineDelayDashboard = () => {
     { key: 'hu', label: 'HU', minW: 90 },
     { key: 'weight_RM', label: 'น้ำหนัก (kg)', minW: 100 },
     { key: 'sc_pack_date', label: 'บรรจุเสร็จ', minW: 130 },
+    // คอลัมน์ "ระยะเวลาห่าง" จะแสดงเมื่อเปิดใช้ฟิลเตอร์ delay เท่านั้น
+    ...(delayActive ? [{ key: '__diffMins', label: `ระยะเวลาห่าง (${startLabel.slice(0, 14)}… → ${endLabel.slice(0, 14)}…)`, minW: 170 }] : []),
     { key: '_timeline', label: 'Timeline', minW: 72 },
+    { key: '_traceback', label: 'Traceback', minW: 80 },
   ];
 
   // ── bound SearchableSelect ──────────────────────────────────────────────────
@@ -744,6 +811,58 @@ const ProductionLineDelayDashboard = () => {
         )}
       </div>
 
+      {/* ── delay-range filter bar (ฟีเจอร์ใหม่) ── */}
+      <div style={{ background: '#FFFBEB', border: '0.5px solid #FDE68A', borderRadius: 14, padding: '16px 20px', marginBottom: 16, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 12 }}>⏱️ ค้นหา/Sort ช่วงเวลาที่ห่างกันเกินกี่ชั่วโมง</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 10, marginBottom: 12 }}>
+          <div>
+            <label style={labelStyle}>1. เวลาเริ่มต้น</label>
+            <SearchableSelect
+              value={delayFilter.startKey}
+              onChange={v => setDF('startKey', v)}
+              options={TIME_EVENT_OPTIONS}
+              placeholder="เลือกจุดเวลา..."
+              labelKey="label"
+              valueKey="key"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>2. เวลาสิ้นสุด</label>
+            <SearchableSelect
+              value={delayFilter.endKey}
+              onChange={v => setDF('endKey', v)}
+              options={TIME_EVENT_OPTIONS}
+              placeholder="เลือกจุดเวลา..."
+              labelKey="label"
+              valueKey="key"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>3. ห่างกันเกิน (ชั่วโมง)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={delayFilter.hours}
+              onChange={e => setDF('hours', e.target.value)}
+              placeholder="เช่น 2"
+              style={{ ...inputStyle, width: '100%' }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <button onClick={handleDelaySearch} style={btnWarn}>ค้นหา / Sort</button>
+          <button onClick={handleDelayReset} style={btnSecondary}>ล้างตัวกรองนี้</button>
+          {delayError && <span style={{ fontSize: 12, color: '#B91C1C' }}>{delayError}</span>}
+          {delayActive && !delayError && (
+            <span style={{ fontSize: 12, color: '#92400E' }}>
+              กำลังแสดงรายการที่ "{startLabel}" → "{endLabel}" ห่างกันเกิน {delayFilter.hours} ชั่วโมง
+              (เรียงจากห่างมากไปน้อย) — พบ {displayData.length.toLocaleString()} รายการ
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* ── error ── */}
       {error && (
         <div style={{ padding: '1rem', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, color: '#B91C1C', fontSize: 14, marginBottom: 16 }}>
@@ -787,7 +906,7 @@ const ProductionLineDelayDashboard = () => {
       {searched && !loading && (
         displayData.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: '#9CA3AF', fontSize: 14, border: '0.5px solid #F3F4F6', borderRadius: 14, animation: 'fadeIn 0.3s ease' }}>
-            {searchTerm ? `ไม่พบผลลัพธ์สำหรับ "${searchTerm}"` : 'ไม่มีข้อมูลที่ตรงกับเงื่อนไข'}
+            {searchTerm ? `ไม่พบผลลัพธ์สำหรับ "${searchTerm}"` : (delayActive ? 'ไม่พบรายการที่ห่างกันเกินเวลาที่กำหนด' : 'ไม่มีข้อมูลที่ตรงกับเงื่อนไข')}
           </div>
         ) : (
           <div style={{ border: '0.5px solid #E5E7EB', borderRadius: 14, overflowX: 'auto', boxShadow: '0 1px 6px rgba(0,0,0,0.04)', animation: 'fadeIn 0.3s ease' }}>
@@ -795,14 +914,17 @@ const ProductionLineDelayDashboard = () => {
               <thead>
                 <tr>
                   <th style={{ ...thStyle, cursor: 'default', minWidth: 40, textAlign: 'center' }}>#</th>
-                  {columns.map(col => (
-                    <th key={col.key}
-                      onClick={() => col.key !== '_timeline' && handleSort(col.key)}
-                      style={{ ...thStyle, minWidth: col.minW, cursor: col.key === '_timeline' ? 'default' : 'pointer' }}>
-                      {col.label}
-                      {col.key !== '_timeline' && <SortIcon field={col.key} sortField={sortField} sortDir={sortDir} />}
-                    </th>
-                  ))}
+                  {columns.map(col => {
+                    const isAction = col.key === '_timeline' || col.key === '_traceback';
+                    return (
+                      <th key={col.key}
+                        onClick={() => !isAction && handleSort(col.key)}
+                        style={{ ...thStyle, minWidth: col.minW, cursor: isAction ? 'default' : 'pointer' }}>
+                        {col.label}
+                        {!isAction && <SortIcon field={col.key} sortField={sortField} sortDir={sortDir} />}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -853,6 +975,24 @@ const ProductionLineDelayDashboard = () => {
                         </div>
                       ) : <Dash />}
                     </td>
+
+                    {/* คอลัมน์ระยะเวลาห่าง (เฉพาะตอนเปิดใช้ฟิลเตอร์ delay) */}
+                    {delayActive && (
+                      <td style={cellStyle}>
+                        {row.__diffMins != null ? (
+                          <span style={{
+                            fontSize: 12, fontWeight: 700,
+                            color: row.__diffMins > 480 ? '#991B1B' : '#92400E',
+                            background: row.__diffMins > 480 ? '#FEE2E2' : '#FEF3C7',
+                            border: `1px solid ${row.__diffMins > 480 ? '#FECACA' : '#FDE68A'}`,
+                            padding: '3px 10px', borderRadius: 20, display: 'inline-block',
+                          }}>
+                            ⏱ {fmtDuration(row.__diffMins)}
+                          </span>
+                        ) : <Dash />}
+                      </td>
+                    )}
+
                     <td style={{ ...cellStyle, textAlign: 'center' }}>
                       <button
                         onClick={() => setTimelineRow(row)}
@@ -864,6 +1004,18 @@ const ProductionLineDelayDashboard = () => {
                         ⏱️
                       </button>
                     </td>
+
+                    <td style={{ ...cellStyle, textAlign: 'center' }}>
+                      <button
+                        onClick={() => setTracebackRow(row)}
+                        title="Traceback เอกสาร (MAT/Batch/Ingredient/Packaging)"
+                        style={{ width: 34, height: 34, borderRadius: '50%', background: '#F0FDF4', border: '1px solid #BBF7D0', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'all 0.15s', color: '#166534' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#DCFCE7'; e.currentTarget.style.transform = 'scale(1.12)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#F0FDF4'; e.currentTarget.style.transform = 'scale(1)'; }}
+                      >
+                        📄
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -873,6 +1025,7 @@ const ProductionLineDelayDashboard = () => {
       )}
 
       {timelineRow && <TimelineModal row={timelineRow} onClose={() => setTimelineRow(null)} />}
+      {tracebackRow && <TracebackModal row={tracebackRow} onClose={() => setTracebackRow(null)} />}
     </div>
   );
 };

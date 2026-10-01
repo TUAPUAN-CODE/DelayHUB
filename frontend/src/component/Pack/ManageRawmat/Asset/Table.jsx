@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import {
   Table, TableContainer, TableHead, TableBody, TableRow, TableCell,
   Paper, Box, TextField, TablePagination, Chip, Checkbox, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
 } from '@mui/material';
 import { LiaShoppingCartSolid } from 'react-icons/lia';
 import { InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/EditOutlined";
+import Close from "@mui/icons-material/Close";
+import QrCodeScanner from "@mui/icons-material/QrCodeScanner";
 import { FaRegCheckCircle, FaWeight } from "react-icons/fa";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ClearIcon from '@mui/icons-material/Clear';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import QrScanner from 'qr-scanner';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = {
   checkbox: '60px',
@@ -23,6 +31,32 @@ const CUSTOM_COLUMN_WIDTHS = {
   cart: '40px',
   edit: '40px',
   delete: '40px'
+};
+
+// ─────────────────────────────────────────────
+// ✅ COLD STORAGE HELPER — รวม 6 รอบ (come/out ×3 + cs_come/cs_out ×3)
+//    แล้วเรียงตามวันที่ "เข้า" ห้องเย็น จากเก่าไปใหม่
+// ─────────────────────────────────────────────
+const getSortedColdStoragePairs = (row) => {
+  const candidates = [
+    { in: row.come_cold_date,          out: row.out_cold_date          },
+    { in: row.come_cold_date_two,      out: row.out_cold_date_two      },
+    { in: row.come_cold_date_three,    out: row.out_cold_date_three    },
+    { in: row.cs_come_cold_date,       out: row.cs_out_cold_date       },
+    { in: row.cs_come_cold_date_two,   out: row.cs_out_cold_date_two   },
+    { in: row.cs_come_cold_date_three, out: row.cs_out_cold_date_three },
+  ].filter(p => p.in && p.in !== '-');
+
+  candidates.sort((a, b) => {
+    const da = new Date(a.in);
+    const db = new Date(b.in);
+    if (isNaN(da)) return 1;
+    if (isNaN(db)) return -1;
+    return da - db;
+  });
+
+  while (candidates.length < 6) candidates.push({ in: null, out: null });
+  return candidates;
 };
 
 // ─────────────────────────────────────────────
@@ -188,6 +222,47 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
 };
 
 // ─────────────────────────────────────────────
+// QR Scanner
+// ─────────────────────────────────────────────
+const QrScannerView = ({ onScan, onError }) => {
+  const videoRef = useRef(null);
+  useEffect(() => {
+    if (!videoRef.current) return;
+    const scanner = new QrScanner(videoRef.current, (result) => {
+      const text = typeof result === 'object' ? result.data : result;
+      if (text) onScan(text);
+    }, {
+      preferredCamera: 'environment',
+      highlightScanRegion: true,
+      returnDetailedScanResult: true,
+      onDecodeError: () => {},
+    });
+    scanner.start().catch((err) => onError(err.message || 'ไม่สามารถเข้าถึงกล้องได้'));
+    return () => { scanner.stop(); scanner.destroy(); };
+  }, []);
+  return <video ref={videoRef} style={{ width: '100%', display: 'block', borderRadius: '6px' }} muted playsInline />;
+};
+
+const QrScanDialog = ({ open, onClose, onScan, title }) => {
+  const [error, setError] = useState('');
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid #e0e0e0' }}>
+        <Box sx={{ fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <QrCodeScanner sx={{ color: '#1976D2' }} />
+          {title}
+        </Box>
+        <IconButton onClick={onClose} size="small"><Close fontSize="small" /></IconButton>
+      </Box>
+      <Box sx={{ p: 2 }}>
+        {open && <QrScannerView onScan={(text) => { onScan(text); onClose(); }} onError={setError} />}
+        {error && <Box sx={{ mt: 1, color: '#c62828', fontSize: '12px' }}>❌ {error}</Box>}
+      </Box>
+    </Dialog>
+  );
+};
+
+// ─────────────────────────────────────────────
 // Action Cell Components
 // ─────────────────────────────────────────────
 const ActionCell = ({ width, onClick, icon, backgroundColor, hoverColor, iconColor }) => (
@@ -262,9 +337,27 @@ const Row = ({
     }
   };
 
+  // ✅ รวม cold storage 6 รอบ (เรียงตามวันที่เข้าห้องเย็น)
+  const sortedColdPairs = getSortedColdStoragePairs(row);
+
   const displayRow = {};
   displayColumns.forEach(col => {
-    displayRow[col] = row[col];
+    switch (col) {
+      case 'cold_slot_1_in':  displayRow[col] = sortedColdPairs[0]?.in  ?? '-'; break;
+      case 'cold_slot_1_out': displayRow[col] = sortedColdPairs[0]?.out ?? '-'; break;
+      case 'cold_slot_2_in':  displayRow[col] = sortedColdPairs[1]?.in  ?? '-'; break;
+      case 'cold_slot_2_out': displayRow[col] = sortedColdPairs[1]?.out ?? '-'; break;
+      case 'cold_slot_3_in':  displayRow[col] = sortedColdPairs[2]?.in  ?? '-'; break;
+      case 'cold_slot_3_out': displayRow[col] = sortedColdPairs[2]?.out ?? '-'; break;
+      case 'cold_slot_4_in':  displayRow[col] = sortedColdPairs[3]?.in  ?? '-'; break;
+      case 'cold_slot_4_out': displayRow[col] = sortedColdPairs[3]?.out ?? '-'; break;
+      case 'cold_slot_5_in':  displayRow[col] = sortedColdPairs[4]?.in  ?? '-'; break;
+      case 'cold_slot_5_out': displayRow[col] = sortedColdPairs[4]?.out ?? '-'; break;
+      case 'cold_slot_6_in':  displayRow[col] = sortedColdPairs[5]?.in  ?? '-'; break;
+      case 'cold_slot_6_out': displayRow[col] = sortedColdPairs[5]?.out ?? '-'; break;
+      default:
+        displayRow[col] = row[col];
+    }
   });
 
   return (
@@ -428,195 +521,272 @@ const Row = ({
 };
 
 // ─────────────────────────────────────────────
+// WoBasketEntryRow — 1 แถวของ WONo + ช่วง Basket
+// ─────────────────────────────────────────────
+const EMPTY_WO_ENTRY = () => ({ wo_no: '', basket_from: '', basket_to: '' });
+
+const WoBasketEntryRow = ({ entry, index, onChange, onRemove, onScanWo, canRemove }) => {
+  const set = (field, val) => onChange(index, { ...entry, [field]: val });
+  return (
+    <Box sx={{
+      display: 'flex', gap: 1, alignItems: 'flex-start', marginBottom: 1.5,
+      padding: '10px', backgroundColor: '#F8FBFF', borderRadius: '10px', border: '1px solid #E3F2FD'
+    }}>
+      {/* Input 1: WONo */}
+      <Box sx={{ flex: 2 }}>
+        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>WONo</Box>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <TextField
+            fullWidth size="small" value={entry.wo_no}
+            onChange={(e) => set('wo_no', e.target.value)}
+            placeholder="พิมพ์ หรือ Scan WONo..."
+            InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+            sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
+          />
+          <IconButton
+            onClick={() => onScanWo(index)}
+            size="small"
+            sx={{ border: '1.5px solid #1976D2', borderRadius: '8px', color: '#1976D2', width: '38px', height: '38px' }}
+          >
+            <QrCodeScanner fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
+
+      {/* Input 2: Basket จาก */}
+      <Box sx={{ flex: 1 }}>
+        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>Basket (จาก)</Box>
+        <TextField
+          fullWidth size="small" type="number" value={entry.basket_from}
+          onChange={(e) => set('basket_from', e.target.value)}
+          placeholder="เช่น 3"
+          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+          sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
+        />
+      </Box>
+
+      {/* Input 3: Basket ถึง (ไม่บังคับ — ถ้าไม่กรอกถือว่ามี basket เดียว) */}
+      <Box sx={{ flex: 1 }}>
+        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>Basket (ถึง)</Box>
+        <TextField
+          fullWidth size="small" type="number" value={entry.basket_to}
+          onChange={(e) => set('basket_to', e.target.value)}
+          placeholder="ไม่บังคับ"
+          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+          sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
+        />
+      </Box>
+
+      {/* ลบแถว */}
+      <Box sx={{ paddingTop: '20px' }}>
+        <IconButton
+          onClick={() => onRemove(index)}
+          disabled={!canRemove}
+          size="small"
+          sx={{ color: canRemove ? '#f44336' : '#ccc' }}
+        >
+          <DeleteOutlineIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+};
+
+// ─────────────────────────────────────────────
 // MultiConfirmDialog
 // ─────────────────────────────────────────────
 const MultiConfirmDialog = ({
   open, onClose, selectedCount, onConfirm,
   group, setGroup, prepDateTime, setPrepDateTime,
   remark, setRemark,
-  idIgd, setIdIgd, matPkg, setMatPkg, batchPkg, setBatchPkg,
+  woEntries, setWoEntries,
+  matPkg, setMatPkg,
   errors
-}) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    maxWidth="sm"
-    fullWidth
-    PaperProps={{
-      sx: { borderRadius: '16px', boxShadow: '0 8px 32px rgba(33, 150, 243, 0.2)' }
-    }}
-  >
-    <DialogTitle sx={{
-      background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
-      color: '#fff',
-      fontSize: '18px',
-      fontWeight: '600',
-      padding: '20px 24px'
-    }}>
-      ยืนยันข้อมูลสำหรับ {selectedCount} รายการ
-    </DialogTitle>
+}) => {
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrField, setQrField] = useState(null); // { type: 'wo', index } หรือ { type: 'matPkg' }
 
-    <DialogContent sx={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-          หม้อที่ <span style={{ color: '#f44336' }}>*</span>
-        </Box>
-        <TextField
-          fullWidth
-          type="number"
-          value={group}
-          onChange={(e) => setGroup(e.target.value)}
-          error={!!errors.group}
-          helperText={errors.group}
-          placeholder="กรุณาระบุหม้อที่"
-          InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
-          sx={{
-            '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' },
-            '& input': { padding: '10px 14px' }
-          }}
-        />
-      </Box>
+  const handleQrScan = (text) => {
+    if (qrField?.type === 'wo') {
+      const updated = [...woEntries];
+      updated[qrField.index] = { ...updated[qrField.index], wo_no: text.trim() };
+      setWoEntries(updated);
+    } else if (qrField?.type === 'matPkg') {
+      setMatPkg(text.trim());
+    }
+    setQrOpen(false);
+  };
 
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-          เวลาบรรจุเสร็จ <span style={{ color: '#f44336' }}>*</span>
+  const openQrForWo = (index) => { setQrField({ type: 'wo', index }); setQrOpen(true); };
+  const openQrForMatPkg = () => { setQrField({ type: 'matPkg' }); setQrOpen(true); };
+
+  const handleEntryChange = (index, newEntry) => {
+    const updated = [...woEntries];
+    updated[index] = newEntry;
+    setWoEntries(updated);
+  };
+
+  const handleAddEntry = () => setWoEntries([...woEntries, EMPTY_WO_ENTRY()]);
+  const handleRemoveEntry = (index) => {
+    if (woEntries.length <= 1) return;
+    setWoEntries(woEntries.filter((_, i) => i !== index));
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: '16px', boxShadow: '0 8px 32px rgba(33, 150, 243, 0.2)' }
+      }}
+    >
+      <DialogTitle sx={{
+        background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+        color: '#fff', fontSize: '18px', fontWeight: '600', padding: '20px 24px'
+      }}>
+        ยืนยันข้อมูลสำหรับ {selectedCount} รายการ
+      </DialogTitle>
+
+      <DialogContent sx={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* หม้อที่ */}
+        <Box>
+          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
+            หม้อที่ <span style={{ color: '#f44336' }}>*</span>
+          </Box>
+          <TextField
+            fullWidth type="number" value={group}
+            onChange={(e) => setGroup(e.target.value)}
+            error={!!errors.group} helperText={errors.group}
+            placeholder="กรุณาระบุหม้อที่"
+            InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
+            sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
+          />
         </Box>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DateTimePicker
-            ampm={false}
-            minutesStep={1}
-            timeSteps={{ minutes: 1 }}
-            maxDateTime={dayjs()}
-            value={prepDateTime ? dayjs(prepDateTime) : null}
-            onChange={(newValue) => {
-              setPrepDateTime(newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '');
-            }}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: !!errors.prepDateTime,
-                helperText: errors.prepDateTime,
-                sx: {
-                  '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px', borderRadius: '8px' },
-                  '& input': { padding: '10px 14px' }
+
+        {/* เวลาบรรจุเสร็จ */}
+        <Box>
+          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
+            เวลาบรรจุเสร็จ <span style={{ color: '#f44336' }}>*</span>
+          </Box>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+              ampm={false} minutesStep={1} timeSteps={{ minutes: 1 }} maxDateTime={dayjs()}
+              value={prepDateTime ? dayjs(prepDateTime) : null}
+              onChange={(newValue) => setPrepDateTime(newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '')}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: !!errors.prepDateTime, helperText: errors.prepDateTime,
+                  sx: {
+                    '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px', borderRadius: '8px' },
+                    '& input': { padding: '10px 14px' }
+                  }
                 }
-              }
+              }}
+            />
+          </LocalizationProvider>
+        </Box>
+
+        {/* หมายเหตุ */}
+        <Box>
+          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>หมายเหตุ</Box>
+          <TextField
+            fullWidth multiline rows={3} value={remark}
+            onChange={(e) => { if (e.target.value.length <= 300) setRemark(e.target.value); }}
+            error={!!errors.remark} helperText={errors.remark || `${remark.length}/300`}
+            placeholder="ระบุหมายเหตุ (ถ้ามี)..."
+            InputProps={{ sx: { fontSize: '14px', borderRadius: '8px' } }}
+            sx={{
+              '& .MuiOutlinedInput-root': { fontSize: '14px' },
+              '& .MuiFormHelperText-root': { textAlign: 'right', marginRight: 0, color: remark.length >= 300 ? '#f44336' : '#999' }
             }}
           />
-        </LocalizationProvider>
-      </Box>
-
-      {/* ✅ NEW: หมายเหตุ */}
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-          หมายเหตุ
         </Box>
-        <TextField
-          fullWidth
-          multiline
-          rows={3}
-          value={remark}
-          onChange={(e) => {
-            // จำกัดไม่เกิน 300 ตัวอักษรตาม schema (varchar 300)
-            if (e.target.value.length <= 300) {
-              setRemark(e.target.value);
-            }
-          }}
-          error={!!errors.remark}
-          helperText={errors.remark || `${remark.length}/300`}
-          placeholder="ระบุหมายเหตุ (ถ้ามี)..."
-          InputProps={{
-            sx: { fontSize: '14px', borderRadius: '8px' }
-          }}
+
+        {/* รหัส Ingrediant (WONO) — รองรับหลายชุด แต่ละชุดมี WONo + ช่วง Basket */}
+        <Box>
+          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
+            รหัส Ingrediant (WONO)
+          </Box>
+          {woEntries.map((entry, index) => (
+            <WoBasketEntryRow
+              key={index}
+              entry={entry}
+              index={index}
+              onChange={handleEntryChange}
+              onRemove={handleRemoveEntry}
+              onScanWo={openQrForWo}
+              canRemove={woEntries.length > 1}
+            />
+          ))}
+          <Button
+            onClick={handleAddEntry}
+            startIcon={<AddCircleOutlineIcon />}
+            sx={{ color: '#1976D2', textTransform: 'none', fontSize: '13px' }}
+          >
+            เพิ่มชุด WONo
+          </Button>
+          {errors.woEntries && (
+            <Box sx={{ color: '#f44336', fontSize: '12px', marginTop: 0.5 }}>{errors.woEntries}</Box>
+          )}
+        </Box>
+
+        {/* รหัส Package */}
+        <Box>
+          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>รหัส Package</Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              fullWidth value={matPkg} onChange={(e) => setMatPkg(e.target.value)}
+              placeholder="พิมพ์ หรือ Scan รหัส Package..."
+              InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
+              sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
+            />
+            <IconButton
+              onClick={openQrForMatPkg}
+              sx={{ border: '1.5px solid #1976D2', borderRadius: '8px', color: '#1976D2', width: '44px', height: '44px', '&:hover': { backgroundColor: '#E3F2FD' } }}
+            >
+              <QrCodeScanner />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box sx={{ padding: '16px', backgroundColor: '#E3F2FD', borderRadius: '8px', fontSize: '13px', color: '#1976D2' }}>
+          <strong>หมายเหตุ:</strong> น้ำหนักของแต่ละรายการจะถูกใช้ตามที่ระบุในแต่ละแถว
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ padding: '16px 24px', gap: 1 }}>
+        <Button
+          onClick={onClose}
+          sx={{ color: '#666', borderRadius: '8px', padding: '8px 20px', textTransform: 'none', fontSize: '14px', '&:hover': { backgroundColor: '#f5f5f5' } }}
+        >
+          ยกเลิก
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
           sx={{
-            '& .MuiOutlinedInput-root': { fontSize: '14px' },
-            '& .MuiFormHelperText-root': {
-              textAlign: 'right',
-              marginRight: 0,
-              color: remark.length >= 300 ? '#f44336' : '#999'
-            }
+            background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+            borderRadius: '8px', padding: '8px 24px', textTransform: 'none', fontSize: '14px',
+            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+            '&:hover': { background: 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)', boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)' }
           }}
-        />
-      </Box>
-          <Box>
-        <Box sx={{ marginBottom: 1, color: '#ff0000', fontSize: '16px', fontWeight: '500' }}>ยังไม่ต้องดำเนินการใส่ข้อมูล</Box>
-    
-      </Box>
+        >
+          ยืนยันทั้งหมด
+        </Button>
+      </DialogActions>
 
-      {/* รหัส Ingrediant */}
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>รหัส Ingrediant</Box>
-        <TextField
-          fullWidth
-          value={idIgd}
-          onChange={(e) => setIdIgd(e.target.value)}
-          placeholder="ระบุรหัส Ingrediant (ถ้ามี)..."
-          InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
-          sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
-        />
-      </Box>
-
-      {/* Mat บรรจุภัณฑ์ */}
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>Mat บรรจุภัณฑ์ (mat_pkg)</Box>
-        <TextField
-          fullWidth
-          value={matPkg}
-          onChange={(e) => setMatPkg(e.target.value)}
-          placeholder="ระบุ Mat บรรจุภัณฑ์ (ถ้ามี)..."
-          InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
-          sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
-        />
-      </Box>
-
-      {/* Batch บรรจุภัณฑ์ */}
-      <Box>
-        <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>Batch บรรจุภัณฑ์ (batch_pkg)</Box>
-        <TextField
-          fullWidth
-          value={batchPkg}
-          onChange={(e) => setBatchPkg(e.target.value)}
-          placeholder="ระบุ Batch บรรจุภัณฑ์ (ถ้ามี)..."
-          InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
-          sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
-        />
-      </Box>
-
-      <Box sx={{ padding: '16px', backgroundColor: '#E3F2FD', borderRadius: '8px', fontSize: '13px', color: '#1976D2' }}>
-        <strong>หมายเหตุ:</strong> น้ำหนักของแต่ละรายการจะถูกใช้ตามที่ระบุในแต่ละแถว
-      </Box>
-    </DialogContent>
-
-    <DialogActions sx={{ padding: '16px 24px', gap: 1 }}>
-      <Button
-        onClick={onClose}
-        sx={{
-          color: '#666', borderRadius: '8px', padding: '8px 20px',
-          textTransform: 'none', fontSize: '14px',
-          '&:hover': { backgroundColor: '#f5f5f5' }
-        }}
-      >
-        ยกเลิก
-      </Button>
-      <Button
-        onClick={onConfirm}
-        variant="contained"
-        sx={{
-          background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
-          borderRadius: '8px', padding: '8px 24px',
-          textTransform: 'none', fontSize: '14px',
-          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
-          '&:hover': {
-            background: 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)',
-            boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)'
-          }
-        }}
-      >
-        ยืนยันทั้งหมด
-      </Button>
-    </DialogActions>
-  </Dialog>
-);
+      <QrScanDialog
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        onScan={handleQrScan}
+        title={qrField?.type === 'wo' ? `Scan WONo (ชุดที่ ${(qrField.index ?? 0) + 1})` : 'Scan รหัส Package'}
+      />
+    </Dialog>
+  );
+};
 
 // ─────────────────────────────────────────────
 // TableMainPrep (Main)
@@ -641,13 +811,22 @@ const TableMainPrep = ({
   const [showMultiDialog, setShowMultiDialog] = useState(false);
   const [multiGroup, setMultiGroup] = useState('');
   const [multiPrepDateTime, setMultiPrepDateTime] = useState('');
-  const [multiRemark, setMultiRemark] = useState(''); // ✅ NEW
-  const [multiIdIgd, setMultiIdIgd] = useState('');
+  const [multiRemark, setMultiRemark] = useState('');
+  const [multiWoEntries, setMultiWoEntries] = useState([EMPTY_WO_ENTRY()]);
   const [multiMatPkg, setMultiMatPkg] = useState('');
-  const [multiBatchPkg, setMultiBatchPkg] = useState('');
-  const [multiErrors, setMultiErrors] = useState({ group: '', prepDateTime: '', remark: '' });
+  const [multiErrors, setMultiErrors] = useState({ group: '', prepDateTime: '', remark: '', woEntries: '' });
 
-  const displayColumns = ['batch_after', 'mat_name', 'production', 'rmit_date', 'come_cold_date','come_cold_date_two','out_cold_date', 'out_cold_date_two', 'weight_RM'];
+  // ✅ เพิ่มคอลัมน์ cold storage ทั้ง 6 รอบ (แทนของเดิมที่มีแค่ 2 รอบ)
+  const displayColumns = [
+    'batch_after', 'mat_name', 'production', 'rmit_date',
+    'cold_slot_1_in', 'cold_slot_1_out',
+    'cold_slot_2_in', 'cold_slot_2_out',
+    'cold_slot_3_in', 'cold_slot_3_out',
+    'cold_slot_4_in', 'cold_slot_4_out',
+    'cold_slot_5_in', 'cold_slot_5_out',
+    'cold_slot_6_in', 'cold_slot_6_out',
+    'weight_RM'
+  ];
 
   const uniqueDocNos = [...new Set(data.map(row => row.doc_no).filter(Boolean))].sort();
 
@@ -713,7 +892,7 @@ const TableMainPrep = ({
   };
 
   const validateMultiInputs = () => {
-    const newErrors = { group: '', prepDateTime: '', remark: '' };
+    const newErrors = { group: '', prepDateTime: '', remark: '', woEntries: '' };
     let isValid = true;
 
     if (isNaN(Number(multiGroup)) || Number(multiGroup) <= 0) {
@@ -729,10 +908,24 @@ const TableMainPrep = ({
       isValid = false;
     }
 
-    // ✅ ตรวจสอบความยาว remark (ไม่บังคับกรอก แต่ห้ามเกิน 300)
     if (multiRemark && multiRemark.length > 300) {
       newErrors.remark = 'หมายเหตุต้องไม่เกิน 300 ตัวอักษร';
       isValid = false;
+    }
+
+    // WONo entries: ทุกแถวที่กรอก wo_no ต้องมี basket_from ด้วย (ถ้าแถวว่างทั้งคู่จะข้าม ไม่บังคับ)
+    const filledEntries = multiWoEntries.filter(e => e.wo_no || e.basket_from || e.basket_to);
+    for (const e of filledEntries) {
+      if (!e.wo_no || e.basket_from === '' || e.basket_from == null) {
+        newErrors.woEntries = 'กรุณากรอก WONo และ Basket (จาก) ให้ครบทุกชุดที่เพิ่มไว้';
+        isValid = false;
+        break;
+      }
+      if (e.basket_to !== '' && e.basket_to != null && Number(e.basket_to) < Number(e.basket_from)) {
+        newErrors.woEntries = 'Basket (ถึง) ต้องมีค่ามากกว่าหรือเท่ากับ Basket (จาก)';
+        isValid = false;
+        break;
+      }
     }
 
     setMultiErrors(newErrors);
@@ -742,20 +935,36 @@ const TableMainPrep = ({
   const handleMultiConfirm = async () => {
     if (!validateMultiInputs()) return;
 
+    // เอาเฉพาะชุดที่กรอกข้อมูลจริง (ตัดแถวว่างเปล่าที่เผื่อไว้ทิ้ง)
+    const woEntriesToSave = multiWoEntries
+      .filter(e => e.wo_no && e.basket_from !== '' && e.basket_from != null)
+      .map(e => ({
+        wo_no: e.wo_no.trim(),
+        basket_from: parseInt(e.basket_from, 10),
+        basket_to: (e.basket_to !== '' && e.basket_to != null) ? parseInt(e.basket_to, 10) : null,
+      }));
+
     try {
       await Promise.all(
-        selectedRows.map(mappingId =>
-          onConfirmRow({
+        selectedRows.map(async (mappingId) => {
+          // 1) บันทึกข้อมูลยืนยันหลักตามเดิม (ผ่าน prop onConfirmRow ที่มีอยู่แล้ว)
+          await onConfirmRow({
             mapping_id: mappingId,
             weight: Number(rowWeights[mappingId]),
             group: Number(multiGroup),
             sc_pack_date: multiPrepDateTime,
             remark_dalay: multiRemark?.trim() || null,
-            id_igd: multiIdIgd?.trim() || null,
             mat_pkg: multiMatPkg?.trim() || null,
-            batch_pkg: multiBatchPkg?.trim() || null,
-          })
-        )
+          });
+
+          // 2) บันทึกชุด WONo/Basket (หลายชุด) ลงตารางใหม่ HistoryIngredientWO
+          if (woEntriesToSave.length > 0) {
+            await axios.post(`${API_URL}/api/pack/ingredient/wo-mapping`, {
+              mapping_id: mappingId,
+              entries: woEntriesToSave,
+            });
+          }
+        })
       );
 
       setSelectedRows([]);
@@ -763,9 +972,8 @@ const TableMainPrep = ({
       setMultiGroup('');
       setMultiPrepDateTime('');
       setMultiRemark('');
-      setMultiIdIgd('');
+      setMultiWoEntries([EMPTY_WO_ENTRY()]);
       setMultiMatPkg('');
-      setMultiBatchPkg('');
       setShowMultiDialog(false);
       alert(`ยืนยันข้อมูลสำเร็จ ${selectedRows.length} รายการ`);
     } catch (error) {
@@ -778,14 +986,23 @@ const TableMainPrep = ({
   const remainingWidth = `calc((100% - ${totalCustomWidth}px) / ${displayColumns.length})`;
   const columnWidths = Array(displayColumns.length).fill(remainingWidth);
 
+  // ✅ header ของคอลัมน์ cold storage 6 รอบ
   const headerNames = {
     batch_after: 'Batch',
     mat_name: 'ชื่อวัตถุดิบ',
     rmit_date: 'เวลาเตรียม',
-    come_cold_date: 'เข้าห้องเย็น 1',
-    come_cold_date_two: 'เข้าห้องเย็น 2',
-    out_cold_date: 'ออกห้องเย็น 1',
-    out_cold_date_two: 'ออกห้องเย็น 2',
+    cold_slot_1_in: 'เข้าห้องเย็น 1',
+    cold_slot_1_out: 'ออกห้องเย็น 1',
+    cold_slot_2_in: 'เข้าห้องเย็น 2',
+    cold_slot_2_out: 'ออกห้องเย็น 2',
+    cold_slot_3_in: 'เข้าห้องเย็น 3',
+    cold_slot_3_out: 'ออกห้องเย็น 3',
+    cold_slot_4_in: 'เข้าห้องเย็น 4',
+    cold_slot_4_out: 'ออกห้องเย็น 4',
+    cold_slot_5_in: 'เข้าห้องเย็น 5',
+    cold_slot_5_out: 'ออกห้องเย็น 5',
+    cold_slot_6_in: 'เข้าห้องเย็น 6',
+    cold_slot_6_out: 'ออกห้องเย็น 6',
     production: 'แผน',
     weight_RM: 'น้ำหนัก'
   };
@@ -794,10 +1011,18 @@ const TableMainPrep = ({
     const widthMap = {
       mat_name: '150px',
       rmit_date: '110px',
-      come_cold_date: '110px',
-      come_cold_date_two: '110px',
-      out_cold_date: '110px',
-      out_cold_date_two: '110px',
+      cold_slot_1_in: '110px',
+      cold_slot_1_out: '110px',
+      cold_slot_2_in: '110px',
+      cold_slot_2_out: '110px',
+      cold_slot_3_in: '110px',
+      cold_slot_3_out: '110px',
+      cold_slot_4_in: '110px',
+      cold_slot_4_out: '110px',
+      cold_slot_5_in: '110px',
+      cold_slot_5_out: '110px',
+      cold_slot_6_in: '110px',
+      cold_slot_6_out: '110px',
       production: '80px',
       tro_id: '180px',
       weight_RM: '10px',
@@ -1085,12 +1310,10 @@ const TableMainPrep = ({
         setPrepDateTime={setMultiPrepDateTime}
         remark={multiRemark}
         setRemark={setMultiRemark}
-        idIgd={multiIdIgd}
-        setIdIgd={setMultiIdIgd}
+        woEntries={multiWoEntries}
+        setWoEntries={setMultiWoEntries}
         matPkg={multiMatPkg}
         setMatPkg={setMultiMatPkg}
-        batchPkg={multiBatchPkg}
-        setBatchPkg={setMultiBatchPkg}
         errors={multiErrors}
       />
     </Paper>

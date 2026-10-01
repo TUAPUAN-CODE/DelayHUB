@@ -135,8 +135,6 @@ const QcCheck = ({
       WorkAreaCode: CheckMetal === "1" ? WorkAreaCode : null,
       operator: operator || null,
       general_remark: general_remark || null,
-      Defectacceptance: Defectacceptance ? 1 : 0,
-      Sensoryacceptance: Sensoryacceptance ? 1 : 0,
       Moisture: Moisture || null,
       Temp: Temp || null,
       percent_fine: percent_fine || null,

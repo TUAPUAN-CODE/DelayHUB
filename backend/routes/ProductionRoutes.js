@@ -257,23 +257,20 @@ router.get("/prod-rawmat", async (req, res) => {
         .json({ success: false, error: "Database connection failed" });
     }
 
-    // ดึงข้อมูล mat และ mat_name
+    // ดึงข้อมูล mat, mat_name และ prod_id แบบไม่ aggregate ใน SQL
+    // (หลีกเลี่ยงปัญหา STRING_AGG เกิน 8000 bytes เมื่อข้อมูลเยอะ)
     const matResult = await pool.request().query(`
       SELECT 
           prm.mat,
           rm.mat_name,
-          STRING_AGG(prm.prod_id, ',') AS prod_ids
+          prm.prod_id
       FROM 
           ProdRawMat prm
       JOIN
-          RawMat rm ON rm.mat = prm.mat
-      GROUP BY 
-          prm.mat, rm.mat_name;
+          RawMat rm ON rm.mat = prm.mat;
     `);
 
-    const matData = matResult.recordset;
-
-    if (!matData.length) {
+    if (!matResult.recordset.length) {
       return res
         .status(404)
         .json({ success: false, message: "No data found!" });
@@ -301,11 +298,24 @@ router.get("/prod-rawmat", async (req, res) => {
       prodMap[prod_id].push({ code, doc_no, line_type_name });
     });
 
+    // Group ข้อมูล mat + prod_ids ฝั่ง JS แทนการใช้ STRING_AGG
+    const matMap = {};
+    matResult.recordset.forEach(({ mat, mat_name, prod_id }) => {
+      if (!matMap[mat]) {
+        matMap[mat] = {
+          mat,
+          mat_name,
+          prod_ids: new Set(), // ใช้ Set กัน prod_id ซ้ำจาก fan-out ของ join
+        };
+      }
+      matMap[mat].prod_ids.add(prod_id);
+    });
+
     // รวมข้อมูล mat และ production
-    const finalData = matData.map(({ mat, mat_name, prod_ids }) => ({
+    const finalData = Object.values(matMap).map(({ mat, mat_name, prod_ids }) => ({
       mat,
       mat_name,
-      prod_info: prod_ids.split(",").map((prod_id) => ({
+      prod_info: Array.from(prod_ids).map((prod_id) => ({
         prod_id: parseInt(prod_id),
         details: prodMap[prod_id] || [], // ถ้าไม่มีข้อมูลจะเป็น []
       })),

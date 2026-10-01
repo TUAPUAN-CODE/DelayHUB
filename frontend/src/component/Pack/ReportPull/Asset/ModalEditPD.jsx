@@ -22,7 +22,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mapping_id, tro_id, ntray, weight_per_tro, rmfp_id, onSuccess, onParentClose }) => {
   const [showAlert, setShowAlert] = useState(false);
-  console.log("mapping_id value:", mapping_id);
+  // console.log("mapping_id value:", mapping_id);
   
   const handleConfirm = async () => {
     const payload = {

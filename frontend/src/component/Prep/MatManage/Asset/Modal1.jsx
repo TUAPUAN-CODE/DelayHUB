@@ -75,6 +75,7 @@ const Modal1 = ({
 
   // ---- refs สำหรับตรวจจับ Barcode Scanner ----
   const lastKeyTime = useRef(0);
+  const isFirstKey = useRef(true); // FIX: ใช้ตรวจว่าเป็นตัวอักษรแรกของ sequence หรือไม่
   // --------------------------------------------
 
   useEffect(() => {
@@ -104,6 +105,10 @@ const Modal1 = ({
       setScannedValue("");
       setApiError("");
       setInputError(false);
+
+      // FIX: reset isFirstKey เมื่อ Modal เปิดใหม่
+      isFirstKey.current = true;
+      lastKeyTime.current = 0;
 
       const initialBatchInputs = {};
       const initialBatchErrors = {};
@@ -291,15 +296,26 @@ const Modal1 = ({
     const timeDiff = now - lastKeyTime.current;
     lastKeyTime.current = now;
 
-    // Enter / Tab / Backspace → อนุญาตเสมอ (Scanner ส่ง Enter ปิดท้าย)
-    if (["Enter", "Tab", "Backspace", "Delete"].includes(e.key)) return;
+    // Enter / Tab / Backspace / Delete → อนุญาตเสมอ และ reset isFirstKey
+    // (Scanner ส่ง Enter ปิดท้าย sequence)
+    if (["Enter", "Tab", "Backspace", "Delete"].includes(e.key)) {
+      isFirstKey.current = true; // FIX: reset เมื่อจบ sequence
+      return;
+    }
 
-    // ถ้าเป็นตัวอักษร/ตัวเลข
     if (e.key.length === 1) {
-      // Scanner พิมพ์เร็วมาก (< 50ms ต่อตัว) → อนุญาต
-      // คนพิมพ์เองช้ากว่า (> 100ms) → บล็อก
+      // FIX: ตัวแรกของ sequence → ผ่านเสมอ ไม่ต้องเช็ค timeDiff
+      // เพราะ lastKeyTime เริ่มจาก 0 → timeDiff จะใหญ่มากเสมอ
+      // ทำให้ตัวแรกของทุก scan ถูกบล็อกผิดพลาดบน PC ที่ Scanner ช้า
+      if (isFirstKey.current) {
+        isFirstKey.current = false;
+        return;
+      }
+
+      // ตัวถัดไป: ถ้าช้าเกิน 100ms แสดงว่าคนพิมพ์เอง → บล็อก
       if (timeDiff > 100) {
         e.preventDefault();
+        isFirstKey.current = true; // FIX: sequence ขาด → reset ให้ตัวถัดไปผ่านได้
       }
     }
   };
@@ -410,86 +426,83 @@ const Modal1 = ({
             )}
           </Box>
 
-          {batchArray &&
-            batchArray.length > 0 && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
-                <Typography
+          {batchArray && batchArray.length > 0 && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
+              <Typography
+                sx={{
+                  fontSize: "16px",
+                  fontWeight: 500,
+                  color: "#333",
+                }}
+              >
+                กรอก Batch ใหม่สำหรับแต่ละ Batch:
+              </Typography>
+
+              {batchArray.map((b, idx) => (
+                <Box
+                  key={idx}
                   sx={{
-                    fontSize: "16px",
-                    fontWeight: 500,
-                    color: "#333",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                    padding: 2,
+                    backgroundColor: "#f9f9f9",
+                    borderRadius: "4px",
+                    border: "1px solid #e0e0e0",
                   }}
                 >
-                  กรอก Batch ใหม่สำหรับแต่ละ Batch:
-                </Typography>
-
-                {batchArray.map((b, idx) => (
-                  <Box
-                    key={idx}
+                  <Typography
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1,
-                      padding: 2,
-                      backgroundColor: "#f9f9f9",
-                      borderRadius: "4px",
-                      border: "1px solid #e0e0e0",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: "#666",
                     }}
                   >
-                    <Typography
+                    Batch เดิม: {b}
+                  </Typography>
+
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TextField
+                      fullWidth
+                      label={`Batch ใหม่ ${idx + 1} (10 ตัวอักษร)`}
+                      value={batchInputs[b] || ""}
+                      onChange={(e) => handleBatchInputChange(b, e.target.value)}
+                      size="small"
+                      error={batchErrors[b]}
+                      inputProps={{
+                        maxLength: 10,
+                        style: { textTransform: "uppercase" },
+                      }}
                       sx={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        color: "#666",
+                        "& .MuiInputBase-root": {
+                          height: "40px",
+                        },
+                      }}
+                    />
+
+                    <Button
+                      variant="contained"
+                      onClick={() => useOldBatch(b)}
+                      sx={{
+                        backgroundColor: "#41b0e6",
+                        color: "#fff",
+                        height: "40px",
+                        minWidth: "auto",
+                        px: 2,
+                        fontSize: "0.875rem",
+                        whiteSpace: "nowrap",
+                        "&:hover": {
+                          backgroundColor: "#2c8fcc",
+                        },
                       }}
                     >
-                      Batch เดิม: {b}
-                    </Typography>
-
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <TextField
-                        fullWidth
-                        label={`Batch ใหม่ ${idx + 1} (10 ตัวอักษร)`}
-                        value={batchInputs[b] || ""}
-                        onChange={(e) =>
-                          handleBatchInputChange(b, e.target.value)
-                        }
-                        size="small"
-                        error={batchErrors[b]}
-                        inputProps={{
-                          maxLength: 10,
-                          style: { textTransform: "uppercase" },
-                        }}
-                        sx={{
-                          "& .MuiInputBase-root": {
-                            height: "40px",
-                          },
-                        }}
-                      />
-
-                      <Button
-                        variant="contained"
-                        onClick={() => useOldBatch(b)}
-                        sx={{
-                          backgroundColor: "#41b0e6",
-                          color: "#fff",
-                          height: "40px",
-                          minWidth: "auto",
-                          px: 2,
-                          fontSize: "0.875rem",
-                          whiteSpace: "nowrap",
-                          "&:hover": {
-                            backgroundColor: "#2c8fcc",
-                          },
-                        }}
-                      >
-                        ใช้เดิม
-                      </Button>
-                    </Box>
+                      ใช้เดิม
+                    </Button>
                   </Box>
-                ))}
-              </Box>
-            )}
+                </Box>
+              ))}
+            </Box>
+          )}
 
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField

@@ -118,7 +118,8 @@ const SIDEBAR_SECTIONS = [
     label: "RM แปรรูป",
     color: "#1b5e20",
     items: [
-      { name: "0) วัตถุดิบแปรรูป",      href: "/coldStorages/RoomTable/RoomTable" },
+      // { name: "0) วัตถุดิบรับฝาก",      href: "/coldStorages/RoomTable/RoomTable" },
+      { name: "0) Monitor",      href: "/coldStorages/RoomTable/RoomTable/send" },
       { name: "1) รับเข้า RM แปรรูป",     href: "/ColdStorages/CheckIn/rooms" },
       { name: "2) ส่งออก RM แปรรูป",      href: "/coldStorages/CheckOut/CheckOutPage" },
       // { name: "Dashboard",         href: "/ColdStorages/dashboardrminprocess" },

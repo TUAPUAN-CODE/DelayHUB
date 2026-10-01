@@ -333,10 +333,24 @@ const PDFPreviewModal = ({ record, onClose, API_URL }) => {
     dbs1: 'DBS 1', dbs2: 'DBS 2', dbs3: 'DBS 3', dbs4: 'DBS 4',
   };
 
+  // หาวันที่ "บรรจุเสร็จ (F)" จากแถวข้อมูลแรกที่มีค่า เพื่อใช้เป็นค่าเริ่มต้นของ Date
+  const getPackFinishDate = (rec) => {
+    const rows = rec.mapping_ids || [];
+    for (const row of rows) {
+      const mapped = getRemappedRow(row);
+      const f = mapped._F;
+      if (f && f !== '-') {
+        const datePart = String(f).replace('T', ' ').split(' ')[0];
+        if (datePart) return datePart;
+      }
+    }
+    return rec.date || '';
+  };
+
   const [previewData, setPreviewData] = useState([]);
   const [editedCells, setEditedCells] = useState({});
   const [signatureData, setSignatureData] = useState({ recordedBy: record.recorded_by || '', reviewedBy: record.reviewed_by || '', qcManager: record.qc_manager || '' });
-  const [exportDate, setExportDate] = useState(record.date || '');
+  const [exportDate, setExportDate] = useState(getPackFinishDate(record));
   const [exportShift, setExportShift] = useState(record.shift || '');
   const [exportLine, setExportLine] = useState(record.line || '');
   const [exportPlant, setExportPlant] = useState(record.plant || '');
@@ -346,6 +360,8 @@ const PDFPreviewModal = ({ record, onClose, API_URL }) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveEditsError, setSaveEditsError] = useState('');
   const [saveEditsSuccess, setSaveEditsSuccess] = useState('');
+  const [securityCode, setSecurityCode] = useState('');
+  const REQUIRED_SECURITY_CODE = '285020';
 
   useEffect(() => {
     setPreviewData((record.mapping_ids || []).map(r => ({ ...r })));
@@ -366,6 +382,7 @@ const PDFPreviewModal = ({ record, onClose, API_URL }) => {
     }).filter(Boolean);
 
     if (changedRows.length === 0) { setSaveEditsError('ไม่มีข้อมูลที่แก้ไข'); return; }
+    if (securityCode !== REQUIRED_SECURITY_CODE) { setSaveEditsError('กรุณากรอกรหัสยืนยันให้ถูกต้องก่อนบันทึก'); return; }
     setIsSavingEdits(true); setSaveEditsError(''); setSaveEditsSuccess('');
     try {
       const response = await fetch(`${API_URL}/api/pack/data/time`, {
@@ -641,6 +658,7 @@ const PDFPreviewModal = ({ record, onClose, API_URL }) => {
     if (!exportLine) { setSaveError('กรุณาเลือก Line'); return; }
     if (!signatureData.recordedBy) { setSaveError('กรุณาระบุผู้บันทึก (Recorded by)'); return; }
     if (!signatureData.reviewedBy) { setSaveError('กรุณาระบุผู้ตรวจสอบ (Reviewed by)'); return; }
+    if (securityCode !== REQUIRED_SECURITY_CODE) { setSaveError('กรุณากรอกรหัสยืนยันให้ถูกต้องก่อน Export PDF'); return; }
 
     if (editedCount > 0) {
       const ok = window.confirm(`มีการแก้ไขเวลา ${editedCount} เซลล์ที่ยังไม่ได้บันทึก\nต้องการบันทึกก่อน Export PDF หรือไม่?`);
@@ -869,6 +887,17 @@ const PDFPreviewModal = ({ record, onClose, API_URL }) => {
             {saveSuccess && <div style={{ color: '#2E7D32', fontSize: '13px', backgroundColor: '#E8F5E9', padding: '7px 12px', borderRadius: '8px', border: '1px solid #C8E6C9' }}>✓ กำลังสร้าง PDF...</div>}
           </div>
           <div style={{ display: 'flex', gap: '10px', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <label style={{ fontSize: '11px', color: '#7B1FA2', fontWeight: '600' }}>รหัสยืนยัน <span style={{ color: '#D32F2F' }}>*</span></label>
+              <input
+                type="password"
+                inputMode="numeric"
+                placeholder="กรอกรหัส"
+                value={securityCode}
+                onChange={e => { setSecurityCode(e.target.value); setSaveError(''); setSaveEditsError(''); }}
+                style={{ padding: '9px 12px', borderRadius: '10px', border: securityCode && securityCode !== REQUIRED_SECURITY_CODE ? '1px solid #D32F2F' : '1px solid #CE93D8', fontSize: '14px', outline: 'none', width: '130px', backgroundColor: '#fff', color: '#333' }}
+              />
+            </div>
             <button onClick={onClose} disabled={isSaving || isSavingEdits}
               style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid #ddd', backgroundColor: '#fff', cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer', fontSize: '14px', color: '#666', opacity: (isSaving || isSavingEdits) ? 0.6 : 1 }}>
               ยกเลิก

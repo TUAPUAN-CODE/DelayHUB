@@ -18,11 +18,14 @@ import {
   FormControl,
   InputLabel,
   Snackbar,
+  Autocomplete,        // ⬅️ เพิ่มบรรทัดนี้
+  CircularProgress,    // ⬅️ เพิ่มบรรทัดนี้ (ใช้ตอน loading)
 } from "@mui/material";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlined";
 import axios from "axios";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
@@ -92,6 +95,12 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   const [storagePurpose, setStoragePurpose] = useState("");
   const [histamine, setHistamine] = useState("");
   const [storagePurposeError, setStoragePurposeError] = useState(false);
+  const [coldRemark, setColdRemark] = useState("");
+  const [depositDate, setDepositDate] = useState(null);
+  const [summaryWithdrawDate, setSummaryWithdrawDate] = useState(null);
+  const [mat2xList, setMat2xList] = useState([]);           // ⬅️ เพิ่มบรรทัดนี้
+  const [mat2x, setMat2x] = useState(null);                 // ⬅️ เพิ่มบรรทัดนี้ (object { mat_2X, mat_name_2x } หรือ null)
+  const [loadingMat2x, setLoadingMat2x] = useState(false);  // ⬅️ เพิ่มบรรทัดนี้
 
   // ✅ ถ้า rm_type_id เป็น 2 หรือ 3 ให้ทั้งสอง DateTimePicker เป็น read-only
   const isReadOnlyTime = [999, 888].includes(rmTypeId);
@@ -114,6 +123,33 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   useEffect(() => {
     setRmTypeId(rm_type_id ?? 3);
   }, [rm_type_id]);
+
+  const fetchMat2xList = async (matValue) => {
+    if (!matValue) { setMat2xList([]); return; }
+    setLoadingMat2x(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/fetchRawMat2XByMat`, {
+        params: { mat: matValue },
+      });
+      if (response.data.success) {
+        setMat2xList(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching mat 2x list:", error);
+      setMat2xList([]);
+    } finally {
+      setLoadingMat2x(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && data?.mat) {
+      fetchMat2xList(data.mat);
+    } else {
+      setMat2xList([]);
+      setMat2x(null);
+    }
+  }, [open, data?.mat]);
 
   // ✅ เมื่อ CookedDateTime เปลี่ยน set cookedTime และถ้าเป็น read-only ให้ sync preparedTime ด้วย
   useEffect(() => {
@@ -172,6 +208,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       setHistoryDetail(data.input2.historyDetail || "");
       setStoragePurpose(data.input2.storagePurpose || "");
       setHistamine(data.input2.histamine || "");
+      setColdRemark(data.input2.coldRemark || "");
+      setDepositDate(data.input2.depositDate || null);
+      setSummaryWithdrawDate(data.input2.summaryWithdrawDate || null);
+      setMat2x(data.input2.mat2x ? { mat_2X: data.input2.mat2x, mat_name_2x: data.input2.mat2xName || "" } : null);
       setTemp(data.input2.temp ?? "");
       setViscosity(data.input2.viscosity ?? "");
       setWeightPerCup(data.input2.weightPerCup ?? "");
@@ -218,6 +258,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       setHistoryDetail("");
       setStoragePurpose("");
       setHistamine("");
+      setColdRemark("");
+      setDepositDate(null);
+      setSummaryWithdrawDate(null);
+      setMat2x(null);
       if (![2, 3].includes(rmTypeId)) {
         setPreparedTime(convertToThaiTime(new Date().toISOString()));
       }
@@ -266,6 +310,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     setStoragePurpose("");
     setHistamine("");
     setStoragePurposeError(false);
+    setColdRemark("");
+    setDepositDate(null);
+    setSummaryWithdrawDate(null);
+    setMat2x(null);
   };
 
   const isFutureTime = (selectedTime) => {
@@ -342,6 +390,11 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
         historyDetail: historyDetail || null,
         storagePurpose: deliveryType === "ส่งห้องเย็นใหญ่" ? storagePurpose : null,
         histamine: deliveryType === "ส่งห้องเย็นใหญ่" ? (histamine || null) : null,
+        coldRemark: deliveryType === "ส่งห้องเย็นใหญ่" ? (coldRemark || null) : null,
+        depositDate: deliveryType === "ส่งห้องเย็นใหญ่" ? (depositDate || null) : null,
+        summaryWithdrawDate: summaryWithdrawDate || null,
+        mat2x: mat2x ? mat2x.mat_2X : null,           
+        mat2xName: mat2x ? mat2x.mat_name_2x : null,
       },
       batch: data?.batch || "",
       newBatch: data?.newBatch || "",
@@ -443,6 +496,50 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           </Box>
 
           <Divider sx={{ mt: 1, mb: 2 }} />
+
+          <Autocomplete
+            options={mat2xList}
+            loading={loadingMat2x}
+            fullWidth
+            size="small"
+            value={mat2x}
+            onChange={(e, newValue) => setMat2x(newValue)}
+            getOptionLabel={(option) =>
+              option ? `${option.mat_2X} - ${option.mat_name_2x}` : ""
+            }
+            isOptionEqualToValue={(option, value) => option.mat_2X === value.mat_2X}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Mat 2X"
+                sx={{ marginBottom: "16px" }}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingMat2x ? <CircularProgress color="inherit" size={16} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            loadingText="กำลังโหลดข้อมูล..."
+            noOptionsText="ไม่พบข้อมูล Mat 2X"
+          />
+
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DatePicker
+              label="วันที่สรุปเบิก"
+              value={summaryWithdrawDate ? dayjs(summaryWithdrawDate) : null}
+              onChange={(newValue) => {
+                setSummaryWithdrawDate(newValue ? newValue.format("YYYY-MM-DD") : "");
+              }}
+              slotProps={{
+                textField: { fullWidth: true, size: "small", sx: { marginBottom: "16px" } },
+              }}
+            />
+          </LocalizationProvider>
 
           {/* ✅ เวลาอบเสร็จ — read-only เมื่อ rm_type_id 2,3 */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -630,6 +727,31 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
                 placeholder="กรอกผล Histamine (ถ้ามี)"
                 inputProps={{ maxLength: 50 }}
               />
+
+              <TextField
+                label="หมายเหตุ"
+                variant="outlined"
+                fullWidth
+                size="small"
+                value={coldRemark}
+                onChange={(e) => setColdRemark(e.target.value)}
+                placeholder="กรอกหมายเหตุ (ถ้ามี)"
+                inputProps={{ maxLength: 200 }}
+                sx={{ mt: "12px" }}
+              />
+
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="จัดเก็บถึงวันที่"
+                  value={depositDate ? dayjs(depositDate) : null}
+                  onChange={(newValue) => {
+                    setDepositDate(newValue ? newValue.format("YYYY-MM-DD") : null);
+                  }}
+                  slotProps={{
+                    textField: { fullWidth: true, size: "small", sx: { mt: "12px" } },
+                  }}
+                />
+              </LocalizationProvider>
             </Box>
           )}
 

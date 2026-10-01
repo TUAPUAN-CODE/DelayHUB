@@ -34,12 +34,12 @@
 | องค์ประกอบ | รายละเอียด |
 |---|---|
 | **Platform** | Windows VM (On-Premise Factory Network) |
-| **Server IP** | `172.20.10.5` |
+| **Server IP** | `172.48.0.115` |
 | **Process Manager** | PM2 (ไม่มี Docker / Kubernetes) |
 | **Frontend** | React 19 + Vite 5 — รัน Dev Server (ไม่ใช่ Static Build) |
 | **Backend** | Node.js + Express — Cluster Mode |
-| **Database** | MSSQL at `172.20.10.5:1433` |
-| **Cache / PubSub** | Redis Windows Service at `172.20.10.5:6379` |
+| **Database** | MSSQL at `172.48.0.115:1433` |
+| **Cache / PubSub** | Redis Windows Service at `172.48.0.115:6379` |
 | **RFID Reader** | TCP Socket ที่ `10.246.145.182:49152` |
 | **Reverse Proxy** | ไม่มี (ไม่มี Nginx / IIS เป็น Proxy) |
 
@@ -64,7 +64,7 @@ graph TB
         RFID_DEVICE["RFID Reader<br/>10.246.145.182:49152"]
     end
 
-    subgraph WINDOWS_VM["Windows VM — 172.20.10.5"]
+    subgraph WINDOWS_VM["Windows VM — 172.48.0.115"]
         subgraph PM2["PM2 Process Manager"]
             subgraph CLUSTER["Backend Cluster (numCPUs Workers)"]
                 PRIMARY["Primary Process<br/>(Cluster Master + HTTP Server)"]
@@ -169,7 +169,7 @@ sequenceDiagram
     BE->>REDIS: createAdapter() — Socket.IO Redis adapter
     REDIS-->>BE: Adapter ready
     PM2->>FE: start PFCMv2-frontend-dev (npm run dev)
-    FE-->>FE: Vite dev server bound to 172.20.10.5:5173
+    FE-->>FE: Vite dev server bound to 172.48.0.115:5173
     PM2->>PM2: start reset-rsrv-worker (fork)
     PM2->>PM2: start rfid-reader (fork)
 
@@ -271,7 +271,7 @@ flowchart TD
     HMR -.->|"dev only: hot reload"| BR
 
     subgraph NOTE2["การตั้งค่า Vite"]
-        V1["host: 172.20.10.5 (bind ที่ IP นี้เท่านั้น)"]
+        V1["host: 172.48.0.115 (bind ที่ IP นี้เท่านั้น)"]
         V2["port: 5173, strictPort: true"]
         V3["target ES2020"]
         V4["optimizeDeps: socket.io-client, @mui/material"]
@@ -350,7 +350,7 @@ sequenceDiagram
     APP->>DBJ: connectToDatabase()
     alt Pool ยังไม่ได้สร้าง
         DBJ->>POOL: new sql.ConnectionPool(config)
-        Note over DBJ,POOL: config: server=172.20.10.5<br/>min=20, max=2000<br/>idleTimeout=30s
+        Note over DBJ,POOL: config: server=172.48.0.115<br/>min=20, max=2000<br/>idleTimeout=30s
         POOL->>DB: เปิด connection (min 20 connections)
         DB-->>POOL: Connection established
         POOL-->>DBJ: Pool ready
@@ -371,7 +371,7 @@ sequenceDiagram
 
 ```
 Pool Configuration:
-  server:          172.20.10.5
+  server:          172.48.0.115
   database:        [PFCM DB]
   port:            1433
   user:            [from env]
@@ -516,7 +516,7 @@ graph LR
         RFID_HW["RFID Reader HW<br/>10.246.145.182:49152"]
     end
 
-    subgraph SERVER["Windows VM 172.20.10.5"]
+    subgraph SERVER["Windows VM 172.48.0.115"]
         FE_PORT[":5173 Frontend"]
         API_PORT[":3000 API + WS"]
         REDIS_PORT[":6379 Redis (Internal only)"]
@@ -548,7 +548,7 @@ sequenceDiagram
     RFID_SVC->>DB2: INSERT / UPDATE SQL
     DB2-->>RFID_SVC: OK
 
-    Note over RFID_SVC,DB2: ⚠️ ใช้ connection ตรง (ไม่ใช้ db.js pool)<br/>⚠️ Credentials hardcoded ใน RFIDc1.js<br/>   user: PFCM_v1.9, server: 172.20.10.5
+    Note over RFID_SVC,DB2: ⚠️ ใช้ connection ตรง (ไม่ใช้ db.js pool)<br/>⚠️ Credentials hardcoded ใน RFIDc1.js<br/>   user: PFCM_v1.9, server: 172.48.0.115
 ```
 
 ---
@@ -811,7 +811,7 @@ pm2 save
 │ MSSQL           │ VM    │ 1433     │ TCP (internal)     │
 │ RFID Reader     │ remote│ 49152    │ Raw TCP            │
 ├─────────────────┼───────┼──────────┼────────────────────┤
-│ Server VM       │ —     │ 172.20.10.5                  │
+│ Server VM       │ —     │ 172.48.0.115                  │
 │ RFID Device     │ —     │ 10.246.145.182                │
 │ Clients         │ —     │ 192.168.x.x / 10.10.x.x      │
 └─────────────────┴───────┴──────────┴────────────────────┘

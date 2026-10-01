@@ -25,6 +25,10 @@ import IncludeRawmatPage from "./IncludeRawmatPack/IncludeRawmatPage.jsx";
 import Pull_History from "./PullHistory/ManagePage.jsx";
 import ReportPull from "./ReportPull/ManagePage.jsx";
 import ReportRawmatPackuser from "./ReportRawmatNotEditTIME/ManagePage.jsx";
+import PrintMasterPage from "./PrintMaster/CheckInPage.jsx";
+import Printpackandroid from  "./PrintMasters/CheckInPage.jsx";
+import PrintMasterPages from "./PrintMasters/CheckInPage.jsx";
+import UsePKGPage from "./UsePKG/CheckInPage.jsx";
 
 function AppPack() {
   return (
@@ -65,6 +69,9 @@ function AppPack() {
         <Route path="/Pull_History" element={<Pull_History />} />
         <Route path="/ReportPull" element={<ReportPull />} />
         <Route path="/ReportRawmatPackuser" element={<ReportRawmatPackuser />} />
+        <Route path="/PrintMaster" element={<PrintMasterPage />} />
+        <Route path="/Printpackandroid" element={<Printpackandroid />} />
+        <Route path="/UsePKG" element={<UsePKGPage />} />
 
       </Routes>
     </div>

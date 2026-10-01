@@ -47,6 +47,7 @@ import EmptyTrolley from "./EmptyTrolley/DeleteTrolleyPage"
 
 import RoomTableCSSupOnly from "./RoomTableSupervisor/RoomTable.jsx";
 import RoomTableCS from "./RoomTable/RoomTable";
+import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
 import TrackTrolley from "./TrackTrolley/TrackTrolley.jsx"
 const API_URL = import.meta.env.VITE_API_URL;
@@ -111,6 +112,7 @@ function AppColdStorage() {
 				<Route path='/WorkplaceSelector' element={<WorkplaceSelector />} />
 
 				<Route path='/EmptyTrolley/DeleteTrolleyPage' element={<EmptyTrolley />} />
+				<Route path='/EmptyTrolley/RFIDCSCheckOutPage' element={<RFIDCSCheckOutPage />} />
 			</Routes>
 		</div>
 	);

@@ -957,6 +957,54 @@ module.exports = (io) => {
     }
   });
 
+  // GET /api/fetchRawMat2X
+router.get("/fetchRawMat2X", async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    const result = await pool.request().query(`
+      SELECT TOP (1000) [mat_2X], [mat_name_2x]
+      FROM [PFCMv2].[dbo].[RawMat2X]
+    `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error("Error fetching RawMat2X:", err);
+    return res.status(500).json({
+      success: false,
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูล mat 2x",
+    });
+  }
+});
+
+router.get("/fetchRawMat2XByMat", async (req, res) => {
+  const { mat } = req.query;
+  if (!mat) {
+    return res.status(400).json({
+      success: false,
+      message: "กรุณาระบุ mat",
+    });
+  }
+  try {
+    const pool = await connectToDatabase();
+    const result = await pool
+      .request()
+      .input("mat", sql.VarChar(20), mat)
+      .query(`
+        SELECT r2x.[mat_2X], r2x.[mat_name_2x]
+        FROM [PFCMv2].[dbo].[RawMatMapping] m
+        LEFT JOIN [PFCMv2].[dbo].[RawMat2X] r2x ON r2x.mat_2X = m.mat_2x
+        LEFT JOIN [PFCMv2].[dbo].[RawMat]   r   ON r.mat     = m.mat
+        WHERE m.mat = @mat
+        ORDER BY r2x.mat_2X
+      `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error("Error fetching RawMat2X by mat:", err);
+    return res.status(500).json({
+      success: false,
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูล mat 2x",
+    });
+  }
+});
 
 
   router.post("/prep/saveRMForProd/save", async (req, res) => {
@@ -3189,7 +3237,7 @@ module.exports = (io) => {
     }
   });
 
-  router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
+router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
     const {
       license_plate,
       rmfpID,
@@ -3212,6 +3260,10 @@ module.exports = (io) => {
       weightPerCup,
       storagePurpose,
       histamine,
+      coldRemark,
+      depositDate,
+      summaryWithdrawDate,
+      mat2x,   // ⬅️ เพิ่มบรรทัดนี้ — ค่าที่ user เลือกจาก dropdown ใน Modal2
     } = req.body;
 
     const effectiveDest = deliveryType === "ส่งห้องเย็นใหญ่" ? "ห้องเย็นใหญ่" : (Dest || "รอCheckin");
@@ -3400,7 +3452,9 @@ module.exports = (io) => {
             cs_re,    cs_re_2,   cs_re_3,
             storage_purpose,  storage_purpose_2,  storage_purpose_3,
             histamine,        histamine_2,        histamine_3,
-            cs_wd_2,  cs_wd_3,  cs_wd_4
+            cs_wd_2,  cs_wd_3,  cs_wd_4,
+            at_pd_cold_remark,  at_pd_cold_remark_2,  at_pd_cold_remark_3,
+            at_pd_deposit_date, at_pd_deposit_date_2, at_pd_deposit_date_3
         FROM History
         WHERE hist_id = @hist_id_rmfp
       `);
@@ -3479,13 +3533,12 @@ module.exports = (io) => {
       console.log("[saveTrolleyV2] ✓ batchIds:", batchIds);
 
       // 1️⃣1️⃣ Insert Mat
+      // ✅ ลำดับความสำคัญของค่า mat_2x ที่จะ insert:
+      //    1) mat2x ที่ user เลือกเองจาก dropdown ใน Modal2 (ส่งมาทาง req.body)
+      //    2) ถ้า user ไม่ได้เลือก (undefined/null/"") ให้ fallback ไปใช้ mat_2x
+      //       ที่ query ได้จาก RMForProd (ค่าที่ตั้งไว้ตั้งแต่ต้น ตามพฤติกรรมเดิม)
       step("insert Mat");
-      const rmfpMatResult = await transaction
-        .request()
-        .input("rmfp_id_mat", sql.Int, rmfpID)
-        .query(`SELECT mat_2x FROM RMForProd WHERE rmfp_id = @rmfp_id_mat`);
-
-      const mat_2x_val = rmfpMatResult.recordset[0]?.mat_2x ?? null;
+      const mat_2x_val = mat2x || mat_2x || null;   // mat_2x คือค่าจาก RMForProd (destructure ไว้แล้วในข้อ 5️⃣)
 
       await transaction
         .request()
@@ -3496,6 +3549,8 @@ module.exports = (io) => {
         INSERT INTO Mat (mat, mat_2x, mapping_id)
         VALUES (@mat_insert, @mat_2x_insert, @mapping_id_insert)
       `);
+
+      console.log("[saveTrolleyV2] ✓ Inserted Mat row — mat:", mat, "| mat_2x:", mat_2x_val, "| mapping_id:", mapping_id);
 
       // 1️⃣2️⃣ Insert History
       step("insert History (new row)");
@@ -3564,6 +3619,13 @@ module.exports = (io) => {
         .input("cs_wd_2", sql.VarChar(50), h.cs_wd_2)
         .input("cs_wd_3", sql.VarChar(50), h.cs_wd_3)
         .input("cs_wd_4", sql.VarChar(50), h.cs_wd_4)
+        .input("at_pd_cold_remark", sql.VarChar(200), fillRound(coldRemark, h.at_pd_cold_remark, h.at_pd_cold_remark_2, h.at_pd_cold_remark_3)[0])
+        .input("at_pd_cold_remark_2", sql.VarChar(200), fillRound(coldRemark, h.at_pd_cold_remark, h.at_pd_cold_remark_2, h.at_pd_cold_remark_3)[1])
+        .input("at_pd_cold_remark_3", sql.VarChar(200), fillRound(coldRemark, h.at_pd_cold_remark, h.at_pd_cold_remark_2, h.at_pd_cold_remark_3)[2])
+        .input("at_pd_deposit_date", sql.DateTime, fillRound(depositDate ? new Date(depositDate) : null, h.at_pd_deposit_date, h.at_pd_deposit_date_2, h.at_pd_deposit_date_3)[0])
+        .input("at_pd_deposit_date_2", sql.DateTime, fillRound(depositDate ? new Date(depositDate) : null, h.at_pd_deposit_date, h.at_pd_deposit_date_2, h.at_pd_deposit_date_3)[1])
+        .input("at_pd_deposit_date_3", sql.DateTime, fillRound(depositDate ? new Date(depositDate) : null, h.at_pd_deposit_date, h.at_pd_deposit_date_2, h.at_pd_deposit_date_3)[2])
+        .input("summary_withdraw_date", sql.Date, summaryWithdrawDate ? new Date(summaryWithdrawDate) : null)
         .query(`
         INSERT INTO History (
             mapping_id, tro_id, rmit_date, cooked_date, withdraw_date, receiver,
@@ -3584,7 +3646,9 @@ module.exports = (io) => {
             cs_re,    cs_re_2,   cs_re_3,
             storage_purpose,  storage_purpose_2,  storage_purpose_3,
             histamine,        histamine_2,        histamine_3,
-            cs_wd_2,  cs_wd_3,  cs_wd_4
+            cs_wd_2,  cs_wd_3,  cs_wd_4,
+            at_pd_cold_remark,  at_pd_cold_remark_2,  at_pd_cold_remark_3,
+            at_pd_deposit_date, at_pd_deposit_date_2, at_pd_deposit_date_3,summary_withdraw_date
         )
         OUTPUT INSERTED.hist_id
         VALUES (
@@ -3606,7 +3670,9 @@ module.exports = (io) => {
             @cs_re,    @cs_re_2,   @cs_re_3,
             @storage_purpose,  @storage_purpose_2,  @storage_purpose_3,
             @histamine,        @histamine_2,        @histamine_3,
-            @cs_wd_2,  @cs_wd_3,  @cs_wd_4
+            @cs_wd_2,  @cs_wd_3,  @cs_wd_4,
+            @at_pd_cold_remark,  @at_pd_cold_remark_2,  @at_pd_cold_remark_3,
+            @at_pd_deposit_date, @at_pd_deposit_date_2, @at_pd_deposit_date_3,@summary_withdraw_date
         )
       `);
 
@@ -6838,7 +6904,7 @@ module.exports = (io) => {
         Batch b ON rmm.mapping_id = b.mapping_id
       WHERE
         rmm.stay_place IN ('ออกห้องเย็น', 'หม้ออบ', 'จุดเตรียม','ออกห้องเย็นใหญ่')
-        AND rmm.dest = 'จุดเตรียม'
+        AND rmm.dest in ( 'จุดเตรียม','ส่งกลับจากห้องเย็นใหญ่')
         AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม', 'QcCheck รอ MD', 'รอกลับมาเตรียม', 'รอ Qc','QcCheck','QcCheck')
         AND rmf.rm_group_id = rmg.rm_group_id
         AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})

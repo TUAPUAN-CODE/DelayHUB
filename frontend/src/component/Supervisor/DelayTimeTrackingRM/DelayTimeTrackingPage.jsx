@@ -6,7 +6,7 @@ const DelayTimeTrackingRM = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc" }} className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-4 px-4 lg:px-8">
-        <Header title="Delay Time Tracking " />
+        <Header title="Tracking Delay Time | บรรจุเสร็จแล้ว  " />
       </main>
       <main className="max-w-8xl mx-auto py-4 px-4 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-1">

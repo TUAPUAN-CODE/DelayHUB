@@ -46,7 +46,7 @@ import SalesPage from "./MatCold/MatColdPage.jsx";
 import HistoryBakingPrep from "./HistoryBaking/HistoryBakingPage.jsx";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import RoomTableCSSupOnly from "./RoomTablerminprocess/RoomTable.jsx";
-
+import RoomTableCSSupOnlysend from "./RoomTablerminprocess copy/RoomTable.jsx";
 import ScanSAPPage from "./ScanThawStart/ScanSAPPage.jsx";
 import ScanSAPPageEDF from "./ScanThawEnd/ScanSAPPage.jsx";
 import ScanSAPPageComeAnti from "./ScanSAPComeAnti/ScanSAPPage.jsx";
@@ -117,6 +117,10 @@ function AppColdStorages() {
         <Route
           path="/RoomTable/RoomTable"
           element={<RoomTableCSSupOnly />}
+        />
+        <Route
+          path="/RoomTable/RoomTable/send"
+          element={<RoomTableCSSupOnlysend />}
         />
         <Route
           path="/ScanSAPPage/defrost"

@@ -161,6 +161,8 @@ const ConfirmProdModal = ({
   operator,
   withdraw,
   hu,
+  mat2x, // ✅ เพิ่ม mat2x (ค่ารหัส mat_2X ที่เลือก)
+  mat2xName, // ✅ เพิ่ม mat2xName (ชื่อของ mat_2X ที่เลือก ไว้แสดงผลสรุป)
   weighttotal,
   isLoading,
   setIsLoading,
@@ -222,6 +224,7 @@ const ConfirmProdModal = ({
           receiver: operator,
           withdraw: formattedWithdraw,
           hu: hu,
+          mat2x: mat2x || null, // ✅ ส่งค่า mat 2x ไปยัง backend
           userID: userId,
           operator: operator,
           datetime: formattedDateTime,
@@ -307,6 +310,11 @@ const ConfirmProdModal = ({
 
           <Typography>น้ำหนักรวม: {weighttotal} กก.</Typography>
           {level_eu !== "-" && <Typography>Level Eu : {level_eu}</Typography>}
+          {mat2x && (
+            <Typography>
+              Mat 2X: {mat2x}{mat2xName ? ` - ${mat2xName}` : ""}
+            </Typography>
+          )}
 
           <Typography>ผู้ดำเนินการ: {operator}</Typography>
           <Typography>สถานที่จัดส่ง: {deliveryLocation}</Typography>
@@ -332,7 +340,7 @@ const ConfirmProdModal = ({
   );
 };
 
-const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
+const DataReviewSAP = ({ open, onClose, material, batch, hu }) => {
   const [selectedPlanSets, setSelectedPlanSets] = useState([]);
   const [materialName, setMaterialName] = useState("");
   const [production, setProduction] = useState([]);
@@ -356,6 +364,11 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
   const [level_eu, setEuLevel] = useState("-");  // Added EU level state
   const [canSelectEu, setCanSelectEu] = useState(false);  // Added state to track if EU level can be selected
 
+  // ✅ Mat 2X states
+  const [mat2xList, setMat2xList] = useState([]);
+  const [mat2x, setMat2x] = useState(null); // object { mat_2X, mat_name_2x } หรือ null
+  const [loadingMat2x, setLoadingMat2x] = useState(false);
+
   useEffect(() => {
     if (material) {
       fetchMaterialName();
@@ -363,12 +376,20 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
       fetchGroup();
     }
   }, [material]);
+useEffect(() => {
+  if (open) {
+    fetchUserDataFromLocalStorage();
+  }
+}, [open]);
 
-  useEffect(() => {
-    if (open) {
-      fetchUserDataFromLocalStorage();
-    }
-  }, [open]);
+useEffect(() => {
+  if (open && material) {
+    fetchMat2xList(); // ✅ โหลดรายการ Mat 2X เฉพาะของ material นี้
+  } else {
+    setMat2xList([]);
+    setMat2x(null);
+  }
+}, [open, material]);
 
   const fetchUserDataFromLocalStorage = () => {
     try {
@@ -499,6 +520,25 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
     }
   };
 
+  // ✅ ดึงรายการ Mat 2X จาก API ใหม่ (GET /api/fetchRawMat2X)
+ const fetchMat2xList = async () => {
+  if (!material) return;
+  setLoadingMat2x(true);
+  try {
+    const response = await axios.get(`${API_URL}/api/fetchRawMat2XByMat`, {
+      params: { mat: material },
+    });
+    if (response.data.success) {
+      setMat2xList(response.data.data || []);
+    }
+  } catch (error) {
+    console.error("Error fetching mat 2x list:", error);
+    setMat2xList([]);
+  } finally {
+    setLoadingMat2x(false);
+  }
+};
+
   const addNewPlanSet = () => {
     setSelectedPlanSets([...selectedPlanSets, {
       plan: null,
@@ -596,6 +636,7 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
     setWeightError(false);
     setErrorMessage("");
     setSnackbarOpen(false);
+    setMat2x(null); // ✅ reset mat2x ด้วย
   };
 
   const handleSaveSuccess = () => {
@@ -776,6 +817,38 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
                   )}
                 </FormControl>
               </Box>
+
+              {/* ✅ ช่อง Mat 2X - Autocomplete แบบค้นหาได้ */}
+              <Autocomplete
+                options={mat2xList}
+                loading={loadingMat2x}
+                fullWidth
+                size="small"
+                value={mat2x}
+                onChange={(e, newValue) => setMat2x(newValue)}
+                getOptionLabel={(option) =>
+                  option ? `${option.mat_2X} - ${option.mat_name_2x}` : ""
+                }
+                isOptionEqualToValue={(option, value) => option.mat_2X === value.mat_2X}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Mat 2X"
+                    margin="normal"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingMat2x ? <CircularProgress color="inherit" size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                loadingText="กำลังโหลดข้อมูล..."
+                noOptionsText="ไม่พบข้อมูล Mat 2X"
+              />
             </Box>
           </Box>
 
@@ -1030,6 +1103,9 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
         materialName={materialName}
         batch={batch}
         hu={hu}
+        // ✅ ส่งรหัสและชื่อ mat 2x ไปยัง ConfirmProdModal
+        mat2x={mat2x ? mat2x.mat_2X : null}
+        mat2xName={mat2x ? mat2x.mat_name_2x : null}
         selectedPlanSets={selectedPlanSets.filter(set => set.plan && set.line && set.group)}
         deliveryLocation={deliveryLocation}
         emulsion={emulsion}

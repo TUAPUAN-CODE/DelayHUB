@@ -1043,6 +1043,17 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     try {
       const { start_date, end_date } = req.query;
       const pool = await connectToDatabase();
+
+      await pool.request().query(`
+        INSERT INTO Mat (mat, mat_2x, mapping_id)
+        SELECT rm.mat, rm.mat, rmm.mapping_id
+        FROM TrolleyRMMapping rmm
+        JOIN RMForProd rmf       ON rmm.rmfp_id          = rmf.rmfp_id
+        JOIN ProdRawMat pr       ON rmm.tro_production_id = pr.prod_rm_id
+        JOIN RawMat rm           ON pr.mat                = rm.mat
+        WHERE rmm.mapping_id NOT IN (SELECT mapping_id FROM Mat WHERE mapping_id IS NOT NULL)
+      `);
+
       const request = pool.request();
 
       request.input('start_date', sql.Date, start_date || null);
@@ -1069,6 +1080,9 @@ WITH base AS (
         h.rmit_date,
         m.mat,
         m.mat_2x,
+        h.id_igd,
+        h.mat_pkg,
+        h.batch_pkg,
         
         CASE 
             WHEN CAST(h.rmit_date AS time) < '06:00:00'
@@ -3625,6 +3639,45 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         error: 'ลบรถเข็นไม่สำเร็จ',
         details: err.message
       });
+    }
+  });
+
+  // ─── Material Package Import ───────────────────────────────────────────────
+  router.post("/supervisor/mat-pkg/import", async (req, res) => {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: "ไม่มีข้อมูลที่จะบันทึก" });
+    }
+    try {
+      const pool = await connectToDatabase();
+      let saved = 0;
+      let skipped = 0;
+
+      for (const item of items) {
+        const mat_pkg = String(item.mat_pkg || '').trim();
+        const mat_pkg_dct = String(item.mat_pkg_dct || '').trim();
+        if (!mat_pkg) { skipped++; continue; }
+
+        const check = await pool.request()
+          .input("mat_pkg", sql.NVarChar(100), mat_pkg)
+          .query("SELECT 1 FROM Material_Package WHERE mat_pkg = @mat_pkg");
+
+        if (check.recordset.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        await pool.request()
+          .input("mat_pkg", sql.NVarChar(100), mat_pkg)
+          .input("mat_pkg_dct", sql.NVarChar(255), mat_pkg_dct)
+          .query("INSERT INTO Material_Package (mat_pkg, mat_pkg_dct) VALUES (@mat_pkg, @mat_pkg_dct)");
+        saved++;
+      }
+
+      res.json({ success: true, saved, skipped });
+    } catch (err) {
+      console.error("[/supervisor/mat-pkg/import] error:", err);
+      res.status(500).json({ success: false, error: err.message });
     }
   });
 

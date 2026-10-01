@@ -25,25 +25,25 @@ function buildGroupedRows(data, groupBy, percentile) {
       weight_total: 0,
     };
     groups[key].rows.push(r);
-    if (r.rmm_line_name)  groups[key].line_set.add(r.rmm_line_name);
-    if (r.doc_no)         groups[key].doc_set.add(r.doc_no);
-    if (r.batch_before)   groups[key].batch_before_set.add(r.batch_before);
-    if (r.batch_after)    groups[key].batch_after_set.add(r.batch_after);
-    if (r.code)           groups[key].code_set.add(r.code);
-    if (r.mat)            groups[key].mat_set.add(r.mat);
-    if (r.mat_2x)         groups[key].mat_2x_set.add(r.mat_2x);
+    if (r.rmm_line_name) groups[key].line_set.add(r.rmm_line_name);
+    if (r.doc_no) groups[key].doc_set.add(r.doc_no);
+    if (r.batch_before) groups[key].batch_before_set.add(r.batch_before);
+    if (r.batch_after) groups[key].batch_after_set.add(r.batch_after);
+    if (r.code) groups[key].code_set.add(r.code);
+    if (r.mat) groups[key].mat_set.add(r.mat);
+    if (r.mat_2x) groups[key].mat_2x_set.add(r.mat_2x);
     groups[key].weight_total += (r.weight_RM || 0);
   });
   return Object.entries(groups).map(([name, g]) => ({
     name, rm_type_name: g.rm_type_name, rm_group_name: g.rm_group_name,
-    rmm_line_name:  [...g.line_set].sort().join(', '),
-    doc_no:         [...g.doc_set].sort().join(', '),
-    batch_before:   [...g.batch_before_set].sort().join(', '),
-    batch_after:    [...g.batch_after_set].sort().join(', '),
-    code:           [...g.code_set].sort().join(', '),
-    mat:            [...g.mat_set].sort().join(', '),
-    mat_2x:         [...g.mat_2x_set].sort().join(', '),
-    weight_total:   Math.round(g.weight_total * 10) / 10,
+    rmm_line_name: [...g.line_set].sort().join(', '),
+    doc_no: [...g.doc_set].sort().join(', '),
+    batch_before: [...g.batch_before_set].sort().join(', '),
+    batch_after: [...g.batch_after_set].sort().join(', '),
+    code: [...g.code_set].sort().join(', '),
+    mat: [...g.mat_set].sort().join(', '),
+    mat_2x: [...g.mat_2x_set].sort().join(', '),
+    weight_total: Math.round(g.weight_total * 10) / 10,
     total: g.rows.length,
     rows: g.rows,
     prep_to_cold: g.prep_to_cold, cold_to_pack: g.cold_to_pack,
@@ -152,7 +152,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
   const wb = XLSX.utils.book_new();
   const summaryHeader = [
     'ชื่อ', 'RM Type', 'RM Group', 'ไลน์', 'เลขเอกสาร', 'Code',
-    'Batch Tag ห้องเย็น', 'Batch หลังเตรียม', 'จำนวน batch',
+    'Batch Tag ห้องเย็น', 'Batch หลังเตรียม', 'จำนวน batch', 'น้ำหนักรวม (kg)',
     `DBS1 P${percentile} (h)`, `DBS2 P${percentile} (h)`,
     `DBS3 P${percentile} (h)`, `DBS4 P${percentile} (h)`,
     'มาตรฐาน DBS1 (h)', 'มาตรฐาน DBS2 (h)',
@@ -168,6 +168,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
       r.name || '-', r.rm_type_name || '-', r.rm_group_name || '-',
       r.rmm_line_name || '-', r.doc_no || '-', r.code || '-',
       r.batch_before || '-', r.batch_after || '-', r.total,
+      r.weight_total != null ? r.weight_total : '',
       r.dbs1 ?? '', r.dbs2 ?? '', r.dbs3 ?? '', r.dbs4 ?? '',
       r.prep_to_cold ?? '', r.cold ?? '', r.cold_to_pack ?? '', r.prep_to_pack ?? '',
       s1, s2, s3, s4,
@@ -176,7 +177,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
   const ws1 = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryData]);
   ws1['!cols'] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 14 },
-    { wch: 22 }, { wch: 20 }, { wch: 14 },
+    { wch: 22 }, { wch: 20 }, { wch: 14 }, { wch: 16 },
     { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
     { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
     { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
@@ -199,6 +200,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
       if (!ws1[addr]) ws1[addr] = {};
       const col = summaryHeader[ci];
       const isStatusCol = col.startsWith('สถานะ');
+      const isWeightCol = col === 'น้ำหนักรวม (kg)';
       const cellVal = ws1[addr].v;
       let bg = baseBg, fontColor = '111827';
       if (isStatusCol && cellVal === 'delay') { bg = 'FEE2E2'; fontColor = '991B1B'; }
@@ -206,7 +208,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
       ws1[addr].s = {
         font: { name: 'Arial', sz: 10, color: { rgb: fontColor }, bold: isStatusCol },
         fill: { fgColor: { rgb: bg } },
-        alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+        alignment: { horizontal: isWeightCol ? 'right' : 'left', vertical: 'center', wrapText: true },
         border: { top: { style: 'thin', color: { rgb: 'E5E7EB' } }, bottom: { style: 'thin', color: { rgb: 'E5E7EB' } }, left: { style: 'thin', color: { rgb: 'E5E7EB' } }, right: { style: 'thin', color: { rgb: 'E5E7EB' } } },
       };
     });
@@ -216,7 +218,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
 
   const detailHeader = [
     'กลุ่ม', 'RM Type', 'RM Group',
-    'เลขเอกสาร', 'Code', 'ไลน์',
+    'เลขเอกสาร', 'Code', 'ไลน์', 'น้ำหนัก (kg)',   // ← เพิ่มตรงนี้
     'Batch Tag ห้องเย็น', 'Batch หลังเตรียม', 'สถานะ batch',
     'เวลาเตรียมเสร็จ', 'เข้าห้องเย็น 1', 'ออกห้องเย็น 1',
     'เข้าห้องเย็น 2', 'ออกห้องเย็น 2',
@@ -235,8 +237,9 @@ function exportAllDetailExcel(rows, percentile, filename) {
       allBatchRows.push([
         r.name || '-', r.rm_type_name || '-', r.rm_group_name || '-',
         batch.doc_no || '-', batch.code || '-', batch.rmm_line_name || '-',
+        batch.weight_RM != null ? batch.weight_RM : '',   // ← เพิ่มตรงนี้
         batch.batch_before != null ? String(batch.batch_before) : '-',
-        batch.batch_after  != null ? String(batch.batch_after)  : '-',
+        batch.batch_after != null ? String(batch.batch_after) : '-',
         isDelayAny ? 'delay' : 'ปกติ',
         fmtDatetime(batch.rmit_date),
         fmtDatetime(batch.come_cold_date), fmtDatetime(batch.out_cold_date),
@@ -255,7 +258,7 @@ function exportAllDetailExcel(rows, percentile, filename) {
   const ws2 = XLSX.utils.aoa_to_sheet([detailHeader, ...allBatchRows]);
   ws2['!cols'] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 },
-    { wch: 18 }, { wch: 14 }, { wch: 18 },
+    { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 14 },   // ← wch:14 ตัวใหม่ = คอลัมน์น้ำหนัก
     { wch: 20 }, { wch: 20 }, { wch: 12 },
     { wch: 20 }, { wch: 20 }, { wch: 20 },
     { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
@@ -273,26 +276,27 @@ function exportAllDetailExcel(rows, percentile, filename) {
       border: { top: { style: 'thin', color: { rgb: '1F2937' } }, bottom: { style: 'thin', color: { rgb: '1F2937' } }, left: { style: 'thin', color: { rgb: '1F2937' } }, right: { style: 'thin', color: { rgb: '1F2937' } } },
     };
   });
-  allBatchRows.forEach((row, ri) => {
-    const isEven = ri % 2 === 0;
-    const baseBg = isEven ? 'FFFFFF' : 'F8FAFF';
-    row.forEach((_, ci) => {
-      const addr = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
-      if (!ws2[addr]) ws2[addr] = {};
-      const col = detailHeader[ci];
-      const isStatusCol = col.startsWith('สถานะ');
-      const cellVal = ws2[addr].v;
-      let bg = baseBg, fontColor = '111827';
-      if ((isStatusCol || col === 'สถานะ batch') && cellVal === 'delay') { bg = 'FEE2E2'; fontColor = '991B1B'; }
-      else if ((isStatusCol || col === 'สถานะ batch') && cellVal === 'ปกติ') { bg = 'DCFCE7'; fontColor = '166534'; }
-      ws2[addr].s = {
-        font: { name: 'Arial', sz: 10, color: { rgb: fontColor }, bold: isStatusCol },
-        fill: { fgColor: { rgb: bg } },
-        alignment: { horizontal: 'left', vertical: 'center', wrapText: false },
-        border: { top: { style: 'thin', color: { rgb: 'E5E7EB' } }, bottom: { style: 'thin', color: { rgb: 'E5E7EB' } }, left: { style: 'thin', color: { rgb: 'E5E7EB' } }, right: { style: 'thin', color: { rgb: 'E5E7EB' } } },
-      };
-    });
+ allBatchRows.forEach((row, ri) => {
+  const isEven = ri % 2 === 0;
+  const baseBg = isEven ? '#FFFFFF'.replace('#','') : 'F8FAFF';
+  row.forEach((_, ci) => {
+    const addr = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
+    if (!ws2[addr]) ws2[addr] = {};
+    const col = detailHeader[ci];
+    const isStatusCol  = col.startsWith('สถานะ');
+    const isWeightCol  = col === 'น้ำหนัก (kg)';   // ← ใช้เช็คคอลัมน์น้ำหนัก
+    const cellVal = ws2[addr].v;
+    let bg = baseBg, fontColor = '111827';
+    if ((isStatusCol || col === 'สถานะ batch') && cellVal === 'delay') { bg = 'FEE2E2'; fontColor = '991B1B'; }
+    else if ((isStatusCol || col === 'สถานะ batch') && cellVal === 'ปกติ') { bg = 'DCFCE7'; fontColor = '166534'; }
+    ws2[addr].s = {
+      font: { name: 'Arial', sz: 10, color: { rgb: fontColor }, bold: isStatusCol },
+      fill: { fgColor: { rgb: bg } },
+      alignment: { horizontal: isWeightCol ? 'right' : 'left', vertical: 'center', wrapText: false },
+      border: { top: { style: 'thin', color: { rgb: 'E5E7EB' } }, bottom: { style: 'thin', color: { rgb: 'E5E7EB' } }, left: { style: 'thin', color: { rgb: 'E5E7EB' } }, right: { style: 'thin', color: { rgb: 'E5E7EB' } } },
+    };
   });
+});
   ws2['!rows'] = [{ hpt: 32 }, ...allBatchRows.map(() => ({ hpt: 20 }))];
   XLSX.utils.book_append_sheet(wb, ws2, 'Batch Detail');
 
@@ -455,20 +459,20 @@ const MultiSelectDropdown = ({ value, onChange, options, placeholder = 'ทั�
             {filtered.length === 0
               ? <div style={{ padding: '10px 12px', fontSize: 12, color: '#9CA3AF', textAlign: 'center' }}>ไม่พบ "{query}"</div>
               : filtered.map(o => {
-                  const checked = value.includes(o);
-                  return (
-                    <div key={o} onClick={() => toggle(o)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 13, background: checked ? '#EFF6FF' : 'transparent', display: 'flex', alignItems: 'center', gap: 8 }}
-                      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = '#F9FAFB'; }}
-                      onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? '#3B82F6' : '#D1D5DB'}`, background: checked ? '#3B82F6' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
-                      </div>
-                      <span style={{ color: checked ? '#1D4ED8' : '#374151', fontWeight: checked ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {highlightMatch(o, query)}
-                      </span>
+                const checked = value.includes(o);
+                return (
+                  <div key={o} onClick={() => toggle(o)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 13, background: checked ? '#EFF6FF' : 'transparent', display: 'flex', alignItems: 'center', gap: 8 }}
+                    onMouseEnter={e => { if (!checked) e.currentTarget.style.background = '#F9FAFB'; }}
+                    onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? '#3B82F6' : '#D1D5DB'}`, background: checked ? '#3B82F6' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                     </div>
-                  );
-                })}
+                    <span style={{ color: checked ? '#1D4ED8' : '#374151', fontWeight: checked ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {highlightMatch(o, query)}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
           <div style={{ padding: '5px 12px', borderTop: '1px solid #F3F4F6', fontSize: 11, color: '#9CA3AF' }}>
             {filtered.length} รายการ · เลือกแล้ว {value.length}
@@ -583,7 +587,7 @@ const BatchDetailRows = ({ rows, colSpan }) => {
                       <td style={dtCell}><DateCell val={row.out_cold_date_three} dim /></td>
                       <td style={dtCell}><DateCell val={row.sc_pack_date} /></td>
                       <td style={dtCell}><DbsCell value={row.DBS1} standard={row.prep_to_cold} isDelay={row.dbs1_status === 'delay'} /></td>
-                      <td style={dtCell}><DbsCell value={row.DBS2} standard={row.cold}         isDelay={row.dbs2_status === 'delay'} /></td>
+                      <td style={dtCell}><DbsCell value={row.DBS2} standard={row.cold} isDelay={row.dbs2_status === 'delay'} /></td>
                       <td style={dtCell}><DbsCell value={row.DBS3} standard={row.cold_to_pack} isDelay={row.dbs3_status === 'delay'} /></td>
                       <td style={dtCell}><DbsCell value={row.DBS4} standard={row.prep_to_pack} isDelay={row.dbs4_status === 'delay'} /></td>
                     </tr>
@@ -654,31 +658,31 @@ const SortIcon = ({ field, sortField, sortDir }) => {
 };
 
 const cellStyle = { padding: '10px 14px', borderBottom: '0.5px solid #F3F4F6', verticalAlign: 'middle' };
-const thStyle   = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
+const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
 const P_OPTIONS = Array.from({ length: 99 }, (_, i) => i + 1);
 
 const DBS_WEIGHT_DEFS = [
   { key: 'dbs1', label: 'DBS1 Status', title: 'Delay ช่วงที่ 1', sub: 'เตรียมเสร็จ → เข้าห้องเย็น', color: '#3B82F6', bg: '#EFF6FF' },
   { key: 'dbs2', label: 'DBS2 Status', title: 'Delay ช่วงที่ 2', sub: 'เข้าห้องเย็น → ออกห้องเย็น', color: '#8B5CF6', bg: '#F5F3FF' },
-  { key: 'dbs3', label: 'DBS3 Status', title: 'Delay ช่วงที่ 3', sub: 'ออกห้องเย็น → บรรจุเสร็จ',  color: '#F59E0B', bg: '#FFFBEB' },
-  { key: 'dbs4', label: 'DBS4 Status', title: 'Delay ช่วงที่ 4', sub: 'เตรียมเสร็จ → บรรจุเสร็จ',   color: '#10B981', bg: '#ECFDF5' },
+  { key: 'dbs3', label: 'DBS3 Status', title: 'Delay ช่วงที่ 3', sub: 'ออกห้องเย็น → บรรจุเสร็จ', color: '#F59E0B', bg: '#FFFBEB' },
+  { key: 'dbs4', label: 'DBS4 Status', title: 'Delay ช่วงที่ 4', sub: 'เตรียมเสร็จ → บรรจุเสร็จ', color: '#10B981', bg: '#ECFDF5' },
 ];
 
 const DelayChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
-  const delay  = payload.find(p => p.dataKey === 'delay')?.value  ?? 0;
+  const delay = payload.find(p => p.dataKey === 'delay')?.value ?? 0;
   const normal = payload.find(p => p.dataKey === 'normal')?.value ?? 0;
-  const total  = delay + normal;
+  const total = delay + normal;
   return (
     <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 190 }}>
       <div style={{ fontWeight: 600, marginBottom: 8, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{label}</div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 3 }}>
         <span style={{ color: '#EF4444' }}>Delay</span>
-        <span style={{ fontWeight: 600, color: '#EF4444' }}>{delay.toFixed(3)} MT ({total > 0 ? (delay/total*100).toFixed(1) : 0}%)</span>
+        <span style={{ fontWeight: 600, color: '#EF4444' }}>{delay.toFixed(3)} MT ({total > 0 ? (delay / total * 100).toFixed(1) : 0}%)</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
         <span style={{ color: '#22C55E' }}>ปกติ</span>
-        <span style={{ fontWeight: 600, color: '#22C55E' }}>{normal.toFixed(3)} MT ({total > 0 ? (normal/total*100).toFixed(1) : 0}%)</span>
+        <span style={{ fontWeight: 600, color: '#22C55E' }}>{normal.toFixed(3)} MT ({total > 0 ? (normal / total * 100).toFixed(1) : 0}%)</span>
       </div>
       <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 5, display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ color: '#6B7280' }}>รวม</span>
@@ -689,25 +693,25 @@ const DelayChartTooltip = ({ active, payload, label }) => {
 };
 
 const ProductionLineDelayDashboard = () => {
-  const [rawData, setRawData]           = useState([]);
+  const [rawData, setRawData] = useState([]);
   // ─── CHANGED: no auto-fetch on mount; hasFetched tracks whether we've loaded data at least once ───
-  const [hasFetched, setHasFetched]     = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState(null);
-  const [startDate, setStartDate]       = useState('');
-  const [endDate, setEndDate]           = useState('');
-  const [groupBy, setGroupBy]           = useState('mat_name');
-  const [sortField, setSortField]       = useState('name');
-  const [sortDir, setSortDir]           = useState('asc');
-  const [searchTerm, setSearchTerm]     = useState('');
-  const [filterLine, setFilterLine]     = useState('');
-  const [filterDoc, setFilterDoc]       = useState('');
+  const [hasFetched, setHasFetched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [groupBy, setGroupBy] = useState('mat_name');
+  const [sortField, setSortField] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterLine, setFilterLine] = useState('');
+  const [filterDoc, setFilterDoc] = useState('');
   const [filterBatchBefore, setFilterBatchBefore] = useState('');
-  const [filterBatchAfter, setFilterBatchAfter]   = useState('');
-  const [filterCode, setFilterCode]     = useState('');
-  const [percentile, setPercentile]     = useState(80);
+  const [filterBatchAfter, setFilterBatchAfter] = useState('');
+  const [filterCode, setFilterCode] = useState('');
+  const [percentile, setPercentile] = useState(80);
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [selectedDbs, setSelectedDbs]   = useState(null);
+  const [selectedDbs, setSelectedDbs] = useState(null);
   const [filterMatNames, setFilterMatNames] = useState([]);
 
   // ─── CHANGED: fetchData now REQUIRES both dates and will not run without them ───
@@ -752,21 +756,21 @@ const ProductionLineDelayDashboard = () => {
     setRawData([]); setHasFetched(false); setError(null);
   };
 
-  const uniqueLines       = React.useMemo(() => [...new Set(rawData.map(r => r.rmm_line_name).filter(Boolean))].sort(), [rawData]);
-  const uniqueDocs        = React.useMemo(() => [...new Set(rawData.map(r => r.doc_no).filter(Boolean))].sort(), [rawData]);
+  const uniqueLines = React.useMemo(() => [...new Set(rawData.map(r => r.rmm_line_name).filter(Boolean))].sort(), [rawData]);
+  const uniqueDocs = React.useMemo(() => [...new Set(rawData.map(r => r.doc_no).filter(Boolean))].sort(), [rawData]);
   const uniqueBatchBefore = React.useMemo(() => [...new Set(rawData.map(r => r.batch_before).filter(v => v != null).map(String))].sort(), [rawData]);
-  const uniqueBatchAfter  = React.useMemo(() => [...new Set(rawData.map(r => r.batch_after).filter(v => v != null).map(String))].sort(), [rawData]);
-  const uniqueCodes       = React.useMemo(() => [...new Set(rawData.map(r => r.code).filter(Boolean))].sort(), [rawData]);
-  const uniqueMatNames    = React.useMemo(() => [...new Set(rawData.map(r => r.mat_name).filter(Boolean))].sort(), [rawData]);
+  const uniqueBatchAfter = React.useMemo(() => [...new Set(rawData.map(r => r.batch_after).filter(v => v != null).map(String))].sort(), [rawData]);
+  const uniqueCodes = React.useMemo(() => [...new Set(rawData.map(r => r.code).filter(Boolean))].sort(), [rawData]);
+  const uniqueMatNames = React.useMemo(() => [...new Set(rawData.map(r => r.mat_name).filter(Boolean))].sort(), [rawData]);
 
   const filteredRaw = React.useMemo(() =>
     rawData.filter(r => {
       if (filterMatNames.length > 0 && !filterMatNames.includes(r.mat_name)) return false;
-      if (filterLine        && r.rmm_line_name !== filterLine)               return false;
-      if (filterDoc         && r.doc_no        !== filterDoc)                return false;
+      if (filterLine && r.rmm_line_name !== filterLine) return false;
+      if (filterDoc && r.doc_no !== filterDoc) return false;
       if (filterBatchBefore && String(r.batch_before) !== filterBatchBefore) return false;
-      if (filterBatchAfter  && String(r.batch_after)  !== filterBatchAfter)  return false;
-      if (filterCode        && r.code          !== filterCode)               return false;
+      if (filterBatchAfter && String(r.batch_after) !== filterBatchAfter) return false;
+      if (filterCode && r.code !== filterCode) return false;
       return true;
     }), [rawData, filterMatNames, filterLine, filterDoc, filterBatchBefore, filterBatchAfter, filterCode]);
 
@@ -775,14 +779,14 @@ const ProductionLineDelayDashboard = () => {
     const q = searchTerm.trim().toLowerCase();
     const filtered = q
       ? grouped.filter(r =>
-          r.name?.toLowerCase().includes(q) ||
-          r.rm_type_name?.toLowerCase().includes(q) ||
-          r.rm_group_name?.toLowerCase().includes(q) ||
-          r.rmm_line_name?.toLowerCase().includes(q) ||
-          r.doc_no?.toLowerCase().includes(q) ||
-          r.batch_before?.toLowerCase().includes(q) ||
-          r.batch_after?.toLowerCase().includes(q) ||
-          r.code?.toLowerCase().includes(q))
+        r.name?.toLowerCase().includes(q) ||
+        r.rm_type_name?.toLowerCase().includes(q) ||
+        r.rm_group_name?.toLowerCase().includes(q) ||
+        r.rmm_line_name?.toLowerCase().includes(q) ||
+        r.doc_no?.toLowerCase().includes(q) ||
+        r.batch_before?.toLowerCase().includes(q) ||
+        r.batch_after?.toLowerCase().includes(q) ||
+        r.code?.toLowerCase().includes(q))
       : grouped;
     return [...filtered].sort((a, b) => {
       let av = a[sortField], bv = b[sortField];
@@ -797,7 +801,7 @@ const ProductionLineDelayDashboard = () => {
     const total = filteredRaw.length, groups = rows.length;
     const delayCount = rows.filter(r =>
       (r.dbs1 != null && r.prep_to_cold != null && r.dbs1 > r.prep_to_cold) ||
-      (r.dbs2 != null && r.cold         != null && r.dbs2 > r.cold)         ||
+      (r.dbs2 != null && r.cold != null && r.dbs2 > r.cold) ||
       (r.dbs3 != null && r.cold_to_pack != null && r.dbs3 > r.cold_to_pack) ||
       (r.dbs4 != null && r.prep_to_pack != null && r.dbs4 > r.prep_to_pack)
     ).length;
@@ -810,7 +814,7 @@ const ProductionLineDelayDashboard = () => {
     if (!selectedDbs) return rows;
     return rows.filter(r => {
       if (selectedDbs === 'dbs1') return r.dbs1 != null && r.prep_to_cold != null && r.dbs1 > r.prep_to_cold;
-      if (selectedDbs === 'dbs2') return r.dbs2 != null && r.cold         != null && r.dbs2 > r.cold;
+      if (selectedDbs === 'dbs2') return r.dbs2 != null && r.cold != null && r.dbs2 > r.cold;
       if (selectedDbs === 'dbs3') return r.dbs3 != null && r.cold_to_pack != null && r.dbs3 > r.cold_to_pack;
       if (selectedDbs === 'dbs4') return r.dbs4 != null && r.prep_to_pack != null && r.dbs4 > r.prep_to_pack;
       return true;
@@ -820,9 +824,9 @@ const ProductionLineDelayDashboard = () => {
   const dbsStats = React.useMemo(() => {
     const compute = (statusField, dbsField) => {
       const relevant = filteredRaw.filter(r => r[dbsField] != null);
-      const totalKg  = relevant.reduce((s, r) => s + (r.weight_RM || 0), 0);
-      const delayKg  = relevant.filter(r => r[statusField] === 'delay').reduce((s, r) => s + (r.weight_RM || 0), 0);
-      const totalMt  = totalKg / 1000;
+      const totalKg = relevant.reduce((s, r) => s + (r.weight_RM || 0), 0);
+      const delayKg = relevant.filter(r => r[statusField] === 'delay').reduce((s, r) => s + (r.weight_RM || 0), 0);
+      const totalMt = totalKg / 1000;
       const delayPct = totalKg > 0 ? (delayKg / totalKg * 100) : 0;
       return { totalMt, delayPct, normalPct: 100 - delayPct };
     };
@@ -837,7 +841,7 @@ const ProductionLineDelayDashboard = () => {
   const chartData = React.useMemo(() => {
     if (!selectedDbs) return [];
     const statusField = `${selectedDbs}_status`;
-    const dbsField    = selectedDbs.toUpperCase();
+    const dbsField = selectedDbs.toUpperCase();
     const groups = {};
     filteredRaw.forEach(r => {
       if (r[dbsField] == null) return;
@@ -867,34 +871,34 @@ const ProductionLineDelayDashboard = () => {
   };
 
   const handleExportSummary = () => { if (rows.length > 0) exportSummaryExcel(rows, percentile, 'delay_summary'); };
-  const handleExportAll     = () => { if (rows.length > 0) exportAllDetailExcel(rows, percentile, 'delay_all'); };
+  const handleExportAll = () => { if (rows.length > 0) exportAllDetailExcel(rows, percentile, 'delay_all'); };
 
   // ─── date validation helper ───
   const canFetch = startDate && endDate;
 
   const searchPlaceholder =
-    groupBy === 'mat_name'      ? 'ค้นหา RM name...'   :
-    groupBy === 'rm_type_name'  ? 'ค้นหา RM type...'   :
-    groupBy === 'rmm_line_name' ? 'ค้นหา ไลน์...'      :
-    groupBy === 'doc_no'        ? 'ค้นหา เลขเอกสาร...' : 'ค้นหา RM group...';
+    groupBy === 'mat_name' ? 'ค้นหา RM name...' :
+      groupBy === 'rm_type_name' ? 'ค้นหา RM type...' :
+        groupBy === 'rmm_line_name' ? 'ค้นหา ไลน์...' :
+          groupBy === 'doc_no' ? 'ค้นหา เลขเอกสาร...' : 'ค้นหา RM group...';
 
   const columns = [
-    { key: 'expand',        label: '',                              sub: null, minW: 40  },
-    { key: 'name',          label: 'ชื่อ',                         sub: null, minW: 160 },
-    { key: 'rm_type_name',  label: 'RM Type',                      sub: null, minW: 100 },
-    { key: 'rm_group_name', label: 'RM Group',                     sub: null, minW: 100 },
-    { key: 'mat',           label: 'MAT',                          sub: null, minW: 100 },
-    { key: 'mat_2x',        label: 'MAT 2x',                       sub: null, minW: 100 },
-    { key: 'weight_total',  label: 'น้ำหนัก',                      sub: '(kg)', minW: 100 },
-    { key: 'rmm_line_name', label: 'ไลน์',                         sub: null, minW: 120 },
-    { key: 'doc_no',        label: 'เลขเอกสาร',                    sub: null, minW: 130 },
-    { key: 'code',          label: 'Code',                         sub: null, minW: 100 },
-    { key: 'batch_before',  label: 'Batch จากป้าย Tag ห้องเย็น',   sub: null, minW: 160 },
-    { key: 'batch_after',   label: 'Batch หลังเตรียม',             sub: null, minW: 130 },
-    { key: 'dbs1', label: 'DBS1', sub: 'เตรียม→เย็น',   minW: 130 },
-    { key: 'dbs2', label: 'DBS2', sub: 'เวลาในเย็น',    minW: 130 },
+    { key: 'expand', label: '', sub: null, minW: 40 },
+    { key: 'name', label: 'ชื่อ', sub: null, minW: 160 },
+    { key: 'rm_type_name', label: 'RM Type', sub: null, minW: 100 },
+    { key: 'rm_group_name', label: 'RM Group', sub: null, minW: 100 },
+    { key: 'mat', label: 'MAT', sub: null, minW: 100 },
+    { key: 'mat_2x', label: 'MAT 2x', sub: null, minW: 100 },
+    { key: 'weight_total', label: 'น้ำหนัก', sub: '(kg)', minW: 100 },
+    { key: 'rmm_line_name', label: 'ไลน์', sub: null, minW: 120 },
+    { key: 'doc_no', label: 'เลขเอกสาร', sub: null, minW: 130 },
+    { key: 'code', label: 'Code', sub: null, minW: 100 },
+    { key: 'batch_before', label: 'Batch จากป้าย Tag ห้องเย็น', sub: null, minW: 160 },
+    { key: 'batch_after', label: 'Batch หลังเตรียม', sub: null, minW: 130 },
+    { key: 'dbs1', label: 'DBS1', sub: 'เตรียม→เย็น', minW: 130 },
+    { key: 'dbs2', label: 'DBS2', sub: 'เวลาในเย็น', minW: 130 },
     { key: 'dbs3', label: 'DBS3', sub: 'ออกเย็น→บรรจุ', minW: 130 },
-    { key: 'dbs4', label: 'DBS4', sub: 'เตรียม→บรรจุ',  minW: 130 },
+    { key: 'dbs4', label: 'DBS4', sub: 'เตรียม→บรรจุ', minW: 130 },
   ];
 
   const activeFilters = filterLine || filterDoc || filterBatchBefore || filterBatchAfter || filterCode;
@@ -956,11 +960,11 @@ const ProductionLineDelayDashboard = () => {
                 </select>
               </div>
               <MultiSelectDropdown label="ชื่อวัตถุดิบ (RM)" value={filterMatNames} onChange={setFilterMatNames} options={uniqueMatNames} placeholder="ทั้งหมด" />
-              <SearchDropdown label="ไลน์"                          value={filterLine}        onChange={setFilterLine}        options={uniqueLines}       placeholder="ทั้งหมด" />
-              <SearchDropdown label="เลขเอกสาร"                     value={filterDoc}         onChange={setFilterDoc}         options={uniqueDocs}        placeholder="ทั้งหมด" />
-              <SearchDropdown label="Code"                          value={filterCode}        onChange={setFilterCode}        options={uniqueCodes}       placeholder="ทั้งหมด" />
-              <SearchDropdown label="Batch จากป้าย Tag ห้องเย็น"    value={filterBatchBefore} onChange={setFilterBatchBefore} options={uniqueBatchBefore} placeholder="ทั้งหมด" />
-              <SearchDropdown label="Batch หลังเตรียม"              value={filterBatchAfter}  onChange={setFilterBatchAfter}  options={uniqueBatchAfter}  placeholder="ทั้งหมด" />
+              <SearchDropdown label="ไลน์" value={filterLine} onChange={setFilterLine} options={uniqueLines} placeholder="ทั้งหมด" />
+              <SearchDropdown label="เลขเอกสาร" value={filterDoc} onChange={setFilterDoc} options={uniqueDocs} placeholder="ทั้งหมด" />
+              <SearchDropdown label="Code" value={filterCode} onChange={setFilterCode} options={uniqueCodes} placeholder="ทั้งหมด" />
+              <SearchDropdown label="Batch จากป้าย Tag ห้องเย็น" value={filterBatchBefore} onChange={setFilterBatchBefore} options={uniqueBatchBefore} placeholder="ทั้งหมด" />
+              <SearchDropdown label="Batch หลังเตรียม" value={filterBatchAfter} onChange={setFilterBatchAfter} options={uniqueBatchAfter} placeholder="ทั้งหมด" />
               <div>
                 <div style={labelStyle}>Percentile (P)</div>
                 <select value={percentile} onChange={e => setPercentile(Number(e.target.value))}
@@ -1115,9 +1119,9 @@ const ProductionLineDelayDashboard = () => {
           {/* ── metric cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 16 }}>
             {[
-              { label: 'batch ทั้งหมด',                     value: metrics.total,                       sub: `${metrics.groups} กลุ่ม`,     color: '#3B82F6' },
-              { label: `กลุ่มที่ P${percentile} > มาตรฐาน`, value: metrics.delayCount,                  sub: `จาก ${metrics.groups} กลุ่ม`, color: '#EF4444' },
-              { label: 'กลุ่มที่ปกติ',                       value: metrics.groups - metrics.delayCount, sub: 'ทุก DBS ≤ มาตรฐาน',           color: '#22C55E' },
+              { label: 'batch ทั้งหมด', value: metrics.total, sub: `${metrics.groups} กลุ่ม`, color: '#3B82F6' },
+              { label: `กลุ่มที่ P${percentile} > มาตรฐาน`, value: metrics.delayCount, sub: `จาก ${metrics.groups} กลุ่ม`, color: '#EF4444' },
+              { label: 'กลุ่มที่ปกติ', value: metrics.groups - metrics.delayCount, sub: 'ทุก DBS ≤ มาตรฐาน', color: '#22C55E' },
             ].map((m, i) => (
               <div key={i} style={{ background: '#F9FAFB', borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{m.label}</div>
@@ -1201,8 +1205,8 @@ const ProductionLineDelayDashboard = () => {
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6B7280' }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} tickFormatter={v => v.toFixed(0)} unit=" MT" width={55} />
                   <RechartsTip content={<DelayChartTooltip />} />
-                  <Bar dataKey="normal" name="ปกติ"  stackId="s" fill="#22C55E" />
-                  <Bar dataKey="delay"  name="Delay" stackId="s" fill="#EF4444" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="normal" name="ปกติ" stackId="s" fill="#22C55E" />
+                  <Bar dataKey="delay" name="Delay" stackId="s" fill="#EF4444" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -1267,7 +1271,7 @@ const ProductionLineDelayDashboard = () => {
                     const isExpanded = expandedRows.has(r.name);
                     const hasDelay =
                       (r.dbs1 != null && r.prep_to_cold != null && r.dbs1 > r.prep_to_cold) ||
-                      (r.dbs2 != null && r.cold         != null && r.dbs2 > r.cold)         ||
+                      (r.dbs2 != null && r.cold != null && r.dbs2 > r.cold) ||
                       (r.dbs3 != null && r.cold_to_pack != null && r.dbs3 > r.cold_to_pack) ||
                       (r.dbs4 != null && r.prep_to_pack != null && r.dbs4 > r.prep_to_pack);
                     return (
@@ -1290,13 +1294,13 @@ const ProductionLineDelayDashboard = () => {
                           </td>
                           <td style={{ ...cellStyle, color: '#6B7280' }}>{r.rm_type_name || '-'}</td>
                           <td style={{ ...cellStyle, color: '#6B7280' }}>{r.rm_group_name || '-'}</td>
-                          <MultiValueCell value={r.mat}    searchTerm={searchTerm} />
+                          <MultiValueCell value={r.mat} searchTerm={searchTerm} />
                           <MultiValueCell value={r.mat_2x} searchTerm={searchTerm} />
                           <td style={{ ...cellStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#374151' }}>
                             {r.weight_total != null ? r.weight_total.toLocaleString() : '-'}
                           </td>
                           <MultiValueCell value={r.rmm_line_name} searchTerm={searchTerm} />
-                          <MultiValueCell value={r.doc_no}        searchTerm={searchTerm} />
+                          <MultiValueCell value={r.doc_no} searchTerm={searchTerm} />
                           <td style={cellStyle}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                               {r.code ? r.code.split(', ').map((c, ci) => {
@@ -1307,10 +1311,10 @@ const ProductionLineDelayDashboard = () => {
                               }) : <span style={{ color: '#9CA3AF' }}>-</span>}
                             </div>
                           </td>
-                          <MultiValueCell value={r.batch_before}  searchTerm={searchTerm} />
-                          <MultiValueCell value={r.batch_after}   searchTerm={searchTerm} />
+                          <MultiValueCell value={r.batch_before} searchTerm={searchTerm} />
+                          <MultiValueCell value={r.batch_after} searchTerm={searchTerm} />
                           <PercentileCell value={r.dbs1} standard={r.prep_to_cold} count={r.dbs1_count} percentile={percentile} />
-                          <PercentileCell value={r.dbs2} standard={r.cold}         count={r.dbs2_count} percentile={percentile} />
+                          <PercentileCell value={r.dbs2} standard={r.cold} count={r.dbs2_count} percentile={percentile} />
                           <PercentileCell value={r.dbs3} standard={r.cold_to_pack} count={r.dbs3_count} percentile={percentile} />
                           <PercentileCell value={r.dbs4} standard={r.prep_to_pack} count={r.dbs4_count} percentile={percentile} />
                         </tr>
@@ -1335,9 +1339,9 @@ function highlightMatch(text, query) {
   return <>{text.slice(0, idx)}<mark style={{ background: '#FDE68A', color: '#92400E', borderRadius: 2, padding: '0 2px' }}>{text.slice(idx, idx + query.length)}</mark>{text.slice(idx + query.length)}</>;
 }
 
-const labelStyle   = { fontSize: 11, color: '#6B7280', marginBottom: 4 };
-const inputStyle   = { fontSize: 13, padding: '6px 10px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, background: '#fff', color: '#111827', outline: 'none' };
-const btnPrimary   = { fontSize: 13, padding: '0 16px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#3B82F6', color: '#fff', fontWeight: 500 };
+const labelStyle = { fontSize: 11, color: '#6B7280', marginBottom: 4 };
+const inputStyle = { fontSize: 13, padding: '6px 10px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, background: '#fff', color: '#111827', outline: 'none' };
+const btnPrimary = { fontSize: 13, padding: '0 16px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#3B82F6', color: '#fff', fontWeight: 500 };
 const btnSecondary = { fontSize: 13, padding: '0 16px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, cursor: 'pointer', background: '#fff', color: '#374151' };
 
 export default ProductionLineDelayDashboard;

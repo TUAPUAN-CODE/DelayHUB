@@ -19,6 +19,7 @@ const ParentComponent = () => {
   const [matNameSearch, setMatNameSearch] = useState("");
   const [isRmTypeOpen, setIsRmTypeOpen] = useState(false);
   const [rmTypeSearch, setRmTypeSearch] = useState("");
+  const [viewMode, setViewMode] = useState('daily'); // 'daily' | 'monthly' | 'yearly'
 
   const filteredRmTypes = rmTypes.filter(type =>
     type.toLowerCase().includes(rmTypeSearch.toLowerCase())
@@ -62,6 +63,16 @@ const ParentComponent = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const getGroupKey = (dateString, mode) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    if (mode === 'yearly') return `${year}`;
+    if (mode === 'monthly') return `${year}-${month}`;
+    return `${year}-${month}-${day}`;
+  };
+
   const processChartData = (data, rmTypeFilter, matNameFilter) => {
     let filteredData = data;
 
@@ -76,7 +87,7 @@ const ParentComponent = () => {
     const groupedByDate = {};
 
     filteredData.forEach(item => {
-      const date = formatDateForDisplay(item.rmit_date_fac);
+      const date = getGroupKey(item.rmit_date_fac, viewMode);
 
       if (!groupedByDate[date]) {
         groupedByDate[date] = {
@@ -264,7 +275,12 @@ const ParentComponent = () => {
       const processedData = processChartData(rawData, selectedRmType, selectedMatName);
       setChartData(processedData);
     }
-  }, [selectedRmType, selectedMatName, matNameSort, rawData, visibleDelays]);
+  }, [selectedRmType, selectedMatName, matNameSort, rawData, visibleDelays, viewMode]);
+
+  useEffect(() => {
+    setSelectedDateDetails(null);
+    setDetailsTableData([]);
+  }, [viewMode]);
 
   const handleDateFilter = () => {
     fetchData();
@@ -291,11 +307,11 @@ const ParentComponent = () => {
   const handleBarClick = (data) => {
     if (!data || !data.activePayload || !data.activePayload[0]) return;
 
-    const clickedDate = data.activePayload[0].payload.date;
-    setSelectedDateDetails(clickedDate);
+    const clickedPeriod = data.activePayload[0].payload.date;
+    setSelectedDateDetails(clickedPeriod);
 
     let filteredData = rawData.filter(item =>
-      formatDateForDisplay(item.rmit_date_fac) === clickedDate
+      getGroupKey(item.rmit_date_fac, viewMode) === clickedPeriod
     );
 
     if (selectedRmType !== 'all') {
@@ -313,7 +329,7 @@ const ParentComponent = () => {
       const data = payload[0].payload;
       return (
         <div className="bg-white p-4 border border-gray-300 rounded shadow-lg">
-          <p className="font-semibold text-gray-800 mb-2">{`วันที่: ${label}`}</p>
+          <p className="font-semibold text-gray-800 mb-2">{`${viewMode === 'yearly' ? 'ปี' : viewMode === 'monthly' ? 'เดือน' : 'วันที่'}: ${label}`}</p>
           <p className="text-sm text-gray-600 mb-2">{`น้ำหนักรวม: ${data.total_weight.toFixed(2)} kg`}</p>
           <div className="border-t pt-2 mt-2 space-y-1">
             {visibleDelays.dbs1 && (
@@ -402,6 +418,30 @@ const ParentComponent = () => {
     );
   };
 
+  const renderViewModeToggle = () => (
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+      <h3 className="text-sm font-semibold mb-3 text-gray-800">มุมมองกราฟ:</h3>
+      <div className="flex gap-2">
+        {[
+          { key: 'daily', label: 'รายวัน' },
+          { key: 'monthly', label: 'รายเดือน' },
+          { key: 'yearly', label: 'รายปี' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setViewMode(key)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${viewMode === key
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderDelayToggleButtons = () => (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
       <h3 className="text-sm font-semibold mb-3 text-gray-800">เลือก Delay ที่ต้องการดู:</h3>
@@ -466,7 +506,7 @@ const ParentComponent = () => {
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-800">
-            รายละเอียดข้อมูลวันที่: {selectedDateDetails}
+            รายละเอียดข้อมูล{viewMode === 'yearly' ? 'ปี' : viewMode === 'monthly' ? 'เดือน' : 'วันที่'}: {selectedDateDetails}
           </h3>
           <button
             onClick={() => {
@@ -739,8 +779,8 @@ const ParentComponent = () => {
             </p>
           </div>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">จำนวนวัน</p>
-            <p className="text-2xl font-bold text-gray-600">{chartData.length} วัน</p>
+            <p className="text-sm text-gray-600">{viewMode === 'yearly' ? 'จำนวนปี' : viewMode === 'monthly' ? 'จำนวนเดือน' : 'จำนวนวัน'}</p>
+            <p className="text-2xl font-bold text-gray-600">{chartData.length} {viewMode === 'yearly' ? 'ปี' : viewMode === 'monthly' ? 'เดือน' : 'วัน'}</p>
           </div>
         </div>
 
@@ -847,6 +887,7 @@ const ParentComponent = () => {
   return (
     <div className="p-4 space-y-6">
       {renderFilterSection()}
+      {renderViewModeToggle()}
       {renderDelayToggleButtons()}
       {renderSummary()}
 

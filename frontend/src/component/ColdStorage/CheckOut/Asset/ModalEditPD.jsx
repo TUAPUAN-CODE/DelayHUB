@@ -24,7 +24,7 @@ const QcCheck = ({
   name_edit_prod_two, name_edit_prod_three, first_prod, two_prod, three_prod,
   qccheck_cold, receiver_qc_cold, approver, production, remark_rework,
   remark_rework_cold, edit_rework, prepare_mor_night,
-  storage_purpose, histamineMap,     
+  storage_purpose, depositDays, coldRemark, histamineMap,
 }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -114,6 +114,8 @@ const QcCheck = ({
       tray_count,
       rmm_line_name,
       storage_purpose: storage_purpose || null,
+      deposit_days: depositDays || null,
+      cold_remark: coldRemark || null,
       materials: processedMaterials.length > 0 ? processedMaterials : materials,
     };
 
@@ -194,6 +196,14 @@ const QcCheck = ({
             {storage_purpose && (
               <Typography color="rgba(0,0,0,0.6)">วัตถุประสงค์: {storage_purpose}</Typography>
             )}
+            {depositDays && (
+              <Typography color="rgba(0,0,0,0.6)">
+                ฝากจนถึงวันที่: {new Date(depositDays).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+              </Typography>
+            )}
+            {coldRemark && (
+              <Typography color="rgba(0,0,0,0.6)">หมายเหตุ: {coldRemark}</Typography>
+            )}
             <Typography color="rgba(0,0,0,0.6)">ไลน์ผลิต: {rmm_line_name || "-"}</Typography>
             <Typography color="rgba(0,0,0,0.6)">ผู้ดำเนินการ: {operator}</Typography>
           </Stack>
@@ -233,6 +243,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
   const [showLocationError, setShowLocationError] = useState(false);
   const [storagePurpose, setStoragePurpose] = useState("");
   const [showColdStorageOptions, setShowColdStorageOptions] = useState(false);
+  const [depositDays, setDepositDays] = useState("");
+  const [coldRemark, setColdRemark] = useState("");
   // ✅ histamineMap — { [mapping_id]: string }
   const [histamineMap, setHistamineMap] = useState({});
 
@@ -251,7 +263,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
   useEffect(() => {
     if (open) {
       setLocation(""); setoperator(""); setStoragePurpose("");
-      setShowColdStorageOptions(false); setHistamineMap({}); setErrorMessage("");
+      setShowColdStorageOptions(false); setHistamineMap({}); setDepositDays("");
+      setColdRemark(""); setErrorMessage("");
       const firstName = localStorage.getItem('first_name') || '';
       if (firstName) setoperator(firstName.trim());
     }
@@ -302,6 +315,10 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     }
     if (Location === "ห้องเย็นใหญ่" && !storagePurpose) {
       setErrorMessage("กรุณาเลือกวัตถุประสงค์การจัดเก็บ");
+      return;
+    }
+    if (Location === "ห้องเย็นใหญ่" && !depositDays) {
+      setErrorMessage("กรุณากรอกจำนวนวันที่ฝากเก็บ");
       return;
     }
     setErrorMessage(""); setShowLocationError(false);
@@ -394,7 +411,10 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                 setShowLocationError(false);
                 setErrorMessage("");
                 setShowColdStorageOptions(val === "ห้องเย็นใหญ่");
-                if (val !== "ห้องเย็นใหญ่") { setStoragePurpose(""); setHistamineMap({}); }
+                if (val !== "ห้องเย็นใหญ่") {
+                  setStoragePurpose(""); setHistamineMap({});
+                  setDepositDays(""); setColdRemark("");
+                }
               }}>
                 {[
                   { value: 'บรรจุ', color: '#09af00' },
@@ -446,7 +466,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   </Box>
 
                   {/* 2. Histamine แยกแต่ละ mapping_id */}
-                  <Typography sx={{ color: '#0077aa', fontWeight: 700, mb: 1.5, fontSize: '15px' }}>
+                  <Typography sx={{ color: '#0077aa', fontWeight: 700, mb: 1.5, mt: 2, fontSize: '15px' }}>
                     2. ผล Histamine (แยกแต่ละวัตถุดิบ)
                   </Typography>
                   <Stack spacing={1.5}>
@@ -492,6 +512,34 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                         </Box>
                       ))}
                   </Stack>
+
+                  {/* 3. ฝากจนถึงวันที่ */}
+                  <Typography sx={{ color: '#0077aa', fontWeight: 700, mb: 1, mt: 2.5, fontSize: '15px' }}>
+                    3. ฝากจนถึงวันที่ <span style={{ color: 'red' }}>*</span>
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="date"
+                    value={depositDays}
+                    onChange={(e) => setDepositDays(e.target.value)}
+                    sx={{ width: '200px', bgcolor: '#fff' }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  {/* 4. หมายเหตุ */}
+                  <Typography sx={{ color: '#0077aa', fontWeight: 700, mb: 1, mt: 2.5, fontSize: '15px' }}>
+                    4. หมายเหตุ
+                  </Typography>
+                  <TextField
+                    size="small"
+                    label="หมายเหตุ (ถ้ามี)"
+                    value={coldRemark}
+                    onChange={(e) => setColdRemark(e.target.value)}
+                    fullWidth
+                    multiline
+                    rows={2}
+                    sx={{ bgcolor: '#fff' }}
+                  />
                 </Box>
               )}
             </Box>
@@ -541,6 +589,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         approver={approver} production={production} qccheck_cold={qccheck_cold}
         prepare_mor_night={prepare_mor_night} mapping_id={mapping_id}
         storage_purpose={storagePurpose}
+        depositDays={depositDays || null}
+        coldRemark={coldRemark || null}
         histamineMap={histamineMap}       // ✅ ส่ง map ทั้งก้อน
         materials={processedMaterials.length > 0 ? processedMaterials : materials}
       />

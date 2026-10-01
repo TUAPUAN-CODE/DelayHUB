@@ -156,6 +156,55 @@ module.exports = {
       env: {
         NODE_ENV: 'production'
       }
+    },
+
+       // =========================
+    // RFID SERVICE (RFIDc1) - Reader 1
+    // =========================
+    {
+      name: 'rfidc1-service',
+      script: './RFIDc1.js',
+      cwd: './',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false ,
+      restart_delay: 3000,
+      max_memory_restart: '256M',
+
+      out_file: './logs/rfidc1-out.log',
+      error_file: './logs/rfidc1-error.log',
+
+      env: {
+        NODE_ENV: 'production',
+        READER_NO: '1',
+        READER_IP: '10.246.145.182',
+        READER_PORT: '49152',
+        READER_NAME: 'RFID_READER_1',
+      }
+    },
+
+    // =========================
+    // PRINT AGENT (เครื่องพิมพ์สลิป นอกโปรเจกต์)
+    // =========================
+    {
+      name: 'print-agent',
+      script: './server.js',
+      cwd: 'I:/print-agent (4)/print-agent',
+      cwd: 'I:/I-Tail-PFCM/print-agent/print-agent',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      restart_delay: 3000,
+      max_memory_restart: '512M',
+
+      out_file: 'I:/I-Tail-PFCM/print-agent/print-agent/pm2-out.log',
+      error_file: 'I:/I-Tail-PFCM/print-agent/print-agent/pm2-error.log',
+
+      env: {
+        NODE_ENV: 'production'
+      }
     }
 
   ]

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, TablePagination, IconButton, Chip } from '@mui/material';
+import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, TablePagination, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress } from '@mui/material';
 import { LiaShoppingCartSolid } from 'react-icons/lia';
 import { InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -38,7 +38,7 @@ const getRemappedRow = (row) => {
     };
   }
 
-  if (gid === 85 || gid === 49) {
+  if (gid === 85 || gid === 49 || gid === 82) {
     const colA = (row.out_cold_date && row.out_cold_date !== '-' && row.out_cold_date !== null)
       ? row.out_cold_date
       : (row.rmit_date_mix ?? null);
@@ -78,7 +78,30 @@ const getRemappedRow = (row) => {
 
 const isSpecialGroup = (row) => {
   const gid = Number(row.rm_group_id);
-  return gid === 55 || gid === 85 || gid === 49 || gid === 46;
+  return gid === 55 || gid === 85 || gid === 49 || gid === 46  || gid === 82;
+};
+
+// รวม cold storage pairs ทั้ง 6 คู่ → เรียงตามวันที่เข้า
+const getSortedColdStoragePairs = (row) => {
+  const candidates = [
+    { in: row.come_cold_date,           out: row.out_cold_date           },
+    { in: row.come_cold_date_two,       out: row.out_cold_date_two       },
+    { in: row.come_cold_date_three,     out: row.out_cold_date_three     },
+    { in: row.cs_come_cold_date,        out: row.cs_out_cold_date        },
+    { in: row.cs_come_cold_date_two,    out: row.cs_out_cold_date_two    },
+    { in: row.cs_come_cold_date_three,  out: row.cs_out_cold_date_three  },
+  ].filter(p => p.in && p.in !== '-');
+
+  candidates.sort((a, b) => {
+    const da = new Date(a.in);
+    const db = new Date(b.in);
+    if (isNaN(da)) return 1;
+    if (isNaN(db)) return -1;
+    return da - db;
+  });
+
+  while (candidates.length < 6) candidates.push({ in: null, out: null });
+  return candidates;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -153,7 +176,7 @@ const joinDateTimeParts = (date, hour, minute) => {
 // ─────────────────────────────────────────────────────────────
 const calculateDBS1FromMapped = (mapped, row) => {
   const gid = Number(row.rm_group_id);
-  if (gid === 49 || gid === 85 || gid === 46) return '-';
+  if (gid === 49 || gid === 85 || gid === 46 || gid === 82) return '-';
   return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._B));
 };
 
@@ -231,14 +254,18 @@ const calculateDBS4FromMapped = (mapped, isSpecial = false, row = null) => {
     return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._F));
   }
 
-  const dbs1Min = calculateMinutesDifference(mapped._A, mapped._B);
-  let lastColdOut = null;
-  if (mapped._E3 && mapped._E3 !== '-') lastColdOut = mapped._E3;
-  else if (mapped._E && mapped._E !== '-') lastColdOut = mapped._E;
-  else if (mapped._C && mapped._C !== '-') lastColdOut = mapped._C;
-  const dbs3Min = calculateMinutesDifference(lastColdOut, mapped._F);
-  if (dbs1Min !== null && dbs3Min !== null) return formatMinutesToTime(dbs1Min + dbs3Min);
-  return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._F));
+  const min1 = calcDBS1Minutes(mapped, row);
+  const min3 = calcDBS3Minutes(mapped, isSpecial);
+
+  // ✅ ถ้า DBS1 และ DBS3 ไม่มีค่าทั้งคู่ → ใช้ _A ถึง _F
+  if (min1 === null && min3 === null) {
+    return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._F));
+  }
+
+  if (min1 !== null && min3 !== null) return formatMinutesToTime(min1 + min3);
+  if (min1 !== null) return formatMinutesToTime(min1);
+  if (min3 !== null) return formatMinutesToTime(min3);
+  return '-';
 };
 
 const calcDBS4Minutes = (mapped, isSpecial, row = null) => {
@@ -253,19 +280,24 @@ const calcDBS4Minutes = (mapped, isSpecial, row = null) => {
     if (p2 !== null) return p2;
     return calculateMinutesDifference(mapped._A, mapped._F);
   }
-  const d1 = calculateMinutesDifference(mapped._A, mapped._B);
-  let lastOut = null;
-  if (mapped._E3 && mapped._E3 !== '-') lastOut = mapped._E3;
-  else if (mapped._E && mapped._E !== '-') lastOut = mapped._E;
-  else if (mapped._C && mapped._C !== '-') lastOut = mapped._C;
-  const d3 = calculateMinutesDifference(lastOut, mapped._F);
-  if (d1 !== null && d3 !== null) return d1 + d3;
-  return calculateMinutesDifference(mapped._A, mapped._F);
+
+  const min1 = calcDBS1Minutes(mapped, row);
+  const min3 = calcDBS3Minutes(mapped, isSpecial);
+
+  // ✅ ถ้า DBS1 และ DBS3 ไม่มีค่าทั้งคู่ → ใช้ rmit_date (_A) ถึง sc_pack_date (_F)
+  if (min1 === null && min3 === null) {
+    return calculateMinutesDifference(mapped._A, mapped._F);
+  }
+
+  if (min1 !== null && min3 !== null) return min1 + min3;
+  if (min1 !== null) return min1;
+  if (min3 !== null) return min3;
+  return null;
 };
 
 const calcDBS1Minutes = (mapped, row) => {
   const gid = Number(row.rm_group_id);
-  if (gid === 49 || gid === 85 || gid === 46) return null;
+  if (gid === 49 || gid === 85 || gid === 46 || gid === 82) return null;
   return calculateMinutesDifference(mapped._A, mapped._B);
 };
 
@@ -789,10 +821,190 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
 // ─────────────────────────────────────────────────────────────
 // ROW COMPONENT
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// TraceBackModal — แสดงข้อมูล Trace Back (WC + PrintMasterSlip)
+// ─────────────────────────────────────────────────────────────
+const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, slipData, slipLoading, slipError }) => {
+  const woInfo = data && data.length > 0 ? data[0] : null;
+
+  const slipFields = slipData ? [
+    { label: 'Slip ID',       value: slipData.slip_id },
+    { label: 'Type',          value: slipData.type_choice },
+    { label: 'วันที่ส่ง',    value: slipData.send_date ? String(slipData.send_date).slice(0,10) : '-' },
+    { label: 'ลำดับการใช้',  value: slipData.seq_use },
+    { label: 'Line',          value: slipData.line_name },
+    { label: 'Code Mat',      value: slipData.code_mat },
+    { label: 'Batch No',      value: slipData.batch_no },
+    { label: 'วันที่รับเข้า', value: slipData.receive_date ? String(slipData.receive_date).slice(0,10) : '-' },
+    { label: 'วันที่ผลิต',   value: slipData.produce_date ? String(slipData.produce_date).slice(0,10) : '-' },
+    { label: 'Box No',        value: slipData.box_no },
+    { label: 'LOT',           value: slipData.lot },
+    { label: 'Roll No',       value: slipData.roll_no },
+    { label: 'HU',            value: slipData.hu },
+    { label: 'Size',          value: slipData.size },
+    { label: 'TE',            value: slipData.te },
+    { label: 'จำนวน',        value: slipData.qty },
+    { label: 'หมายเหตุ',     value: slipData.remark },
+  ] : [];
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth
+      PaperProps={{ sx: { borderRadius: '16px', maxHeight: '90vh' } }}>
+      <DialogTitle sx={{
+        background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+        color: '#fff', fontSize: '18px', fontWeight: '600', padding: '20px 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <span>Trace Back — WO: {idIgd || '-'}{idIgdNo != null ? ` / Basket: ${idIgdNo}` : ''}</span>
+        {woInfo && (
+          <span style={{ fontSize: '13px', fontWeight: '400', opacity: 0.85 }}>
+            {woInfo.ProductCode} | {woInfo.packLine} | {woInfo.Shift}
+          </span>
+        )}
+      </DialogTitle>
+
+      <DialogContent sx={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+        {/* ── PrintMasterSlip Section ── */}
+        <Box>
+          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#1565C0', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            📦 ข้อมูลบรรจุภัณฑ์ (PrintMasterSlip)
+          </Box>
+          {slipLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#666', fontSize: '13px' }}>
+              <CircularProgress size={16} sx={{ color: '#1976D2' }} /> กำลังโหลด...
+            </Box>
+          )}
+          {!slipLoading && slipError && (
+            <Box sx={{ color: '#c62828', fontSize: '13px' }}>{slipError}</Box>
+          )}
+          {!slipLoading && !slipError && slipData && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, p: 2, backgroundColor: '#F3F8FF', borderRadius: '10px', fontSize: '13px' }}>
+              {slipFields.map(({ label, value }) => (
+                <Box key={label} sx={{ display: 'flex', gap: 0.5 }}>
+                  <span style={{ color: '#1565C0', fontWeight: '600' }}>{label}:</span>
+                  <span style={{ color: '#333' }}>{value ?? '-'}</span>
+                </Box>
+              ))}
+            </Box>
+          )}
+          {!slipLoading && !slipError && !slipData && (
+            <Box sx={{ color: '#90A4AE', fontSize: '13px' }}>ไม่มีข้อมูล Package (mat_pkg ว่าง)</Box>
+          )}
+        </Box>
+
+        {/* ── WC Ingredient Section ── */}
+        <Box>
+          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#1565C0', mb: 1.5 }}>
+            🧪 ข้อมูล Ingredient จาก WC Database
+          </Box>
+
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, gap: 2 }}>
+            <CircularProgress size={32} sx={{ color: '#1976D2' }} />
+            <span style={{ color: '#666', fontSize: '14px' }}>กำลังโหลดข้อมูล...</span>
+          </Box>
+        )}
+
+        {!loading && error && (
+          <Box sx={{ textAlign: 'center', py: 4, color: '#c62828', fontSize: '14px' }}>
+            {error}
+          </Box>
+        )}
+
+        {!loading && !error && data && data.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 4, color: '#90A4AE', fontSize: '14px' }}>
+            ไม่พบข้อมูล Trace Back สำหรับ WO นี้
+          </Box>
+        )}
+
+        {!loading && !error && data && data.length > 0 && (
+          <>
+            {/* WO Info */}
+            <Box sx={{
+              display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3,
+              p: 2, backgroundColor: '#E3F2FD', borderRadius: '10px', fontSize: '13px'
+            }}>
+              {[
+                { label: 'WO No', value: woInfo.WONo },
+                { label: 'วันที่', value: woInfo.Date ? String(woInfo.Date).slice(0, 10) : '-' },
+                { label: 'Shift', value: woInfo.Shift },
+                { label: 'Product Code', value: woInfo.ProductCode },
+                { label: 'WO Batch', value: woInfo.WOBatchNo },
+                { label: 'Pack Line', value: woInfo.packLine },
+                { label: 'State', value: woInfo.state },
+              ].map(({ label, value }) => (
+                <Box key={label} sx={{ display: 'flex', gap: 1 }}>
+                  <span style={{ color: '#1565C0', fontWeight: '600' }}>{label}:</span>
+                  <span style={{ color: '#333' }}>{value ?? '-'}</span>
+                </Box>
+              ))}
+            </Box>
+
+            {/* Ingredients Table */}
+            <Box sx={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#1976D2', color: '#fff' }}>
+                    {[
+                      '#', 'WO No', 'Basket', 'Material Code', 'Material Name', 'Short Name',
+                      'Ingredient Batch', 'Std Wt', 'Min Wt', 'Max Wt', 'Net Wt',
+                      'Percentage', 'Mixing Time', 'Mixing End Time'
+                    ].map((h, i) => (
+                      <th key={i} style={{
+                        padding: '10px 12px', textAlign: i > 5 ? 'right' : 'left',
+                        fontWeight: '600', whiteSpace: 'nowrap',
+                        borderBottom: '2px solid #1565C0'
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((row, idx) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#F5F9FF' }}>
+                                            <td style={{ padding: '9px 12px', color: '#999', borderBottom: '1px solid #E3F2FD' }}>{idx + 1}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', fontWeight: '600', color: '#1565C0' }}>{row.WONo ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', fontWeight: '600', color: '#1565C0' }}>{row.BasketNumber ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap' }}>{row.MaterialCode ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD' }}>{row.MaterialName ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', color: '#555' }}>{row.MaterialShortName ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD' }}>{row.IngredientBatchNo ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right' }}>{row.StdWt != null ? Number(row.StdWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', color: '#1976D2' }}>{row.MinWt != null ? Number(row.MinWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', color: '#1976D2' }}>{row.MaxWt != null ? Number(row.MaxWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', fontWeight: '600' }}>{row.NetWt != null ? Number(row.NetWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right' }}>{row.Percentage != null ? `${Number(row.Percentage).toFixed(2)}%` : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingTime ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingEndTime ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+
+            <Box sx={{ mt: 2, fontSize: '12px', color: '#90A4AE', textAlign: 'right' }}>
+              {data.length} รายการ
+            </Box>
+          </>
+        )}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ padding: '12px 24px' }}>
+        <Button onClick={onClose}
+          sx={{ borderRadius: '8px', textTransform: 'none', color: '#666', '&:hover': { backgroundColor: '#f5f5f5' } }}>
+          ปิด
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const Row = ({
   row, columnWidths, handleOpenModal, handleRowClick, handleOpenEditModal,
   handleOpenDeleteModal, handleOpenEditLineModal, handleOpenSuccess,
-  handleConfirmRow, selectedColor, openRowId, setOpenRowId, index, displayColumns
+  handleConfirmRow, selectedColor, openRowId, setOpenRowId, index, displayColumns,
+  handleOpenIngredientModal
 }) => {
   const { borderColor, statusMessage, hideDelayTime, percentage, formattedDelayTime } = getItemStatus(row);
   const backgroundColor = index % 2 === 0 ? '#ffffff' : '#F0F8FF';
@@ -817,16 +1029,17 @@ const Row = ({
 
   const overFlags = {};
   const displayRow = {};
+  const sortedColdPairs = getSortedColdStoragePairs(row);
 
   displayColumns.forEach(col => {
     switch (col) {
       case 'tro_id':
         displayRow[col] = row.tro_id;
         break;
-      case 'mapping_id':                              // ✅ เพิ่ม case นี้
+      case 'mapping_id':
         displayRow[col] = row.mapping_id;
         break;
-      case 'withdraw_date':                              // ✅ เพิ่ม case นี้
+      case 'withdraw_date':
         displayRow[col] = row.withdraw_date;
         break;
       case 'dbs1':
@@ -848,24 +1061,18 @@ const Row = ({
       case 'rmit_date':
         displayRow[col] = mapped._A ?? '-';
         break;
-      case 'come_cold_date':
-        displayRow[col] = mapped._B ?? '-';
-        break;
-      case 'out_cold_date':
-        displayRow[col] = mapped._C ?? '-';
-        break;
-      case 'come_cold_date_two':
-        displayRow[col] = special ? '-' : (mapped._D ?? '-');
-        break;
-      case 'out_cold_date_two':
-        displayRow[col] = special ? '-' : (mapped._E ?? '-');
-        break;
-      case 'come_cold_date_three':
-        displayRow[col] = special ? '-' : (mapped._D3 ?? '-');
-        break;
-      case 'out_cold_date_three':
-        displayRow[col] = special ? '-' : (mapped._E3 ?? '-');
-        break;
+      case 'cold_slot_1_in':  displayRow[col] = sortedColdPairs[0]?.in  ?? '-'; break;
+      case 'cold_slot_1_out': displayRow[col] = sortedColdPairs[0]?.out ?? '-'; break;
+      case 'cold_slot_2_in':  displayRow[col] = sortedColdPairs[1]?.in  ?? '-'; break;
+      case 'cold_slot_2_out': displayRow[col] = sortedColdPairs[1]?.out ?? '-'; break;
+      case 'cold_slot_3_in':  displayRow[col] = sortedColdPairs[2]?.in  ?? '-'; break;
+      case 'cold_slot_3_out': displayRow[col] = sortedColdPairs[2]?.out ?? '-'; break;
+      case 'cold_slot_4_in':  displayRow[col] = sortedColdPairs[3]?.in  ?? '-'; break;
+      case 'cold_slot_4_out': displayRow[col] = sortedColdPairs[3]?.out ?? '-'; break;
+      case 'cold_slot_5_in':  displayRow[col] = sortedColdPairs[4]?.in  ?? '-'; break;
+      case 'cold_slot_5_out': displayRow[col] = sortedColdPairs[4]?.out ?? '-'; break;
+      case 'cold_slot_6_in':  displayRow[col] = sortedColdPairs[5]?.in  ?? '-'; break;
+      case 'cold_slot_6_out': displayRow[col] = sortedColdPairs[5]?.out ?? '-'; break;
       case 'sc_pack_date':
         displayRow[col] = mapped._F ?? '-';
         break;
@@ -962,6 +1169,36 @@ const Row = ({
             </TableCell>
           );
         })}
+
+        {/* Ingredient button */}
+        <TableCell
+          align="center"
+          onClick={(e) => { e.stopPropagation(); handleOpenIngredientModal?.(row); }}
+          style={{
+            width: '100px',
+            borderLeft: '1px solid #E3F2FD',
+            borderTop: '1px solid #E3F2FD',
+            borderBottom: '1px solid #E3F2FD',
+            borderRight: '1px solid #E3F2FD',
+            height: '48px',
+            padding: '0px 8px',
+            backgroundColor,
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#E3F2FD'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = backgroundColor; }}
+        >
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            padding: '4px 8px', borderRadius: '6px',
+            backgroundColor: row.id_igd ? '#1976D2' : '#B0BEC5',
+            color: '#fff',
+            fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap'
+          }}>
+            🔍 Trace Back
+          </span>
+        </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ padding: "0px", border: "0px solid" }}></TableCell>
@@ -1024,13 +1261,28 @@ const TableMainPrep = ({
   const [saveEditsError, setSaveEditsError] = useState('');
   const [saveEditsSuccess, setSaveEditsSuccess] = useState('');
 
+  // Trace Back modal states
+  const [ingredientModalOpen, setIngredientModalOpen] = useState(false);
+  const [ingredientIdIgd, setIngredientIdIgd] = useState('');
+  const [ingredientIdIgdNo, setIngredientIdIgdNo] = useState(null);
+  const [ingredientData, setIngredientData] = useState([]);
+  const [ingredientLoading, setIngredientLoading] = useState(false);
+  const [ingredientError, setIngredientError] = useState('');
+  const [traceBackSlipData, setTraceBackSlipData] = useState(null);
+  const [traceBackSlipLoading, setTraceBackSlipLoading] = useState(false);
+  const [traceBackSlipError, setTraceBackSlipError] = useState('');
+
   // ✅ เพิ่ม remark_dalay เป็นคอลัมน์สุดท้าย
   const displayColumns = [
     'mapping_id', 'withdraw_date','production', 'mat_name', 'batch_after', 'group_no', 'weight_RM', 'detail',
     'color', 'odor', 'texture',
-    'rmit_date', 'come_cold_date', 'out_cold_date',
-    'come_cold_date_two', 'out_cold_date_two',
-    'come_cold_date_three', 'out_cold_date_three',
+    'rmit_date',
+    'cold_slot_1_in', 'cold_slot_1_out',
+    'cold_slot_2_in', 'cold_slot_2_out',
+    'cold_slot_3_in', 'cold_slot_3_out',
+    'cold_slot_4_in', 'cold_slot_4_out',
+    'cold_slot_5_in', 'cold_slot_5_out',
+    'cold_slot_6_in', 'cold_slot_6_out',
     'sc_pack_date',
     'dbs1', 'dbs2', 'dbs3', 'dbs4',
     'remark_dalay'
@@ -1224,7 +1476,7 @@ const TableMainPrep = ({
 
     drawText('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', pageW / 2, 9, { fontSize: 10, bold: true, align: 'center' });
     drawText('รายงานควบคุมเวลากระบวนการผลิต โรงผลิตอาหารสัตว์เลี้ยง (Delay Time for Production Control Report)', pageW / 2, 15, { fontSize: 8, align: 'center' });
-    drawText('F3PFPF67-0-25/08/25', pageW - margin, 9, { fontSize: 6, align: 'right' });
+    drawText('F3PFPF67-2-19/06/26', pageW - margin, 9, { fontSize: 6, align: 'right' });
 
     const infoY = 20;
     const infoItems = [
@@ -1400,8 +1652,8 @@ const TableMainPrep = ({
     const blk2X = blk1X + colNote + colDesc + 4;
     drawMatTable(blk2X, legendY, 25, 5, [
       { mat: 'เนื้อสัตว์ (วัว/ เป็ด/ แกะ)', v: [3, 9, 2, 5] }, { mat: 'เนื้อไก่ (ไก่/ ไก่งวง)', v: [2, 5, 2, 4] },
-      { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [6, 6, 2, 8] },
-      { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 3, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
+      { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [5, 6, 2, 7] },
+      { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 8, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
     ]);
     const blk3X = blk2X + 25 + 5 * 4 + 4;
     drawMatTable(blk3X, legendY, 25, 5, [
@@ -1493,7 +1745,7 @@ const TableMainPrep = ({
     const drawPageHeader = (pageNumber, totalPages) => {
       drawText('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', pageW / 2, 12, { fontSize: 16, bold: true, align: 'center' });
       drawText('รายงานควบคุมเวลากระบวนการผลิต โรงผลิตอาหารสัตว์เลี้ยง (Delay Time for Production Control Report)', pageW / 2, 19, { fontSize: 10, align: 'center' });
-      drawText('F3PFPF67-0-25/08/25', pageW - margin, 12, { fontSize: 8, align: 'right' });
+      drawText('F3PFPF67-2-19/06/26', pageW - margin, 12, { fontSize: 8, align: 'right' });
       const infoY = 24;
       const infoItems = [
         { label: 'Date:', value: exportDate || '', dotWidth: 30 },
@@ -1581,8 +1833,8 @@ const TableMainPrep = ({
       const blk2X = blk1X + colNote + colDesc + 4;
       drawMatTable2(blk2X, legendY, 28, 5, [
         { mat: 'เนื้อสัตว์ (วัว/ เป็ด/ แกะ)', v: [3, 9, 2, 5] }, { mat: 'เนื้อไก่ (ไก่/ ไก่งวง)', v: [2, 5, 2, 4] },
-        { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [6, 6, 2, 8] },
-        { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 3, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
+        { mat: 'ปลาแกะ (MK/ SE/ SD)', v: [3, 6, 2, 5] }, { mat: 'ปลาแกะ (TN/ SM)', v: [5, 6, 2, 7] },
+        { mat: 'Shelf fish (กุ้ง/ ปลาหมึก/ หอย)', v: [2, 8, 2, 4] }, { mat: 'เลือดทูน่า/ เศษทูน่า', v: [2, 4, 2, 4] },
       ]);
       const blk3X = blk2X + 28 + 5 * 4 + 4;
       drawMatTable2(blk3X, legendY, 38, 5, [
@@ -1592,13 +1844,45 @@ const TableMainPrep = ({
       ]);
       const blk4X = blk3X + 38 + 5 * 4 + 4;
       drawMatTable2(blk4X, legendY, 27, 5, [
-        { mat: 'Chunk', v: [1, 12, 2, 3] }, { mat: 'Stuff Chunk (แท่ง)', v: [2, 48, 3, 5] },
-        { mat: 'Stuff Chunk (เส้น)', v: [2, 9, 3, 5] }, { mat: 'CCM/ MDM อบ', v: [4, 2, 2, 6] },
-        { mat: 'CCM/ MDM อบ (Cai 300)*', v: ['-', '-', '-', 3] }, { mat: 'สาวละสาย/ เกรวี่', v: ['-', 6, '-', 2] },
+       { mat: 'Chunk (Normal/ Flat/ IJ)', v: [1, 12, 2, 3] }, { mat: 'Stuff Chunk (แท่ง)', v: [2, 48, 3, 5] },
+        { mat: 'Stuff Chunk (เส้น)', v: [2, 9, 3, 5] }, { mat: 'CCM/ MDM อบ', v: [3, 3, 2, 5] },
+       { mat: 'CCM/ MDM อบ (Can 300)*', v: ['-', '-', '-', 3] }, { mat: 'สาวละสาย/ เกรวี่', v: ['-', 6, '-', 2] },
       ]);
+
+      // ✅ Block 5: Loaf table
+      const blk5X = blk4X + 27 + 5 * 4 + 4;
+      const loafMatW = 20, loafValW = 13;
+      const loafHeaders = ['วัตถุดิบ', 'ช่วงที่ 1', 'ช่วงที่ 2', 'ออกห้องเย็น -\nผสมเสร็จ', 'ผสมเสร็จ -\nบรรจุเสร็จ'];
+      const loafWidths = [loafMatW, loafValW, loafValW, loafValW, loafValW];
+      let loafHX = blk5X;
+      loafHeaders.forEach((h, i) => { drawCell(h, loafHX, legendY, loafWidths[i], noteRowH * 2, { fill: hFillLegend, bold: true, fontSize: 5.5 }); loafHX += loafWidths[i]; });
+      [
+        { mat: 'Loaf (ของสด)', v: [1, 6, 1, 2] },
+        { mat: 'Loaf (ของสุก)**', v: ['ตามชนิดวัตถุดิบ', 'ตามชนิดวัตถุดิบ', 1, 2] },
+        { mat: 'Loaf sachet', v: ['ตามชนิดวัตถุดิบ', 'ตามชนิดวัตถุดิบ', '1.0', '1.0'] },
+        { mat: 'Loaf Mouse', v: ['ตามชนิดวัตถุดิบ', 'ตามชนิดวัตถุดิบ', '1.5', '1.5'] },
+      ].forEach((r, i) => {
+        const ry = legendY + noteRowH * 2 + i * noteRowH;
+        let rx = blk5X;
+        drawCell(r.mat, rx, ry, loafWidths[0], noteRowH, { fontSize: 5.5, align: 'left' }); rx += loafWidths[0];
+        r.v.forEach((val, j) => { drawCell(String(val), rx, ry, loafWidths[j + 1], noteRowH, { fontSize: 5.5 }); rx += loafWidths[j + 1]; });
+      });
+
+      // ✅ Freeze storage note table, stacked below the Loaf table
+      const freezeY = legendY + noteRowH * 2 + 4 * noteRowH;
+      const freezeWidths = [loafMatW, 20, 32];
+      const freezeHeaders = ['วัตถุดิบ', 'ห้อง Freeze (-18c)', 'ออกห้อง Freeze (-18c) - เข้าห้องเย็น PF'];
+      let freezeHX = blk5X;
+      freezeHeaders.forEach((h, i) => { drawCell(h, freezeHX, freezeY, freezeWidths[i], noteRowH, { fill: hFillLegend, bold: true, fontSize: 4.5 }); freezeHX += freezeWidths[i]; });
+      const freezeRow = ['Chunk (Normal/ Flat/ IJ)', '*1 เดือน', '*1 ชั่วโมง'];
+      let freezeRX = blk5X;
+      freezeRow.forEach((val, i) => { drawCell(val, freezeRX, freezeY + noteRowH, freezeWidths[i], noteRowH, { fontSize: 4.5, align: i === 0 ? 'left' : 'center' }); freezeRX += freezeWidths[i]; });
 
       const legendBlockH = noteRowH * 2 + 6 * noteRowH;
       const footerY = legendY + legendBlockH + 5;
+      drawText('** ปลาแกะ(TN/ SM) ช่วงที่ 1 เวลา 5 ชั่วโมง โดยแบ่งเป็นอบเสร็จ - cooling เสร็จ 2 ชั่วโมง และ Cooling เสร็จ-เข้าห้องเย็น 3 ชั่วโมง',
+      blk2X, footerY, { fontSize: 6.5, align: 'left' });
+      drawText('*โดยระบุในช่อง Remark', blk5X, freezeY + noteRowH * 2 + 3, { fontSize: 6.5, align: 'left' });
       drawText('เอกสารการควบคุม Delay time:', margin, footerY, { fontSize: 8, align: 'left' });
       drawText('W3QCPF18, SQCIS001/ ISPP018', margin, footerY + 5, { fontSize: 8, align: 'left' });
 
@@ -1714,10 +1998,12 @@ const TableMainPrep = ({
       group_no: "ชุดที่",
       rmit_date: "เวลาเตรียมเสร็จ (A)\nสำหรับ Loaf สุก เวลาออกห้องเย็น\nสำหรับ Loaf ดิบ เวลาบดเสร็จ",
       color: "สี", odor: "กลิ่น", texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
-      come_cold_date: "เข้าห้องเย็น1 (B)\nสำหรับ Loaf สุก เวลาเริ่มผสม\nสำหรับ Loaf ดิบ เวลาเริ่มผสม",
-      come_cold_date_two: "เข้าห้องเย็น2 (D)", come_cold_date_three: "เข้าห้องเย็น3",
-      out_cold_date: "ออกห้องเย็น1 (C)\nสำหรับ Loaf สุก เวลาผสมเสร็จ\nสำหรับ Loaf ดิบ เวลาผสมเสร็จ",
-      out_cold_date_two: "ออกห้องเย็น2 (E)", out_cold_date_three: "ออกห้องเย็น3",
+      cold_slot_1_in: "เข้าห้องเย็น1", cold_slot_1_out: "ออกห้องเย็น1",
+      cold_slot_2_in: "เข้าห้องเย็น2", cold_slot_2_out: "ออกห้องเย็น2",
+      cold_slot_3_in: "เข้าห้องเย็น3", cold_slot_3_out: "ออกห้องเย็น3",
+      cold_slot_4_in: "เข้าห้องเย็น4", cold_slot_4_out: "ออกห้องเย็น4",
+      cold_slot_5_in: "เข้าห้องเย็น5", cold_slot_5_out: "ออกห้องเย็น5",
+      cold_slot_6_in: "เข้าห้องเย็น6", cold_slot_6_out: "ออกห้องเย็น6",
       sc_pack_date: "บรรจุเสร็จ (F)", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4",
       remark_dalay: "หมายเหตุ"
     };
@@ -1725,6 +2011,7 @@ const TableMainPrep = ({
     const exportData = filteredRows.map(row => {
       const m = getRemappedRow(row);
       const sp = isSpecialGroup(row);
+      const cp = getSortedColdStoragePairs(row);
       const exportRow = {};
       displayColumns.forEach(col => {
         switch (col) {
@@ -1733,12 +2020,18 @@ const TableMainPrep = ({
           case 'dbs3': exportRow[headerNames[col]] = calculateDBS3FromMapped(m, sp); break;
           case 'dbs4': exportRow[headerNames[col]] = calculateDBS4FromMapped(m, sp, row); break;
           case 'rmit_date': exportRow[headerNames[col]] = m._A ?? '-'; break;
-          case 'come_cold_date': exportRow[headerNames[col]] = m._B ?? '-'; break;
-          case 'out_cold_date': exportRow[headerNames[col]] = m._C ?? '-'; break;
-          case 'come_cold_date_two': exportRow[headerNames[col]] = sp ? '-' : (m._D ?? '-'); break;
-          case 'out_cold_date_two': exportRow[headerNames[col]] = sp ? '-' : (m._E ?? '-'); break;
-          case 'come_cold_date_three': exportRow[headerNames[col]] = sp ? '-' : (m._D3 ?? '-'); break;
-          case 'out_cold_date_three': exportRow[headerNames[col]] = sp ? '-' : (m._E3 ?? '-'); break;
+          case 'cold_slot_1_in':  exportRow[headerNames[col]] = cp[0]?.in  ?? '-'; break;
+          case 'cold_slot_1_out': exportRow[headerNames[col]] = cp[0]?.out ?? '-'; break;
+          case 'cold_slot_2_in':  exportRow[headerNames[col]] = cp[1]?.in  ?? '-'; break;
+          case 'cold_slot_2_out': exportRow[headerNames[col]] = cp[1]?.out ?? '-'; break;
+          case 'cold_slot_3_in':  exportRow[headerNames[col]] = cp[2]?.in  ?? '-'; break;
+          case 'cold_slot_3_out': exportRow[headerNames[col]] = cp[2]?.out ?? '-'; break;
+          case 'cold_slot_4_in':  exportRow[headerNames[col]] = cp[3]?.in  ?? '-'; break;
+          case 'cold_slot_4_out': exportRow[headerNames[col]] = cp[3]?.out ?? '-'; break;
+          case 'cold_slot_5_in':  exportRow[headerNames[col]] = cp[4]?.in  ?? '-'; break;
+          case 'cold_slot_5_out': exportRow[headerNames[col]] = cp[4]?.out ?? '-'; break;
+          case 'cold_slot_6_in':  exportRow[headerNames[col]] = cp[5]?.in  ?? '-'; break;
+          case 'cold_slot_6_out': exportRow[headerNames[col]] = cp[5]?.out ?? '-'; break;
           case 'sc_pack_date': exportRow[headerNames[col]] = m._F ?? '-'; break;
           case 'remark_dalay': exportRow[headerNames[col]] = row.remark_dalay ?? '-'; break;
           default: exportRow[headerNames[col]] = row[col] ?? '-';
@@ -1772,10 +2065,13 @@ const TableMainPrep = ({
     group_no: "ชุดที่",
     rmit_date: "เวลาเตรียมเสร็จ (A)\nสำหรับ Loaf สุก เวลาออกห้องเย็น\nสำหรับ Loaf ดิบ เวลาบดเสร็จ",
     color: "สี", odor: "กลิ่น", texture: "เนื้อสัมผัส", weight_RM: "น้ำหนักวัตถุดิบ", detail: "รายละเอียดวัตถุดิบ",
-    come_cold_date: "เข้าห้องเย็น1 (B)\nสำหรับ Loaf สุก เวลาเริ่มผสม\nสำหรับ Loaf ดิบ เวลาเริ่มผสม",
-    come_cold_date_two: "เข้าห้องเย็น2 (D)", come_cold_date_three: "เข้าห้องเย็น3",
-    out_cold_date: "ออกห้องเย็น1 (C)\nสำหรับ Loaf สุก เวลาผสมเสร็จ\nสำหรับ Loaf ดิบ เวลาผสมเสร็จ",
-    out_cold_date_two: "ออกห้องเย็น2 (E)", out_cold_date_three: "ออกห้องเย็น3",
+    cold_slot_1_in: "เข้าห้องเย็น1 (B) สำหรับ Loaf สุก เวลาเริ่มผสมสำหรับ Loaf ดิบ เวลาเริ่มผสม", 
+    cold_slot_1_out: "ออกห้องเย็น1 (C)สำหรับ Loaf สุก เวลาผสมเสร็จสำหรับ Loaf ดิบ เวลาผสมเสร็จ",
+    cold_slot_2_in: "เข้าห้องเย็น2 (D)", cold_slot_2_out: "ออกห้องเย็น2 (E)",
+    cold_slot_3_in: "เข้าห้องเย็น3", cold_slot_3_out: "ออกห้องเย็น3",
+    cold_slot_4_in: "เข้าห้องเย็น4", cold_slot_4_out: "ออกห้องเย็น4",
+    cold_slot_5_in: "เข้าห้องเย็น5", cold_slot_5_out: "ออกห้องเย็น5",
+    cold_slot_6_in: "เข้าห้องเย็น6", cold_slot_6_out: "ออกห้องเย็น6",
     sc_pack_date: "บรรจุเสร็จ (F)", dbs1: "DBS 1", dbs2: "DBS 2", dbs3: "DBS 3", dbs4: "DBS 4",
     remark_dalay: "หมายเหตุ"
   };
@@ -1784,7 +2080,11 @@ const TableMainPrep = ({
     if (header === "mapping_id") return "100px";
     if (["production"].includes(header)) return "150px";
     if (header === "mat_name") return "200px";
-    if (["rmit_date", "color", "odor", "texture", "out_cold_date", "out_cold_date_two", "out_cold_date_three", "come_cold_date", "come_cold_date_two", "come_cold_date_three", "sc_pack_date"].includes(header)) return "150px";
+    if (["rmit_date", "color", "odor", "texture", "sc_pack_date",
+      "cold_slot_1_in", "cold_slot_1_out", "cold_slot_2_in", "cold_slot_2_out",
+      "cold_slot_3_in", "cold_slot_3_out", "cold_slot_4_in", "cold_slot_4_out",
+      "cold_slot_5_in", "cold_slot_5_out", "cold_slot_6_in", "cold_slot_6_out",
+    ].includes(header)) return "150px";
     if (["weight_RM"].includes(header)) return "90px";
     if (header === "batch_after") return "120px";
     if (header === "group_no") return "120px";
@@ -1796,6 +2096,78 @@ const TableMainPrep = ({
 
   const handleDeleteItemWithDelay = (row) => handleOpenDeleteModal({ ...row });
 
+  const handleOpenIngredientModal = async (row) => {
+  const mappingId = row.mapping_id;
+  const legacyIdIgd = row.id_igd;
+  const legacyIdIgdNo = row.id_igd_no ?? null;
+  const matPkg = row.mat_pkg || null;
+
+  setIngredientData([]);
+  setIngredientError('');
+  setTraceBackSlipData(null);
+  setTraceBackSlipError('');
+  setIngredientModalOpen(true);
+  setIngredientLoading(true);
+
+  try {
+    let entries = [];
+    if (mappingId) {
+      try {
+        const mapRes = await axios.get(`${API_URL}/api/pack/ingredient/wo-mapping/${mappingId}`);
+        if (mapRes.data.success) entries = mapRes.data.data || [];
+      } catch (e) {
+        console.error('wo-mapping fetch error:', e);
+      }
+    }
+
+    if (entries.length === 0 && legacyIdIgd) {
+      entries = [{ wo_no: legacyIdIgd, basket_no: legacyIdIgdNo }];
+    }
+
+    setIngredientIdIgd(entries.map(e => e.wo_no).join(', ') || legacyIdIgd || '');
+    setIngredientIdIgdNo(entries.length === 1 ? entries[0].basket_no : null);
+
+    if (entries.length === 0) {
+      setIngredientError('รายการนี้ยังไม่มีรหัส WONO บันทึกไว้');
+    } else {
+      const results = await Promise.all(
+        entries.map(async (e) => {
+          try {
+            const params = { wo_no: e.wo_no };
+            if (e.basket_no != null) params.basket_no = e.basket_no;
+            const res = await axios.get(`${API_URL}/api/pack/ingredient/fetch-wo`, { params });
+            return res.data.success ? res.data.data : [];
+          } catch (err) {
+            console.error('Trace Back WC fetch error:', err);
+            return [];
+          }
+        })
+      );
+      const merged = results.flat();
+      if (merged.length === 0) {
+        setIngredientError('ไม่พบข้อมูล Trace Back สำหรับ WO นี้');
+      } else {
+        setIngredientData(merged);
+      }
+    }
+  } finally {
+    setIngredientLoading(false);
+  }
+
+  if (matPkg) {
+    setTraceBackSlipLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/pack/printmaster/by-id`, { params: { slip_id: matPkg } });
+      if (res.data.success) setTraceBackSlipData(res.data.data);
+      else setTraceBackSlipError(res.data.error || 'ไม่พบข้อมูล Slip');
+    } catch (err) {
+      console.error('Trace Back Slip fetch error:', err);
+      setTraceBackSlipError(err.response?.data?.error || 'ไม่สามารถดึงข้อมูล Slip ได้');
+    } finally {
+      setTraceBackSlipLoading(false);
+    }
+  }
+};
   const editedCount = Object.keys(editedCells).length;
 
   // ✅ มี filter ใดๆ ที่ user เลือกไว้แต่ยังไม่ได้กดค้นหา?
@@ -1983,9 +2355,9 @@ const TableMainPrep = ({
                   style={{
                     backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
                     borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
-                    borderRight: index === displayColumns.length - 1 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    borderRight: "1px solid rgba(255,255,255,0.1)",
                     fontSize: '14px', color: '#fff', padding: '12px', width: getColumnWidth(header), fontWeight: '600',
-                    borderTopLeftRadius: index === 0 ? '12px' : '0', borderTopRightRadius: index === displayColumns.length - 1 ? '12px' : '0',
+                    borderTopLeftRadius: index === 0 ? '12px' : '0',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}
                 >
@@ -1996,6 +2368,14 @@ const TableMainPrep = ({
                   </Box>
                 </TableCell>
               ))}
+              <TableCell align="center" style={{
+                backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
+                borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid #1976D2",
+                fontSize: '14px', color: '#fff', padding: '12px', width: '100px', fontWeight: '600',
+                borderTopRightRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                <Box style={{ fontSize: '14px', color: '#ffffff', letterSpacing: '0.3px' }}>Trace Back</Box>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
@@ -2009,11 +2389,12 @@ const TableMainPrep = ({
                   handleConfirmRow={onConfirmRow} selectedColor={selectedColor}
                   openRowId={openRowId} index={index} setOpenRowId={setOpenRowId}
                   displayColumns={displayColumns}
+                  handleOpenIngredientModal={handleOpenIngredientModal}
                 />
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={displayColumns.length} align="center"
+                <TableCell colSpan={displayColumns.length + 1} align="center"
                   sx={{ padding: "60px 20px", fontSize: "16px", color: "#90A4AE", fontWeight: '500' }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                     {!hasFetched ? (
@@ -2176,6 +2557,7 @@ const TableMainPrep = ({
                     previewData.map((row, rowIdx) => {
                       const m = getRemappedRow(row);
                       const sp = isSpecialGroup(row);
+                      const cp = getSortedColdStoragePairs(row);
 
                       const s1 = parseStandardDBSToMinutes(row.DBS1 ?? row.dbs1);
                       const s2 = parseStandardDBSToMinutes(row.DBS2 ?? row.dbs2);
@@ -2204,12 +2586,18 @@ const TableMainPrep = ({
                               case 'dbs3': cellValue = calculateDBS3FromMapped(m, sp); break;
                               case 'dbs4': cellValue = calculateDBS4FromMapped(m, sp, row); break;
                               case 'rmit_date': cellValue = m._A ?? ''; break;
-                              case 'come_cold_date': cellValue = m._B ?? ''; break;
-                              case 'out_cold_date': cellValue = m._C ?? ''; break;
-                              case 'come_cold_date_two': cellValue = sp ? '-' : (m._D ?? ''); break;
-                              case 'out_cold_date_two': cellValue = sp ? '-' : (m._E ?? ''); break;
-                              case 'come_cold_date_three': cellValue = sp ? '-' : (m._D3 ?? ''); break;
-                              case 'out_cold_date_three': cellValue = sp ? '-' : (m._E3 ?? ''); break;
+                              case 'cold_slot_1_in':  cellValue = cp[0]?.in  ?? ''; break;
+                              case 'cold_slot_1_out': cellValue = cp[0]?.out ?? ''; break;
+                              case 'cold_slot_2_in':  cellValue = cp[1]?.in  ?? ''; break;
+                              case 'cold_slot_2_out': cellValue = cp[1]?.out ?? ''; break;
+                              case 'cold_slot_3_in':  cellValue = cp[2]?.in  ?? ''; break;
+                              case 'cold_slot_3_out': cellValue = cp[2]?.out ?? ''; break;
+                              case 'cold_slot_4_in':  cellValue = cp[3]?.in  ?? ''; break;
+                              case 'cold_slot_4_out': cellValue = cp[3]?.out ?? ''; break;
+                              case 'cold_slot_5_in':  cellValue = cp[4]?.in  ?? ''; break;
+                              case 'cold_slot_5_out': cellValue = cp[4]?.out ?? ''; break;
+                              case 'cold_slot_6_in':  cellValue = cp[5]?.in  ?? ''; break;
+                              case 'cold_slot_6_out': cellValue = cp[5]?.out ?? ''; break;
                               case 'sc_pack_date': cellValue = m._F ?? ''; break;
                               case 'remark_dalay': cellValue = row.remark_dalay ?? ''; break;
                               default: cellValue = row[col] ?? '';
@@ -2504,6 +2892,19 @@ const TableMainPrep = ({
           </div>
         </div>
       )}
+
+      <IngredientModal
+        open={ingredientModalOpen}
+        onClose={() => setIngredientModalOpen(false)}
+        idIgd={ingredientIdIgd}
+        idIgdNo={ingredientIdIgdNo}
+        data={ingredientData}
+        loading={ingredientLoading}
+        error={ingredientError}
+        slipData={traceBackSlipData}
+        slipLoading={traceBackSlipLoading}
+        slipError={traceBackSlipError}
+      />
     </Paper>
   );
 };

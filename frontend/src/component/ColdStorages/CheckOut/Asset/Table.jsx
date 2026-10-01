@@ -34,9 +34,9 @@ const CUSTOM_COLUMN_WIDTHS = {
 // ฟังก์ชันเพื่อหาวันที่ล่าสุดในการเข้าห้องเย็น
 const getLatestComeColdDate = (row) => {
   const dates = [
-    row.come_cold_date,
-    row.come_cold_date_two,
-    row.come_cold_date_three
+    row.cs_come_cold_date,
+    row.cs_come_cold_date_two,
+    row.cs_come_cold_date_three
   ].filter(date => date); // Remove null/undefined
 
   console.log("เวลาเข้าห้องเย็นทั้งหมด", dates);
@@ -83,9 +83,9 @@ const formatTime = (minutes) => {
 const getLatestComeColdDateForMaterial = (material) => {
   // เก็บวันที่ทั้งหมดในอาร์เรย์
   const dates = [
-    material.come_cold_date,
-    material.come_cold_date_two,
-    material.come_cold_date_three
+    material.cs_come_cold_date,
+    material.cs_come_cold_date_two,
+    material.cs_come_cold_date_three
   ].filter(date => date); // กรองเอาเฉพาะค่าที่ไม่เป็น null หรือ undefined
 
   console.log("เวลาเข้าห้องเย็นทั้งหมดของวัตถุดิบ:", material.material, dates);
@@ -454,7 +454,7 @@ const calculateMaterialDelayTime = (material) => {
 const updateRmStatus = async (mapping_id) => {
   try {
     console.log('Attempting to update status for mapping_id:', mapping_id);
-    
+
     const response = await fetch(`${API_URL}/api/clodstorage/rmInTrolley`, {
       method: 'PUT',
       headers: {
@@ -472,7 +472,7 @@ const updateRmStatus = async (mapping_id) => {
 
     const data = await response.json();
     console.log('Update status response:', data);
-    
+
     return data;
   } catch (error) {
     console.error('Error updating RM status:', error);
@@ -705,21 +705,62 @@ const Row = ({
         <ActionButton
           width={CUSTOM_COLUMN_WIDTHS.export}
           onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering the row's onClick
-            // Add Delay Time to each material before sending to Edit Modal
+            e.stopPropagation();
+
+            // ✅ ฟังก์ชันหา cs_come_cold_date ล่าสุดของ material
+            const getLatestCsDate = (material) => {
+              const dates = [
+                material.cs_come_cold_date,
+                material.cs_come_cold_date_two,
+                material.cs_come_cold_date_three,
+                material.cs_come_cold_date_four,
+              ].filter(Boolean);
+              if (dates.length === 0) return null;
+              const latest = new Date(Math.max(...dates.map(d => new Date(d))));
+              return isNaN(latest.getTime()) ? null : latest;
+            };
+
+            // ✅ คำนวณ (now - cs_come_cold_date) เป็นชั่วโมง รูปแบบ HH.MM
+            const computeColdHHMM = (latestDate) => {
+              if (!latestDate) return 0;
+              const diffMs = new Date() - latestDate;
+              if (diffMs <= 0) return 0;
+              const totalMinutes = Math.floor(diffMs / (1000 * 60));
+              const hours = Math.floor(totalMinutes / 60);
+              const minutes = totalMinutes % 60;
+              // แปลงเป็น HH.MM (ไม่ใช่ทศนิยม เช่น 2h30m = 2.30)
+              return parseFloat(`${hours}.${String(minutes).padStart(2, '0')}`);
+            };
+
             const materialsWithDelayTime = row.materials.map(material => {
               const { statusMessage, color } = calculateMaterialDelayTime(material);
+
+              const latestCsDate = getLatestCsDate(material);
+              // ✅ cold = now - cs_come_cold_date (HH.MM format)
+              const computedCold = computeColdHHMM(latestCsDate);
+              // ✅ latestComeColdDate ส่งให้ ModalEditPD แสดงผล
+              const latestComeColdDate = latestCsDate ? latestCsDate.toISOString() : null;
+
               return {
                 ...material,
                 delayTime: statusMessage,
-                delayTimeColor: color
+                delayTimeColor: color,
+                latestComeColdDate,
+                formattedDelayTime: computedCold, // ✅ ชั่วโมงที่อยู่ใน CS จริงๆ
+                cold: computedCold,               // ✅ ค่าที่จะส่งไป backend เป็น cold_time
               };
             });
+
+            // ✅ row-level latestComeColdDate และ formattedDelayTime
+            const rowLatestCsDate = getLatestCsDate(row);
+            const rowComputedCold = computeColdHHMM(rowLatestCsDate);
 
             handleOpenEditModal({
               ...row,
               ptc_time: row.ptc_time,
-              materials: materialsWithDelayTime // Send materials with Delay Time
+              latestComeColdDate: rowLatestCsDate ? rowLatestCsDate.toISOString() : null,
+              formattedDelayTime: rowComputedCold,
+              materials: materialsWithDelayTime,
             });
           }}
           icon={<RiArrowUpBoxLine style={{ color: '#4aaaec', fontSize: '22px' }} />}

@@ -185,6 +185,8 @@ const Modal3 = ({
         preparedDateTimeNew: formattedPreparedTime || "",
         mixtimeNew: formattedMixtime, // ✅ จะเป็น null ถ้าไม่มีข้อมูล
         grindtimeNew: formattedGrindtime, // 🆕 เวลาเริ่มบดเนื้อ
+        summaryWithdrawDate: input2?.summaryWithdrawDate ?? null,
+         mat2x: input2?.mat2x ?? null, 
         weightTotal: weightTotal,
         ntray: numberOfTrays,
         recorder: input2?.operator || "",
@@ -208,6 +210,8 @@ const Modal3 = ({
         weightPerCup: input2?.weightPerCup ?? null,
         storagePurpose: input2?.storagePurpose ?? null,
         histamine: input2?.histamine ?? null,
+        coldRemark: input2?.coldRemark ?? null,
+        depositDate: input2?.depositDate ?? null,
       };
 
       console.log("Payload before sending:", payload);
@@ -223,7 +227,7 @@ const Modal3 = ({
       );
 
       console.log("API Response:", apiResponse.data);
-if (apiResponse?.data?.insertedHistory) {
+      if (apiResponse?.data?.insertedHistory) {
         const h = apiResponse.data.insertedHistory;
         console.log("Inserted History (from API):", h);
         console.table?.({
@@ -475,11 +479,19 @@ if (apiResponse?.data?.insertedHistory) {
                   : "ไม่มีข้อมูล"
                 : inputValues || "ไม่มีข้อมูล"}
             </Typography>
+            {input2?.mat2x && (   // ⬅️ เพิ่มตรงนี้
+              <Typography color="rgba(0, 0, 0, 0.6)">
+                Mat 2X: {input2.mat2x}{input2.mat2xName ? ` - ${input2.mat2xName}` : ""}
+              </Typography>
+            )}
             <Typography>
               น้ำหนักวัตถุดิบ/รถเข็น: {input2?.weightPerCart || "ข้อมูลไม่พบ"}
             </Typography>
             <Typography>
               จำนวนถาด: {input2?.numberOfTrays || "ข้อมูลไม่พบ"}
+            </Typography>
+            <Typography color="rgba(0, 0, 0, 0.6)">
+              วันที่สรุปเบิก: {input2?.summaryWithdrawDate || "ยังไม่ได้กำหนด"}   {/* ⬅️ เพิ่มบรรทัดนี้ */}
             </Typography>
             <Typography color="rgba(0, 0, 0, 0.6)">
               เวลาต้ม/อบเสร็จ:{" "}
@@ -556,6 +568,16 @@ if (apiResponse?.data?.insertedHistory) {
                 {input2?.histamine && (
                   <Typography color="rgba(0, 0, 0, 0.6)">
                     ผล Histamine: {input2.histamine}
+                  </Typography>
+                )}
+                {input2?.coldRemark && (
+                  <Typography color="rgba(0, 0, 0, 0.6)">
+                    หมายเหตุ: {input2.coldRemark}
+                  </Typography>
+                )}
+                {input2?.depositDate && (
+                  <Typography color="rgba(0, 0, 0, 0.6)">
+                    จัดเก็บถึงวันที่: {input2.depositDate}
                   </Typography>
                 )}
               </>

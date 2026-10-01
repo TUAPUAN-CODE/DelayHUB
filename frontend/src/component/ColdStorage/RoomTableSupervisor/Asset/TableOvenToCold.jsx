@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, Collapse, Grid, TablePagination, Divider, Typography, styled, IconButton } from '@mui/material';
+import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, Collapse, Grid, TablePagination, Divider, Typography, styled, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Tooltip } from '@mui/material';
 import { InputAdornment } from "@mui/material";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SearchIcon from "@mui/icons-material/Search";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle, FaRegCheckCircle, FaEye, FaClipboardCheck, FaEdit, FaTrash } from "react-icons/fa";
@@ -58,6 +59,117 @@ const formatTime = (minutes) => {
   if (hours > 0) timeString += `${timeString.length > 0 ? ' ' : ''}${hours} ชม.`;
   if (mins > 0 || (days === 0 && hours === 0)) timeString += `${timeString.length > 0 ? ' ' : ''}${mins} นาที`;
   return timeString.trim();
+};
+
+const calculateTotalColdMinutes = (row) => {
+  const now = new Date();
+  const pairs = [
+    [row.come_cold_date,          row.out_cold_date],
+    [row.come_cold_date_two,      row.out_cold_date_two],
+    [row.come_cold_date_three,    row.out_cold_date_three],
+    [row.cs_come_cold_date,       row.cs_out_cold_date],
+    [row.cs_come_cold_date_two,   row.cs_out_cold_date_two],
+    [row.cs_come_cold_date_three, row.cs_out_cold_date_three],
+    [row.cs_come_cold_date_four,  row.cs_out_cold_date_four],
+    [row.cs_come_cold_date_five,  row.cs_out_out_date_five],
+    [row.cs_come_cold_date_six,   row.cs_out_cold_date_six],
+    [row.cs_come_cold_date_seven, row.cs_out_cold_date_seven],
+    [row.cs_come_cold_date_eight, row.cs_out_cold_date_eight],
+    [row.cs_come_cold_date_nine,  row.cs_out_cold_date_nine],
+    [row.cs_come_cold_date_ten,   row.cs_out_cold_date_ten],
+  ];
+  let total = 0;
+  for (const [come, out] of pairs) {
+    if (!come) continue;
+    const comeDate = new Date(come);
+    if (isNaN(comeDate.getTime())) continue;
+    const outDate = out ? new Date(out) : now;
+    total += (outDate - comeDate) / (1000 * 60);
+  }
+  return total;
+};
+
+const buildColdBreakdown = (row) => {
+  const now = new Date();
+  const pairs = [
+    { label: 'รอบ 1',    come: row.come_cold_date,          out: row.out_cold_date },
+    { label: 'รอบ 2',    come: row.come_cold_date_two,      out: row.out_cold_date_two },
+    { label: 'รอบ 3',    come: row.come_cold_date_three,    out: row.out_cold_date_three },
+    { label: 'CS รอบ 1', come: row.cs_come_cold_date,       out: row.cs_out_cold_date },
+    { label: 'CS รอบ 2', come: row.cs_come_cold_date_two,   out: row.cs_out_cold_date_two },
+    { label: 'CS รอบ 3', come: row.cs_come_cold_date_three, out: row.cs_out_cold_date_three },
+    { label: 'CS รอบ 4', come: row.cs_come_cold_date_four,  out: row.cs_out_cold_date_four },
+    { label: 'CS รอบ 5', come: row.cs_come_cold_date_five,  out: row.cs_out_out_date_five },
+    { label: 'CS รอบ 6', come: row.cs_come_cold_date_six,   out: row.cs_out_cold_date_six },
+    { label: 'CS รอบ 7', come: row.cs_come_cold_date_seven, out: row.cs_out_cold_date_seven },
+    { label: 'CS รอบ 8', come: row.cs_come_cold_date_eight, out: row.cs_out_cold_date_eight },
+    { label: 'CS รอบ 9', come: row.cs_come_cold_date_nine,  out: row.cs_out_cold_date_nine },
+    { label: 'CS รอบ 10',come: row.cs_come_cold_date_ten,   out: row.cs_out_cold_date_ten },
+  ];
+  const result = [];
+  for (const { label, come, out } of pairs) {
+    if (!come) continue;
+    const comeDate = new Date(come);
+    if (isNaN(comeDate.getTime())) continue;
+    const isOpen = !out;
+    const outDate = isOpen ? now : new Date(out);
+    const minutes = (outDate - comeDate) / (1000 * 60);
+    result.push({ label, come, out: out || null, minutes, isOpen });
+  }
+  return result;
+};
+
+const fmtDatetime = (d) => d ? d.replace('T', ' ').slice(0, 19) : '-';
+
+const DelayBreakdownDialog = ({ open, onClose, row }) => {
+  if (!row) return null;
+  const rounds = buildColdBreakdown(row);
+  const totalMinutes = rounds.reduce((s, r) => s + r.minutes, 0);
+  const standardCold = parseFloat(row.standard_cold);
+  const standardColdMinutes = isNaN(standardCold) ? 0 : Math.floor(standardCold) * 60 + (standardCold % 1) * 100;
+  const exceeded = totalMinutes - standardColdMinutes;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ fontSize: '14px', fontWeight: 'bold', pb: 1 }}>
+        รายละเอียดการคำนวณ Delay Time — {row.mat_name || row.mat}
+      </DialogTitle>
+      <DialogContent dividers sx={{ p: 1 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableCell sx={{ fontSize: '12px', fontWeight: 'bold' }}>รอบ</TableCell>
+              <TableCell sx={{ fontSize: '12px', fontWeight: 'bold' }}>เวลาเข้า</TableCell>
+              <TableCell sx={{ fontSize: '12px', fontWeight: 'bold' }}>เวลาออก</TableCell>
+              <TableCell sx={{ fontSize: '12px', fontWeight: 'bold', textAlign: 'right' }}>ระยะเวลา</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rounds.map((r, i) => (
+              <TableRow key={i}>
+                <TableCell sx={{ fontSize: '12px' }}>{r.label}</TableCell>
+                <TableCell sx={{ fontSize: '12px' }}>{fmtDatetime(r.come)}</TableCell>
+                <TableCell sx={{ fontSize: '12px', color: r.isOpen ? '#f57c00' : 'inherit' }}>
+                  {r.isOpen ? 'ยังอยู่ในห้องเย็น' : fmtDatetime(r.out)}
+                </TableCell>
+                <TableCell sx={{ fontSize: '12px', textAlign: 'right' }}>{formatTime(r.minutes)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, backgroundColor: exceeded > 0 ? '#fff3e0' : '#e8f5e9', border: `1px solid ${exceeded > 0 ? '#ffb74d' : '#81c784'}` }}>
+          <Typography sx={{ fontSize: '12px' }}>รวมเวลาในห้องเย็น: <b>{formatTime(totalMinutes)}</b></Typography>
+          <Typography sx={{ fontSize: '12px' }}>มาตรฐาน: <b>{formatTime(standardColdMinutes)}</b></Typography>
+          <Typography sx={{ fontSize: '12px', color: exceeded > 0 ? '#e65100' : '#2e7d32', fontWeight: 'bold' }}>
+            {exceeded > 0 ? `เลยกำหนด ${formatTime(exceeded)}` : `เหลืออีก ${formatTime(-exceeded)}`}
+          </Typography>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} size="small">ปิด</Button>
+      </DialogActions>
+    </Dialog>
+  );
 };
 
 const getRowStatus = (row) => {
@@ -157,60 +269,23 @@ const getRowStatus = (row) => {
     };
   }
 
-  // กรณีใช้ cold_time (กรณีทั่วไป)
-  const coldValue = parseFloat(row.cold);
+  // กรณีทั่วไป — คำนวณจากผลรวมเวลาทุกรอบในห้องเย็น (รอบ 1-3 + CS1-10)
   const standardCold = parseFloat(row.standard_cold);
   const standardColdMinutes = Math.floor(standardCold) * 60 + (standardCold % 1) * 100;
+  const totalMinutes = calculateTotalColdMinutes(row);
+  const percentage = standardColdMinutes > 0 ? (totalMinutes / standardColdMinutes) * 100 : 0;
 
-  // กรณีค่า cold เป็นลบ
-  if (coldValue < 0) {
-    const exceededMinutesFromCold = Math.floor(Math.abs(coldValue)) * 60 + (Math.abs(coldValue) % 1) * 100;
-    const rs_exceededMinutesFromCold = -1 * exceededMinutesFromCold - timePassed;
-    const percentage = ((standardColdMinutes + exceededMinutesFromCold) / standardColdMinutes) * 100;
-
-    return {
-      borderColor: '#FF8175',
-      statusMessage: `เลยกำหนด ${formatTime(rs_exceededMinutesFromCold)}`,
-      hideDelayTime: false,
-      percentage: percentage
-    };
+  if (totalMinutes >= standardColdMinutes) {
+    const exceeded = totalMinutes - standardColdMinutes;
+    return { borderColor: '#FF8175', statusMessage: `เลยกำหนด ${formatTime(exceeded)}`, hideDelayTime: false, percentage };
   }
 
-  // กรณีค่า cold = 0
-  if (coldValue === 0) {
-    return {
-      borderColor: '#FF8175',
-      statusMessage: `เลยกำหนด ${formatTime(timePassed)}`,
-      hideDelayTime: false,
-      percentage: 100 + (timePassed / standardColdMinutes * 100)
-    };
-  }
-
-  // กรณีค่า cold เป็นบวก
-  const coldValueMinutes = Math.floor(coldValue) * 60 + (coldValue % 1) * 100;
-
-  // ตรวจสอบว่าเวลาที่ผ่านไปจริงมากกว่าเวลาที่เหลือจาก cold หรือไม่
-  if (timePassed > coldValueMinutes) {
-    const exceededMinutes = timePassed - coldValueMinutes;
-    const percentage = ((standardColdMinutes + exceededMinutes) / standardColdMinutes) * 100;
-
-    return {
-      borderColor: '#FF8175',
-      statusMessage: `เลยกำหนด ${formatTime(exceededMinutes)}`,
-      hideDelayTime: false,
-      percentage: percentage
-    };
-  }
-
-  // กรณีที่ยังไม่เกินเวลา
-  const timeRemaining = coldValueMinutes - timePassed;
-  const percentage = Math.min(100, Math.max(0, (timePassed / standardColdMinutes) * 100));
-
+  const timeRemaining = standardColdMinutes - totalMinutes;
   return {
     borderColor: getBorderColor(percentage, timeRemaining),
     statusMessage: `เหลืออีก ${formatTime(timeRemaining)}`,
     hideDelayTime: timeRemaining > 0,
-    percentage: percentage
+    percentage
   };
 };
 
@@ -280,6 +355,8 @@ const Row = ({
   setOpenRowId,
   index
 }) => {
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+
   if (!row) return null;
 
   const isQcChecked = (row.rm_status === 'QcCheck') && row.qccheck_cold !== null;
@@ -355,7 +432,14 @@ const Row = ({
             justifyContent: 'center',
             gap: '8px'
           }}>
-
+            {!row.mix_time && !row.remaining_rework_time && (
+              <Tooltip title="ดูรายละเอียดการคำนวณ">
+                <IconButton size="small" onClick={(e) => { e.stopPropagation(); setBreakdownOpen(true); }}
+                  sx={{ p: 0.2, color: '#90caf9', '&:hover': { color: '#1565c0' } }}>
+                  <InfoOutlinedIcon sx={{ fontSize: '15px' }} />
+                </IconButton>
+              </Tooltip>
+            )}
             <span style={{
               fontSize: '12px',
               color: isOverdue ? "red" : (
@@ -604,6 +688,8 @@ const Row = ({
         </TableCell>
       </TableRow>
 
+      <DelayBreakdownDialog open={breakdownOpen} onClose={() => setBreakdownOpen(false)} row={row} />
+
       {/* Collapse row for details */}
       <TableRow>
         <TableCell style={{ padding: 0, border: 'none' }} colSpan={tableColumns.length + 2}>
@@ -684,12 +770,32 @@ const Row = ({
                       <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>
                         {row.isMixed ? "เวลาผสมเสร็จ" : "เวลาเตรียมเสร็จ"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาเข้าห้องเย็น1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาออกห้องเย็น1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาเข้าห้องเย็น2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาออกห้องเย็น2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาเข้าห้องเย็น3</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาออกห้องเย็น3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า รอบ1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก รอบ1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า รอบ2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก รอบ2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า รอบ3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก รอบ3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS4</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS4</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS5</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS5</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS6</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS6</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS7</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS7</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS8</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS8</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS9</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS9</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เข้า CS10</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>ออก CS10</TableCell>
                       <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", padding: '4px' }}>เวลาแก้ไข</TableCell>
                     </TableRow>
                   </TableHead>
@@ -708,25 +814,85 @@ const Row = ({
                         }
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.come_cold_date ? new Date(row.come_cold_date).toLocaleString() : "-"}
+                        {row.come_cold_date ? fmtDatetime(row.come_cold_date) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.out_cold_date ? new Date(row.out_cold_date).toLocaleString() : "-"}
+                        {row.out_cold_date ? fmtDatetime(row.out_cold_date) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.come_cold_date_two ? new Date(row.come_cold_date_two).toLocaleString() : "-"}
+                        {row.come_cold_date_two ? fmtDatetime(row.come_cold_date_two) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.out_cold_date_two ? new Date(row.out_cold_date_two).toLocaleString() : "-"}
+                        {row.out_cold_date_two ? fmtDatetime(row.out_cold_date_two) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.come_cold_date_three ? new Date(row.come_cold_date_three).toLocaleString() : "-"}
+                        {row.come_cold_date_three ? fmtDatetime(row.come_cold_date_three) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.out_cold_date_three ? new Date(row.out_cold_date_three).toLocaleString() : "-"}
+                        {row.out_cold_date_three ? fmtDatetime(row.out_cold_date_three) : "-"}
                       </TableCell>
                       <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
-                        {row.rework_date ? new Date(row.rework_date).toLocaleString() : "-"}
+                        {row.cs_come_cold_date ? fmtDatetime(row.cs_come_cold_date) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date ? fmtDatetime(row.cs_out_cold_date) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_two ? fmtDatetime(row.cs_come_cold_date_two) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_two ? fmtDatetime(row.cs_out_cold_date_two) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_three ? fmtDatetime(row.cs_come_cold_date_three) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_three ? fmtDatetime(row.cs_out_cold_date_three) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_four ? fmtDatetime(row.cs_come_cold_date_four) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_four ? fmtDatetime(row.cs_out_cold_date_four) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_five ? fmtDatetime(row.cs_come_cold_date_five) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_out_date_five ? fmtDatetime(row.cs_out_out_date_five) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_six ? fmtDatetime(row.cs_come_cold_date_six) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_six ? fmtDatetime(row.cs_out_cold_date_six) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_seven ? fmtDatetime(row.cs_come_cold_date_seven) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_seven ? fmtDatetime(row.cs_out_cold_date_seven) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_eight ? fmtDatetime(row.cs_come_cold_date_eight) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_eight ? fmtDatetime(row.cs_out_cold_date_eight) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_nine ? fmtDatetime(row.cs_come_cold_date_nine) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_nine ? fmtDatetime(row.cs_out_cold_date_nine) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_come_cold_date_ten ? fmtDatetime(row.cs_come_cold_date_ten) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.cs_out_cold_date_ten ? fmtDatetime(row.cs_out_cold_date_ten) : "-"}
+                      </TableCell>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '4px', fontSize: '12px' }}>
+                        {row.rework_date ? fmtDatetime(row.rework_date) : "-"}
                       </TableCell>
                     </TableRow>
                   </TableBody>

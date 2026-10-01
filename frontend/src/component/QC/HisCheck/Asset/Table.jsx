@@ -27,12 +27,11 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PaletteIcon from '@mui/icons-material/Palette'; // สำหรับ Sensory (สี กลิ่น เนื้อ)
-import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent'; // สำหรับ MD (เครื่องตรวจโลหะ)
-import StraightenIcon from '@mui/icons-material/Straighten'; // สำหรับ Defect (ขนาด,ก้าง)
-import FactCheckIcon from '@mui/icons-material/FactCheck'; // สำหรับหัวข้อข้อมูลการตรวจสอบ QC
+import PaletteIcon from '@mui/icons-material/Palette';
+import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
+import StraightenIcon from '@mui/icons-material/Straighten';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 
-// จัดรูปแบบวันที่
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   const date = new Date(dateString);
@@ -50,7 +49,6 @@ const formatDate = (dateString) => {
   return new Intl.DateTimeFormat('en-TH', options).format(date);
 };
 
-// กำหนดความกว้างของคอลัมน์เป็นเปอร์เซ็นต์
 const COLUMN_WIDTHS = {
   Batch: '13.98%',
   Material: '9.68%',
@@ -63,49 +61,28 @@ const COLUMN_WIDTHS = {
   เวลาต้มอบเสร็จ: '12.9%'
 };
 
-// Row component
 const Row = ({ row, index }) => {
   const [open, setOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)"; // เปลี่ยนสีจาราง ขาว เทา
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
   const uniqueKey = `${row.mapping_id}_${row.created_at || index}`;
-  // เปิด modal สำหรับพิมพ์ข้อมูล
+
   const handlePrintClick = () => {
     setPrintModalOpen(true);
   };
 
-  // ปิด modal พิมพ์
   const handleClosePrintModal = () => {
     setPrintModalOpen(false);
   };
 
-  // ฟังก์ชันช่วยตรวจสอบและแสดงสถานะการตรวจสอบ
   const getStatusButton = (status) => {
     if (!status || status.trim() === '-') return null;
 
     const statusLower = status.trim().toLowerCase();
     if (statusLower === 'ผ่าน' || statusLower.includes('pass')) {
       return (
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          mt: 1,
-          mb: 1
-        }}>
-          <Box
-            sx={{
-              backgroundColor: '#388e3c',
-              color: 'white',
-              borderRadius: '20px',
-              padding: '4px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              fontSize: '14px',
-              fontWeight: 'medium'
-            }}
-          >
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, mb: 1 }}>
+          <Box sx={{ backgroundColor: '#388e3c', color: 'white', borderRadius: '20px', padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '14px', fontWeight: 'medium' }}>
             <CheckIcon fontSize="small" />
             ผ่าน
           </Box>
@@ -113,26 +90,8 @@ const Row = ({ row, index }) => {
       );
     } else if (statusLower === 'ไม่ผ่าน' || statusLower.includes('fail') || statusLower.includes('not')) {
       return (
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          mt: 1,
-          mb: 1
-        }}>
-          <Box
-            sx={{
-              backgroundColor: '#d32f2f',
-              color: 'white',
-              borderRadius: '20px',
-              padding: '4px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              fontSize: '14px',
-              fontWeight: 'medium'
-            }}
-          >
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, mb: 1 }}>
+          <Box sx={{ backgroundColor: '#d32f2f', color: 'white', borderRadius: '20px', padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '14px', fontWeight: 'medium' }}>
             <CloseIcon fontSize="small" />
             ไม่ผ่าน
           </Box>
@@ -141,26 +100,8 @@ const Row = ({ row, index }) => {
     }
 
     return (
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        mt: 1,
-        mb: 1
-      }}>
-        <Box
-          sx={{
-            backgroundColor: '#388e3c',
-            color: 'white',
-            borderRadius: '20px',
-            padding: '4px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            fontSize: '14px',
-            fontWeight: 'medium'
-          }}
-        >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, mb: 1 }}>
+        <Box sx={{ backgroundColor: '#388e3c', color: 'white', borderRadius: '20px', padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '14px', fontWeight: 'medium' }}>
           <CheckIcon fontSize="small" />
           {status}
         </Box>
@@ -168,17 +109,11 @@ const Row = ({ row, index }) => {
     );
   };
 
-  // เช็คว่าควรแสดง batch อะไร: ถ้ามี batch_after ให้ใช้ batch_after แต่ถ้าไม่มีให้ใช้ batch_before
   const displayBatch = row.batch_after || row.batch_before || "-";
 
   return (
     <>
-      <TableRow
-        sx={{
-          backgroundColor: backgroundColor,
-          height: '45px',
-        }}
-      >
+      <TableRow sx={{ backgroundColor: backgroundColor, height: '45px' }}>
         <TableCell align="left" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#444', fontWeight: 'medium' }}>
           {displayBatch}
         </TableCell>
@@ -209,33 +144,18 @@ const Row = ({ row, index }) => {
         <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
             <Tooltip title="ดูประวัติเพิ่มเติม">
-              <IconButton
-                aria-label="view history"
-                size="small"
-                onClick={() => setOpen(!open)}
-                color={open ? "primary" : "default"}
-                sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #e0e0e0', backgroundColor: '#ffffff' }}
-              >
+              <IconButton aria-label="view history" size="small" onClick={() => setOpen(!open)} color={open ? "primary" : "default"} sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #e0e0e0', backgroundColor: '#ffffff' }}>
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="พิมพ์ข้อมูล">
-              <IconButton
-                aria-label="print"
-                size="small"
-                onClick={handlePrintClick}
-                sx={{ width: '30px', height: '30px', border: '1px solid #e0e0e0', backgroundColor: '#ffffff' }}
-              >
+              <IconButton aria-label="print" size="small" onClick={handlePrintClick} sx={{ width: '30px', height: '30px', border: '1px solid #e0e0e0', backgroundColor: '#ffffff' }}>
                 <PrintIcon fontSize="small" color="action" />
               </IconButton>
             </Tooltip>
           </Box>
 
-          <ModalPrint
-            open={printModalOpen}
-            onClose={handleClosePrintModal}
-            rowData={row}
-          />
+          <ModalPrint open={printModalOpen} onClose={handleClosePrintModal} rowData={row} />
         </TableCell>
       </TableRow>
 
@@ -243,7 +163,6 @@ const Row = ({ row, index }) => {
         <TableCell style={{ padding: 0 }} colSpan={9}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: '#f8f9fa', borderRadius: '4px', padding: '16px', border: '1px solid #e0e0e0' }}>
-              {/* หัวข้อข้อมูลการตรวจสอบ QC */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <FactCheckIcon fontSize="small" sx={{ color: '#1976d2' }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -251,77 +170,55 @@ const Row = ({ row, index }) => {
                 </Typography>
               </Box>
 
-              {/* การ์ดแสดงผลการตรวจสอบ 3 ส่วน */}
               <Grid container spacing={2}>
-                {/* Sensory Card (สี กลิ่น เนื้อ) */}
-                <Grid item xs={12} md={4}>
-  <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-    {/* ส่วนหัวการ์ด */}
-    <Box sx={{
-      backgroundColor: '#e3f2fd',
-      px: 2,
-      py: 1.5,
-      borderBottom: '1px solid #bbdefb'
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <PaletteIcon sx={{ color: '#2196f3' }} />
-        <Typography variant="subtitle1" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
-          Sensory (สี, กลิ่น, เนื้อ)
-        </Typography>
-      </Box>
-    </Box>
-
-    {/* เนื้อหาการ์ด */}
-    <Box sx={{ p: 2 }}>
-      {/* สถานะการตรวจสอบ */}
-      {getStatusButton(row?.qccheck?.trim())}
-
-      {/* ตรวจสอบเงื่อนไขการยอมรับพิเศษและหมายเหตุ */}
-      {row?.sq_remark && row.sq_remark !== '-' && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
-            {row?.sq_acceptance === true ? "ยอมรับพิเศษ หมายเหตุ Sensory:" : "หมายเหตุ Sensory:"}
-          </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            size="small"
-            value={row.sq_remark || '-'}
-            InputProps={{
-              readOnly: true,
-              sx: { 
-                fontSize: '14px', 
-                backgroundColor: row?.sq_acceptance === true ? '#fff8e1' : '#f5f5f5' 
-              }
-            }}
-            multiline
-            minRows={2}
-          />
-        </Box>
-      )}
-
-      {/* แสดงข้อความเมื่อไม่มีหมายเหตุ */}
-      {(!row?.sq_remark || row.sq_remark === '-') && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="body2" color="textSecondary">
-            ไม่มีหมายเหตุ
-          </Typography>
-        </Box>
-      )}
-    </Box>
-  </Card>
-</Grid>
-
-                {/* MD Card (เครื่องตรวจโลหะ) */}
                 <Grid item xs={12} md={4}>
                   <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-                    {/* ส่วนหัวการ์ด */}
-                    <Box sx={{
-                      backgroundColor: '#fff3e0',
-                      px: 2,
-                      py: 1.5,
-                      borderBottom: '1px solid #ffe0b2'
-                    }}>
+                    <Box sx={{ backgroundColor: '#e3f2fd', px: 2, py: 1.5, borderBottom: '1px solid #bbdefb' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PaletteIcon sx={{ color: '#2196f3' }} />
+                        <Typography variant="subtitle1" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
+                          Sensory (สี, กลิ่น, เนื้อ)
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ p: 2 }}>
+                      {getStatusButton(row?.qccheck?.trim())}
+
+                      {row?.sq_remark && row.sq_remark !== '-' && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
+                            {row?.sq_acceptance === true ? "ยอมรับพิเศษ หมายเหตุ Sensory:" : "หมายเหตุ Sensory:"}
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            value={row.sq_remark || '-'}
+                            InputProps={{
+                              readOnly: true,
+                              sx: { fontSize: '14px', backgroundColor: row?.sq_acceptance === true ? '#fff8e1' : '#f5f5f5' }
+                            }}
+                            multiline
+                            minRows={2}
+                          />
+                        </Box>
+                      )}
+
+                      {(!row?.sq_remark || row.sq_remark === '-') && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            ไม่มีหมายเหตุ
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
+                    <Box sx={{ backgroundColor: '#fff3e0', px: 2, py: 1.5, borderBottom: '1px solid #ffe0b2' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SettingsInputComponentIcon sx={{ color: '#ff9800' }} />
                         <Typography variant="subtitle1" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
@@ -330,12 +227,9 @@ const Row = ({ row, index }) => {
                       </Box>
                     </Box>
 
-                    {/* เนื้อหาการ์ด */}
                     <Box sx={{ p: 2 }}>
-                      {/* สถานะการตรวจสอบ */}
                       {getStatusButton(row?.mdcheck?.trim())}
 
-                      {/* พื้นที่/หมายเลขเครื่อง */}
                       <Box sx={{ mt: 1 }}>
                         <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
                           พื้นที่/หมายเลขเครื่อง:
@@ -356,7 +250,6 @@ const Row = ({ row, index }) => {
                         />
                       </Box>
 
-                      {/* หมายเหตุ (หากมี) */}
                       {row?.md_remark && row.md_remark !== '-' && (
                         <Box sx={{ mt: 1 }}>
                           <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
@@ -380,68 +273,52 @@ const Row = ({ row, index }) => {
                   </Card>
                 </Grid>
 
-                {/* Defect Card (ขนาด, ก้าง) */}
-                
-<Grid item xs={12} md={4}>
-  <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-    {/* ส่วนหัวการ์ด */}
-    <Box sx={{
-      backgroundColor: '#ffebee',
-      px: 2,
-      py: 1.5,
-      borderBottom: '1px solid #ffcdd2'
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <StraightenIcon sx={{ color: '#f44336' }} />
-        <Typography variant="subtitle1" sx={{ color: '#f44336', fontWeight: 'bold' }}>
-          Defect (ขนาด, ก้าง)
-        </Typography>
-      </Box>
-    </Box>
+                <Grid item xs={12} md={4}>
+                  <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
+                    <Box sx={{ backgroundColor: '#ffebee', px: 2, py: 1.5, borderBottom: '1px solid #ffcdd2' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <StraightenIcon sx={{ color: '#f44336' }} />
+                        <Typography variant="subtitle1" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                          Defect (ขนาด, ก้าง)
+                        </Typography>
+                      </Box>
+                    </Box>
 
-    {/* เนื้อหาการ์ด */}
-    <Box sx={{ p: 2 }}>
-      {/* สถานะการตรวจสอบ */}
-      {getStatusButton(row?.defectcheck?.trim())}
+                    <Box sx={{ p: 2 }}>
+                      {getStatusButton(row?.defectcheck?.trim())}
 
-      {/* ตรวจสอบเงื่อนไขการยอมรับพิเศษและหมายเหตุ */}
-      {row?.defect_remark && row.defect_remark !== '-' && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
-            {row?.defect_acceptance === true ? "ยอมรับพิเศษ หมายเหตุ Defect:" : "หมายเหตุ Defect:"}
-          </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            size="small"
-            value={row.defect_remark || '-'}
-            InputProps={{
-              readOnly: true,
-              sx: { 
-                fontSize: '14px', 
-                backgroundColor: row?.defect_acceptance === true ? '#fff8e1' : '#f5f5f5' 
-              }
-            }}
-            multiline
-            minRows={2}
-          />
-        </Box>
-      )}
+                      {row?.defect_remark && row.defect_remark !== '-' && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium', mb: 0.5, display: 'block' }}>
+                            {row?.defect_acceptance === true ? "ยอมรับพิเศษ หมายเหตุ Defect:" : "หมายเหตุ Defect:"}
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            value={row.defect_remark || '-'}
+                            InputProps={{
+                              readOnly: true,
+                              sx: { fontSize: '14px', backgroundColor: row?.defect_acceptance === true ? '#fff8e1' : '#f5f5f5' }
+                            }}
+                            multiline
+                            minRows={2}
+                          />
+                        </Box>
+                      )}
 
-      {/* แสดงข้อความเมื่อไม่มีหมายเหตุ */}
-      {(!row?.defect_remark || row.defect_remark === '-') && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="body2" color="textSecondary">
-            ไม่มีหมายเหตุ
-          </Typography>
-        </Box>
-      )}
-    </Box>
-  </Card>
-</Grid>
+                      {(!row?.defect_remark || row.defect_remark === '-') && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            ไม่มีหมายเหตุ
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Card>
+                </Grid>
               </Grid>
 
-              {/* ส่วนข้อมูลผู้ดำเนินการและวันเวลาตรวจสอบ */}
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 2, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <PersonIcon sx={{ color: '#1976d2' }} />
@@ -490,7 +367,6 @@ const QcHisTable = ({
 
   return (
     <>
-      {/* ส่วนของช่องค้นหา */}
       <Box sx={{
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
@@ -584,8 +460,8 @@ const QcHisTable = ({
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {internalFilteredData.length > 0 ? (
               internalFilteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => (
-                <React.Fragment key={`${row.mapping_id}_${row.create_at || index}`}>  
-                <Row key={index} row={row} index={index} />
+                <React.Fragment key={`${row.mapping_id}_${row.create_at || index}`}>
+                  <Row key={index} row={row} index={index} />
                 </React.Fragment>
               ))
             ) : (

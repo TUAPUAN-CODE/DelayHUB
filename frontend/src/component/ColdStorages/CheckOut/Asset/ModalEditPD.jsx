@@ -213,30 +213,19 @@ const QcCheck = ({ open, onClose, material_code, materialName, ptc_time, standar
 
   const handleConfirm = async () => {
     const processedMaterials = materials ? materials.map(item => {
-      // ตรวจสอบประเภทวัตถุดิบและจัดการกับ delayTime
-      if (item.rawMatType === "mixed" && item.delayTime) {
-        // แปลง delayTime จากข้อความเป็นตัวเลขในรูปแบบ HH.MM
-        const convertedDelayTime = convertDelayTimeToHHMM(item.delayTime);
-        return {
-          ...item,
-          mix_time: convertedDelayTime // เก็บค่าที่แปลงแล้วใน mix_time สำหรับวัตถุดิบผสม
-        };
-      } else if (item.delayTime && item.remaining_rework_time !== null && item.remaining_rework_time !== undefined) {
-        // สำหรับวัตถุดิบที่มี remaining_rework_time
-        const convertedDelayTime = convertDelayTimeToHHMM(item.delayTime);
-        return {
-          ...item,
-          rework_delay_time: convertedDelayTime
-        };
-      } else if (item.delayTime) {
-        // กรณีทั่วไปที่มีแค่ delayTime
-        const convertedDelayTime = convertDelayTimeToHHMM(item.delayTime);
-        return {
-          ...item,
-          cold: convertedDelayTime
-        };
+      if (item.rawMatType === "mixed" && item.delayTime && !item.delayTime.includes("รอดำเนินการ")) {
+        return { ...item, mix_time: convertDelayTimeToHHMM(item.delayTime) };
+      } else if (item.delayTime && !item.delayTime.includes("รอดำเนินการ") && item.remaining_rework_time !== null && item.remaining_rework_time !== undefined) {
+        return { ...item, rework_delay_time: convertDelayTimeToHHMM(item.delayTime) };
+      } else if (item.delayTime && !item.delayTime.includes("รอดำเนินการ")) {
+        return { ...item, cold: convertDelayTimeToHHMM(item.delayTime) };
       }
-      return item;
+
+      // ✅ fallback: ใช้ item.cold ที่คำนวณจาก Table (cs_come_cold_date - now)
+      return {
+        ...item,
+        cold: item.cold ?? item.formattedDelayTime ?? 0,
+      };
     }) : [];
 
     const payload = {
@@ -629,7 +618,7 @@ const QcCheck = ({ open, onClose, material_code, materialName, ptc_time, standar
 const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [materialName, setMaterialName] = useState("");
-  const [Location, setLocation] = useState("");
+  const [Location, setLocation] = useState("ส่งกลับจากห้องเย็นใหญ่");
   const [operator, setoperator] = useState("");
   const [isConfirmProdOpen, setIsConfirmProdOpen] = useState(false);
   const [processedMaterials, setProcessedMaterials] = useState([]);
@@ -688,10 +677,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
   materials.forEach((item, idx) => {
     console.log(`Material ${idx} comeColdDateTime:`, item.latestComeColdDate);
   });
-  const LOCATION_OPTIONS = [
-    "จุดเตรียม",
-    "เข้าห้องเย็น",
-  ];
+
 
   const handleClose = () => {
     onClose();
@@ -711,10 +697,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
   useEffect(() => {
     if (open) {
-      setLocation("");
+      setLocation("ส่งกลับจากห้องเย็นใหญ่");  // ✅ set ค่าคงที่ทุกครั้งที่เปิด
       setoperator("");
-      fetchUserDataFromLocalStorage(); // เพิ่มการเรียกฟังก์ชันตรงนี้
-
+      fetchUserDataFromLocalStorage();
     }
   }, [open]);
 
@@ -753,14 +738,12 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
   // ── 2. แก้ไข handleConfirm — เช็ค Location ────────────────────────────────
   const handleConfirm = () => {
-    if (!operator || !Location) {
+    if (!operator) {
       setErrorMessage("กรุณากรอกข้อมูลให้ครบถ้วน");
-      if (!Location) setShowLocationError(true);
-      return;   // ✅ เพิ่ม return เพื่อหยุดทันที
+      return;
     }
-
+    // ลบ setShowLocationError ออก
     setErrorMessage("");
-    setShowLocationError(false);
 
     let processedMats = materials;
     if (materials && materials.length > 0) {
@@ -921,7 +904,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               รายการวัตถุดิบในรถเข็น: {tro_id}
             </Typography>
 
-            
+
 
             <Divider />
             <Typography color="rgba(0, 0, 0, 0.6)">เลขรถเข็น: {tro_id}</Typography>
@@ -934,47 +917,6 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
 
             <Box sx={{ paddingLeft: "12px" }}>
-              {/* ✅ สถานที่จัดส่ง */}
-              <Typography style={{ color: "#666", marginBottom: "9px" }}>
-                สถานที่จัดส่ง <span style={{ color: 'red' }}>*</span>
-              </Typography>
-              {/* ✅ สถานที่จัดส่ง — ปุ่มเลือก */}
-             
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: showLocationError ? 0.5 : 2 }}>
-                {LOCATION_OPTIONS.map(opt => {
-                  const isSelected = Location === opt;
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => {
-                        setLocation(opt);
-                        setShowLocationError(false);
-                        setErrorMessage('');
-                      }}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        border: isSelected ? '2px solid #1976d2' : '1.5px solid #d0d0d0',
-                        backgroundColor: isSelected ? '#1976d2' : '#fff',
-                        color: isSelected ? '#fff' : '#444',
-                        fontSize: '30px',
-                        fontWeight: isSelected ? 700 : 400,
-                        cursor: 'pointer',
-                        transition: 'all 0.18s ease',
-                        boxShadow: isSelected ? '0 3px 8px rgba(25,118,210,0.3)' : 'none',
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </Box>
-              {showLocationError && (
-                <Typography sx={{ fontSize: '12px', color: '#d32f2f', mb: 1.5, ml: 0.5 }}>
-                  กรุณาเลือกสถานที่จัดส่ง
-                </Typography>
-              )}
-
               {/* ✅ ผู้ดำเนินการ */}
               <Typography style={{ color: "#666", marginBottom: "9px" }}>
                 ผู้ดำเนินการ

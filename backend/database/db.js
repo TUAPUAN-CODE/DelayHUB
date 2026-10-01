@@ -13,9 +13,15 @@ const dbConfig = {
     encrypt: true, // สำหรับ Azure
     trustServerCertificate: true, // สำหรับ local dev
   },
+  // NEW: ลดจาก max:2000 ลงมา — server.js รัน cluster mode (fork 1 process ต่อ 1 CPU core)
+  // แต่ละ worker process มี pool แยกของตัวเอง ค่าเดิม max:2000 หมายความว่าถ้าเครื่องมี
+  // 8 core ระบบเปิด connection ไปหา SQL Server ได้สูงสุดถึง 16,000 connections พร้อมกัน
+  // (คูณด้วยจำนวน core) ซึ่งเสี่ยง exhaust connection ฝั่ง DB ได้มาก ค่า max:30 นี้คูณ
+  // จำนวน core แล้วยังอยู่ในระดับที่ SQL Server รับไหวตามปกติ ปรับเพิ่มได้ถ้า monitor
+  // แล้วเจอ pool เต็มบ่อยจริงๆ (ดูจาก error "ETIMEOUT"/"pool is full" ใน log)
   pool: {
-    max: 2000,
-    min: 20,
+    max: 30,
+    min: 5,
     idleTimeoutMillis: 30000,
   },
 };
@@ -23,8 +29,11 @@ const dbConfig = {
 let pool = null;
 
 const connectToDatabase = async (retryCount = 1, delayMs = 3000) => {
+  // NEW: connectToDatabase() ถูกเรียกแทบทุก route handler (หลายร้อยจุดทั่วโปรเจกต์) แปลว่า
+  // เดิม log บรรทัดนี้ยิงแทบทุก API request ที่เข้ามา ท่วม pm2 logs โดยไม่มีประโยชน์
+  // (pool ที่ยังต่ออยู่แล้วไม่ใช่เหตุการณ์ที่ต้อง log ทุกครั้ง) ตัดออกไปเลย เหลือ log
+  // เฉพาะตอนต่อ DB ใหม่จริงๆ หรือต่อไม่สำเร็จ (ซึ่งเป็นเหตุการณ์ที่ควรเห็น)
   if (pool && pool.connected) {
-    console.log("🔄 Using existing DB connection pool");
     return pool;
   }
 
@@ -53,7 +62,43 @@ const connectToDatabase = async (retryCount = 1, delayMs = 3000) => {
   }
 };
 
+const dbConfigWC = {
+  user: process.env.DB_USER_WC,
+  password: process.env.DB_PASSWORD_WC,
+  server: process.env.DB_SERVER_WC,
+  database: process.env.DB_DATABASE_WC,
+  port: parseInt(process.env.PORT_WC) || 3000,
+  options: {
+    encrypt: true,
+    trustServerCertificate: true,
+  },
+  pool: {
+    max: 100,
+    min: 5,
+    idleTimeoutMillis: 30000,
+  },
+};
+
+let poolWC = null;
+
+const connectToDatabaseWC = async () => {
+  if (poolWC && poolWC.connected) return poolWC;
+  try {
+    console.log(`🔌 Connecting to WC MSSQL... (server=${process.env.DB_SERVER_WC}, user=${process.env.DB_USER_WC})`);
+    poolWC = new mssql.ConnectionPool(dbConfigWC);
+    await poolWC.connect();
+    console.log('✅ WC Database connection successful!');
+    return poolWC;
+  } catch (error) {
+    console.error('❌ WC Database connection failed:', error.message);
+    poolWC = null;
+    return null;
+  }
+};
+
 module.exports = {
   connectToDatabase,
+  connectToDatabaseWC,
   sql: mssql,
 };
+

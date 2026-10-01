@@ -13,13 +13,13 @@ const showWorkplaceSelector = allowedPositions.includes(pos_id);
 
 
 const SIDEBAR_ITEMS = [
-  { name: "หน้าหลัก", icon: GoHomeFill, href: "/qualitycontrol" },
-  { name: "ติดตามรถเข็น", icon: GoHomeFill, href: "/qualitycontrol/TrackTrolleyQC" },
-  {
+    {
     name: "ตรวจสอบคุณภาพ",
     icon: BsFillClipboardCheckFill,
-    href: "/qualitycontrol/QCCheck/QCCheckPage",
+    href: "/qualitycontrol",
   },
+  // { name: "ติดตามรถเข็น", icon: GoHomeFill, href: "/qualitycontrol/TrackTrolleyQC" },
+
   {
     name: "ประวัติการตรวจ",
     icon: VscHistory,

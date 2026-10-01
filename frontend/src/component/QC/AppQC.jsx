@@ -19,10 +19,9 @@ function AppQualityControl() {
 
 			<SidebarQC />
 			<Routes>
-				<Route path='/' element={<QCMain />} />
 				<Route path='/TrackTrolleyQC' element={<TrackTrolleyQC />} />
 				<Route path='/HisCheck/HisCheckPage' element={<HisCheck />} />
-				<Route path='/QCCheck/QCCheckPage' element={<QCCheckPage />} />
+				<Route path='/' element={<QCCheckPage />} />
 				<Route path="/User/SelectWP" element={<QCSelectWP />} />
 				<Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
 			</Routes>

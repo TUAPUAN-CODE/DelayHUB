@@ -182,6 +182,97 @@ router.post("/re/reserveTrolley", async (req, res) => {
   }
 });
 
+router.put("/trolley/confirm-location", async (req, res) => {
+  const { mapping_ids, tro_id, location } = req.body;
+
+  if ((!mapping_ids || mapping_ids.length === 0) && !tro_id) {
+    return res.status(400).json({ success: false, message: "กรุณาระบุ mapping_ids หรือ tro_id" });
+  }
+  if (!location) {
+    return res.status(400).json({ success: false, message: "กรุณาระบุ location" });
+  }
+
+  try {
+    const pool = await connectToDatabase();
+
+    let ids = mapping_ids;
+    if (!ids || ids.length === 0) {
+      const lookup = await pool
+        .request()
+        .input("tro_id", sql.NVarChar(4), tro_id)
+        .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
+      ids = lookup.recordset.map(r => r.mapping_id);
+    }
+
+    if (ids.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบรายการวัตถุดิบที่จะยืนยัน" });
+    }
+
+    for (const mapping_id of ids) {
+      await pool
+        .request()
+        .input("mapping_id", mapping_id)
+        .input("location", sql.NVarChar(50), location)
+        .query(`UPDATE TrolleyRMMapping SET confirmed_location = @location WHERE mapping_id = @mapping_id`);
+    }
+
+    if (req.app.get("io")) {
+      req.app.get("io").emit("trolleyLocationConfirmed", { mapping_ids: ids, location });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `ยืนยันตำแหน่งที่ ${location} เรียบร้อยแล้ว (${ids.length} รายการ)`,
+    });
+  } catch (err) {
+    console.error("SQL error", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put("/trolley/reset-location", async (req, res) => {
+  const { mapping_ids, tro_id } = req.body;
+
+  if ((!mapping_ids || mapping_ids.length === 0) && !tro_id) {
+    return res.status(400).json({ success: false, message: "กรุณาระบุ mapping_ids หรือ tro_id" });
+  }
+
+  try {
+    const pool = await connectToDatabase();
+
+    let ids = mapping_ids;
+    if (!ids || ids.length === 0) {
+      const lookup = await pool
+        .request()
+        .input("tro_id", sql.NVarChar(4), tro_id)
+        .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
+      ids = lookup.recordset.map(r => r.mapping_id);
+    }
+
+    if (ids.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบรายการวัตถุดิบที่จะเคลียร์" });
+    }
+
+    for (const mapping_id of ids) {
+      await pool
+        .request()
+        .input("mapping_id", mapping_id)
+        .query(`UPDATE TrolleyRMMapping SET confirmed_location = NULL WHERE mapping_id = @mapping_id`);
+    }
+
+    if (req.app.get("io")) {
+      req.app.get("io").emit("trolleyLocationReset", { mapping_ids: ids });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `เคลียร์ตำแหน่งยืนยันเรียบร้อยแล้ว (${ids.length} รายการ)`,
+    });
+  } catch (err) {
+    console.error("SQL error", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // router.get("/cold/checkin/check/Trolley", async (req, res) => {
 //   const { tro_id, cs_id, slot_id, selectedOption } = req.query;
@@ -584,7 +675,7 @@ router.get("/cold/checkin/check/Trolley", async (req, res) => {
 
 
     // 7️⃣ ตรวจสอบ dest วัตถุดิบทั้งหมดต้องเป็น "เข้าห้องเย็น"
-    const allowedDests = ["เข้าห้องเย็น", "รอCheckin","ห้องเย็น"];
+    const allowedDests = ["เข้าห้องเย็น", "รอCheckin","ห้องเย็น","ส่งกลับจากห้องเย็นใหญ่"];
 
 
     const invalidDestItems = rmResult.recordset.filter(

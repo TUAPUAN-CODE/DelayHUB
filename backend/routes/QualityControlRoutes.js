@@ -899,6 +899,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
           htr.name_edit_prod_two,
           htr.name_edit_prod_three,
           htr.prepare_mor_night,
+		  htr.summary_withdraw_date,
+		  CONVERT(varchar(10), htr.summary_withdraw_date, 120) AS summary_withdraw_date_formatted,
 
           -- ✅ datetime ดิบ (เผื่อใช้ logic ต่อ)
           htr.rmit_date,
@@ -951,174 +953,151 @@ ORDER BY MAX(htr.cooked_date) DESC;
 	});
 
 
-	router.get("/qc/History/All", async (req, res) => {
+	router.get("/qc/History/ByDate", async (req, res) => {
 		try {
-			const { page = 1, pageSize = 20 } = req.query;
-			const rm_type_ids = req.query.rm_type_ids; // รับ rm_type_ids จาก query parameters
+			const { start, end } = req.query;
 
-			if (!rm_type_ids) {
-				return res.status(400).json({ success: false, error: "RM Type IDs are required" });
+			// Validate required params
+			if (!start || !end) {
+				return res.status(400).json({
+					success: false,
+					error: "กรุณาระบุ start และ end (YYYY-MM-DD) ใน query string"
+				});
 			}
 
-			const rmTypeIdsArray = rm_type_ids.split(',');
-			const offset = (page - 1) * pageSize;
-			console.log('Request params:', { page, pageSize, offset, rm_type_ids });
-
-			console.log('Connecting to database...');
+			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
-			console.log('Database connected, executing query...');
 
-			// 1. Query สำหรับนับจำนวนทั้งหมด (พร้อมกรอง rm_type_id)
-			const countQuery = `
-      SELECT COUNT(*) AS total
-      FROM RMForProd rmf
-      JOIN TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
-      JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
-      JOIN RawMat rm ON pr.mat = rm.mat
-      JOIN Production p ON pr.prod_id = p.prod_id
-      JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
-      JOIN History htr ON rmm.mapping_id = htr.mapping_id
-      JOIN Batch b ON rmm.batch_id = b.batch_id
-      JOIN QC q ON rmm.qc_id = q.qc_id
-      WHERE rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
-    `;
-
-			const countResult = await pool.request().query(countQuery);
-			const totalRows = countResult.recordset[0].total;
-
-			// 2. Query หลักพร้อม pagination และกรอง rm_type_id
 			const mainQuery = `
-     SELECT
-    rmm.mapping_id,
-    rmf.rmfp_id,
-    STRING_AGG(CAST(b.batch_before AS VARCHAR(50)), CHAR(10)) AS batch_before,
-    STRING_AGG(CAST(b.batch_after AS VARCHAR(50)), CHAR(10)) AS batch_after,
-    rm.mat,
-    rm.mat_name,
-    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
-    htr.rmm_line_name,
-    htr.tray_count,
-    htr.weight_RM,
-    htr.dest,
-    rmg.rm_type_id,
-    ps.process_name,
-    htr.tro_id,
-    rmm.level_eu,
-    rmf.rm_group_id AS rmf_rm_group_id,
-    rmg.rm_group_id AS rmg_rm_group_id,
-    rmm.rm_status,
-    htr.cooked_date,
-    q.general_remark,
-    q.sq_remark,
-    q.md,
-    q.md_remark,
-    q.defect,
-    q.defect_remark,
-    q.md_no,
-    CONCAT(q.WorkAreaCode, '-', mwa.WorkAreaName) AS WorkAreaCode,
-    q.qccheck,
-    q.mdcheck,
-    q.defectcheck,
-    q.sq_acceptance,
-    q.defect_acceptance,
-    htr.receiver,
-    htr.receiver_qc,
-    q.Moisture,
-    q.Temp,
-    FORMAT(q.md_time, 'yyyy-MM-dd HH:mm') AS md_time_formatted,
-    q.percent_fine,
-    FORMAT(q.qc_datetime, 'yyyy-MM-dd HH:mm') AS qc_datetime_formatted,
-    FORMAT(htr.rmit_date, 'yyyy-MM-dd HH:mm') AS rmit_date,
-    REPLACE(LEFT(htr.withdraw_date, 16), 'T', ' ') AS withdraw_date_formatted,
-    htr.rework_time,
-    htr.prep_to_pack_time,
-    htr.first_prod,
-    htr.two_prod,
-    htr.three_prod,
-    htr.name_edit_prod_two,
-    htr.name_edit_prod_three,
-    htr.prepare_mor_night,
-    htr.remark_rework,
-    htr.remark_rework_cold,
-    htr.edit_rework,
-    htr.created_at
-  FROM
-    RMForProd rmf
-  JOIN TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
-  JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
-  JOIN RawMat rm ON pr.mat = rm.mat
-  JOIN Process ps ON rmm.process_id = ps.process_id
-  JOIN Production p ON pr.prod_id = p.prod_id
-  JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
-  JOIN History htr ON rmm.mapping_id = htr.mapping_id
-  JOIN Batch b ON rmm.mapping_id = b.mapping_id  -- เปลี่ยน join ให้ตรงกับ mapping_id
-  JOIN QC q ON rmm.qc_id = q.qc_id
-  LEFT JOIN WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
-  WHERE rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
-    AND htr.stay_place = 'จุดเตรียม'
-    AND (htr.dest = 'เข้าห้องเย็น' OR htr.dest = 'ไปบรรจุ')
-  GROUP BY
-    rmm.mapping_id,
-    rmf.rmfp_id,
-    rm.mat,
-    rm.mat_name,
-    p.doc_no,
-    rmm.rmm_line_name,
-    htr.rmm_line_name,
-    htr.tray_count,
-    htr.weight_RM,
-    htr.dest,
-    rmg.rm_type_id,
-    ps.process_name,
-    htr.tro_id,
-    rmm.level_eu,
-    rmf.rm_group_id,
-    rmg.rm_group_id,
-    rmm.rm_status,
-    htr.cooked_date,
-    q.general_remark,
-    q.sq_remark,
-    q.md,
-    q.md_remark,
-    q.defect,
-    q.defect_remark,
-    q.md_no,
-    q.WorkAreaCode,
-    mwa.WorkAreaName,
-    q.qccheck,
-    q.mdcheck,
-    q.defectcheck,
-    q.sq_acceptance,
-    q.defect_acceptance,
-    htr.receiver,
-    htr.receiver_qc,
-    q.Moisture,
-    q.Temp,
-    q.md_time,
-    q.percent_fine,
-    q.qc_datetime,
-    htr.rmit_date,
-    htr.withdraw_date,
-    htr.rework_time,
-    htr.prep_to_pack_time,
-    htr.first_prod,
-    htr.two_prod,
-    htr.three_prod,
-    htr.name_edit_prod_two,
-    htr.name_edit_prod_three,
-    htr.prepare_mor_night,
-    htr.remark_rework,
-    htr.remark_rework_cold,
-    htr.edit_rework,
-    htr.created_at
-  ORDER BY qc_datetime DESC
-  OFFSET @offset ROWS
-  FETCH NEXT @pageSize ROWS ONLY
-    `;
+			SELECT
+				rmm.mapping_id,
+				rmf.rmfp_id,
+				STRING_AGG(CAST(b.batch_before AS VARCHAR(50)), CHAR(10)) AS batch_before,
+				STRING_AGG(CAST(b.batch_after AS VARCHAR(50)), CHAR(10)) AS batch_after,
+				rm.mat,
+				rm.mat_name,
+				CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+				htr.rmm_line_name,
+				htr.tray_count,
+				htr.weight_RM,
+				htr.dest,
+				rmg.rm_type_id,
+				ps.process_name,
+				htr.tro_id,
+				rmm.level_eu,
+				rmf.rm_group_id AS rmf_rm_group_id,
+				rmg.rm_group_id AS rmg_rm_group_id,
+				rmm.rm_status,
+				htr.cooked_date,
+				q.general_remark,
+				q.sq_remark,
+				q.md,
+				q.md_remark,
+				q.defect,
+				q.defect_remark,
+				q.md_no,
+				CONCAT(q.WorkAreaCode, '-', mwa.WorkAreaName) AS WorkAreaCode,
+				q.qccheck,
+				q.mdcheck,
+				q.defectcheck,
+				q.sq_acceptance,
+				q.defect_acceptance,
+				htr.receiver,
+				htr.receiver_qc,
+				q.Moisture,
+				q.Temp,
+				FORMAT(q.md_time, 'yyyy-MM-dd HH:mm') AS md_time_formatted,
+				q.percent_fine,
+				FORMAT(q.qc_datetime, 'yyyy-MM-dd HH:mm') AS qc_datetime_formatted,
+				FORMAT(htr.rmit_date, 'yyyy-MM-dd HH:mm') AS rmit_date,
+				REPLACE(LEFT(htr.withdraw_date, 16), 'T', ' ') AS withdraw_date_formatted,
+				htr.rework_time,
+				htr.prep_to_pack_time,
+				htr.first_prod,
+				htr.two_prod,
+				htr.three_prod,
+				htr.name_edit_prod_two,
+				htr.name_edit_prod_three,
+				htr.prepare_mor_night,
+				htr.remark_rework,
+				htr.remark_rework_cold,
+				htr.edit_rework,
+				htr.created_at
+			FROM
+				RMForProd rmf
+			JOIN TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
+			JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
+			JOIN RawMat rm ON pr.mat = rm.mat
+			JOIN Process ps ON rmm.process_id = ps.process_id
+			JOIN Production p ON pr.prod_id = p.prod_id
+			JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
+			JOIN History htr ON rmm.mapping_id = htr.mapping_id
+			JOIN Batch b ON rmm.mapping_id = b.mapping_id
+			JOIN QC q ON rmm.qc_id = q.qc_id
+			LEFT JOIN WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
+			WHERE
+				htr.rmit_date >= @start
+				AND htr.rmit_date < DATEADD(DAY, 1, @end)
+			GROUP BY
+				rmm.mapping_id,
+				rmf.rmfp_id,
+				rm.mat,
+				rm.mat_name,
+				p.doc_no,
+				rmm.rmm_line_name,
+				htr.rmm_line_name,
+				htr.tray_count,
+				htr.weight_RM,
+				htr.dest,
+				rmg.rm_type_id,
+				ps.process_name,
+				htr.tro_id,
+				rmm.level_eu,
+				rmf.rm_group_id,
+				rmg.rm_group_id,
+				rmm.rm_status,
+				htr.cooked_date,
+				q.general_remark,
+				q.sq_remark,
+				q.md,
+				q.md_remark,
+				q.defect,
+				q.defect_remark,
+				q.md_no,
+				q.WorkAreaCode,
+				mwa.WorkAreaName,
+				q.qccheck,
+				q.mdcheck,
+				q.defectcheck,
+				q.sq_acceptance,
+				q.defect_acceptance,
+				htr.receiver,
+				htr.receiver_qc,
+				q.Moisture,
+				q.Temp,
+				q.md_time,
+				q.percent_fine,
+				q.qc_datetime,
+				htr.rmit_date,
+				htr.withdraw_date,
+				htr.rework_time,
+				htr.prep_to_pack_time,
+				htr.first_prod,
+				htr.two_prod,
+				htr.three_prod,
+				htr.name_edit_prod_two,
+				htr.name_edit_prod_three,
+				htr.prepare_mor_night,
+				htr.remark_rework,
+				htr.remark_rework_cold,
+				htr.edit_rework,
+				htr.created_at
+			ORDER BY htr.rmit_date DESC
+		`;
 
 			const result = await pool.request()
-				.input('offset', sql.Int, offset)
-				.input('pageSize', sql.Int, pageSize)
+				.input('start', sql.Date, start)
+				.input('end', sql.Date, end)
 				.query(mainQuery);
 
 			console.log("Data fetched:", result.recordset.length, 'records');
@@ -1140,7 +1119,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			});
 
 			console.log('Sending response with', formattedData.length, 'records');
-			res.json({ success: true, data: formattedData, total: totalRows });
+			res.json({ success: true, data: formattedData, total: formattedData.length });
+
 		} catch (err) {
 			console.error("SQL error:", err);
 			res.status(500).json({ success: false, error: err.message });

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, Collapse, TablePagination, Divider, Typography, styled } from '@mui/material';
+import { Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Paper, Box, TextField, Collapse, TablePagination, Divider, Typography, styled, Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Tooltip } from '@mui/material';
 
 import { InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 
@@ -105,6 +106,139 @@ const calculateTimeDifferenceForMaterial = (comeColdDateTime) => {
   return (currentDate - comecolddatetime) / (1000 * 60);
 };
 
+// รวมเวลาอยู่ในห้องเย็นทุกรอบ (นาที)
+const calculateTotalColdMinutes = (material) => {
+  const now = new Date();
+  const pairs = [
+    [material.come_cold_date,       material.out_cold_date],
+    [material.come_cold_date_two,   material.out_cold_date_two],
+    [material.come_cold_date_three, material.out_cold_date_three],
+    [material.cs_come_cold_date,    material.cs_out_cold_date],
+    [material.cs_come_cold_date_two,   material.cs_out_cold_date_two],
+    [material.cs_come_cold_date_three, material.cs_out_cold_date_three],
+    [material.cs_come_cold_date_four,  material.cs_out_cold_date_four],
+    [material.cs_come_cold_date_five,  material.cs_out_out_date_five],
+    [material.cs_come_cold_date_six,   material.cs_out_cold_date_six],
+    [material.cs_come_cold_date_seven, material.cs_out_cold_date_seven],
+    [material.cs_come_cold_date_eight, material.cs_out_cold_date_eight],
+    [material.cs_come_cold_date_nine,  material.cs_out_cold_date_nine],
+    [material.cs_come_cold_date_ten,   material.cs_out_cold_date_ten],
+  ];
+  let total = 0;
+  for (const [come, out] of pairs) {
+    if (!come) continue;
+    const comeDate = new Date(come);
+    if (isNaN(comeDate.getTime())) continue;
+    const outDate = out ? new Date(out) : now;
+    total += (outDate - comeDate) / (1000 * 60);
+  }
+  return total;
+};
+
+
+// สร้างรายละเอียดแต่ละรอบเพื่อแสดงใน dialog
+const buildColdBreakdown = (material) => {
+  const now = new Date();
+  const pairs = [
+    { label: 'รอบ 1',    come: material.come_cold_date,          out: material.out_cold_date },
+    { label: 'รอบ 2',    come: material.come_cold_date_two,      out: material.out_cold_date_two },
+    { label: 'รอบ 3',    come: material.come_cold_date_three,    out: material.out_cold_date_three },
+    { label: 'CS รอบ 1', come: material.cs_come_cold_date,       out: material.cs_out_cold_date },
+    { label: 'CS รอบ 2', come: material.cs_come_cold_date_two,   out: material.cs_out_cold_date_two },
+    { label: 'CS รอบ 3', come: material.cs_come_cold_date_three, out: material.cs_out_cold_date_three },
+    { label: 'CS รอบ 4', come: material.cs_come_cold_date_four,  out: material.cs_out_cold_date_four },
+    { label: 'CS รอบ 5', come: material.cs_come_cold_date_five,  out: material.cs_out_out_date_five },
+    { label: 'CS รอบ 6', come: material.cs_come_cold_date_six,   out: material.cs_out_cold_date_six },
+    { label: 'CS รอบ 7', come: material.cs_come_cold_date_seven, out: material.cs_out_cold_date_seven },
+    { label: 'CS รอบ 8', come: material.cs_come_cold_date_eight, out: material.cs_out_cold_date_eight },
+    { label: 'CS รอบ 9', come: material.cs_come_cold_date_nine,  out: material.cs_out_cold_date_nine },
+    { label: 'CS รอบ 10',come: material.cs_come_cold_date_ten,   out: material.cs_out_cold_date_ten },
+  ];
+  const result = [];
+  for (const { label, come, out } of pairs) {
+    if (!come) continue;
+    const comeDate = new Date(come);
+    if (isNaN(comeDate.getTime())) continue;
+    const isOpen = !out;
+    const outDate = isOpen ? now : new Date(out);
+    const minutes = (outDate - comeDate) / (1000 * 60);
+    result.push({ label, come, out: out || null, minutes, isOpen });
+  }
+  return result;
+};
+
+const fmtDatetime = (d) => d ? d.replace('T', ' ').slice(0, 19) : '-';
+
+const DelayBreakdownDialog = ({ open, onClose, material }) => {
+  if (!material) return null;
+  const breakdown = buildColdBreakdown(material);
+  const totalMinutes = breakdown.reduce((s, r) => s + r.minutes, 0);
+  const standardCold = parseFloat(material.standard_cold);
+  const standardColdMinutes = Math.floor(standardCold) * 60 + (standardCold % 1) * 100;
+  const exceeded = totalMinutes - standardColdMinutes;
+  const fmtMin = (min) => formatTime(Math.abs(min));
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '15px', fontWeight: 'bold', pb: 0 }}>
+        รายละเอียดการคำนวณ Delay Time
+        <Typography sx={{ fontSize: '12px', color: '#888', fontWeight: 'normal', mt: 0.3 }}>
+          {material.materialName || '-'} ({material.material_code || '-'}) &nbsp;|&nbsp; Batch: {material.batch || '-'}
+        </Typography>
+      </DialogTitle>
+      <DialogContent dividers sx={{ p: 0 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>รอบ</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>เข้าห้องเย็น</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>ออกห้องเย็น</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '12px', textAlign: 'right' }}>เวลาอยู่ในห้องเย็น</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {breakdown.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} sx={{ fontSize: '12px', textAlign: 'center', color: '#aaa' }}>ไม่มีข้อมูลการเข้าห้องเย็น</TableCell>
+              </TableRow>
+            ) : breakdown.map((r, i) => (
+              <TableRow key={i} sx={{ backgroundColor: r.isOpen ? '#fff8e1' : 'inherit' }}>
+                <TableCell sx={{ fontSize: '12px' }}>{r.label}</TableCell>
+                <TableCell sx={{ fontSize: '12px' }}>{fmtDatetime(r.come)}</TableCell>
+                <TableCell sx={{ fontSize: '12px', color: r.isOpen ? '#e65100' : 'inherit' }}>
+                  {r.isOpen ? '(ยังอยู่ในห้องเย็น)' : fmtDatetime(r.out)}
+                </TableCell>
+                <TableCell sx={{ fontSize: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                  {fmtMin(r.minutes)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Box sx={{ m: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px' }}>รวมเวลาในห้องเย็นทั้งหมด</Typography>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px', fontWeight: 'bold' }}>{fmtMin(totalMinutes)}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px' }}>เวลาที่กำหนด (standard_cold = {material.standard_cold})</Typography>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px', fontWeight: 'bold' }}>{fmtMin(standardColdMinutes)}</Typography>
+          </Box>
+          <Divider sx={{ my: 1 }} />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '14px', fontWeight: 'bold' }}>ผลลัพธ์</Typography>
+            <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '14px', fontWeight: 'bold', color: exceeded >= 0 ? 'red' : 'green' }}>
+              {exceeded >= 0 ? `เลยกำหนด ${fmtMin(exceeded)}` : `เหลืออีก ${fmtMin(-exceeded)}`}
+            </Typography>
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="contained" size="small" sx={{ backgroundColor: '#2388d1', fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px' }}>ปิด</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 // ปรับปรุงฟังก์ชัน calculateMaterialDelayTime เพื่อแก้ไขวิธีการคำนวณเวลาสำหรับวัตถุดิบผสม
 const calculateMaterialDelayTime = (material) => {
@@ -343,109 +477,34 @@ const calculateMaterialDelayTime = (material) => {
       delayTimeValue: updatedReworkTime
     };
   }
-  // กรณีไม่มี remaining_rework_time ให้ใช้การคำนวณแบบเดิม (ใช้ cold_time)
+  // กรณีไม่มี remaining_rework_time — รวมเวลาห้องเย็นทุกรอบแล้วเปรียบเทียบกับ standard_cold
   else {
-    // ใช้ข้อมูล cold_time จากตัวข้อมูลวัตถุดิบแต่ละรายการ
-    const coldValue = parseFloat(material.cold_time);
-    console.log(`Material ${material.material_code} cold_time:`, coldValue);
-
     const standardCold = parseFloat(material.standard_cold);
-    console.log(`Material ${material.material_code} standard_cold:`, standardCold);
-
-    // แปลงค่า standard_cold จากรูปแบบ ชั่วโมง.นาที เป็นนาทีทั้งหมด
     const standardColdMinutes = Math.floor(standardCold) * 60 + (standardCold % 1) * 100;
-    console.log("Material standard cold minutes:", standardColdMinutes);
 
-    // คำนวณเวลาที่ผ่านไปจริงตั้งแต่เข้าห้องเย็น
-    const timePassed = calculateTimeDifferenceForMaterial(latestComeColdDate);
-    console.log("Material time passed (minutes):", timePassed);
+    const totalMinutes = calculateTotalColdMinutes(material);
 
-    // กรณีที่ค่า cold เป็นลบ - แสดงว่าเลยกำหนดแล้ว
-    if (coldValue < 0) {
-      const exceededMinutesFromCold = Math.floor(Math.abs(coldValue)) * 60 + (Math.abs(coldValue) % 1) * 100;
-      const rs_exceededMinutesFromCold = -1 * exceededMinutesFromCold - timePassed;
-      console.log("Material exceeded minutes:", rs_exceededMinutesFromCold);
+    const percentage = (totalMinutes / standardColdMinutes) * 100;
+    checkAndUpdateMaterialStatus(material, percentage);
 
-      const percentage = ((standardColdMinutes + (-1 * rs_exceededMinutesFromCold)) / standardColdMinutes) * 100;
-
-      console.log(`เปอร์เซ็นของ cold < 0 (${standardColdMinutes} + ${-1 * rs_exceededMinutesFromCold}) / ${standardColdMinutes} = ${percentage}`)
-      console.log("Material percentage (exceeded): coldtime < 0", percentage);
-
-      checkAndUpdateMaterialStatus(material, percentage);
-
+    if (totalMinutes >= standardColdMinutes) {
+      const exceeded = totalMinutes - standardColdMinutes;
       return {
-        statusMessage: `เลยกำหนด ${formatTime(rs_exceededMinutesFromCold)}`,
+        statusMessage: `เลยกำหนด ${formatTime(exceeded)}`,
         color: "red",
-        delayTimeValue: coldValue,
         isOverdue: true
       };
     }
 
-    // กรณีที่ค่า cold = 0 แสดงว่าหมดเวลาพอดี
-    if (coldValue === 0) {
-
-      const percentage = ((standardColdMinutes + timePassed) / standardColdMinutes) * 100;
-      console.log("Material percentage (exceeded) coldtime = 0 :", percentage);
-
-      checkAndUpdateMaterialStatus(material, percentage);
-
-      return {
-        statusMessage: `เลยกำหนด ${formatTime(timePassed)}`,
-        color: "red",
-        delayTimeValue: 0
-      };
-    }
-
-    // กรณีที่ค่า cold เป็นบวกและมากกว่า 0 - ยังมีเวลาเหลือ
-    const coldValueMinutes = Math.floor(coldValue) * 60 + (coldValue % 1) * 100;
-
-    // ตรวจสอบว่าเวลาที่ผ่านไปจริงมากกว่าเวลาที่เหลือจาก cold หรือไม่
-    if (timePassed > coldValueMinutes) {
-      const exceededMinutes = timePassed - coldValueMinutes;
-      console.log("Material exceeded minutes from real time:", exceededMinutes);
-
-      const percentage = ((standardColdMinutes + exceededMinutes) / standardColdMinutes) * 100;
-
-      checkAndUpdateMaterialStatus(material, percentage);
-
-      // คำนวณค่า cold_time ที่ปรับปรุงแล้ว (เป็นค่าลบ)
-      // แปลงจากนาทีเป็นรูปแบบ ชั่วโมง.นาที (ติดลบ)
-      const updatedColdTime = -1 * (Math.floor(exceededMinutes / 60) + ((exceededMinutes % 60) / 100));
-
-      return {
-        statusMessage: `เลยกำหนด ${formatTime(exceededMinutes)}`,
-        color: "red",
-        delayTimeValue: updatedColdTime
-      };
-    }
-
-    // กรณีที่ยังไม่เกินเวลา
-    const timeRemaining = coldValueMinutes - timePassed;
-    const resultRemainningCold = standardColdMinutes - coldValueMinutes;
-    console.log("Material time remaining (minutes):", timeRemaining);
-
-    console.log(`การคำนวณ percentage: ${resultRemainningCold} = ${standardColdMinutes} - ${coldValueMinutes}`)
-
-    // คำนวณเปอร์เซ็นต์
-    const percentage = ((timePassed + resultRemainningCold) / standardColdMinutes) * 100;
-    console.log("Material percentage:", percentage);
-
-    checkAndUpdateMaterialStatus(material, percentage);
-
-    // กำหนดสีตามเปอร์เซ็นต์
+    const timeRemaining = standardColdMinutes - totalMinutes;
     let color;
-    if (percentage >= 100) color = "red";
-    else if (percentage >= 70) color = "orange";
+    if (percentage >= 70) color = "orange";
     else color = "green";
-
-    // คำนวณค่า cold_time ที่ปรับปรุงแล้ว
-    // แปลงจากนาทีกลับเป็นรูปแบบ ชั่วโมง.นาที
-    const updatedColdTime = Math.floor(timeRemaining / 60) + ((timeRemaining % 60) / 100);
 
     return {
       statusMessage: `เหลืออีก ${formatTime(timeRemaining)}`,
       color,
-      delayTimeValue: updatedColdTime
+      isOverdue: false
     };
   }
 };
@@ -747,12 +806,15 @@ const Row = ({
 // คอมโพเนนต์สำหรับแสดงรายละเอียดวัตถุดิบในรถเข็น
 // Modified MaterialDetails component to properly display mixed materials
 const MaterialDetails = ({ materials, isOpen, row }) => {
+  const [breakdownMaterial, setBreakdownMaterial] = useState(null);
+
   if (!isOpen || !materials || materials.length === 0) return null;
 
   console.log("Row data in MaterialDetails:", row);
   console.log("Materials data:", materials);
 
   return (
+    <>
     <TableRow>
       <TableCell colSpan={5} style={{ padding: '0px' }}>
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
@@ -790,7 +852,17 @@ const MaterialDetails = ({ materials, isOpen, row }) => {
 
                   return (
                     <TableRow key={index}>
-                      <TableCell sx={{ fontSize: '12px', padding: '8px 16px', color: color }}>{statusMessage || '-'}</TableCell>
+                      <TableCell sx={{ fontSize: '12px', padding: '8px 16px', color: color }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <span>{statusMessage || '-'}</span>
+                          <Tooltip title="ดูรายละเอียดการคำนวณ">
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setBreakdownMaterial(material); }}
+                              sx={{ p: 0.2, color: '#90caf9', '&:hover': { color: '#1565c0' } }}>
+                              <InfoOutlinedIcon sx={{ fontSize: '15px' }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
                       <TableCell sx={{ fontSize: '12px', padding: '8px 16px' }}>{material.batch || '-'}</TableCell>
                       <TableCell sx={{ fontSize: '12px', padding: '8px 16px' }}>{displayMaterialCode}</TableCell>
                       <TableCell sx={{ fontSize: '12px', padding: '8px 16px' }}>{displayMaterialName}</TableCell>
@@ -810,6 +882,12 @@ const MaterialDetails = ({ materials, isOpen, row }) => {
         </Collapse>
       </TableCell>
     </TableRow>
+    <DelayBreakdownDialog
+      open={Boolean(breakdownMaterial)}
+      onClose={() => setBreakdownMaterial(null)}
+      material={breakdownMaterial}
+    />
+    </>
   );
 };
 
@@ -990,8 +1068,31 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           cooked_date: item.cooked_date,
           rmit_date: item.rmit_date,
           come_cold_date: item.come_cold_date,
+          out_cold_date: item.out_cold_date,
           come_cold_date_two: item.come_cold_date_two,
+          out_cold_date_two: item.out_cold_date_two,
           come_cold_date_three: item.come_cold_date_three,
+          out_cold_date_three: item.out_cold_date_three,
+          cs_come_cold_date: item.cs_come_cold_date,
+          cs_out_cold_date: item.cs_out_cold_date,
+          cs_come_cold_date_two: item.cs_come_cold_date_two,
+          cs_out_cold_date_two: item.cs_out_cold_date_two,
+          cs_come_cold_date_three: item.cs_come_cold_date_three,
+          cs_out_cold_date_three: item.cs_out_cold_date_three,
+          cs_come_cold_date_four: item.cs_come_cold_date_four,
+          cs_out_cold_date_four: item.cs_out_cold_date_four,
+          cs_come_cold_date_five: item.cs_come_cold_date_five,
+          cs_out_out_date_five: item.cs_out_out_date_five,
+          cs_come_cold_date_six: item.cs_come_cold_date_six,
+          cs_out_cold_date_six: item.cs_out_cold_date_six,
+          cs_come_cold_date_seven: item.cs_come_cold_date_seven,
+          cs_out_cold_date_seven: item.cs_out_cold_date_seven,
+          cs_come_cold_date_eight: item.cs_come_cold_date_eight,
+          cs_out_cold_date_eight: item.cs_out_cold_date_eight,
+          cs_come_cold_date_nine: item.cs_come_cold_date_nine,
+          cs_out_cold_date_nine: item.cs_out_cold_date_nine,
+          cs_come_cold_date_ten: item.cs_come_cold_date_ten,
+          cs_out_cold_date_ten: item.cs_out_cold_date_ten,
           withdraw_date: item.withdraw_date,
           ptc_time: item.ptc_time,
           standard_ptc: item.standard_ptc,
@@ -1091,10 +1192,32 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           withdraw_date: item.withdraw_date,
           rmit_date: item.rmit_date,
           come_cold_date: item.come_cold_date,
+          out_cold_date: item.out_cold_date,
           come_cold_date_two: item.come_cold_date_two,
+          out_cold_date_two: item.out_cold_date_two,
           come_cold_date_three: item.come_cold_date_three,
-          withdraw_date: item.withdraw_date,
-          ptc_time: item.ptc_time, // เพิ่มบรรทัดนี้
+          out_cold_date_three: item.out_cold_date_three,
+          cs_come_cold_date: item.cs_come_cold_date,
+          cs_out_cold_date: item.cs_out_cold_date,
+          cs_come_cold_date_two: item.cs_come_cold_date_two,
+          cs_out_cold_date_two: item.cs_out_cold_date_two,
+          cs_come_cold_date_three: item.cs_come_cold_date_three,
+          cs_out_cold_date_three: item.cs_out_cold_date_three,
+          cs_come_cold_date_four: item.cs_come_cold_date_four,
+          cs_out_cold_date_four: item.cs_out_cold_date_four,
+          cs_come_cold_date_five: item.cs_come_cold_date_five,
+          cs_out_out_date_five: item.cs_out_out_date_five,
+          cs_come_cold_date_six: item.cs_come_cold_date_six,
+          cs_out_cold_date_six: item.cs_out_cold_date_six,
+          cs_come_cold_date_seven: item.cs_come_cold_date_seven,
+          cs_out_cold_date_seven: item.cs_out_cold_date_seven,
+          cs_come_cold_date_eight: item.cs_come_cold_date_eight,
+          cs_out_cold_date_eight: item.cs_out_cold_date_eight,
+          cs_come_cold_date_nine: item.cs_come_cold_date_nine,
+          cs_out_cold_date_nine: item.cs_out_cold_date_nine,
+          cs_come_cold_date_ten: item.cs_come_cold_date_ten,
+          cs_out_cold_date_ten: item.cs_out_cold_date_ten,
+          ptc_time: item.ptc_time,
           standard_ptc: item.standard_ptc,
           name_edit_prod_two: item.name_edit_prod_two,
           name_edit_prod_three: item.name_edit_prod_three,

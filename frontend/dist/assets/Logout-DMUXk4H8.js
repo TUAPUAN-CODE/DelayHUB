@@ -1,0 +1,1 @@
+import{at as o,r}from"./react-vendor-D7_fsfPy.js";import"./vendor-DVickPUq.js";import"./lodash-vendor-CZN2j9Io.js";import"./socket-vendor-DsykNdLk.js";import"./pdf-vendor-CzOGyM_A.js";const p=()=>{const t=o();return r.useEffect(()=>{localStorage.clear(),t("/login")},[t]),null};export{p as default};

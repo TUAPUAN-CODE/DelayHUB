@@ -65,8 +65,9 @@ const SIDEBAR_ITEMS = [
     icon: ShoppingCart,
     submenu: [
       
-      { name: "เคลียร์รถเข็น", href: "/sup/TableToCold" },
+      // { name: "เคลียร์รถเข็น", href: "/sup/TableToCold" },
       { name: "จัดการรถเข็น", href: "/sup/CartMange" },
+      { name: "เคลียร์รถเข็น", href: "/sup/TrackTrolley" },
     ],
     href: "####",
   },
@@ -80,7 +81,8 @@ const SIDEBAR_ITEMS = [
   { name: "Delay Time", icon: MdConveyorBelt, href: "/sup/delay/report" },
   { name: "Delay Time line", icon: MdConveyorBelt, href: "/sup/delay/report/line" },
   { name: "Delay Time Percentage", icon: MdConveyorBelt, href: "/sup/DelayTimepercentage_tie" },
-  { name: "Delay Time Tracking RM", icon: MdConveyorBelt, href: "/sup/DelayTimeTrackingRM" },
+  { name: "Delay Time Tracking SC", icon: MdConveyorBelt, href: "/sup/DelayTimeTrackingRM" },
+  { name: "Delay Time Tracking IP", icon: MdConveyorBelt, href: "/sup/TrackTrolley/inprocess" },
   // { name: "เปลี่ยนที่ทำงาน", icon: FaPeopleCarry, href: "/sup/WorkplaceSelector" },
   { name: "ออกจากระบบ", icon: TbLogout2, href: "/logout" },
 ];

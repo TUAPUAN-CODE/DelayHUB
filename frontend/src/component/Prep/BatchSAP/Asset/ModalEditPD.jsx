@@ -180,7 +180,7 @@ const ConfirmProdModal = ({
       setIsLoading(true);
       setError(null);
 
-     
+
       const currentDateTime = new Date();
       currentDateTime.setHours(currentDateTime.getHours() + 7);
       const formattedDateTime = currentDateTime.toISOString();
@@ -371,7 +371,7 @@ const ConfirmProdModal = ({
   );
 };
 
-const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date, hu ,remark}) => {
+const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date, hu, remark }) => {
   const [selectedPlanSets, setSelectedPlanSets] = useState([]);
   const [materialName, setMaterialName] = useState("");
   const [production, setProduction] = useState([]);
@@ -404,20 +404,31 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
     }
   }, [material]);
 
-
   useEffect(() => {
     if (open) {
       fetchUserDataFromLocalStorage();
-      fetchRawmat2x();
     }
   }, [open]);
 
+  useEffect(() => {
+    if (open && material) {
+      fetchRawmat2x();
+    } else {
+      setRawmat2xOptions([]);
+      setMat2x(null);
+    }
+  }, [open, material]);
+
   const fetchRawmat2x = async () => {
+    if (!material) return;
     try {
-      const res = await axios.get(`${API_URL}/api/prep/rawmat2x/list`);
+      const res = await axios.get(`${API_URL}/api/fetchRawMat2XByMat`, {
+        params: { mat: material },
+      });
       if (res.data.success) setRawmat2xOptions(res.data.data ?? []);
     } catch (err) {
       console.error("Error fetching rawmat2x:", err);
+      setRawmat2xOptions([]);
     }
   };
 
@@ -440,73 +451,73 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
       if (response.data.success) {
         setMaterialName(response.data.data[0]?.mat_name || "ไม่พบชื่อวัตถุดิบ");
         const rmTypeId = response.data.data[0]?.rm_type_id;
-       const allowedTypes = [
-2,
-3,
-4,
-5,
-6,
-7,
-8,
-9,
-10,
-11,
-37,
-38,
-39,
-40,
-42,
-44,
-45,
-46,
-47,
-49,
-50,
-51,
-52,
-53,
-54,
-55,
-56,
-57,
-58,
-59,
-60,
-61,
-63,
-64,
-65,
-66,
-67,
-68,
-69,
-70,
-71,
-72,
-73,
-74,
-75,
-76,
-77,
-78,
-79,
-80,
-81,
-82,
-83,
-84,
-85,
-86,
-87,
-88,
-89,
-90,
-91,
-92,
-93,
-95,
-96,
-97];
+        const allowedTypes = [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          37,
+          38,
+          39,
+          40,
+          42,
+          44,
+          45,
+          46,
+          47,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          95,
+          96,
+          97];
         setCanSelectEu(allowedTypes.includes(rmTypeId));
 
         // Reset EU level to default if not selectable
@@ -735,10 +746,10 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
 
               <Autocomplete
                 options={rawmat2xOptions}
-                getOptionLabel={(opt) => `${opt.mat_2x} ${opt.mat_name_2x}`}
+                getOptionLabel={(opt) => `${opt.mat_2X} - ${opt.mat_name_2x}`}
                 value={mat2x}
                 onChange={(_, newVal) => setMat2x(newVal)}
-                isOptionEqualToValue={(opt, val) => opt.mat_2x === val.mat_2x}
+                isOptionEqualToValue={(opt, val) => opt.mat_2X === val.mat_2X}
                 renderInput={(params) => (
                   <TextField {...params} label="วัตถุดิบ 2x" size="small" fullWidth sx={{ mb: 2 }} />
                 )}
@@ -1004,7 +1015,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
         operator={operator}
         weighttotal={weighttotal}
         level_eu={level_eu}
-        mat2x={mat2x?.mat_2x ?? null}
+        mat2x={mat2x?.mat_2X ?? null}
         isLoading={isLoading}
         setIsLoading={setIsLoading}
         onSuccess={handleSaveSuccess}

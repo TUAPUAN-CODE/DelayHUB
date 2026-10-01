@@ -39,6 +39,7 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { name: "ส่งออก", icon: RiArrowUpBoxLine, href: "/coldStorage/CheckOut/CheckOutPage" },
+  { name: "ส่งออกอัตโนมัติ (RFID)", icon: RiArrowUpBoxLine, href: "/coldStorage/EmptyTrolley/RFIDCSCheckOutPage" },
   {
     name: "ห้องเย็น",
     icon: PiThermometerColdBold,

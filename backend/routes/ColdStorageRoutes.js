@@ -7,6 +7,9 @@ module.exports = (io) => {
     const router = express.Router();
     const RESERVATION_TIMEOUT_MINUTES = 5; // 5 นาที
 
+    const DEBUG_LOGS = process.env.DEBUG_LOGS === 'true';
+    function debugLog(...args) { if (DEBUG_LOGS) console.log(...args); }
+
     // ✅ ฟังก์ชันเคลียร์ Slot ที่จองไว้นานเกินไป
     const clearExpiredSlots = async () => {
         try {
@@ -21,7 +24,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             if (result.rowsAffected > 0) {
                 io.emit("slotReset", {}); // แจ้ง frontend ว่ามีการรีเซ็ต Slot
-                console.log(`ล้าง Slot ที่หมดอายุแล้ว (${result.rowsAffected} รายการ)`);
+                debugLog(`ล้าง Slot ที่หมดอายุแล้ว (${result.rowsAffected} รายการ)`);
             }
         } catch (error) {
             console.error("Error clearing expired slots:", error);
@@ -181,7 +184,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
 
             const formattedData = result.recordset.map(item => {
-                console.log("item :", item);
+                debugLog("item :", item);
                 return item;
             });
 
@@ -253,7 +256,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
 
             const formattedData = result.recordset.map(item => {
-                console.log("item :", item);
+                debugLog("item :", item);
                 return item;
             });
 
@@ -736,7 +739,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
 
     io.on('connection', (socket) => {
-        console.log('Client connected:', socket.id);
+        debugLog('Client connected:', socket.id);
 
         socket.on('reserveSlot', async ({ slot_id, cs_id }) => {
             const reservationKey = `${slot_id}-${cs_id}`;
@@ -802,14 +805,14 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
                     });
                 }
             }
-            console.log('Client disconnected:', socket.id);
+            debugLog('Client disconnected:', socket.id);
         });
     });
 
     router.get("/coldstorage/fetchSlotRawMat", async (req, res) => {
         try {
             const { slot_id } = req.query;
-            console.log(`Received slot_id: ${slot_id}`);
+            debugLog(`Received slot_id: ${slot_id}`);
 
             if (!slot_id) {
                 return res.status(400).json({ success: false, error: "slot_id is required" });
@@ -933,7 +936,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
     router.get("/coldstorage/mixed/fetchSlotRawMat", async (req, res) => {
         try {
             const { slot_id } = req.query;
-            console.log(`Received slot_id for mixed materials: ${slot_id}`);
+            debugLog(`Received slot_id for mixed materials: ${slot_id}`);
 
             if (!slot_id) {
                 return res.status(400).json({ success: false, error: "slot_id is required" });
@@ -998,7 +1001,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
     router.get("/coldstorage/fetchAvailableRawMaterials", async (req, res) => {
         try {
             const { current_tro_id } = req.query;
-            console.log("tro_id : ", current_tro_id)
+            debugLog("tro_id : ", current_tro_id)
 
             if (!current_tro_id) {
                 return res.status(400).json({
@@ -1157,52 +1160,52 @@ WHERE
             });
         }
     });
-  router.put("/coldstorage/addRawMatToTrolley", async (req, res) => {
-    try {
-        console.log("Raw Request Body:", req.body);
-        const {
-            source_tro_id,
-            target_tro_id,
-            weight,
-            slot_id,
-            rmfp_id,
-            mix_code,
-            mapping_id,
-            isMixed
-        } = req.body;
-
-        if (!source_tro_id || !target_tro_id || !weight || !slot_id) {
-            return res.status(400).json({ success: false, error: "Missing required fields" });
-        }
-
-        if (isMixed) {
-            if (!mix_code || !mapping_id) {
-                return res.status(400).json({ success: false, error: "For mixed materials, mix_code and mapping_id are required" });
-            }
-        } else {
-            if (!rmfp_id) {
-                return res.status(400).json({ success: false, error: "For normal materials, rmfp_id is required" });
-            }
-        }
-
-        const weightNum = parseFloat(weight);
-        if (isNaN(weightNum)) {
-            return res.status(400).json({ success: false, error: "Invalid weight value" });
-        }
-
-        const pool = await connectToDatabase();
-        if (!pool) {
-            return res.status(500).json({ success: false, error: "Database connection failed" });
-        }
-
-        const transaction = new sql.Transaction(pool);
-        await transaction.begin();
-
+    router.put("/coldstorage/addRawMatToTrolley", async (req, res) => {
         try {
-            // ดึงข้อมูลวัตถุดิบต้นทาง
-            let sourceQuery;
+            debugLog("Raw Request Body:", req.body);
+            const {
+                source_tro_id,
+                target_tro_id,
+                weight,
+                slot_id,
+                rmfp_id,
+                mix_code,
+                mapping_id,
+                isMixed
+            } = req.body;
+
+            if (!source_tro_id || !target_tro_id || !weight || !slot_id) {
+                return res.status(400).json({ success: false, error: "Missing required fields" });
+            }
+
             if (isMixed) {
-                sourceQuery = `
+                if (!mix_code || !mapping_id) {
+                    return res.status(400).json({ success: false, error: "For mixed materials, mix_code and mapping_id are required" });
+                }
+            } else {
+                if (!rmfp_id) {
+                    return res.status(400).json({ success: false, error: "For normal materials, rmfp_id is required" });
+                }
+            }
+
+            const weightNum = parseFloat(weight);
+            if (isNaN(weightNum)) {
+                return res.status(400).json({ success: false, error: "Invalid weight value" });
+            }
+
+            const pool = await connectToDatabase();
+            if (!pool) {
+                return res.status(500).json({ success: false, error: "Database connection failed" });
+            }
+
+            const transaction = new sql.Transaction(pool);
+            await transaction.begin();
+
+            try {
+                // ดึงข้อมูลวัตถุดิบต้นทาง
+                let sourceQuery;
+                if (isMixed) {
+                    sourceQuery = `
                     SELECT 
                         mapping_id, tro_id, rmfp_id, tray_count, batch_id, tro_production_id, process_id, qc_id,
                         weight_RM, level_eu, prep_to_cold_time, cold_time,
@@ -1213,8 +1216,8 @@ WHERE
                     FROM TrolleyRMMapping
                     WHERE mapping_id = @mapping_id
                 `;
-            } else {
-                sourceQuery = `
+                } else {
+                    sourceQuery = `
                     SELECT 
                         mapping_id, tro_id, rmfp_id, tray_count, batch_id, tro_production_id, process_id, qc_id,
                         weight_RM, level_eu, prep_to_cold_time, cold_time,
@@ -1225,45 +1228,45 @@ WHERE
                     FROM TrolleyRMMapping
                     WHERE tro_id = @source_tro_id AND rmfp_id = @rmfp_id
                 `;
-            }
+                }
 
-            const sourceResult = await new sql.Request(transaction)
-                .input('source_tro_id', source_tro_id)
-                .input('rmfp_id', rmfp_id)
-                .input('mapping_id', mapping_id)
-                .query(sourceQuery);
+                const sourceResult = await new sql.Request(transaction)
+                    .input('source_tro_id', source_tro_id)
+                    .input('rmfp_id', rmfp_id)
+                    .input('mapping_id', mapping_id)
+                    .query(sourceQuery);
 
-            if (sourceResult.recordset.length === 0) throw new Error("Source raw material not found");
+                if (sourceResult.recordset.length === 0) throw new Error("Source raw material not found");
 
-            const sourceRecord = sourceResult.recordset[0];
-            const currentTotalWeight = sourceRecord.weight_RM;
-            const existingTrayCount = sourceRecord.tray_count;
+                const sourceRecord = sourceResult.recordset[0];
+                const currentTotalWeight = sourceRecord.weight_RM;
+                const existingTrayCount = sourceRecord.tray_count;
 
-            if (currentTotalWeight < weightNum) throw new Error(`Not enough weight available (Available: ${currentTotalWeight}, Requested: ${weightNum})`);
+                if (currentTotalWeight < weightNum) throw new Error(`Not enough weight available (Available: ${currentTotalWeight}, Requested: ${weightNum})`);
 
-            const weightRatio = weightNum / currentTotalWeight;
-            const traysToMove = Math.ceil(existingTrayCount * weightRatio);
+                const weightRatio = weightNum / currentTotalWeight;
+                const traysToMove = Math.ceil(existingTrayCount * weightRatio);
 
-            // ดึงข้อมูลประวัติต้นทาง
-            const historyResult = await new sql.Request(transaction)
-                .input('mapping_id', sourceRecord.mapping_id)
-                .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
+                // ดึงข้อมูลประวัติต้นทาง
+                const historyResult = await new sql.Request(transaction)
+                    .input('mapping_id', sourceRecord.mapping_id)
+                    .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
 
-            if (historyResult.recordset.length === 0) throw new Error("History record not found for source material");
+                if (historyResult.recordset.length === 0) throw new Error("History record not found for source material");
 
-            const historyData = historyResult.recordset[0];
-            const currentDateTime = new Date().toISOString();
-            const currentUser = req.user?.username || 'ห้องเย็นผสมวัตถุดิบ';
+                const historyData = historyResult.recordset[0];
+                const currentDateTime = new Date().toISOString();
+                const currentUser = req.user?.username || 'ห้องเย็นผสมวัตถุดิบ';
 
-            // 1. ลดน้ำหนักและจำนวนถาดจากต้นทาง
-            const updateSourceResult = await new sql.Request(transaction)
-                .input('source_tro_id', source_tro_id)
-                .input('rmfp_id', rmfp_id)
-                .input('mapping_id', mapping_id)
-                .input('weight', weightNum)
-                .input('trays', traysToMove)
-                .input('updated_at', currentDateTime)
-                .query(`
+                // 1. ลดน้ำหนักและจำนวนถาดจากต้นทาง
+                const updateSourceResult = await new sql.Request(transaction)
+                    .input('source_tro_id', source_tro_id)
+                    .input('rmfp_id', rmfp_id)
+                    .input('mapping_id', mapping_id)
+                    .input('weight', weightNum)
+                    .input('trays', traysToMove)
+                    .input('updated_at', currentDateTime)
+                    .query(`
                     UPDATE TrolleyRMMapping
                     SET 
                         weight_RM  = weight_RM - @weight,
@@ -1271,86 +1274,86 @@ WHERE
                         updated_at = @updated_at
                     WHERE ${isMixed ? 'mapping_id = @mapping_id' : 'tro_id = @source_tro_id AND rmfp_id = @rmfp_id'}
                 `);
-            if (updateSourceResult.rowsAffected[0] === 0) throw new Error("Failed to update source TrolleyRMMapping");
+                if (updateSourceResult.rowsAffected[0] === 0) throw new Error("Failed to update source TrolleyRMMapping");
 
-            // 2. ตรวจสอบว่ามีวัตถุดิบปลายทางแล้วหรือไม่
-            let destMappingId;
-            if (isMixed) {
-                const checkMixedResult = await new sql.Request(transaction)
-                    .input('target_tro_id', target_tro_id)
-                    .input('mix_code', mix_code)
-                    .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @target_tro_id AND mix_code = @mix_code`);
-                if (checkMixedResult.recordset.length > 0) destMappingId = checkMixedResult.recordset[0].mapping_id;
-            } else {
-                const checkNormalResult = await new sql.Request(transaction)
-                    .input('target_tro_id', target_tro_id)
-                    .input('rmfp_id', rmfp_id)
-                    .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @target_tro_id AND rmfp_id = @rmfp_id`);
-                if (checkNormalResult.recordset.length > 0) destMappingId = checkNormalResult.recordset[0].mapping_id;
-            }
+                // 2. ตรวจสอบว่ามีวัตถุดิบปลายทางแล้วหรือไม่
+                let destMappingId;
+                if (isMixed) {
+                    const checkMixedResult = await new sql.Request(transaction)
+                        .input('target_tro_id', target_tro_id)
+                        .input('mix_code', mix_code)
+                        .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @target_tro_id AND mix_code = @mix_code`);
+                    if (checkMixedResult.recordset.length > 0) destMappingId = checkMixedResult.recordset[0].mapping_id;
+                } else {
+                    const checkNormalResult = await new sql.Request(transaction)
+                        .input('target_tro_id', target_tro_id)
+                        .input('rmfp_id', rmfp_id)
+                        .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @target_tro_id AND rmfp_id = @rmfp_id`);
+                    if (checkNormalResult.recordset.length > 0) destMappingId = checkNormalResult.recordset[0].mapping_id;
+                }
 
-            if (destMappingId) {
-                // ✅ มีอยู่แล้ว → แค่ UPDATE
-                const updateDestResult = await new sql.Request(transaction)
-                    .input('mapping_id', destMappingId)
-                    .input('weight', weightNum)
-                    .input('trays', traysToMove)
-                    .input('updated_at', currentDateTime)
-                    .query(`
+                if (destMappingId) {
+                    // ✅ มีอยู่แล้ว → แค่ UPDATE
+                    const updateDestResult = await new sql.Request(transaction)
+                        .input('mapping_id', destMappingId)
+                        .input('weight', weightNum)
+                        .input('trays', traysToMove)
+                        .input('updated_at', currentDateTime)
+                        .query(`
                         UPDATE TrolleyRMMapping
                         SET weight_RM  = weight_RM + @weight,
                             tray_count = tray_count + @trays,
                             updated_at = @updated_at
                         WHERE mapping_id = @mapping_id
                     `);
-                if (updateDestResult.rowsAffected[0] === 0) throw new Error("Failed to update destination TrolleyRMMapping");
+                    if (updateDestResult.rowsAffected[0] === 0) throw new Error("Failed to update destination TrolleyRMMapping");
 
-                const updateHistoryResult = await new sql.Request(transaction)
-                    .input('mapping_id', destMappingId)
-                    .input('weight', weightNum)
-                    .input('trays', traysToMove)
-                    .input('updated_at', currentDateTime)
-                    .query(`
+                    const updateHistoryResult = await new sql.Request(transaction)
+                        .input('mapping_id', destMappingId)
+                        .input('weight', weightNum)
+                        .input('trays', traysToMove)
+                        .input('updated_at', currentDateTime)
+                        .query(`
                         UPDATE History
                         SET weight_RM  = weight_RM + @weight,
                             tray_count = tray_count + @trays,
                             updated_at = @updated_at
                         WHERE mapping_id = @mapping_id
                     `);
-                if (updateHistoryResult.rowsAffected[0] === 0) throw new Error("Failed to update destination History");
+                    if (updateHistoryResult.rowsAffected[0] === 0) throw new Error("Failed to update destination History");
 
-            } else {
-                // ✅ ยังไม่มี → INSERT ใหม่
-                const insertResult = await new sql.Request(transaction)
-                    .input('target_tro_id', target_tro_id)
-                    .input('rmfp_id', rmfp_id)
-                    .input('batch_id', sourceRecord.batch_id)
-                    .input('tro_production_id', sourceRecord.tro_production_id)
-                    .input('process_id', sourceRecord.process_id)
-                    .input('qc_id', sourceRecord.qc_id)
-                    .input('tray_count', traysToMove)
-                    .input('weight_RM', weightNum)
-                    .input('level_eu', sourceRecord.level_eu)
-                    .input('prep_to_cold_time', sourceRecord.prep_to_cold_time)
-                    .input('cold_time', sourceRecord.cold_time)
-                    .input('prep_to_pack_time', sourceRecord.prep_to_pack_time)
-                    .input('cold_to_pack_time', sourceRecord.cold_to_pack_time)
-                    .input('mix_time', sourceRecord.mix_time)
-                    .input('rework_time', sourceRecord.rework_time)
-                    .input('rm_status', sourceRecord.rm_status)
-                    .input('rm_cold_status', sourceRecord.rm_cold_status)
-                    .input('stay_place', sourceRecord.stay_place)
-                    .input('dest', sourceRecord.dest)
-                    .input('mix_code', sourceRecord.mix_code)
-                    .input('prod_mix', sourceRecord.prod_mix)
-                    .input('allocation_date', currentDateTime)
-                    .input('status', 1)
-                    .input('production_batch', sourceRecord.production_batch)
-                    .input('created_by', currentUser)
-                    .input('created_at', currentDateTime)
-                    .input('rmm_line_name', sourceRecord.rmm_line_name)
-                    .input('tl_status', '1.1')
-                    .query(`
+                } else {
+                    // ✅ ยังไม่มี → INSERT ใหม่
+                    const insertResult = await new sql.Request(transaction)
+                        .input('target_tro_id', target_tro_id)
+                        .input('rmfp_id', rmfp_id)
+                        .input('batch_id', sourceRecord.batch_id)
+                        .input('tro_production_id', sourceRecord.tro_production_id)
+                        .input('process_id', sourceRecord.process_id)
+                        .input('qc_id', sourceRecord.qc_id)
+                        .input('tray_count', traysToMove)
+                        .input('weight_RM', weightNum)
+                        .input('level_eu', sourceRecord.level_eu)
+                        .input('prep_to_cold_time', sourceRecord.prep_to_cold_time)
+                        .input('cold_time', sourceRecord.cold_time)
+                        .input('prep_to_pack_time', sourceRecord.prep_to_pack_time)
+                        .input('cold_to_pack_time', sourceRecord.cold_to_pack_time)
+                        .input('mix_time', sourceRecord.mix_time)
+                        .input('rework_time', sourceRecord.rework_time)
+                        .input('rm_status', sourceRecord.rm_status)
+                        .input('rm_cold_status', sourceRecord.rm_cold_status)
+                        .input('stay_place', sourceRecord.stay_place)
+                        .input('dest', sourceRecord.dest)
+                        .input('mix_code', sourceRecord.mix_code)
+                        .input('prod_mix', sourceRecord.prod_mix)
+                        .input('allocation_date', currentDateTime)
+                        .input('status', 1)
+                        .input('production_batch', sourceRecord.production_batch)
+                        .input('created_by', currentUser)
+                        .input('created_at', currentDateTime)
+                        .input('rmm_line_name', sourceRecord.rmm_line_name)
+                        .input('tl_status', '1.1')
+                        .query(`
                         INSERT INTO TrolleyRMMapping (
                             tro_id, rmfp_id, batch_id, tro_production_id, process_id, 
                             qc_id, tray_count, weight_RM, level_eu, 
@@ -1369,53 +1372,53 @@ WHERE
                             @status, @production_batch, @created_by, @created_at, @tl_status, @rmm_line_name
                         )
                     `);
-                if (!insertResult.recordset[0]?.mapping_id) throw new Error("Failed to insert destination TrolleyRMMapping");
+                    if (!insertResult.recordset[0]?.mapping_id) throw new Error("Failed to insert destination TrolleyRMMapping");
 
-                destMappingId = insertResult.recordset[0].mapping_id;
+                    destMappingId = insertResult.recordset[0].mapping_id;
 
-                // INSERT History
-                await new sql.Request(transaction)
-                    .input('mapping_id', destMappingId)
-                    .input('withdraw_date', historyData.withdraw_date)
-                    .input('cooked_date', historyData.cooked_date)
-                    .input('rmit_date', historyData.rmit_date)
-                    .input('qc_date', historyData.qc_date)
-                    .input('come_cold_date', historyData.come_cold_date)
-                    .input('out_cold_date', historyData.out_cold_date)
-                    .input('come_cold_date_two', historyData.come_cold_date_two)
-                    .input('out_cold_date_two', historyData.out_cold_date_two)
-                    .input('come_cold_date_three', historyData.come_cold_date_three)
-                    .input('out_cold_date_three', historyData.out_cold_date_three)
-                    .input('mixed_date', historyData.mixed_date)
-                    .input('sc_pack_date', historyData.sc_pack_date)
-                    .input('rework_date', historyData.rework_date)
-                    .input('receiver', historyData.receiver)
-                    .input('receiver_prep_two', historyData.receiver_prep_two)
-                    .input('receiver_qc', historyData.receiver_qc)
-                    .input('receiver_out_cold', historyData.receiver_out_cold)
-                    .input('receiver_out_cold_two', historyData.receiver_out_cold_two)
-                    .input('receiver_out_cold_three', historyData.receiver_out_cold_three)
-                    .input('receiver_oven_edit', historyData.receiver_oven_edit)
-                    .input('receiver_pack_edit', historyData.receiver_pack_edit)
-                    .input('remark_pack_edit', historyData.remark_pack_edit)
-                    .input('location', historyData.location)
-                    .input('tray_count', traysToMove)
-                    .input('weight_RM', weightNum)
-                    .input('md_time', historyData.md_time)
-                    .input('tro_id', target_tro_id)
-                    .input('rmm_line_name', sourceRecord.rmm_line_name)
-                    .input('dest', sourceRecord.dest)
-                    .input('name_edit_prod_two', historyData.name_edit_prod_two)
-                    .input('name_edit_prod_three', historyData.name_edit_prod_three)
-                    .input('first_prod', historyData.first_prod)
-                    .input('two_prod', historyData.two_prod)
-                    .input('three_prod', historyData.three_prod)
-                    .input('receiver_qc_cold', historyData.receiver_qc_cold)
-                    .input('remark_rework', historyData.remark_rework)
-                    .input('remark_rework_cold', historyData.remark_rework_cold)
-                    .input('edit_rework', historyData.edit_rework)
-                    .input('prepare_mor_night', historyData.prepare_mor_night)
-                    .query(`
+                    // INSERT History
+                    await new sql.Request(transaction)
+                        .input('mapping_id', destMappingId)
+                        .input('withdraw_date', historyData.withdraw_date)
+                        .input('cooked_date', historyData.cooked_date)
+                        .input('rmit_date', historyData.rmit_date)
+                        .input('qc_date', historyData.qc_date)
+                        .input('come_cold_date', historyData.come_cold_date)
+                        .input('out_cold_date', historyData.out_cold_date)
+                        .input('come_cold_date_two', historyData.come_cold_date_two)
+                        .input('out_cold_date_two', historyData.out_cold_date_two)
+                        .input('come_cold_date_three', historyData.come_cold_date_three)
+                        .input('out_cold_date_three', historyData.out_cold_date_three)
+                        .input('mixed_date', historyData.mixed_date)
+                        .input('sc_pack_date', historyData.sc_pack_date)
+                        .input('rework_date', historyData.rework_date)
+                        .input('receiver', historyData.receiver)
+                        .input('receiver_prep_two', historyData.receiver_prep_two)
+                        .input('receiver_qc', historyData.receiver_qc)
+                        .input('receiver_out_cold', historyData.receiver_out_cold)
+                        .input('receiver_out_cold_two', historyData.receiver_out_cold_two)
+                        .input('receiver_out_cold_three', historyData.receiver_out_cold_three)
+                        .input('receiver_oven_edit', historyData.receiver_oven_edit)
+                        .input('receiver_pack_edit', historyData.receiver_pack_edit)
+                        .input('remark_pack_edit', historyData.remark_pack_edit)
+                        .input('location', historyData.location)
+                        .input('tray_count', traysToMove)
+                        .input('weight_RM', weightNum)
+                        .input('md_time', historyData.md_time)
+                        .input('tro_id', target_tro_id)
+                        .input('rmm_line_name', sourceRecord.rmm_line_name)
+                        .input('dest', sourceRecord.dest)
+                        .input('name_edit_prod_two', historyData.name_edit_prod_two)
+                        .input('name_edit_prod_three', historyData.name_edit_prod_three)
+                        .input('first_prod', historyData.first_prod)
+                        .input('two_prod', historyData.two_prod)
+                        .input('three_prod', historyData.three_prod)
+                        .input('receiver_qc_cold', historyData.receiver_qc_cold)
+                        .input('remark_rework', historyData.remark_rework)
+                        .input('remark_rework_cold', historyData.remark_rework_cold)
+                        .input('edit_rework', historyData.edit_rework)
+                        .input('prepare_mor_night', historyData.prepare_mor_night)
+                        .query(`
                         INSERT INTO History (
                             mapping_id, withdraw_date, cooked_date, rmit_date, qc_date, 
                             come_cold_date, out_cold_date, come_cold_date_two, out_cold_date_two, 
@@ -1440,29 +1443,29 @@ WHERE
                         )
                     `);
 
-                // INSERT Batch (คัดลอกจาก source)
-                const sourceBatchResult = await new sql.Request(transaction)
-                    .input('source_mapping_id', sourceRecord.mapping_id)
-                    .query(`SELECT batch_after, batch_before FROM Batch WHERE mapping_id = @source_mapping_id`);
+                    // INSERT Batch (คัดลอกจาก source)
+                    const sourceBatchResult = await new sql.Request(transaction)
+                        .input('source_mapping_id', sourceRecord.mapping_id)
+                        .query(`SELECT batch_after, batch_before FROM Batch WHERE mapping_id = @source_mapping_id`);
 
-                if (sourceBatchResult.recordset.length > 0) {
-                    for (const batch of sourceBatchResult.recordset) {
-                        await new sql.Request(transaction)
-                            .input('mapping_id', destMappingId)
-                            .input('batch_after', batch.batch_after)
-                            .input('batch_before', batch.batch_before)
-                            .query(`
+                    if (sourceBatchResult.recordset.length > 0) {
+                        for (const batch of sourceBatchResult.recordset) {
+                            await new sql.Request(transaction)
+                                .input('mapping_id', destMappingId)
+                                .input('batch_after', batch.batch_after)
+                                .input('batch_before', batch.batch_before)
+                                .query(`
                                 INSERT INTO Batch (mapping_id, batch_after, batch_before)
                                 VALUES (@mapping_id, @batch_after, @batch_before)
                             `);
+                        }
+                        debugLog(`✅ คัดลอก ${sourceBatchResult.recordset.length} batch records ไปยัง mapping ใหม่: ${destMappingId}`);
                     }
-                    console.log(`✅ คัดลอก ${sourceBatchResult.recordset.length} batch records ไปยัง mapping ใหม่: ${destMappingId}`);
-                }
 
-                // ✅ ดึง mat แล้ว INSERT ลง Mat
-                const matResult = await new sql.Request(transaction)
-                    .input('mapping_id', destMappingId)
-                    .query(`
+                    // ✅ ดึง mat แล้ว INSERT ลง Mat
+                    const matResult = await new sql.Request(transaction)
+                        .input('mapping_id', destMappingId)
+                        .query(`
                         SELECT
                             rmm.mapping_id,
                             rm.mat
@@ -1473,46 +1476,46 @@ WHERE
                         WHERE rmm.mapping_id = @mapping_id
                     `);
 
-                if (matResult.recordset.length > 0) {
-                    const mat = matResult.recordset[0].mat;
+                    if (matResult.recordset.length > 0) {
+                        const mat = matResult.recordset[0].mat;
 
-                    await new sql.Request(transaction)
-                        .input('mapping_id', destMappingId)
-                        .input('mat', mat)
-                        .input('mat_2x', mat)
-                        .query(`
+                        await new sql.Request(transaction)
+                            .input('mapping_id', destMappingId)
+                            .input('mat', mat)
+                            .input('mat_2x', mat)
+                            .query(`
                             INSERT INTO Mat (mapping_id, mat, mat_2x)
                             VALUES (@mapping_id, @mat, @mat_2x)
                         `);
 
-                    console.log(`✅ Insert Mat สำเร็จ mapping_id: ${destMappingId}, mat: ${mat}`);
-                } else {
-                    console.warn(`⚠️ ไม่พบ mat สำหรับ mapping_id: ${destMappingId}`);
+                        debugLog(`✅ Insert Mat สำเร็จ mapping_id: ${destMappingId}, mat: ${mat}`);
+                    } else {
+                        console.warn(`⚠️ ไม่พบ mat สำหรับ mapping_id: ${destMappingId}`);
+                    }
                 }
-            }
 
-            // ตรวจสอบ source หลังโอน
-            const checkSourceResult = await new sql.Request(transaction)
-                .input('source_tro_id', source_tro_id)
-                .query(`
+                // ตรวจสอบ source หลังโอน
+                const checkSourceResult = await new sql.Request(transaction)
+                    .input('source_tro_id', source_tro_id)
+                    .query(`
                     SELECT COUNT(*) AS item_count, SUM(weight_RM) AS total_weight
                     FROM TrolleyRMMapping
                     WHERE tro_id = @source_tro_id
                 `);
-            const sourceTotalWeight = checkSourceResult.recordset[0]?.total_weight || 0;
+                const sourceTotalWeight = checkSourceResult.recordset[0]?.total_weight || 0;
 
-            const checkZeroWeightItems = await new sql.Request(transaction)
-                .input('source_tro_id', source_tro_id)
-                .query(`
+                const checkZeroWeightItems = await new sql.Request(transaction)
+                    .input('source_tro_id', source_tro_id)
+                    .query(`
                     SELECT mapping_id FROM TrolleyRMMapping
                     WHERE tro_id = @source_tro_id AND weight_RM = 0
                 `);
 
-            if (checkZeroWeightItems.recordset.length > 0) {
-                await new sql.Request(transaction)
-                    .input('source_tro_id', source_tro_id)
-                    .input('removal_date', currentDateTime)
-                    .query(`
+                if (checkZeroWeightItems.recordset.length > 0) {
+                    await new sql.Request(transaction)
+                        .input('source_tro_id', source_tro_id)
+                        .input('removal_date', currentDateTime)
+                        .query(`
                         UPDATE TrolleyRMMapping
                         SET removal_date = @removal_date,
                             tro_id       = NULL,
@@ -1520,52 +1523,52 @@ WHERE
                             tl_status    = '1411'
                         WHERE tro_id = @source_tro_id AND weight_RM = 0
                     `);
-            }
+                }
 
-            const remainingItemsResult = await new sql.Request(transaction)
-                .input('source_tro_id', source_tro_id)
-                .query(`
+                const remainingItemsResult = await new sql.Request(transaction)
+                    .input('source_tro_id', source_tro_id)
+                    .query(`
                     SELECT COUNT(*) AS remaining_items
                     FROM TrolleyRMMapping
                     WHERE tro_id = @source_tro_id AND weight_RM > 0
                 `);
-            const remainingItems = remainingItemsResult.recordset[0]?.remaining_items || 0;
+                const remainingItems = remainingItemsResult.recordset[0]?.remaining_items || 0;
 
-            if (remainingItems === 0 && sourceTotalWeight === 0) {
-                await new sql.Request(transaction)
-                    .input('source_tro_id', source_tro_id)
-                    .query(`UPDATE Slot SET tro_id = NULL, status = '1428' WHERE tro_id = @source_tro_id`);
-                await new sql.Request(transaction)
-                    .input('source_tro_id', source_tro_id)
-                    .query(`UPDATE Trolley SET tro_status = '1', status = '1.7' WHERE tro_id = @source_tro_id`);
-            }
-
-            await transaction.commit();
-
-            res.json({
-                success: true,
-                message: "Raw material added successfully",
-                data: {
-                    source_tro_id,
-                    target_tro_id,
-                    moved_weight: weightNum,
-                    moved_trays: traysToMove,
-                    dest_mapping_id: destMappingId,
-                    source_remaining_items: remainingItems,
-                    zero_weight_items_updated: checkZeroWeightItems.recordset.length
+                if (remainingItems === 0 && sourceTotalWeight === 0) {
+                    await new sql.Request(transaction)
+                        .input('source_tro_id', source_tro_id)
+                        .query(`UPDATE Slot SET tro_id = NULL, status = '1428' WHERE tro_id = @source_tro_id`);
+                    await new sql.Request(transaction)
+                        .input('source_tro_id', source_tro_id)
+                        .query(`UPDATE Trolley SET tro_status = '1', status = '1.7' WHERE tro_id = @source_tro_id`);
                 }
-            });
 
+                await transaction.commit();
+
+                res.json({
+                    success: true,
+                    message: "Raw material added successfully",
+                    data: {
+                        source_tro_id,
+                        target_tro_id,
+                        moved_weight: weightNum,
+                        moved_trays: traysToMove,
+                        dest_mapping_id: destMappingId,
+                        source_remaining_items: remainingItems,
+                        zero_weight_items_updated: checkZeroWeightItems.recordset.length
+                    }
+                });
+
+            } catch (error) {
+                await transaction.rollback();
+                console.error("Transaction error:", error);
+                res.status(500).json({ success: false, error: error.message });
+            }
         } catch (error) {
-            await transaction.rollback();
-            console.error("Transaction error:", error);
+            console.error("Error in addRawMatToTrolley:", error);
             res.status(500).json({ success: false, error: error.message });
         }
-    } catch (error) {
-        console.error("Error in addRawMatToTrolley:", error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+    });
 
     // router.get("/coldstorage/fetchTrolleyMaterials", async (req, res) => {
     //     try {
@@ -1910,39 +1913,62 @@ WHERE
     CONVERT(VARCHAR, htr.withdraw_date, 120) AS withdraw_date,
     CONVERT(VARCHAR, htr.rmit_date, 120) AS rmit_date,
     CONVERT(VARCHAR, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(VARCHAR, htr.out_cold_date, 120) AS out_cold_date,
     CONVERT(VARCHAR, htr.come_cold_date_two, 120) AS come_cold_date_two,
-    CONVERT(VARCHAR, htr.come_cold_date_three, 120) AS come_cold_date_three
+    CONVERT(VARCHAR, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(VARCHAR, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(VARCHAR, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(VARCHAR, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+    CONVERT(VARCHAR, htr.cs_out_out_date_five, 120) AS cs_out_out_date_five,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten
 
 FROM TrolleyRMMapping rmm
 
-JOIN RMForProd rmf 
+JOIN RMForProd rmf
 ON rmm.rmfp_id = rmf.rmfp_id
 
 LEFT JOIN Batch b
 ON rmm.mapping_id = b.mapping_id
 
-JOIN ProdRawMat pr 
+JOIN ProdRawMat pr
 ON rmm.tro_production_id = pr.prod_rm_id
 
-JOIN RawMat rm 
+JOIN RawMat rm
 ON pr.mat = rm.mat
 
-JOIN Production p 
+JOIN Production p
 ON pr.prod_id = p.prod_id
 
-JOIN RawMatGroup rmg 
+JOIN RawMatGroup rmg
 ON rmf.rm_group_id = rmg.rm_group_id
 
-LEFT JOIN Slot s 
+LEFT JOIN Slot s
 ON rmm.tro_id = s.tro_id
 
-JOIN History htr 
+JOIN History htr
 ON rmm.mapping_id = htr.mapping_id
 
-LEFT JOIN Qc q 
+LEFT JOIN Qc q
 ON rmm.qc_id = q.qc_id
 
-LEFT JOIN WorkAreas mwa 
+LEFT JOIN WorkAreas mwa
 ON q.WorkAreaCode = mwa.WorkAreaCode
 
 JOIN Mat m
@@ -1959,7 +1985,7 @@ ORDER BY
     `);
 
             const formattedData = result.recordset.map(item => {
-                console.log("item:", item);
+                debugLog("item:", item);
                 return item;
             });
 
@@ -2042,39 +2068,62 @@ ORDER BY
     CONVERT(VARCHAR, htr.withdraw_date, 120) AS withdraw_date,
     CONVERT(VARCHAR, htr.rmit_date, 120) AS rmit_date,
     CONVERT(VARCHAR, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(VARCHAR, htr.out_cold_date, 120) AS out_cold_date,
     CONVERT(VARCHAR, htr.come_cold_date_two, 120) AS come_cold_date_two,
-    CONVERT(VARCHAR, htr.come_cold_date_three, 120) AS come_cold_date_three
+    CONVERT(VARCHAR, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(VARCHAR, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(VARCHAR, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(VARCHAR, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+    CONVERT(VARCHAR, htr.cs_out_out_date_five, 120) AS cs_out_out_date_five,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+    CONVERT(VARCHAR, htr.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+    CONVERT(VARCHAR, htr.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten
 
 FROM TrolleyRMMapping rmm
 
-JOIN RMForProd rmf 
+JOIN RMForProd rmf
 ON rmm.rmfp_id = rmf.rmfp_id
 
 LEFT JOIN Batch b
 ON rmm.mapping_id = b.mapping_id
 
-JOIN ProdRawMat pr 
+JOIN ProdRawMat pr
 ON rmm.tro_production_id = pr.prod_rm_id
 
-JOIN RawMat rm 
+JOIN RawMat rm
 ON pr.mat = rm.mat
 
-JOIN Production p 
+JOIN Production p
 ON pr.prod_id = p.prod_id
 
-JOIN RawMatGroup rmg 
+JOIN RawMatGroup rmg
 ON rmf.rm_group_id = rmg.rm_group_id
 
-LEFT JOIN Slot s 
+LEFT JOIN Slot s
 ON rmm.tro_id = s.tro_id
 
-JOIN History htr 
+JOIN History htr
 ON rmm.mapping_id = htr.mapping_id
 
-LEFT JOIN Qc q 
+LEFT JOIN Qc q
 ON rmm.qc_id = q.qc_id
 
-LEFT JOIN WorkAreas mwa 
+LEFT JOIN WorkAreas mwa
 ON q.WorkAreaCode = mwa.WorkAreaCode
 
 WHERE
@@ -2088,7 +2137,7 @@ ORDER BY
     `);
 
             const formattedData = result.recordset.map(item => {
-                console.log("item:", item);
+                debugLog("item:", item);
                 return item;
             });
 
@@ -2142,7 +2191,7 @@ ORDER BY
           `);
 
             const formattedData = result.recordset.map(item => {
-                console.log("item :", item);
+                debugLog("item :", item);
                 return item;
             });
 
@@ -2156,15 +2205,16 @@ ORDER BY
 
     router.put("/coldstorage/outcoldstorage", async (req, res) => {
         try {
-            console.log("Raw Request Body:", req.body);
+            debugLog("Raw Request Body:", req.body);
 
             const {
                 tro_id, slot_id, rm_cold_status, rm_status,
-                dest, operator, materials, storage_purpose
+                dest, operator, materials, storage_purpose,
+                deposit_days, cold_remark
             } = req.body;
 
             if (!tro_id || !slot_id || !rm_status || !dest || !materials) {
-                console.log("Missing fields:", { tro_id, slot_id, rm_status, dest, materials });
+                console.warn("Missing fields:", { tro_id, slot_id, rm_status, dest, materials });
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
@@ -2194,7 +2244,7 @@ ORDER BY
                     const histamineValue = (material.histamine != null && material.histamine !== "")
                         ? parseFloat(material.histamine) : null;
 
-                    console.log(`📦 mapping_id: ${mapping_id}, histamine: ${histamineValue}, storage_purpose: ${storage_purpose}`);
+                    debugLog(`📦 mapping_id: ${mapping_id}, histamine: ${histamineValue}, storage_purpose: ${storage_purpose}`);
 
                     // ── ดึง cold_to_pack ─────────────────────────────────────────────
                     const rmDataResult = await new sql.Request(transaction)
@@ -2344,29 +2394,47 @@ ORDER BY
                     const hField = currentRound === 3 ? 'at_pd_histamine_3'
                         : currentRound === 2 ? 'at_pd_histamine_2'
                             : 'at_pd_histamine';
+                    const ddField = currentRound === 3 ? 'at_pd_deposit_date_3'
+                        : currentRound === 2 ? 'at_pd_deposit_date_2'
+                            : 'at_pd_deposit_date';
+                    const crField = currentRound === 3 ? 'at_pd_cold_remark_3'
+                        : currentRound === 2 ? 'at_pd_cold_remark_2'
+                            : 'at_pd_cold_remark';
 
                     if (storage_purpose && storage_purpose.trim() !== "") {
                         histReq.input("storage_purpose_val", sql.NVarChar, storage_purpose.trim());
                         historyExtra += `, ${spField} = @storage_purpose_val`;
-                        console.log(`✅ ${spField}: "${storage_purpose}" → mapping_id: ${mapping_id} (round ${currentRound})`);
+                        debugLog(`✅ ${spField}: "${storage_purpose}" → mapping_id: ${mapping_id} (round ${currentRound})`);
                     }
 
                     if (histamineValue != null && !isNaN(histamineValue)) {
                         histReq.input("histamine_val", sql.Float, histamineValue);
                         historyExtra += `, ${hField} = @histamine_val`;
-                        console.log(`✅ ${hField}: ${histamineValue} ppm → mapping_id: ${mapping_id} (round ${currentRound})`);
+                        debugLog(`✅ ${hField}: ${histamineValue} ppm → mapping_id: ${mapping_id} (round ${currentRound})`);
+                    }
+
+                    if (deposit_days) {
+                        histReq.input("deposit_days_val", sql.Date, new Date(deposit_days));
+                        historyExtra += `, ${ddField} = @deposit_days_val`;
+                        debugLog(`✅ ${ddField}: "${deposit_days}" → mapping_id: ${mapping_id} (round ${currentRound})`);
+                    }
+
+                    if (cold_remark && cold_remark.trim() !== "") {
+                        histReq.input("cold_remark_val", sql.NVarChar(500), cold_remark.trim());
+                        historyExtra += `, ${crField} = @cold_remark_val`;
+                        debugLog(`✅ ${crField}: "${cold_remark}" → mapping_id: ${mapping_id} (round ${currentRound})`);
                     }
 
                     historyUpdateQuery += historyExtra + ` WHERE mapping_id = @mapping_id;`;
 
                     await histReq.query(historyUpdateQuery);
 
-                    console.log(`✅ History updated: mapping_id=${mapping_id}`);
+                    debugLog(`✅ History updated: mapping_id=${mapping_id}`);
                 }
 
                 // ── Commit ────────────────────────────────────────────────────────────
                 await transaction.commit();
-                console.log(`✅ Transaction committed: tro_id=${tro_id}`);
+                debugLog(`✅ Transaction committed: tro_id=${tro_id}`);
 
                 io.to('saveRMForProdRoom').emit('dataUpdated', {
                     message: "วัตถุดิบถูกนำออกจากห้องเย็นแล้ว",
@@ -2414,6 +2482,19 @@ ORDER BY
                     throw new Error(`Slot update failed for slot_id ${slot_id}`);
                 }
 
+                // ── ดึง cs_id จาก Slot โดยใช้ slot_id ที่รับมา ──────────────────
+                const CS_IDS_NO_COLD_TIME = [10, 14, 21, 25, 26, 37, 38];
+
+                const slotResult = await new sql.Request(transaction)
+                    .input("slot_id", slot_id)
+                    .query(`SELECT cs_id FROM Slot WHERE slot_id = @slot_id`);
+
+                const cs_id = slotResult.recordset[0]?.cs_id ?? null;
+
+                const isColdStorageNoUpdate = cs_id != null && CS_IDS_NO_COLD_TIME.includes(cs_id);
+
+                debugLog(`ℹ️ slot_id=${slot_id} → cs_id=${cs_id} → skipColdTime=${isColdStorageNoUpdate}`);
+
                 // 2. วนลูปแต่ละ material
                 for (const material of materials) {
                     const { mapping_id, remaining_rework_time, cold, mix_time } = material;
@@ -2425,12 +2506,12 @@ ORDER BY
                     const rmDataResult = await new sql.Request(transaction)
                         .input("mapping_id", mapping_id)
                         .query(`
-                        SELECT rmg.cold_to_pack, rmm.cold_to_pack_time
-                        FROM TrolleyRMMapping rmm
-                        JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
-                        JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
-                        WHERE rmm.mapping_id = @mapping_id
-                    `);
+                    SELECT rmg.cold_to_pack, rmm.cold_to_pack_time
+                    FROM TrolleyRMMapping rmm
+                    JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
+                    JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
+                    WHERE rmm.mapping_id = @mapping_id
+                `);
 
                     if (rmDataResult.recordset.length === 0)
                         throw new Error(`Raw material not found for mapping_id: ${mapping_id}`);
@@ -2438,16 +2519,23 @@ ORDER BY
                     let cold_to_pack_time = rmDataResult.recordset[0].cold_to_pack_time
                         ?? rmDataResult.recordset[0].cold_to_pack;
 
-                    // อัปเดต TrolleyRMMapping
+                    // ── อัปเดต TrolleyRMMapping ──────────────────────────────────
+                    // ถ้า cs_id อยู่ใน [10,14,21,25,26,37,38] → ไม่ update cold_time
                     let updateQuery = `
-                    UPDATE TrolleyRMMapping
-                    SET dest          = @dest,
-                        rm_cold_status = NULL,
-                        stay_place     = @stay_place
-                `;
-                    if (mix_time != null) updateQuery += `, mix_time      = @mix_time`;
-                    else if (remaining_rework_time != null) updateQuery += `, rework_time   = @rework_delay_time`;
-                    else updateQuery += `, cold_time     = @cold`;
+                UPDATE TrolleyRMMapping
+                SET dest           = @dest,
+                    rm_cold_status = NULL,
+                    stay_place     = @stay_place
+            `;
+                    if (mix_time != null) {
+                        updateQuery += `, mix_time    = @mix_time`;
+                    } else if (remaining_rework_time != null) {
+                        updateQuery += `, rework_time = @rework_delay_time`;
+                    } else if (!isColdStorageNoUpdate) {
+                        // cs_id ไม่ใช่ห้องเย็นที่ยกเว้น → update cold_time ตามปกติ
+                        updateQuery += `, cold_time   = @cold`;
+                    }
+                    // cs_id อยู่ใน list ที่ยกเว้น → ไม่ต่อ cold_time เลย
 
                     await new sql.Request(transaction)
                         .input("mapping_id", mapping_id)
@@ -2463,10 +2551,10 @@ ORDER BY
                     const updatedRmDataResult = await new sql.Request(transaction)
                         .input("mapping_id", mapping_id)
                         .query(`
-                        SELECT cold_to_pack_time, mix_time, rework_time
-                        FROM TrolleyRMMapping
-                        WHERE mapping_id = @mapping_id
-                    `);
+                    SELECT cold_to_pack_time, mix_time, rework_time
+                    FROM TrolleyRMMapping
+                    WHERE mapping_id = @mapping_id
+                `);
                     const updatedRmData = updatedRmDataResult.recordset[0];
 
                     // ── สร้าง historyExtra และ inputs แบบ dynamic ──────────────────
@@ -2484,100 +2572,87 @@ ORDER BY
                     if (storage_purpose && storage_purpose.trim() !== "") {
                         histReq.input("storage_purpose", sql.NVarChar, storage_purpose);
                         historyExtra += `, storage_purpose = @storage_purpose`;
-                        console.log(`✅ storage_purpose: ${storage_purpose} → mapping_id: ${mapping_id}`);
+                        debugLog(`✅ storage_purpose: ${storage_purpose} → mapping_id: ${mapping_id}`);
                     }
 
                     // ✅ histamine — update เฉพาะเมื่อมีค่า
                     if (histamineValue != null && !isNaN(histamineValue)) {
                         histReq.input("histamine", sql.Float, histamineValue);
                         historyExtra += `, histamine = @histamine`;
-                        console.log(`✅ histamine: ${histamineValue} → mapping_id: ${mapping_id}`);
+                        debugLog(`✅ histamine: ${histamineValue} → mapping_id: ${mapping_id}`);
                     }
 
                     // ── อัปเดต History ────────────────────────────────────────────
                     await histReq.query(`
-                    UPDATE History
-                    SET
-                        out_cold_date = CASE
-                            WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
-                            THEN GETDATE() ELSE out_cold_date END,
+                UPDATE History
+                SET
+                    out_cold_date = CASE
+                        WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
+                        THEN GETDATE() ELSE out_cold_date END,
 
-                        receiver_out_cold = CASE
-                            WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
-                            THEN @operator ELSE receiver_out_cold END,
+                    receiver_out_cold = CASE
+                        WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
+                        THEN @operator ELSE receiver_out_cold END,
 
-                        receiver_out_cold_two = CASE
-                            WHEN come_cold_date_two IS NOT NULL AND out_cold_date_two IS NULL
-                            THEN @operator ELSE receiver_out_cold_two END,
+                    receiver_out_cold_two = CASE
+                        WHEN come_cold_date_two IS NOT NULL AND out_cold_date_two IS NULL
+                        THEN @operator ELSE receiver_out_cold_two END,
 
-                        receiver_out_cold_three = CASE
-                            WHEN come_cold_date_three IS NOT NULL AND out_cold_date_three IS NULL
-                            THEN @operator ELSE receiver_out_cold_three END,
+                    receiver_out_cold_three = CASE
+                        WHEN come_cold_date_three IS NOT NULL AND out_cold_date_three IS NULL
+                        THEN @operator ELSE receiver_out_cold_three END,
 
-                        cs_out_cold_date = CASE
-                            WHEN cs_come_cold_date IS NOT NULL AND cs_out_cold_date IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date END,
+                    cs_out_cold_date = CASE
+                        WHEN cs_come_cold_date IS NOT NULL AND cs_out_cold_date IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date END,
 
-                        cs_out_cold_date_two = CASE
-                            WHEN cs_come_cold_date_two IS NOT NULL AND cs_out_cold_date_two IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_two END,
+                    cs_out_cold_date_two = CASE
+                        WHEN cs_come_cold_date_two IS NOT NULL AND cs_out_cold_date_two IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_two END,
 
-                        cs_out_cold_date_three = CASE
-                            WHEN cs_come_cold_date_three IS NOT NULL AND cs_out_cold_date_three IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_three END,
+                    cs_out_cold_date_three = CASE
+                        WHEN cs_come_cold_date_three IS NOT NULL AND cs_out_cold_date_three IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_three END,
 
-                        cs_out_cold_date_four = CASE
-                            WHEN cs_come_cold_date_four IS NOT NULL AND cs_out_cold_date_four IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_four END,
+                    cs_out_cold_date_four = CASE
+                        WHEN cs_come_cold_date_four IS NOT NULL AND cs_out_cold_date_four IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_four END,
 
-                        cs_out_out_date_five = CASE
-                            WHEN cs_come_cold_date_five IS NOT NULL AND cs_out_out_date_five IS NULL
-                            THEN GETDATE() ELSE cs_out_out_date_five END,
+                    cs_out_out_date_five = CASE
+                        WHEN cs_come_cold_date_five IS NOT NULL AND cs_out_out_date_five IS NULL
+                        THEN GETDATE() ELSE cs_out_out_date_five END,
 
-                        cs_out_cold_date_six = CASE
-                            WHEN cs_come_cold_date_six IS NOT NULL AND cs_out_cold_date_six IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_six END,
+                    cs_out_cold_date_six = CASE
+                        WHEN cs_come_cold_date_six IS NOT NULL AND cs_out_cold_date_six IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_six END,
 
-                        cs_out_cold_date_seven = CASE
-                            WHEN cs_come_cold_date_seven IS NOT NULL AND cs_out_cold_date_seven IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_seven END,
+                    cs_out_cold_date_seven = CASE
+                        WHEN cs_come_cold_date_seven IS NOT NULL AND cs_out_cold_date_seven IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_seven END,
 
-                        cs_out_cold_date_eight = CASE
-                            WHEN cs_come_cold_date_eight IS NOT NULL AND cs_out_cold_date_eight IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_eight END,
+                    cs_out_cold_date_eight = CASE
+                        WHEN cs_come_cold_date_eight IS NOT NULL AND cs_out_cold_date_eight IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_eight END,
 
-                        cs_out_cold_date_nine = CASE
-                            WHEN cs_come_cold_date_nine IS NOT NULL AND cs_out_cold_date_nine IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_nine END,
+                    cs_out_cold_date_nine = CASE
+                        WHEN cs_come_cold_date_nine IS NOT NULL AND cs_out_cold_date_nine IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_nine END,
 
-                        cs_out_cold_date_ten = CASE
-                            WHEN cs_come_cold_date_ten IS NOT NULL AND cs_out_cold_date_ten IS NULL
-                            THEN GETDATE() ELSE cs_out_cold_date_ten END,
+                    cs_out_cold_date_ten = CASE
+                        WHEN cs_come_cold_date_ten IS NOT NULL AND cs_out_cold_date_ten IS NULL
+                        THEN GETDATE() ELSE cs_out_cold_date_ten END,
 
-                        cold_dest = @dest
-                        ${historyExtra}
+                    cold_dest = @dest
+                    ${historyExtra}
 
-                    WHERE mapping_id = @mapping_id;
-                `);
+                WHERE mapping_id = @mapping_id;
+            `);
 
-                    console.log(`✅ History updated: mapping_id=${mapping_id}`);
-                }
-
-                // ถ้า location = จุดเตรียม → clear tro_id ใน TrolleyRMMapping + คืนสถานะรถเข็น
-                if (location === 'จุดเตรียม') {
-                    await new sql.Request(transaction)
-                        .input("tro_id", sql.NVarChar, tro_id)
-                        .query(`UPDATE TrolleyRMMapping SET tro_id = NULL WHERE tro_id = @tro_id;`);
-
-                    await new sql.Request(transaction)
-                        .input("tro_id", sql.NVarChar, tro_id)
-                        .query(`UPDATE Trolley SET tro_status = 1 WHERE tro_id = @tro_id;`);
-
-                    console.log(`✅ Trolley released: tro_id=${tro_id}, location=จุดเตรียม`);
+                    debugLog(`✅ History updated: mapping_id=${mapping_id}`);
                 }
 
                 await transaction.commit();
-                console.log(`✅ Transaction committed: tro_id=${tro_id}`);
+                debugLog(`✅ Transaction committed: tro_id=${tro_id}`);
 
                 io.to('saveRMForProdRoom').emit('dataUpdated', {
                     message: "วัตถุดิบถูกนำออกจากห้องเย็นแล้ว",
@@ -2854,7 +2929,7 @@ ORDER BY
             }
 
             const tro_id = getTro.recordset[0].tro_id;
-            console.log("tro_id found:", tro_id);
+            debugLog("tro_id found:", tro_id);
 
             // 2️⃣ ถ้ามี tro_id ให้ update ตาราง Trolley
             if (tro_id) {
@@ -2901,214 +2976,294 @@ ORDER BY
     });
 
 
+router.get("/coldstorage/history/:mapping_id", async (req, res) => {
+    try {
+        const { mapping_id } = req.params;
+        const pool = await connectToDatabase();
 
-    router.get("/coldstorage/history/:mapping_id", async (req, res) => {
-        try {
-            const { mapping_id } = req.params;
-            const pool = await connectToDatabase();
+        // Get history data and time values
+        const result = await pool.request()
+            .input("mapping_id", mapping_id)
+            .query(`SELECT
+                    CONVERT(VARCHAR, h.come_cold_date, 120) AS come_cold_date,
+                    CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
+                    CONVERT(VARCHAR, h.come_cold_date_two, 120) AS come_cold_date_two,
+                    CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
+                    CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
+                    CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
 
-            // Get history data and time values
-            const result = await pool.request()
-                .input("mapping_id", mapping_id)
-                .query(`SELECT
-                        CONVERT(VARCHAR, h.come_cold_date, 120) AS come_cold_date,
-                        CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
-                        CONVERT(VARCHAR, h.come_cold_date_two, 120) AS come_cold_date_two,
-                        CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
-                        CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
-                        CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
-                        CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
-                        CONVERT(VARCHAR, h.rework_date, 120) AS rework_date,
-                        h.receiver_out_cold,
-                        h.receiver_out_cold_two,
-                        h.receiver_out_cold_three,
-                        rmm.rework_time,
-                        rmm.mix_time,
-                        rmm.cold_to_pack_time,
-                        rmg.cold_to_pack
-                       
-    
-                    FROM History h
-                    JOIN TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
-                    JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
-                    JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
-                    WHERE h.mapping_id = @mapping_id
-                `);
+                    CONVERT(VARCHAR, h.cs_come_cold_date, 120) AS cs_come_cold_date,
+                    CONVERT(VARCHAR, h.cs_out_cold_date, 120) AS cs_out_cold_date,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+                    CONVERT(VARCHAR, h.cs_out_out_date_five, 120) AS cs_out_cold_date_five,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten,
 
-            if (result.recordset.length > 0) {
-                const historyData = result.recordset[0];
-                const historyEntries = [];
+                    CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
+                    CONVERT(VARCHAR, h.rework_date, 120) AS rework_date,
+                    h.receiver_out_cold,
+                    h.receiver_out_cold_two,
+                    h.receiver_out_cold_three,
+                    rmm.rework_time,
+                    rmm.mix_time,
+                    rmm.cold_to_pack_time,
+                    rmg.cold_to_pack,
+                    CONVERT(VARCHAR, h.summary_withdraw_date, 120) AS summary_withdraw_date
+                
+                FROM History h
+                JOIN TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
+                JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
+                JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
+                WHERE h.mapping_id = @mapping_id
+            `);
 
-                if (historyData.come_cold_date) {
-                    historyEntries.push({
-                        round: 1,
-                        come_date: historyData.come_cold_date,
-                        out_date: historyData.out_cold_date,
-                        come_operator: historyData.receiver_come_cold,
-                        out_operator: historyData.receiver_out_cold
-                    });
-                }
+        if (result.recordset.length > 0) {
+            const historyData = result.recordset[0];
+            const historyEntries = [];
 
-                if (historyData.come_cold_date_two) {
-                    historyEntries.push({
-                        round: 2,
-                        come_date: historyData.come_cold_date_two,
-                        out_date: historyData.out_cold_date_two,
-                        come_operator: historyData.receiver_come_cold_two,
-                        out_operator: historyData.receiver_out_cold_two
-                    });
-                }
-
-                if (historyData.come_cold_date_three) {
-                    historyEntries.push({
-                        round: 3,
-                        come_date: historyData.come_cold_date_three,
-                        out_date: historyData.out_cold_date_three,
-                        come_operator: historyData.receiver_come_cold_three,
-                        out_operator: historyData.receiver_out_cold_three
-                    });
-                }
-
-                res.status(200).json({
-                    history: historyEntries,
-                    qc_date: historyData.qc_date,
-                    rework_date: historyData.rework_date,
-                    rework_time: historyData.rework_time,
-                    mix_time: historyData.mix_time,
-                    cold_to_pack_time: historyData.cold_to_pack_time,
-                    cold_to_pack: historyData.cold_to_pack
+            if (historyData.come_cold_date) {
+                historyEntries.push({
+                    round: 1,
+                    come_date: historyData.come_cold_date,
+                    out_date: historyData.out_cold_date,
+                    come_operator: historyData.receiver_come_cold,
+                    out_operator: historyData.receiver_out_cold
                 });
-
-                console.log("send body history:", historyEntries);
-                console.log("send body qc_date:", historyData.qc_date);
-                console.log("send body rework_time:", historyData.rework_time);
-                console.log("send body mix_time:", historyData.mix_time);
-                console.log("send body cold_to_pack_time:", historyData.cold_to_pack_time);
-                console.log("send body cold_to_pack:", historyData.cold_to_pack);
-            } else {
-                res.status(404).json({ err: "History not found" });
             }
-        } catch (err) {
-            console.error("Error:", err);
-            res.status(500).json({ error: "An error occurred while fetching history." });
-        }
-    });
 
-    router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
-        try {
-            const { mapping_id } = req.params;
-            const pool = await connectToDatabase();
-
-            // Get history data and time values
-            const result = await pool.request()
-                .input("mapping_id", mapping_id)
-                .query(`SELECT
-                        CONVERT(VARCHAR, h.come_cold_date, 120) AS come_cold_date,
-                        CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
-                        CONVERT(VARCHAR, h.come_cold_date_two, 120) AS come_cold_date_two,
-                        CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
-                        CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
-                        CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
-                        CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
-                        CONVERT(VARCHAR, h.rmit_date, 120) AS rmit_date,
-                        CONVERT(VARCHAR, h.rework_date, 120) AS rework_date,
-                        CONVERT(VARCHAR,
-                                COALESCE(
-                                    h.come_cold_date_three,
-                                    h.come_cold_date_two,
-                                    h.come_cold_date
-                                ),
-                                120
-                        ) AS come_cold_date_latest,
-                        h.receiver_out_cold,
-                        h.receiver_out_cold_two,
-                        h.receiver_out_cold_three,
-                        rmm.rework_time,
-                        rmm.mix_time,
-                        rmm.cold_to_pack_time,
-                        rmg.cold_to_pack,
-                        rmf.remark
-                       
-    
-                    FROM History h
-                    JOIN TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
-                    JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
-                    JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
-                    WHERE h.mapping_id = @mapping_id
-                `);
-
-            if (result.recordset.length > 0) {
-                const historyData = result.recordset[0];
-                const historyEntries = [];
-
-                if (historyData.come_cold_date) {
-                    historyEntries.push({
-                        round: 1,
-                        come_date: historyData.come_cold_date,
-                        out_date: historyData.out_cold_date,
-                        come_operator: historyData.receiver_come_cold,
-                        out_operator: historyData.receiver_out_cold
-                    });
-                }
-
-                if (historyData.come_cold_date_two) {
-                    historyEntries.push({
-                        round: 2,
-                        come_date: historyData.come_cold_date_two,
-                        out_date: historyData.out_cold_date_two,
-                        come_operator: historyData.receiver_come_cold_two,
-                        out_operator: historyData.receiver_out_cold_two
-                    });
-                }
-
-                if (historyData.come_cold_date_three) {
-                    historyEntries.push({
-                        round: 3,
-                        come_date: historyData.come_cold_date_three,
-                        out_date: historyData.out_cold_date_three,
-                        come_operator: historyData.receiver_come_cold_three,
-                        out_operator: historyData.receiver_out_cold_three
-                    });
-                }
-
-                res.status(200).json({
-                    history: historyEntries,
-                    qc_date: historyData.qc_date,
-                    rework_date: historyData.rework_date,
-                    rework_time: historyData.rework_time,
-                    mix_time: historyData.mix_time,
-                    cold_to_pack_time: historyData.cold_to_pack_time,
-                    cold_to_pack: historyData.cold_to_pack,
-                    come_cold_date_latest: historyData.come_cold_date_latest,
-                    rmit_date: historyData.rmit_date,
-                    remark: historyData.remark
+            if (historyData.come_cold_date_two) {
+                historyEntries.push({
+                    round: 2,
+                    come_date: historyData.come_cold_date_two,
+                    out_date: historyData.out_cold_date_two,
+                    come_operator: historyData.receiver_come_cold_two,
+                    out_operator: historyData.receiver_out_cold_two
                 });
-
-                console.log("send body history:", historyEntries);
-                console.log("send body qc_date:", historyData.qc_date);
-                console.log("send body rework_time:", historyData.rework_time);
-                console.log("send body mix_time:", historyData.mix_time);
-                console.log("send body cold_to_pack_time:", historyData.cold_to_pack_time);
-                console.log("send body cold_to_pack:", historyData.cold_to_pack);
-                console.log("send body come_cold_date_latest:", historyData.come_cold_date_latest);
-                console.log("send body rmit_date:", historyData.rmit_date);
-            } else {
-                res.status(404).json({ err: "History not found" });
             }
-        } catch (err) {
-            console.error("Error:", err);
-            res.status(500).json({ error: "An error occurred while fetching history." });
+
+            if (historyData.come_cold_date_three) {
+                historyEntries.push({
+                    round: 3,
+                    come_date: historyData.come_cold_date_three,
+                    out_date: historyData.out_cold_date_three,
+                    come_operator: historyData.receiver_come_cold_three,
+                    out_operator: historyData.receiver_out_cold_three
+                });
+            }
+
+            // ชุดที่ 2 (เข้าออกห้องเย็น2) รองรับสูงสุด 10 รอบ
+            const csSuffixes = ["", "_two", "_three", "_four", "_five", "_six", "_seven", "_eight", "_nine", "_ten"];
+            const historyEntries2 = [];
+            csSuffixes.forEach((suffix, idx) => {
+                const comeKey = `cs_come_cold_date${suffix}`;
+                const outKey = `cs_out_cold_date${suffix}`;
+                if (historyData[comeKey]) {
+                    historyEntries2.push({
+                        round: idx + 1,
+                        come_date: historyData[comeKey],
+                        out_date: historyData[outKey]
+                    });
+                }
+            });
+
+            res.status(200).json({
+                history: historyEntries,
+                history2: historyEntries2,
+                qc_date: historyData.qc_date,
+                rework_date: historyData.rework_date,
+                rework_time: historyData.rework_time,
+                mix_time: historyData.mix_time,
+                cold_to_pack_time: historyData.cold_to_pack_time,
+                cold_to_pack: historyData.cold_to_pack,
+                summary_withdraw_date: historyData.summary_withdraw_date
+            });
+
+            debugLog("send body history:", historyEntries);
+            debugLog("send body history2:", historyEntries2);
+            debugLog("send body qc_date:", historyData.qc_date);
+            debugLog("send body rework_time:", historyData.rework_time);
+            debugLog("send body mix_time:", historyData.mix_time);
+            debugLog("send body cold_to_pack_time:", historyData.cold_to_pack_time);
+            debugLog("send body cold_to_pack:", historyData.cold_to_pack);
+        } else {
+            res.status(404).json({ err: "History not found" });
         }
-    });
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ error: "An error occurred while fetching history." });
+    }
+});
+
+router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
+    try {
+        const { mapping_id } = req.params;
+        const pool = await connectToDatabase();
+
+        // Get history data and time values
+        const result = await pool.request()
+            .input("mapping_id", mapping_id)
+            .query(`SELECT
+                    CONVERT(VARCHAR, h.come_cold_date, 120) AS come_cold_date,
+                    CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
+                    CONVERT(VARCHAR, h.come_cold_date_two, 120) AS come_cold_date_two,
+                    CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
+                    CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
+                    CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
+
+                    CONVERT(VARCHAR, h.cs_come_cold_date, 120) AS cs_come_cold_date,
+                    CONVERT(VARCHAR, h.cs_out_cold_date, 120) AS cs_out_cold_date,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+                    CONVERT(VARCHAR, h.cs_out_out_date_five, 120) AS cs_out_cold_date_five,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+                    CONVERT(VARCHAR, h.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+                    CONVERT(VARCHAR, h.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten,
+
+                    CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
+                    CONVERT(VARCHAR, h.rmit_date, 120) AS rmit_date,
+                    CONVERT(VARCHAR, h.rework_date, 120) AS rework_date,
+                    CONVERT(VARCHAR,
+                            COALESCE(
+                                h.come_cold_date_three,
+                                h.come_cold_date_two,
+                                h.come_cold_date
+                            ),
+                            120
+                    ) AS come_cold_date_latest,
+                    h.receiver_out_cold,
+                    h.receiver_out_cold_two,
+                    h.receiver_out_cold_three,
+                    rmm.rework_time,
+                    rmm.mix_time,
+                    rmm.cold_to_pack_time,
+                    rmg.cold_to_pack,
+                    rmf.remark,
+                    CONVERT(VARCHAR, h.summary_withdraw_date, 120) AS summary_withdraw_date
+                   
+                FROM History h
+                JOIN TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
+                JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
+                JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
+                WHERE h.mapping_id = @mapping_id
+            `);
+
+        if (result.recordset.length > 0) {
+            const historyData = result.recordset[0];
+            const historyEntries = [];
+
+            if (historyData.come_cold_date) {
+                historyEntries.push({
+                    round: 1,
+                    come_date: historyData.come_cold_date,
+                    out_date: historyData.out_cold_date,
+                    come_operator: historyData.receiver_come_cold,
+                    out_operator: historyData.receiver_out_cold
+                });
+            }
+
+            if (historyData.come_cold_date_two) {
+                historyEntries.push({
+                    round: 2,
+                    come_date: historyData.come_cold_date_two,
+                    out_date: historyData.out_cold_date_two,
+                    come_operator: historyData.receiver_come_cold_two,
+                    out_operator: historyData.receiver_out_cold_two
+                });
+            }
+
+            if (historyData.come_cold_date_three) {
+                historyEntries.push({
+                    round: 3,
+                    come_date: historyData.come_cold_date_three,
+                    out_date: historyData.out_cold_date_three,
+                    come_operator: historyData.receiver_come_cold_three,
+                    out_operator: historyData.receiver_out_cold_three
+                });
+            }
+
+            // ชุดที่ 2 (เข้าออกห้องเย็น2) รองรับสูงสุด 10 รอบ
+            const csSuffixes = ["", "_two", "_three", "_four", "_five", "_six", "_seven", "_eight", "_nine", "_ten"];
+            const historyEntries2 = [];
+            csSuffixes.forEach((suffix, idx) => {
+                const comeKey = `cs_come_cold_date${suffix}`;
+                const outKey = `cs_out_cold_date${suffix}`;
+                if (historyData[comeKey]) {
+                    historyEntries2.push({
+                        round: idx + 1,
+                        come_date: historyData[comeKey],
+                        out_date: historyData[outKey]
+                    });
+                }
+            });
+
+            res.status(200).json({
+                history: historyEntries,
+                history2: historyEntries2,
+                qc_date: historyData.qc_date,
+                rework_date: historyData.rework_date,
+                rework_time: historyData.rework_time,
+                mix_time: historyData.mix_time,
+                cold_to_pack_time: historyData.cold_to_pack_time,
+                cold_to_pack: historyData.cold_to_pack,
+                come_cold_date_latest: historyData.come_cold_date_latest,
+                rmit_date: historyData.rmit_date,
+                remark: historyData.remark,
+                summary_withdraw_date: historyData.summary_withdraw_date
+            });
+
+            debugLog("send body history:", historyEntries);
+            debugLog("send body history2:", historyEntries2);
+            debugLog("send body qc_date:", historyData.qc_date);
+            debugLog("send body rework_time:", historyData.rework_time);
+            debugLog("send body mix_time:", historyData.mix_time);
+            debugLog("send body cold_to_pack_time:", historyData.cold_to_pack_time);
+            debugLog("send body cold_to_pack:", historyData.cold_to_pack);
+            debugLog("send body come_cold_date_latest:", historyData.come_cold_date_latest);
+            debugLog("send body rmit_date:", historyData.rmit_date);
+        } else {
+            res.status(404).json({ err: "History not found" });
+        }
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ error: "An error occurred while fetching history." });
+    }
+});
+
 
 
     router.put("/coldstorage/moverawmat", async (req, res) => {
         try {
-            console.log("raw Request Body:", req.body);
+            debugLog("raw Request Body:", req.body);
             const { tro_id, new_tro_id, typeOutput, slot_id, new_slot_id, rmfp_id, moveType, operator } = req.body;
 
             if (!tro_id || !new_tro_id || !typeOutput || !slot_id || !new_slot_id) {
-                console.log("Missing fields:", { tro_id, new_tro_id, typeOutput, slot_id, new_slot_id });
+                console.warn("Missing fields:", { tro_id, new_tro_id, typeOutput, slot_id, new_slot_id });
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
@@ -3281,11 +3436,11 @@ ORDER BY
 
     router.put("/coldstorage/moveslot", async (req, res) => {
         try {
-            console.log("Slot Request Body:", req.body);
+            debugLog("Slot Request Body:", req.body);
             const { slot_id, tro_id, new_slot_id } = req.body;
 
             if (!slot_id || !tro_id || !new_slot_id) {
-                console.log("Missing fields:", { slot_id, tro_id, new_slot_id });
+                console.warn("Missing fields:", { slot_id, tro_id, new_slot_id });
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
@@ -3354,7 +3509,7 @@ ORDER BY
 
     router.put("/coldstorage/updatestatusrework", async (req, res) => {
         try {
-            console.log("Raw Request Body:", req.body);
+            debugLog("Raw Request Body:", req.body);
             const { rm_tro_id } = req.body;
 
             // ตรวจสอบค่า rm_tro_id
@@ -3533,6 +3688,26 @@ SELECT
     CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
     CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
     CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(varchar, htr.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+    CONVERT(varchar, htr.cs_out_out_date_five, 120) AS cs_out_out_date_five,
+    CONVERT(varchar, htr.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+    CONVERT(varchar, htr.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+    CONVERT(varchar, htr.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+    CONVERT(varchar, htr.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+    CONVERT(varchar, htr.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+    CONVERT(varchar, htr.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+    CONVERT(varchar, htr.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+    CONVERT(varchar, htr.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+    CONVERT(varchar, htr.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+    CONVERT(varchar, htr.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten,
     CONVERT(varchar, htr.rework_date, 120) AS rework_date
 
 FROM TrolleyRMMapping rmm
@@ -3590,6 +3765,19 @@ ORDER BY rmm.mapping_id DESC
             console.error("Error fetching data:", error);
             res.status(500).json({ error: "Internal Server Error" });
         }
+    });
+
+
+    router.get('/mat-info/:mapping_id', async (req, res) => {
+        const { mapping_id } = req.params;
+        const result = await pool.request()
+            .input('mapping_id', sql.Int, mapping_id)
+            .query(`
+            SELECT TOP (1) mat, mat_2x
+            FROM [PFCMv2].[dbo].[Mat]
+            WHERE mapping_id = @mapping_id
+        `);
+        res.json(result.recordset[0] || { mat: null, mat_2x: null });
     });
 
     router.get("/coldstorages/table/out", async (req, res) => {
@@ -3832,8 +4020,181 @@ ORDER BY rmm.mapping_id DESC
             res.status(500).json({ error: "Internal Server Error" });
         }
     });
+    router.get("/coldstorages/incold/fetchSlotRawMatsend", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
 
- router.get("/coldstorages/cs2", async (req, res) => {
+            const query = `
+SELECT
+    rmm.mapping_id,
+    rmf.rmfp_id,
+
+    COALESCE(b.batch_after, rmf.batch) AS batch,
+
+    rm.mat,
+    rm.mat_name,
+
+    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+
+    CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
+    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
+    CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
+
+    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
+
+    rmf.rm_group_id AS rmf_rm_group_id,
+    rmg.rm_group_id AS rmg_rm_group_id,
+    rmg.rm_group_name,
+
+    rmm.tro_id,
+    rmm.rm_cold_status,
+    rmm.rm_status,
+    rmm.stay_place,
+    rmm.dest,
+
+    rmm.weight_RM,
+    rmm.tray_count,
+    rmm.level_eu,
+
+    htr.hist_id,
+
+
+    htr.qccheck_cold,
+    htr.remark_rework_cold,
+    htr.receiver_out_cold,
+    htr.receiver_out_cold_two,
+    htr.receiver_out_cold_three,
+    htr.rd_section_colds,
+    htr.storage_purpose,
+    htr.histamine,
+    htr.at_pd_storage_purpose,
+    htr.at_pd_histamine,
+    htr.at_pd_storage_purpose_2,
+    htr.at_pd_histamine_2,
+    htr.at_pd_storage_purpose_3,
+    htr.at_pd_histamine_3,
+    htr.at_pd_cold_remark,
+    htr.at_pd_cold_remark_2,
+    htr.at_pd_cold_remark_3,
+    CONVERT(varchar, htr.at_pd_deposit_date,   120) AS at_pd_deposit_date,
+    CONVERT(varchar, htr.at_pd_deposit_date_2, 120) AS at_pd_deposit_date_2,
+    CONVERT(varchar, htr.at_pd_deposit_date_3, 120) AS at_pd_deposit_date_3,
+
+    CONVERT(varchar, htr.withdraw_date, 120) AS withdraw_date,
+    CONVERT(varchar, htr.cooked_date, 120) AS cooked_date,
+    CONVERT(varchar, htr.rmit_date, 120) AS rmit_date,
+    CONVERT(varchar, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(varchar, htr.come_cold_date_two, 120) AS come_cold_date_two,
+    CONVERT(varchar, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
+    CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.rework_date, 120) AS rework_date,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+
+    htr.remark,
+    htr.weight,
+    htr.pd_send,
+    htr.pd_send2,
+    htr.pd_send3,
+    htr.cs_re,
+    htr.cs_re_2,
+    htr.cs_re_3,
+    htr.storage_purpose_2,
+    htr.storage_purpose_3,
+    htr.histamine_2,
+    htr.histamine_3,
+    htr.cs_wd_2,
+    htr.cs_wd_3,
+    htr.cs_wd_4,
+    cs.cs_id,
+    cs.cs_name,
+
+    CONVERT(varchar, htr.start_defrost_date,       120) AS start_defrost_date,
+    CONVERT(varchar, htr.end_defrost_date,         120) AS end_defrost_date,
+    CONVERT(varchar, htr.start_defrost_date_two,   120) AS start_defrost_date_two,
+    CONVERT(varchar, htr.end_defrost_date_two,     120) AS end_defrost_date_two,
+    CONVERT(varchar, htr.start_defrost_date_three, 120) AS start_defrost_date_three,
+    CONVERT(varchar, htr.end_defrost_date_three,   120) AS end_defrost_date_three,
+    CONVERT(varchar, htr.start_defrost_date_four,  120) AS start_defrost_date_four,
+    CONVERT(varchar, htr.end_defrost_date_four,    120) AS end_defrost_date_four,
+    CONVERT(varchar, htr.input_pd_date,            120) AS input_pd_date,
+    CONVERT(varchar, htr.input_pd_date_two,        120) AS input_pd_date_two,
+    CONVERT(varchar, htr.input_pd_date_three,      120) AS input_pd_date_three,
+    CONVERT(varchar, htr.output_pd_date,           120) AS output_pd_date,
+    CONVERT(varchar, htr.output_pd_date_two,       120) AS output_pd_date_two,
+    CONVERT(varchar, htr.output_pd_date_three,     120) AS output_pd_date_three,
+    CONVERT(varchar, htr.withdraw_date_two,        120) AS withdraw_date_two,
+    CONVERT(varchar, htr.withdraw_date_three,      120) AS withdraw_date_three,
+    CONVERT(varchar, htr.withdraw_date_four,       120) AS withdraw_date_four,
+    CONVERT(varchar, htr.input_cd_date,            120) AS input_cd_date,
+    CONVERT(varchar, htr.input_cd_date_two,        120) AS input_cd_date_two,
+    CONVERT(varchar, htr.input_cd_date_three,      120) AS input_cd_date_three
+
+FROM TrolleyRMMapping rmm
+
+JOIN RMForProd rmf
+    ON rmm.rmfp_id = rmf.rmfp_id
+
+JOIN ProdRawMat pr
+    ON rmm.tro_production_id = pr.prod_rm_id
+
+JOIN RawMat rm
+    ON pr.mat = rm.mat
+
+JOIN Production p
+    ON pr.prod_id = p.prod_id
+
+JOIN RawMatGroup rmg
+    ON rmf.rm_group_id = rmg.rm_group_id
+
+JOIN Slot s
+    ON rmm.tro_id = s.tro_id
+
+JOIN ColdStorage cs
+    ON s.cs_id = cs.cs_id
+
+OUTER APPLY (
+    SELECT STRING_AGG(batch_after, ', ') AS batch_after
+    FROM Batch
+    WHERE mapping_id = rmm.mapping_id
+) b
+
+
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM History h
+    WHERE h.mapping_id = rmm.mapping_id
+    ORDER BY h.hist_id DESC
+) htr
+
+
+WHERE
+    rmm.dest in ( 'เข้าห้องเย็นใหญ่','ในห้องเย็นใหญ่')
+    AND rmm.tro_id IS NOT NULL
+ORDER BY rmm.mapping_id DESC
+`;
+
+            const result = await pool.request().query(query);
+
+            res.json(result.recordset);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    router.get("/coldstorages/cs2", async (req, res) => {
         try {
             const { start_defrost_from, start_defrost_to, withdraw_from, withdraw_to } = req.query;
             const pool = await connectToDatabase();
@@ -3841,9 +4202,9 @@ ORDER BY rmm.mapping_id DESC
 
             let extraWhere = '';
             if (start_defrost_from) { request.input('sdf', sql.NVarChar, start_defrost_from); extraWhere += ` AND s.start_defrost_date >= @sdf`; }
-            if (start_defrost_to)   { request.input('sdt', sql.NVarChar, start_defrost_to);   extraWhere += ` AND s.start_defrost_date <= @sdt`; }
-            if (withdraw_from)      { request.input('wdf', sql.NVarChar, withdraw_from);       extraWhere += ` AND s.withdraw_date >= @wdf`; }
-            if (withdraw_to)        { request.input('wdt', sql.NVarChar, withdraw_to);         extraWhere += ` AND s.withdraw_date <= @wdt`; }
+            if (start_defrost_to) { request.input('sdt', sql.NVarChar, start_defrost_to); extraWhere += ` AND s.start_defrost_date <= @sdt`; }
+            if (withdraw_from) { request.input('wdf', sql.NVarChar, withdraw_from); extraWhere += ` AND s.withdraw_date >= @wdf`; }
+            if (withdraw_to) { request.input('wdt', sql.NVarChar, withdraw_to); extraWhere += ` AND s.withdraw_date <= @wdt`; }
 
             const result = await request.query(`
                 SELECT
@@ -3875,6 +4236,252 @@ ORDER BY rmm.mapping_id DESC
     });
 
     router.get("/all/delay/tracking/rm", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
+
+            const {
+                mat, batch_before, batch_after, hu,
+                mat_name, code, doc_no, rmm_line_name,
+                sc_pack_date_from, sc_pack_date_to
+            } = req.query;
+
+            const request = pool.request();
+            const filters = [];
+
+            if (mat) {
+                filters.push("rm.mat LIKE '%' + @mat + '%'");
+                request.input("mat", sql.NVarChar, mat);
+            }
+            if (batch_before) {
+                filters.push("b.batch_before LIKE '%' + @batch_before + '%'");
+                request.input("batch_before", sql.NVarChar, batch_before);
+            }
+            if (batch_after) {
+                filters.push("b.batch_after LIKE '%' + @batch_after + '%'");
+                request.input("batch_after", sql.NVarChar, batch_after);
+            }
+            if (hu) {
+                filters.push("CAST(htr.hu AS NVARCHAR) LIKE '%' + @hu + '%'");
+                request.input("hu", sql.NVarChar, hu);
+            }
+            if (mat_name) {
+                filters.push("rm.mat_name LIKE '%' + @mat_name + '%'");
+                request.input("mat_name", sql.NVarChar, mat_name);
+            }
+            if (code) {
+                filters.push("p.code LIKE '%' + @code + '%'");
+                request.input("code", sql.NVarChar, code);
+            }
+            if (doc_no) {
+                filters.push("p.doc_no LIKE '%' + @doc_no + '%'");
+                request.input("doc_no", sql.NVarChar, doc_no);
+            }
+            if (rmm_line_name) {
+                filters.push("htr.rmm_line_name LIKE '%' + @rmm_line_name + '%'");
+                request.input("rmm_line_name", sql.NVarChar, rmm_line_name);
+            }
+            if (sc_pack_date_from) {
+                filters.push("htr.sc_pack_date >= @sc_pack_date_from");
+                request.input("sc_pack_date_from", sql.DateTime, new Date(sc_pack_date_from));
+            }
+            if (sc_pack_date_to) {
+                filters.push("htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)");
+                request.input("sc_pack_date_to", sql.DateTime, new Date(sc_pack_date_to));
+            }
+
+            const extraWhere = filters.length > 0
+                ? filters.map(f => `    AND ${f}`).join('\n')
+                : '';
+
+            const query = `
+SELECT
+    rmm.mapping_id,
+    rmf.rmfp_id,
+
+    b.batch_after,
+    b.batch_before,
+
+    rm.mat,
+    m.mat_2x,
+    rm.mat_name,
+
+    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+
+    CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
+    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
+    CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
+
+    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
+
+    rmf.rm_group_id AS rmf_rm_group_id,
+    rmg.rm_group_id AS rmg_rm_group_id,
+
+    rmm.tro_id,
+    rmm.rm_cold_status,
+    rmm.rm_status,
+    rmm.dest,
+
+    rmm.weight_RM,
+    rmm.tray_count,
+    rmm.level_eu,
+
+    htr.hist_id,
+    htr.rmm_line_name,
+
+     p.doc_no,
+     p.code,       
+    htr.qccheck_cold,
+    htr.remark_rework_cold,
+    htr.receiver_out_cold,
+    htr.receiver_out_cold_two,
+    htr.receiver_out_cold_three,
+    htr.rd_section_colds,
+    htr.storage_purpose,
+    htr.histamine,
+    htr.at_pd_storage_purpose,
+    htr.at_pd_histamine,
+    htr.at_pd_storage_purpose_2,
+    htr.at_pd_histamine_2,
+    htr.at_pd_storage_purpose_3,
+    htr.at_pd_histamine_3,
+
+    htr.viscosity,
+    htr.temps,
+    htr.weight_per_cup,
+    htr.id_igd AS wo_no,
+    htr.id_igd_no AS basket_no,
+
+    CONVERT(varchar, htr.withdraw_date, 120) AS withdraw_date,
+    CONVERT(varchar, htr.cooked_date, 120) AS cooked_date,
+    CONVERT(varchar, htr.rmit_date, 120) AS rmit_date,
+    CONVERT(varchar, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(varchar, htr.come_cold_date_two, 120) AS come_cold_date_two,
+    CONVERT(varchar, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
+    CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.rework_date, 120) AS rework_date,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(varchar, htr.sc_pack_date, 120) AS sc_pack_date,
+    CONVERT(varchar, htr.start_mixed_date, 120) AS start_mixed_date,
+    CONVERT(varchar, htr.start_gravy_date, 120) AS start_gravy_date,
+    CONVERT(varchar, htr.pack_checkin_date, 120) AS pack_checkin_date,
+    CONVERT(varchar, htr.gm_date, 120) AS gm_date,
+
+    rmm.weight_rm,
+    htr.pd_send,
+    htr.pd_send2,
+    htr.pd_send3,
+    htr.cs_re,
+    htr.cs_re_2,
+    htr.cs_re_3,
+    htr.storage_purpose_2,
+    htr.storage_purpose_3,
+    htr.histamine_2,
+    htr.histamine_3,
+    htr.cs_wd_2,
+    htr.cs_wd_3,
+    htr.cs_wd_4,
+    rmf.hu,
+
+    CONVERT(varchar, htr.start_defrost_date,       120) AS start_defrost_date,
+    CONVERT(varchar, htr.end_defrost_date,         120) AS end_defrost_date,
+    CONVERT(varchar, htr.start_defrost_date_two,   120) AS start_defrost_date_two,
+    CONVERT(varchar, htr.end_defrost_date_two,     120) AS end_defrost_date_two,
+    CONVERT(varchar, htr.start_defrost_date_three, 120) AS start_defrost_date_three,
+    CONVERT(varchar, htr.end_defrost_date_three,   120) AS end_defrost_date_three,
+    CONVERT(varchar, htr.start_defrost_date_four,  120) AS start_defrost_date_four,
+    CONVERT(varchar, htr.end_defrost_date_four,    120) AS end_defrost_date_four,
+    CONVERT(varchar, htr.input_pd_date,            120) AS input_pd_date,
+    CONVERT(varchar, htr.input_pd_date_two,        120) AS input_pd_date_two,
+    CONVERT(varchar, htr.input_pd_date_three,      120) AS input_pd_date_three,
+    CONVERT(varchar, htr.output_pd_date,           120) AS output_pd_date,
+    CONVERT(varchar, htr.output_pd_date_two,       120) AS output_pd_date_two,
+    CONVERT(varchar, htr.output_pd_date_three,     120) AS output_pd_date_three,
+    CONVERT(varchar, htr.withdraw_date_two,        120) AS withdraw_date_two,
+    CONVERT(varchar, htr.withdraw_date_three,      120) AS withdraw_date_three,
+    CONVERT(varchar, htr.withdraw_date_four,       120) AS withdraw_date_four,
+    CONVERT(varchar, htr.input_cd_date,            120) AS input_cd_date,
+    CONVERT(varchar, htr.input_cd_date_two,        120) AS input_cd_date_two,
+    CONVERT(varchar, htr.input_cd_date_three,      120) AS input_cd_date_three,
+    CONVERT(varchar, qc.qc_datetime,      120) AS qc_datetime,
+    CONVERT(varchar, qc.md_time,      30) AS md_time,
+    CONVERT(varchar, qc.color,      30) AS color,
+    CONVERT(varchar, qc.odor,      30) AS odor,
+    CONVERT(varchar, qc.texture,      30) AS texture,
+    CONVERT(varchar, qc.md,      30) AS md,
+    CONVERT(varchar, qc.defect,      30) AS defect
+
+    
+
+FROM TrolleyRMMapping rmm
+
+JOIN RMForProd rmf
+    ON rmm.rmfp_id = rmf.rmfp_id
+
+JOIN ProdRawMat pr
+    ON rmm.tro_production_id = pr.prod_rm_id
+
+JOIN RawMat rm
+    ON pr.mat = rm.mat
+
+JOIN Production p
+    ON pr.prod_id = p.prod_id
+
+JOIN RawMatGroup rmg
+    ON rmf.rm_group_id = rmg.rm_group_id
+
+JOIN QC qc
+    ON rmm.qc_id = qc.qc_id
+
+    JOIN batch b
+    ON rmm.mapping_id = b.mapping_id
+
+JOIN Mat m
+ON rmm.mapping_id = m.mapping_id
+
+
+
+
+
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM History h
+    WHERE h.mapping_id = rmm.mapping_id
+    ORDER BY h.hist_id DESC
+) htr
+
+
+WHERE
+    rmm.dest = 'บรรจุเสร็จ'
+    AND rmm.stay_place = 'บรรจุเสร็จ'
+    AND rmm.tro_id IS NULL
+    AND htr.sc_pack_date IS NOT NULL
+${extraWhere}
+
+ORDER BY rmm.mapping_id DESC
+`;
+
+            const result = await request.query(query);
+
+            res.json(result.recordset);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    router.get("/all/delay/tracking/rm/inprocess/v2", async (req, res) => {
         try {
             const pool = await connectToDatabase();
 
@@ -4088,10 +4695,239 @@ OUTER APPLY (
 
 
 WHERE
-    rmm.dest = 'บรรจุเสร็จ'
-    AND rmm.stay_place = 'บรรจุเสร็จ'
-    AND rmm.tro_id IS NULL
-    AND htr.sc_pack_date IS NOT NULL
+     rmm.tro_id IS NOT NULL
+${extraWhere}
+
+ORDER BY rmm.mapping_id DESC
+`;
+
+            const result = await request.query(query);
+
+            res.json(result.recordset);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    router.get("/all/delay/tracking/rm/inprocess", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
+
+            const {
+                mat, batch_before, batch_after, hu,
+                mat_name, code, doc_no, rmm_line_name,
+                sc_pack_date_from, sc_pack_date_to
+            } = req.query;
+
+            const request = pool.request();
+            const filters = [];
+
+            if (mat) {
+                filters.push("rm.mat LIKE '%' + @mat + '%'");
+                request.input("mat", sql.NVarChar, mat);
+            }
+            if (batch_before) {
+                filters.push("b.batch_before LIKE '%' + @batch_before + '%'");
+                request.input("batch_before", sql.NVarChar, batch_before);
+            }
+            if (batch_after) {
+                filters.push("b.batch_after LIKE '%' + @batch_after + '%'");
+                request.input("batch_after", sql.NVarChar, batch_after);
+            }
+            if (hu) {
+                filters.push("CAST(htr.hu AS NVARCHAR) LIKE '%' + @hu + '%'");
+                request.input("hu", sql.NVarChar, hu);
+            }
+            if (mat_name) {
+                filters.push("rm.mat_name LIKE '%' + @mat_name + '%'");
+                request.input("mat_name", sql.NVarChar, mat_name);
+            }
+            if (code) {
+                filters.push("p.code LIKE '%' + @code + '%'");
+                request.input("code", sql.NVarChar, code);
+            }
+            if (doc_no) {
+                filters.push("p.doc_no LIKE '%' + @doc_no + '%'");
+                request.input("doc_no", sql.NVarChar, doc_no);
+            }
+            if (rmm_line_name) {
+                filters.push("htr.rmm_line_name LIKE '%' + @rmm_line_name + '%'");
+                request.input("rmm_line_name", sql.NVarChar, rmm_line_name);
+            }
+            if (sc_pack_date_from) {
+                filters.push("htr.sc_pack_date >= @sc_pack_date_from");
+                request.input("sc_pack_date_from", sql.DateTime, new Date(sc_pack_date_from));
+            }
+            if (sc_pack_date_to) {
+                filters.push("htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)");
+                request.input("sc_pack_date_to", sql.DateTime, new Date(sc_pack_date_to));
+            }
+
+            const extraWhere = filters.length > 0
+                ? filters.map(f => `    AND ${f}`).join('\n')
+                : '';
+
+            const query = `
+SELECT
+    rmm.mapping_id,
+    rmf.rmfp_id,
+
+    b.batch_after,
+    b.batch_before,
+
+    rm.mat,
+    rm.mat_name,
+
+    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+
+    CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
+    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
+    CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
+
+    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
+
+    rmf.rm_group_id AS rmf_rm_group_id,
+    rmg.rm_group_id AS rmg_rm_group_id,
+
+    rmm.tro_id,
+    rmm.rm_cold_status,
+    rmm.rm_status,
+    rmm.dest,
+
+    rmm.weight_RM,
+    rmm.tray_count,
+    rmm.level_eu,
+
+    htr.hist_id,
+    htr.rmm_line_name,
+
+     p.doc_no,
+     p.code,       
+    htr.qccheck_cold,
+    htr.remark_rework_cold,
+    htr.receiver_out_cold,
+    htr.receiver_out_cold_two,
+    htr.receiver_out_cold_three,
+    htr.rd_section_colds,
+    htr.storage_purpose,
+    htr.histamine,
+    htr.at_pd_storage_purpose,
+    htr.at_pd_histamine,
+    htr.at_pd_storage_purpose_2,
+    htr.at_pd_histamine_2,
+    htr.at_pd_storage_purpose_3,
+    htr.at_pd_histamine_3,
+
+    htr.viscosity,
+    htr.temps,
+    htr.weight_per_cup,
+
+    CONVERT(varchar, htr.withdraw_date, 120) AS withdraw_date,
+    CONVERT(varchar, htr.cooked_date, 120) AS cooked_date,
+    CONVERT(varchar, htr.rmit_date, 120) AS rmit_date,
+    CONVERT(varchar, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(varchar, htr.come_cold_date_two, 120) AS come_cold_date_two,
+    CONVERT(varchar, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
+    CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.rework_date, 120) AS rework_date,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(varchar, htr.sc_pack_date, 120) AS sc_pack_date,
+    CONVERT(varchar, htr.start_mixed_date, 120) AS start_mixed_date,
+    CONVERT(varchar, htr.start_gravy_date, 120) AS start_gravy_date,
+    CONVERT(varchar, htr.pack_checkin_date, 120) AS pack_checkin_date,
+    CONVERT(varchar, htr.gm_date, 120) AS gm_date,
+
+    rmm.weight_rm,
+    htr.pd_send,
+    htr.pd_send2,
+    htr.pd_send3,
+    htr.cs_re,
+    htr.cs_re_2,
+    htr.cs_re_3,
+    htr.storage_purpose_2,
+    htr.storage_purpose_3,
+    htr.histamine_2,
+    htr.histamine_3,
+    htr.cs_wd_2,
+    htr.cs_wd_3,
+    htr.cs_wd_4,
+    rmf.hu,
+
+    CONVERT(varchar, htr.start_defrost_date,       120) AS start_defrost_date,
+    CONVERT(varchar, htr.end_defrost_date,         120) AS end_defrost_date,
+    CONVERT(varchar, htr.start_defrost_date_two,   120) AS start_defrost_date_two,
+    CONVERT(varchar, htr.end_defrost_date_two,     120) AS end_defrost_date_two,
+    CONVERT(varchar, htr.start_defrost_date_three, 120) AS start_defrost_date_three,
+    CONVERT(varchar, htr.end_defrost_date_three,   120) AS end_defrost_date_three,
+    CONVERT(varchar, htr.start_defrost_date_four,  120) AS start_defrost_date_four,
+    CONVERT(varchar, htr.end_defrost_date_four,    120) AS end_defrost_date_four,
+    CONVERT(varchar, htr.input_pd_date,            120) AS input_pd_date,
+    CONVERT(varchar, htr.input_pd_date_two,        120) AS input_pd_date_two,
+    CONVERT(varchar, htr.input_pd_date_three,      120) AS input_pd_date_three,
+    CONVERT(varchar, htr.output_pd_date,           120) AS output_pd_date,
+    CONVERT(varchar, htr.output_pd_date_two,       120) AS output_pd_date_two,
+    CONVERT(varchar, htr.output_pd_date_three,     120) AS output_pd_date_three,
+    CONVERT(varchar, htr.withdraw_date_two,        120) AS withdraw_date_two,
+    CONVERT(varchar, htr.withdraw_date_three,      120) AS withdraw_date_three,
+    CONVERT(varchar, htr.withdraw_date_four,       120) AS withdraw_date_four,
+    CONVERT(varchar, htr.input_cd_date,            120) AS input_cd_date,
+    CONVERT(varchar, htr.input_cd_date_two,        120) AS input_cd_date_two,
+    CONVERT(varchar, htr.input_cd_date_three,      120) AS input_cd_date_three,
+    CONVERT(varchar, qc.qc_datetime,      120) AS qc_datetime,
+    CONVERT(varchar, qc.md_time,      120) AS md_time
+
+FROM TrolleyRMMapping rmm
+
+JOIN RMForProd rmf
+    ON rmm.rmfp_id = rmf.rmfp_id
+
+JOIN ProdRawMat pr
+    ON rmm.tro_production_id = pr.prod_rm_id
+
+JOIN RawMat rm
+    ON pr.mat = rm.mat
+
+JOIN Production p
+    ON pr.prod_id = p.prod_id
+
+JOIN RawMatGroup rmg
+    ON rmf.rm_group_id = rmg.rm_group_id
+
+JOIN QC qc
+    ON rmm.qc_id = qc.qc_id
+
+    JOIN batch b
+    ON rmm.mapping_id = b.mapping_id
+
+
+
+
+
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM History h
+    WHERE h.mapping_id = rmm.mapping_id
+    ORDER BY h.hist_id DESC
+) htr
+
+
+WHERE
+
+     rmm.tro_id IS NOT NULL
+
 ${extraWhere}
 
 ORDER BY rmm.mapping_id DESC
@@ -4132,22 +4968,44 @@ ORDER BY rmm.mapping_id DESC
                         CONVERT(VARCHAR, htr.come_cold_date_three, 120) AS come_cold_date_three,
                         CONVERT(VARCHAR, htr.out_cold_date, 120) AS out_cold_date,
                         CONVERT(VARCHAR, htr.out_cold_date_two, 120) AS out_cold_date_two,
-                        CONVERT(VARCHAR, htr.out_cold_date_three, 120) AS out_cold_date_three
-                       
+                        CONVERT(VARCHAR, htr.out_cold_date_three, 120) AS out_cold_date_three,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+                        CONVERT(VARCHAR, htr.cs_out_out_date_five, 120) AS cs_out_out_date_five,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+                        CONVERT(VARCHAR, htr.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+                        CONVERT(VARCHAR, htr.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten
+
                     FROM
                         TrolleyRMMapping rmm
-                    JOIN 
+                    JOIN
                         Production p ON rmm.prod_mix = p.prod_id
-                    JOIN 
-                        History htr ON rmm.mapping_id = htr.mapping_id
+                    OUTER APPLY (
+                        SELECT TOP 1 * FROM History h
+                        WHERE h.mapping_id = rmm.mapping_id
+                        ORDER BY h.hist_id DESC
+                    ) htr
                     JOIN
-                        Slot s ON rmm.tro_id = s.tro_id  -- เพิ่ม JOIN กับตาราง Slot
+                        Slot s ON rmm.tro_id = s.tro_id
                     JOIN
-                        ColdStorage cs ON s.cs_id = cs.cs_id  -- เพิ่ม JOIN กับตาราง ColdStorage
+                        ColdStorage cs ON s.cs_id = cs.cs_id
                     WHERE
                         rmm.dest = 'ห้องเย็น'
                         AND rmm.stay_place = 'เข้าห้องเย็น'
-                        AND rmm.mapping_id = htr.mapping_id
                         AND rmm.tro_id IS NOT NULL
                 `);
 
@@ -4377,8 +5235,8 @@ ORDER BY rmm.mapping_id DESC
             const tro_status = trolleyResult.recordset[0].tro_status;
             const rsrv_timestamp = trolleyResult.recordset[0].rsrv_timestamp;
 
-            console.log("tro_status", tro_status);
-            console.log("rsrv_timestamp", rsrv_timestamp);
+            debugLog("tro_status", tro_status);
+            debugLog("rsrv_timestamp", rsrv_timestamp);
 
             // กรณีรถเข็นว่าง
             if (selectedOption === "รถเข็นว่าง") {
@@ -4452,7 +5310,7 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            console.log(`✅ Slot locked and updated: cs_id=${cs_id}, slot_id=${slot_id}, tro_id=${tro_id}`);
+            debugLog(`✅ Slot locked and updated: cs_id=${cs_id}, slot_id=${slot_id}, tro_id=${tro_id}`);
 
             // ✅ STEP 2: ตรวจสอบข้อมูลวัตถุดิบใน TrolleyRMMapping
             const rmResults = await transaction
@@ -4467,7 +5325,7 @@ ORDER BY rmm.mapping_id DESC
 
             // 🔧 แก้ไข: เพิ่ม "ห้องเย็น" เข้าไปใน whitelist
             // เพราะหลัง update ครั้งแรก dest จะเปลี่ยนเป็น "ห้องเย็น" แล้ว
-            const validDests = ["เข้าห้องเย็น", "รอCheckin", "รอเข้าห้องเย็น", "ห้องเย็น", "ห้องเย็นใหญ่", "ออกห้องเย็น"]
+            const validDests = ["เข้าห้องเย็น", "รอCheckin", "รอเข้าห้องเย็น", "ห้องเย็น", "ห้องเย็นใหญ่", "ออกห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"]
             const invalidDestItems = rmResults.recordset.filter(item => !validDests.includes(item.dest));
 
             if (invalidDestItems.length > 0) {
@@ -4514,10 +5372,10 @@ ORDER BY rmm.mapping_id DESC
                 let ReworkTime = rework_time;
                 let MixTime = mix_time;
 
-                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, cold_time ตอนรับ:`, cold_time);
-                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ptc_time ตอนรับ:`, prep_to_cold_time);
-                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, rework_time ตอนรับ:`, rework_time);
-                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, mix_time ตอนรับ:`, mix_time);
+                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, cold_time ตอนรับ:`, cold_time);
+                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ptc_time ตอนรับ:`, prep_to_cold_time);
+                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, rework_time ตอนรับ:`, rework_time);
+                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, mix_time ตอนรับ:`, mix_time);
 
                 // เฉพาะกรณีที่ cold_time เป็น null ให้ดึงค่าจาก RawMatGroup
                 if (cold_time === null) {
@@ -4551,7 +5409,7 @@ ORDER BY rmm.mapping_id DESC
                         const currentDate = new Date();
                         const timeDiffMinutes = (currentDate - mixedDate) / (1000 * 60);
 
-                        console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก mixed_date`);
+                        debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก mixed_date`);
 
                         if (mix_time === 0.00) {
                             const totalMinutesRemaining = -timeDiffMinutes;
@@ -4559,9 +5417,9 @@ ORDER BY rmm.mapping_id DESC
                             const updatedMinutes = Math.floor(Math.abs(totalMinutesRemaining) % 60);
                             MixTime = -1 * (updatedHours + (updatedMinutes / 100));
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี mix_time เป็น 0.00`);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, MixTime);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี mix_time เป็น 0.00`);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, MixTime);
                         } else {
                             const isNegative = mix_time < 0;
                             const absValue = Math.abs(mix_time);
@@ -4578,9 +5436,9 @@ ORDER BY rmm.mapping_id DESC
 
                             MixTime = (isResultNegative ? -1 : 1) * (updatedHours + (updatedMinutes / 100));
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, mix_time เดิม:`, mix_time);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, MixTime);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, mix_time เดิม:`, mix_time);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, MixTime);
                         }
 
                         MixTime = parseFloat(MixTime.toFixed(2));
@@ -4603,7 +5461,7 @@ ORDER BY rmm.mapping_id DESC
                         const currentDate = new Date();
                         const timeDiffMinutes = (currentDate - qcDate) / (1000 * 60);
 
-                        console.log(`RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก qc_date`);
+                        debugLog(`RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก qc_date`);
 
                         if (rework_time === 0.00) {
                             const totalMinutesRemaining = -timeDiffMinutes;
@@ -4611,9 +5469,9 @@ ORDER BY rmm.mapping_id DESC
                             const updatedMinutes = Math.floor(Math.abs(totalMinutesRemaining) % 60);
                             ReworkTime = -1 * (updatedHours + (updatedMinutes / 100));
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี rework_time เป็น 0.00`);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, ReworkTime);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี rework_time เป็น 0.00`);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, ReworkTime);
                         } else {
                             const isNegative = rework_time < 0;
                             const absValue = Math.abs(rework_time);
@@ -4630,9 +5488,9 @@ ORDER BY rmm.mapping_id DESC
 
                             ReworkTime = (isResultNegative ? -1 : 1) * (updatedHours + (updatedMinutes / 100));
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, rework_time เดิม:`, rework_time);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, ReworkTime);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, rework_time เดิม:`, rework_time);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, ReworkTime);
                         }
 
                         ReworkTime = parseFloat(ReworkTime.toFixed(2));
@@ -4674,10 +5532,10 @@ ORDER BY rmm.mapping_id DESC
                             pic_time = hours + (minutes / 100);
                             pic_time = parseFloat(pic_time.toFixed(2));
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก: ${referenceType}`);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, prep_to_cold จาก RawMatGroup:`, prepToCold);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, pic_time);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก: ${referenceType}`);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, prep_to_cold จาก RawMatGroup:`, prepToCold);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, pic_time);
                         }
                     } else {
                         const ptcQuery = await transaction
@@ -4719,7 +5577,7 @@ ORDER BY rmm.mapping_id DESC
                             const currentDate = new Date();
                             const timeDiffMinutes = (currentDate - referenceDate) / (1000 * 60);
 
-                            console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก: ${referenceType}`);
+                            debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก: ${referenceType}`);
 
                             if (prep_to_cold_time === 0.00) {
                                 const totalMinutesRemaining = -timeDiffMinutes;
@@ -4727,9 +5585,9 @@ ORDER BY rmm.mapping_id DESC
                                 const updatedMinutes = Math.floor(Math.abs(totalMinutesRemaining) % 60);
                                 pic_time = -1 * (updatedHours + (updatedMinutes / 100));
 
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี prep_to_cold_time เป็น 0.00`);
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, pic_time);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, กรณี prep_to_cold_time เป็น 0.00`);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลือ (ติดลบ):`, pic_time);
                             } else {
                                 const isNegative = prep_to_cold_time < 0;
                                 const absValue = Math.abs(prep_to_cold_time);
@@ -4746,9 +5604,9 @@ ORDER BY rmm.mapping_id DESC
 
                                 pic_time = (isResultNegative ? -1 : 1) * (updatedHours + (updatedMinutes / 100));
 
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, prep_to_cold_time เดิม:`, prep_to_cold_time);
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
-                                console.log(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, pic_time);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, prep_to_cold_time เดิม:`, prep_to_cold_time);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่ผ่านไปแล้ว (นาที):`, timeDiffMinutes);
+                                debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, เวลาที่เหลืออยู่ (ชั่วโมง.นาที):`, pic_time);
                             }
 
                             pic_time = parseFloat(pic_time.toFixed(2));
@@ -4756,9 +5614,9 @@ ORDER BY rmm.mapping_id DESC
                     }
                 }
 
-                console.log(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, cold_time update:`, coldTimeValue);
-                console.log(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, prep_to_cold_time:`, pic_time);
-                console.log(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, rework_time update:`, ReworkTime);
+                debugLog(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, cold_time update:`, coldTimeValue);
+                debugLog(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, prep_to_cold_time:`, pic_time);
+                debugLog(`MP ID ${mapping_id}, RMFP ID: ${rmfp_id}, rework_time update:`, ReworkTime);
 
                 // 🔧 แก้ไข: อัปเดต rm_cold_status พร้อมกับ stay_place และ dest ในคำสั่งเดียว
                 const updateResult = await transaction
@@ -4808,7 +5666,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
             // ✅ Slot update สำเร็จแล้ว (อัปเดต BEFORE TrolleyRMMapping loop)
-            console.log(`✅ All TrolleyRMMapping records updated successfully: tro_id=${tro_id}, count=${successfulUpdates}`);
+            debugLog(`✅ All TrolleyRMMapping records updated successfully: tro_id=${tro_id}, count=${successfulUpdates}`);
 
             // ✅ STEP 3: อัปเดตประวัติการเข้าห้องเย็น
             const mappingResults = await transaction.request()
@@ -4857,12 +5715,12 @@ ORDER BY rmm.mapping_id DESC
                         message: `ไม่สามารถอัปเดตประวัติการเข้าห้องเย็นได้ครบทุกรายการ (อัปเดตสำเร็จ ${historyUpdateCount}/${mappingResults.recordset.length})`
                     });
                 }
-                console.log(`✅ History updated successfully: tro_id=${tro_id}, count=${historyUpdateCount}`);
+                debugLog(`✅ History updated successfully: tro_id=${tro_id}, count=${historyUpdateCount}`);
             }
 
             // ✅ Commit transaction เมื่อทุกอย่างสำเร็จ
             await transaction.commit();
-            console.log(`✅ Transaction committed successfully: tro_id=${tro_id}, cs_id=${cs_id}, slot_id=${slot_id}`);
+            debugLog(`✅ Transaction committed successfully: tro_id=${tro_id}, cs_id=${cs_id}, slot_id=${slot_id}`);
 
             // ส่ง socket event หลัง commit สำเร็จ
             io.to('saveRMForProdRoom').emit('dataUpdated', []);
@@ -4880,6 +5738,160 @@ ORDER BY rmm.mapping_id DESC
             res.status(500).json({ success: false, error: err.message });
         }
     });
+
+        router.put("/coldstorage/input/coldstorage", async (req, res) => {
+    try {
+        debugLog("Raw Request Body:", req.body);
+
+        const {
+            tro_id, slot_id, rm_cold_status, rm_status,
+            dest, operator, materials, storage_purpose,
+            expiry_date, remark
+        } = req.body;
+
+        if (!tro_id || !rm_status || !dest || !materials) {
+            console.warn("Missing fields:", { tro_id, slot_id, rm_status, dest, materials });
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        const pool = await connectToDatabase();
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        try {
+            for (const material of materials) {
+                const mapping_id = material.mapping_id;
+
+                const histamineValue = material.histamine;
+
+                const updatedRmDataResult = await new sql.Request(transaction)
+                    .input("mapping_id", mapping_id)
+                    .query(`
+                        SELECT cold_to_pack_time, mix_time, rework_time
+                        FROM TrolleyRMMapping
+                        WHERE mapping_id = @mapping_id
+                    `);
+                const updatedRmData = updatedRmDataResult.recordset[0];
+
+                let historyUpdateQuery = `
+                    UPDATE History
+                    SET
+                        receiver_out_cold = CASE
+                            WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
+                            THEN @operator ELSE receiver_out_cold END,
+
+                        receiver_out_cold_two = CASE
+                            WHEN come_cold_date_two IS NOT NULL AND out_cold_date_two IS NULL
+                            THEN @operator ELSE receiver_out_cold_two END,
+
+                        receiver_out_cold_three = CASE
+                            WHEN come_cold_date_three IS NOT NULL AND out_cold_date_three IS NULL
+                            THEN @operator ELSE receiver_out_cold_three END
+                `;
+
+                const roundCheckResult = await new sql.Request(transaction)
+                    .input("mapping_id", mapping_id)
+                    .query(`
+                        SELECT TOP 1
+                            come_cold_date, out_cold_date,
+                            come_cold_date_two, out_cold_date_two,
+                            come_cold_date_three, out_cold_date_three
+                        FROM History
+                        WHERE mapping_id = @mapping_id
+                        ORDER BY hist_id DESC
+                    `);
+
+                let currentRound = 1;
+                if (roundCheckResult.recordset.length > 0) {
+                    const h = roundCheckResult.recordset[0];
+                    if (h.come_cold_date_three && !h.out_cold_date_three) currentRound = 3;
+                    else if (h.come_cold_date_two && !h.out_cold_date_two) currentRound = 2;
+                    else currentRound = 1;
+                }
+
+                let historyExtra = "";
+
+                const histReq = new sql.Request(transaction)
+                    .input("mapping_id", mapping_id)
+                    .input("operator", sql.NVarChar, operator)
+                    .input("dest", sql.VarChar, dest)
+                    .input("cold_to_pack_time", updatedRmData.cold_to_pack_time)
+                    .input("mix_time", updatedRmData.mix_time)
+                    .input("rework_time", updatedRmData.rework_time);
+
+                const spField = currentRound === 3 ? 'at_pd_storage_purpose_3'
+                    : currentRound === 2 ? 'at_pd_storage_purpose_2'
+                        : 'at_pd_storage_purpose';
+                const hField = currentRound === 3 ? 'at_pd_histamine_3'
+                    : currentRound === 2 ? 'at_pd_histamine_2'
+                        : 'at_pd_histamine';
+                const expField = currentRound === 3 ? 'at_pd_expiry_date_3'
+                    : currentRound === 2 ? 'at_pd_expiry_date_2'
+                        : 'at_pd_expiry_date';
+                const remarkField = currentRound === 3 ? 'at_pd_cold_remark_3'
+                    : currentRound === 2 ? 'at_pd_cold_remark_2'
+                        : 'at_pd_cold_remark';
+
+                if (storage_purpose && storage_purpose.trim() !== "") {
+                    histReq.input("storage_purpose_val", sql.NVarChar, storage_purpose.trim());
+                    historyExtra += `, ${spField} = @storage_purpose_val`;
+                }
+
+                if (histamineValue != null && !isNaN(histamineValue)) {
+                    histReq.input("histamine_val", sql.Float, histamineValue);
+                    historyExtra += `, ${hField} = @histamine_val`;
+                }
+
+                if (expiry_date && String(expiry_date).trim() !== "") {
+                    histReq.input("expiry_date_val", sql.Date, expiry_date);
+                    historyExtra += `, ${expField} = @expiry_date_val`;
+                }
+
+                if (remark && String(remark).trim() !== "") {
+                    histReq.input("remark_val", sql.NVarChar, String(remark).trim());
+                    historyExtra += `, ${remarkField} = @remark_val`;
+                }
+
+                historyUpdateQuery += historyExtra + ` WHERE mapping_id = @mapping_id;`;
+
+                await histReq.query(historyUpdateQuery);
+            }
+
+            await transaction.commit();
+
+            try {
+                for (const material of materials) {
+                    await pool
+                        .request()
+                        .input("mapping_id_reset", material.mapping_id)
+                        .query(`UPDATE TrolleyRMMapping SET confirmed_location = NULL WHERE mapping_id = @mapping_id_reset`);
+                }
+            } catch (resetErr) {
+                console.error(`⚠️ confirmed_location reset ล้มเหลว (ไม่กระทบการเช็คเอาท์หลัก): tro_id=${tro_id}`, resetErr);
+            }
+
+            io.to('saveRMForProdRoom').emit('dataUpdated', {
+                message: "วัตถุดิบถูกนำออกจากห้องเย็นแล้ว",
+                updatedAt: new Date(),
+                tro_id,
+                operator
+            });
+            io.to('QcCheckRoom').emit('dataUpdated', { tro_id });
+
+            res.status(200).json({ message: "Data updated successfully" });
+
+        } catch (innerError) {
+            await transaction.rollback();
+            console.error("Transaction error:", innerError);
+            res.status(500).json({ error: innerError.message });
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ error: "An error occurred while updating the data." });
+    }
+
+});
 
 
     router.put("/largecold/checkin/update/Trolley", async (req, res) => {
@@ -4933,7 +5945,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
             const slot_id = availableSlotResult.recordset[0].slot_id;  // ✅ ได้ slot_id จาก DB
-            console.log(`✅ Found available slot: cs_id=${cs_id}, slot_id=${slot_id}`);
+            debugLog(`✅ Found available slot: cs_id=${cs_id}, slot_id=${slot_id}`);
 
             const { tro_status, rsrv_timestamp } = trolleyResult.recordset[0];
 
@@ -4992,18 +6004,6 @@ ORDER BY rmm.mapping_id DESC
                 return res.status(200).json({ success: true, message: "รับเข้ารถเข็นว่าง", slot_id });
             }
 
-            const validDests = ["ห้องเย็นใหญ่", "รอCheckin", "รอเข้าห้องเย็น"];
-            const invalidDestItems = rmResults.recordset.filter(
-                (item) => !validDests.includes(item.dest)
-            );
-
-            if (invalidDestItems.length > 0) {
-                await transaction.rollback();
-                return res.status(400).json({
-                    success: false,
-                    message: "มีวัตถุดิบในรถเข็นที่ไม่ได้เตรียมเข้าห้องเย็น"
-                });
-            }
 
             // ── STEP 5: Lock Slot ────────────────────────────────────────────────
             const slotLockResult = await transaction
@@ -5026,7 +6026,7 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            console.log(`✅ Slot locked: cs_id=${cs_id}, slot_id=${slot_id}, tro_id=${tro_id}`);
+            debugLog(`✅ Slot locked: cs_id=${cs_id}, slot_id=${slot_id}, tro_id=${tro_id}`);
 
             // ── STEP 6: UPDATE TrolleyRMMapping แต่ละ item ───────────────────────
             let successfulUpdates = 0;
@@ -5038,9 +6038,9 @@ ORDER BY rmm.mapping_id DESC
                 let pic_time = prep_to_cold_time;
                 let MixTime = mix_time;
 
-                console.log(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, cold_time:`, cold_time);
-                console.log(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, ptc_time:`, prep_to_cold_time);
-                console.log(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, mix_time:`, mix_time);
+                debugLog(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, cold_time:`, cold_time);
+                debugLog(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, ptc_time:`, prep_to_cold_time);
+                debugLog(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id}, mix_time:`, mix_time);
 
                 // cold_time: ดึงจาก RawMatGroup ถ้าเป็น null
                 if (cold_time === null) {
@@ -5156,7 +6156,7 @@ ORDER BY rmm.mapping_id DESC
                     }
                 }
 
-                console.log(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id} → cold_time=${coldTimeValue}, pic_time=${pic_time}, mix=${MixTime}`);
+                debugLog(`MP ID: ${mapping_id}, RMFP ID: ${rmfp_id} → cold_time=${coldTimeValue}, pic_time=${pic_time}, mix=${MixTime}`);
 
                 // UPDATE TrolleyRMMapping
                 const updateResult = await transaction
@@ -5197,7 +6197,7 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            console.log(`✅ TrolleyRMMapping updated: tro_id=${tro_id}, count=${successfulUpdates}`);
+            debugLog(`✅ TrolleyRMMapping updated: tro_id=${tro_id}, count=${successfulUpdates}`);
 
             // ── STEP 7: UPDATE History — เพิ่ม rd_section_colds ─────────────────────────
             const mappingResults = await transaction
@@ -5216,16 +6216,12 @@ ORDER BY rmm.mapping_id DESC
                 if (section_leader && section_leader.trim() !== "") {
                     histReq.input("section_leader", sql.NVarChar, section_leader.trim());
                     sectionColdExtra = `, rd_section_colds = @section_leader`;
-                    console.log(`✅ rd_section_colds: ${section_leader} → mapping_id: ${row.mapping_id}`);
+                    debugLog(`✅ rd_section_colds: ${section_leader} → mapping_id: ${row.mapping_id}`);
                 }
 
                 const historyUpdateResult = await histReq.query(`
                 UPDATE History
                 SET
-                    come_cold_date = CASE
-                        WHEN come_cold_date IS NULL THEN GETDATE()
-                        ELSE come_cold_date END,
-
                     cs_come_cold_date = CASE
                         WHEN cs_come_cold_date IS NULL THEN GETDATE()
                         ELSE cs_come_cold_date END,
@@ -5282,10 +6278,10 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            console.log(`✅ History updated: tro_id=${tro_id}, count=${historyUpdateCount}`);
+            debugLog(`✅ History updated: tro_id=${tro_id}, count=${historyUpdateCount}`);
 
             await transaction.commit();
-            console.log(`✅ Transaction committed: tro_id=${tro_id}, cs_id=${cs_id}, slot_id=${slot_id}`);
+            debugLog(`✅ Transaction committed: tro_id=${tro_id}, cs_id=${cs_id}, slot_id=${slot_id}`);
 
             io.to("saveRMForProdRoom").emit("dataUpdated", []);
 
@@ -5304,7 +6300,7 @@ ORDER BY rmm.mapping_id DESC
 
     router.put("/coldstorage/moveRawmatintolley", async (req, res) => {
         try {
-            console.log("Raw Request Body:", req.body);
+            debugLog("Raw Request Body:", req.body);
             const {
                 tro_id,
                 new_tro_id,
@@ -5339,14 +6335,14 @@ ORDER BY rmm.mapping_id DESC
 
             const weightNum = parseFloat(weight);
             if (isNaN(weightNum) || weightNum <= 0) {
-                console.log(`❌ น้ำหนักไม่ถูกต้อง: ${weight}`);
+                console.warn(`❌ น้ำหนักไม่ถูกต้อง: ${weight}`);
                 return res.status(400).json({ error: "Weight must be a positive number" });
             }
 
             // 2) Connect DB
             const pool = await connectToDatabase();
             if (!pool) {
-                console.log("❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+                console.warn("❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
                 return res.status(500).json({ error: "Database connection failed" });
             }
 
@@ -5797,7 +6793,7 @@ ORDER BY rmm.mapping_id DESC
             `);
                     }
 
-                    console.log(`✅ คัดลอก ${batchRecords.recordset.length} batch records ไปยัง mapping_id: ${destMappingId}`);
+                    debugLog(`✅ คัดลอก ${batchRecords.recordset.length} batch records ไปยัง mapping_id: ${destMappingId}`);
                 }
 
                 // 10) เช็คน้ำหนักรวมต้นทาง
@@ -5978,7 +6974,7 @@ ORDER BY rmm.mapping_id DESC
             // Create additional conditions for WHERE clause
             let additionalWhereConditions = '';
 
-            console.log('Filtering params:', {
+            debugLog('Filtering params:', {
                 startDate: formattedStartDate,
                 endDate: formattedEndDate,
                 filterType
@@ -6219,7 +7215,7 @@ ORDER BY rmm.mapping_id DESC
             const totalCountResult = await countRequest.query(countQuery);
             const totalCount = totalCountResult.recordset[0].total;
 
-            console.log(`Found ${totalCount} total records matching criteria`);
+            debugLog(`Found ${totalCount} total records matching criteria`);
 
             // Get data
             const result = await mainRequest.query(mainQuery);
@@ -7704,6 +8700,265 @@ ORDER BY rmm.mapping_id DESC
         } catch (err) {
             console.error("[GET /dropdown/mat-name]", err);
             res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
+    // ─── ย้ายวัตถุดิบระหว่างรถเข็น (split weight) ────────────────────────────────────
+    // POST /api/coldstorage/transfer-mapping
+    // body: { mapping_id, target_tro_id, transfer_weight }
+    // - UPDATE weight_RM ของ row เดิม
+    // - INSERT QC ใหม่ (copy จาก qc_id เดิม)
+    // - INSERT TrolleyRMMapping ใหม่ (copy ทุก column, tro_id/weight_RM/qc_id/from_mapping_id ต่างกัน)
+    // - INSERT History ใหม่ (copy ทุก column, mapping_id/tro_id/weight_RM ต่างกัน)
+    // - INSERT Batch ใหม่ (copy จาก mapping_id เดิม)
+    router.post("/coldstorage/transfer-mapping", async (req, res) => {
+        const { mapping_id, target_tro_id, transfer_weight } = req.body;
+
+        if (!mapping_id || !target_tro_id || transfer_weight === undefined) {
+            return res.status(400).json({ success: false, error: "กรุณาระบุ mapping_id, target_tro_id และ transfer_weight" });
+        }
+
+        const w = parseFloat(transfer_weight);
+        if (isNaN(w) || w <= 0) {
+            return res.status(400).json({ success: false, error: "transfer_weight ต้องเป็นตัวเลขที่มากกว่า 0" });
+        }
+
+        let pool, transaction, began = false;
+
+        try {
+            pool = await connectToDatabase();
+
+            // 1. ดึง row เดิม
+            const origResult = await pool.request()
+                .input("mapping_id", sql.Int, parseInt(mapping_id))
+                .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+
+            if (origResult.recordset.length === 0)
+                return res.status(404).json({ success: false, error: "ไม่พบ mapping_id ที่ระบุ" });
+
+            const orig = origResult.recordset[0];
+            const origWeight = parseFloat(orig.weight_RM);
+
+            if (w > origWeight)
+                return res.status(400).json({ success: false, error: `น้ำหนักที่ย้ายต้องไม่เกิน ${origWeight} กก.` });
+
+            // 2. ตรวจสอบรถเข็นปลายทาง
+            const troCheck = await pool.request()
+                .input("tro_id", sql.VarChar(50), target_tro_id)
+                .query(`SELECT tro_id FROM Trolley WHERE tro_id = @tro_id`);
+
+            if (troCheck.recordset.length === 0)
+                return res.status(404).json({ success: false, error: `ไม่พบรถเข็น ${target_tro_id} ในระบบ` });
+
+            transaction = new sql.Transaction(pool);
+            await transaction.begin();
+            began = true;
+
+            // 3. UPDATE weight_RM ของ row เดิม
+            const remainingWeight = parseFloat((origWeight - w).toFixed(4));
+            await transaction.request()
+                .input("mapping_id", sql.Int, parseInt(mapping_id))
+                .input("new_weight", sql.Decimal(18, 4), remainingWeight)
+                .query(`UPDATE TrolleyRMMapping SET weight_RM = @new_weight, updated_at = GETDATE() WHERE mapping_id = @mapping_id`);
+
+            // 4. Copy QC ถ้ามี
+            let new_qc_id = null;
+            if (orig.qc_id) {
+                const newQCResult = await transaction.request()
+                    .input("qc_id", sql.Int, orig.qc_id)
+                    .query(`
+                        INSERT INTO QC (
+                            color, odor, texture, sq_acceptance, sq_remark,
+                            md, md_remark, defect, defect_remark, defect_acceptance,
+                            qc_datetime, md_no, qccheck, mdcheck, defectcheck,
+                            WorkAreaCode, Moisture, Temp, md_time, percent_fine,
+                            general_remark, prepare_mor_night
+                        )
+                        OUTPUT INSERTED.qc_id
+                        SELECT
+                            color, odor, texture, sq_acceptance, sq_remark,
+                            md, md_remark, defect, defect_remark, defect_acceptance,
+                            qc_datetime, md_no, qccheck, mdcheck, defectcheck,
+                            WorkAreaCode, Moisture, Temp, md_time, percent_fine,
+                            general_remark, prepare_mor_night
+                        FROM QC WHERE qc_id = @qc_id
+                    `);
+                new_qc_id = newQCResult.recordset[0]?.qc_id ?? null;
+            }
+
+            // 5. INSERT TrolleyRMMapping ใหม่ (copy จาก row เดิม)
+            const newMappingResult = await transaction.request()
+                .input("source_mapping_id", sql.Int, parseInt(mapping_id))
+                .input("target_tro_id", sql.VarChar(50), target_tro_id)
+                .input("transfer_weight", sql.Decimal(18, 4), w)
+                .input("new_qc_id", sql.Int, new_qc_id)
+                .query(`
+                    INSERT INTO TrolleyRMMapping (
+                        tro_id, rmfp_id, batch_id, tro_production_id, process_id, qc_id,
+                        weight_in_trolley, tray_count, weight_per_tray, weight_RM, level_eu,
+                        prep_to_cold_time, cold_time, prep_to_pack_time, cold_to_pack_time, rework_time,
+                        rm_status, rm_cold_status, stay_place, dest, mix_code, prod_mix,
+                        allocation_date, removal_date, [status], production_batch, created_by,
+                        created_at, updated_at, rmm_line_name, mix_time, from_mapping_id,
+                        tl_status, group_no, detail, row_status
+                    )
+                    OUTPUT INSERTED.mapping_id
+                    SELECT
+                        @target_tro_id, rmfp_id, batch_id, tro_production_id, process_id, @new_qc_id,
+                        weight_in_trolley, tray_count, weight_per_tray, @transfer_weight, level_eu,
+                        prep_to_cold_time, cold_time, prep_to_pack_time, cold_to_pack_time, rework_time,
+                        rm_status, rm_cold_status, stay_place, dest, mix_code, prod_mix,
+                        allocation_date, removal_date, [status], production_batch, created_by,
+                        GETDATE(), GETDATE(), rmm_line_name, mix_time, @source_mapping_id,
+                        tl_status, group_no, detail, row_status
+                    FROM TrolleyRMMapping
+                    WHERE mapping_id = @source_mapping_id
+                `);
+
+            const new_mapping_id = newMappingResult.recordset[0]?.mapping_id;
+            if (!new_mapping_id) throw new Error("ไม่สามารถสร้าง TrolleyRMMapping ใหม่ได้");
+
+            // 6. INSERT History ใหม่ (copy ทุก column, override tro_id/mapping_id/weight_RM)
+            await transaction.request()
+                .input("source_mapping_id", sql.Int, parseInt(mapping_id))
+                .input("new_mapping_id", sql.Int, new_mapping_id)
+                .input("target_tro_id", sql.VarChar(50), target_tro_id)
+                .input("transfer_weight", sql.Decimal(18, 4), w)
+                .query(`
+                    INSERT INTO History (
+                        tro_id, mapping_id,
+                        withdraw_date, cooked_date, rmit_date, qc_date,
+                        come_cold_date, out_cold_date, come_cold_date_two, out_cold_date_two,
+                        come_cold_date_three, out_cold_date_three, sc_pack_date, rework_date,
+                        receiver, receiver_prep_two, receiver_qc,
+                        receiver_out_cold, receiver_out_cold_two, receiver_out_cold_three,
+                        receiver_oven_edit, receiver_pack_edit, remark_pack_edit, location,
+                        mixed_date, md_time, Moisture, Temp, percent_fine,
+                        tray_count, weight_RM, rmm_line_name, dest,
+                        mix_time, rework_time, cold_to_pack_time, prep_to_pack_time,
+                        cold_dest, prepare_mor_night, rm_status, stay_place,
+                        qccheck_cold, remark_rework_cold, remark_rework, receiver_qc_cold,
+                        mix_date, edit_rework, first_prod, two_prod, three_prod,
+                        name_edit_prod_two, name_edit_prod_three,
+                        created_at, updated_at, start_mixed_date, start_gravy_date,
+                        pack_checkin_date, gm_date, viscosity, temps, weight_per_cup, rmit_date_mix,
+                        come_cold_date_RFID, out_cold_date_RFID,
+                        come_cold_date_two_rfid, out_cold_date_two_rfid,
+                        com_cold_date_three_rfid, out_cold_date_three_rfid,
+                        start_defrost_date, end_defrost_date, remark_dalay,
+                        cs_come_cold_date, cs_out_cold_date,
+                        cs_come_cold_date_two, cs_out_cold_date_two,
+                        cs_come_cold_date_three, cs_out_cold_date_three,
+                        cs_come_cold_date_four, cs_out_cold_date_four,
+                        cs_come_cold_date_five, cs_out_out_date_five,
+                        cs_come_cold_date_six, cs_out_cold_date_six,
+                        cs_come_cold_date_seven, cs_out_cold_date_seven,
+                        cs_come_cold_date_eight, cs_out_cold_date_eight,
+                        cs_come_cold_date_nine, cs_out_cold_date_nine,
+                        cs_come_cold_date_ten, cs_out_cold_date_ten,
+                        cs_come_after_df_date, re_out_cold, re_large_cold,
+                        storage_purpose, rd_section_colds, hu, remark,
+                        start_defrost_date_two, end_defrost_date_two, weight,
+                        input_pd_date, input_pd_date_two, input_pd_date_three,
+                        output_pd_date, output_pd_date_two, output_pd_date_three,
+                        withdraw_date_two, withdraw_date_three,
+                        input_cd_date, input_cd_date_two, input_cd_date_three,
+                        pd_send, pd_send2, pd_send3,
+                        cs_re, cs_re_2, cs_re_3,
+                        storage_purpose_2, storage_purpose_3, histamine_2, histamine_3,
+                        withdraw_date_four, cs_wd_2, cs_wd_3, cs_wd_4,
+                        start_defrost_date_three, end_defrost_date_three,
+                        start_defrost_date_four, end_defrost_date_four,
+                        at_pd_storage_purpose, at_pd_storage_purpose_2, at_pd_storage_purpose_3,
+                        at_pd_histamine, at_pd_histamine_2, at_pd_histamine_3,
+                        histamine, id_igd, mat_pkg, batch_pkg,
+                        at_pd_deposit_date, at_pd_deposit_date_2, at_pd_deposit_date_3,
+                        at_pd_cold_remark, at_pd_cold_remark_2, at_pd_cold_remark_3
+                    )
+                    SELECT
+                        @target_tro_id, @new_mapping_id,
+                        withdraw_date, cooked_date, rmit_date, qc_date,
+                        come_cold_date, out_cold_date, come_cold_date_two, out_cold_date_two,
+                        come_cold_date_three, out_cold_date_three, sc_pack_date, rework_date,
+                        receiver, receiver_prep_two, receiver_qc,
+                        receiver_out_cold, receiver_out_cold_two, receiver_out_cold_three,
+                        receiver_oven_edit, receiver_pack_edit, remark_pack_edit, location,
+                        mixed_date, md_time, Moisture, Temp, percent_fine,
+                        tray_count, @transfer_weight, rmm_line_name, dest,
+                        mix_time, rework_time, cold_to_pack_time, prep_to_pack_time,
+                        cold_dest, prepare_mor_night, rm_status, stay_place,
+                        qccheck_cold, remark_rework_cold, remark_rework, receiver_qc_cold,
+                        mix_date, edit_rework, first_prod, two_prod, three_prod,
+                        name_edit_prod_two, name_edit_prod_three,
+                        GETDATE(), GETDATE(), start_mixed_date, start_gravy_date,
+                        pack_checkin_date, gm_date, viscosity, temps, weight_per_cup, rmit_date_mix,
+                        come_cold_date_RFID, out_cold_date_RFID,
+                        come_cold_date_two_rfid, out_cold_date_two_rfid,
+                        com_cold_date_three_rfid, out_cold_date_three_rfid,
+                        start_defrost_date, end_defrost_date, remark_dalay,
+                        cs_come_cold_date, cs_out_cold_date,
+                        cs_come_cold_date_two, cs_out_cold_date_two,
+                        cs_come_cold_date_three, cs_out_cold_date_three,
+                        cs_come_cold_date_four, cs_out_cold_date_four,
+                        cs_come_cold_date_five, cs_out_out_date_five,
+                        cs_come_cold_date_six, cs_out_cold_date_six,
+                        cs_come_cold_date_seven, cs_out_cold_date_seven,
+                        cs_come_cold_date_eight, cs_out_cold_date_eight,
+                        cs_come_cold_date_nine, cs_out_cold_date_nine,
+                        cs_come_cold_date_ten, cs_out_cold_date_ten,
+                        cs_come_after_df_date, re_out_cold, re_large_cold,
+                        storage_purpose, rd_section_colds, hu, remark,
+                        start_defrost_date_two, end_defrost_date_two, weight,
+                        input_pd_date, input_pd_date_two, input_pd_date_three,
+                        output_pd_date, output_pd_date_two, output_pd_date_three,
+                        withdraw_date_two, withdraw_date_three,
+                        input_cd_date, input_cd_date_two, input_cd_date_three,
+                        pd_send, pd_send2, pd_send3,
+                        cs_re, cs_re_2, cs_re_3,
+                        storage_purpose_2, storage_purpose_3, histamine_2, histamine_3,
+                        withdraw_date_four, cs_wd_2, cs_wd_3, cs_wd_4,
+                        start_defrost_date_three, end_defrost_date_three,
+                        start_defrost_date_four, end_defrost_date_four,
+                        at_pd_storage_purpose, at_pd_storage_purpose_2, at_pd_storage_purpose_3,
+                        at_pd_histamine, at_pd_histamine_2, at_pd_histamine_3,
+                        histamine, id_igd, mat_pkg, batch_pkg,
+                        at_pd_deposit_date, at_pd_deposit_date_2, at_pd_deposit_date_3,
+                        at_pd_cold_remark, at_pd_cold_remark_2, at_pd_cold_remark_3
+                    FROM History
+                    WHERE mapping_id = @source_mapping_id
+                `);
+
+            // 7. INSERT Batch ใหม่ (copy จาก mapping_id เดิม)
+            await transaction.request()
+                .input("source_mapping_id", sql.Int, parseInt(mapping_id))
+                .input("new_mapping_id", sql.Int, new_mapping_id)
+                .query(`
+                    INSERT INTO Batch (batch_before, batch_after, mapping_id)
+                    SELECT batch_before, batch_after, @new_mapping_id
+                    FROM Batch
+                    WHERE mapping_id = @source_mapping_id
+                `);
+
+            await transaction.commit();
+            began = false;
+
+            io.emit("updateFetch", {});
+
+            debugLog(`[transfer-mapping] ✅ mapping ${mapping_id} → tro ${target_tro_id} | new_mapping_id=${new_mapping_id} | weight=${w}`);
+
+            return res.status(200).json({
+                success: true,
+                message: "ย้ายวัตถุดิบสำเร็จ",
+                new_mapping_id,
+                new_qc_id,
+            });
+
+        } catch (err) {
+            console.error("[POST /coldstorage/transfer-mapping] Error:", err.message);
+            if (began && transaction) {
+                try { await transaction.rollback(); } catch (rbErr) { console.error("rollback failed:", rbErr.message); }
+            }
+            return res.status(500).json({ success: false, error: err.message });
         }
     });
 

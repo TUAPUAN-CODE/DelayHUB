@@ -37,6 +37,9 @@ const SIDEBAR_ITEMS = [
 	// 	? [{ name: "เปลี่ยนที่ทำงาน", icon: FaPeopleCarry, href: "/packaging/WorkplaceSelector" }]
 	// 	: []),
 	
+	// { name: "พิมพ์สลีป", icon: BarChart2, href: "/packaging/PrintMaster" },
+	{ name: "รายงานการใช้บรรจุภัณฑ์", icon: BarChart2, href: "/packaging/UsePKG" },
+	{ name: "พิมพ์สลีป Android", icon: BarChart2, href: "/packaging/Printpackandroid" },
 	{ name: "ออกจากระบบ", icon: BarChart2, href: "/logout" },
 ];
 

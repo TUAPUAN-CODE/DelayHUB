@@ -1,13 +1,14 @@
 module.exports = (io) => {
   const express = require("express");
-  const { connectToDatabase } = require("../database/db");
+  const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
   const sql = require("mssql");
   // const { Line } = require("recharts");
   const router = express.Router();
   const multer = require('multer');
   const upload = multer({ storage: multer.memoryStorage() });
 
-
+  const DEBUG_LOGS = process.env.DEBUG_LOGS === 'true';
+  function debugLog(...args) { if (DEBUG_LOGS) console.log(...args); }
 
   // ─────────────────────────────────────────────────────────
   // ✅ Pool Singleton — สร้างครั้งเดียว ใช้ซ้ำ
@@ -273,54 +274,54 @@ module.exports = (io) => {
 
     // Case 4: Check for Mix time first (highest priority for mixed materials)
     if (remaining_mix_time !== null && remaining_mix_time < 2 && mixedDateTime) {
-      console.log("วันที่ผสม :", mixedDateTime);
-      console.log("วันที่ปัจจุบัน :", currentTime);
+      debugLog("วันที่ผสม :", mixedDateTime);
+      debugLog("วันที่ปัจจุบัน :", currentTime);
       const elapsedTime = calculateTimeDiff(mixedDateTime, currentTime);
-      console.log("เวลาที่ใช้ไป :", elapsedTime);
+      debugLog("เวลาที่ใช้ไป :", elapsedTime);
       delayTime = remaining_mix_time - elapsedTime;
-      console.log("delayTime :", delayTime);
+      debugLog("delayTime :", delayTime);
       fieldToUpdate = 'mix_time';
     }
     // Case 3: Check for Rework time
     else if (remaining_rework_time !== null) {
       // Use the latest of QC date or latest out_cold_date
       const referenceDate = getLatestDate(qcDateTime, latestOutColdDate);
-      console.log("วันที่ออกห้องเย็น :", latestOutColdDate);
-      console.log("วันที่ Qc :", qcDateTime);
-      console.log("วันที่ออกห้องเย็น || Qc (วัตถุดิบแก้ไข) :", referenceDate);
-      console.log("วันที่ปัจจุบัน :", currentTime);
+      debugLog("วันที่ออกห้องเย็น :", latestOutColdDate);
+      debugLog("วันที่ Qc :", qcDateTime);
+      debugLog("วันที่ออกห้องเย็น || Qc (วัตถุดิบแก้ไข) :", referenceDate);
+      debugLog("วันที่ปัจจุบัน :", currentTime);
       if (referenceDate) {
         const elapsedTime = calculateTimeDiff(referenceDate, currentTime);
-        console.log("เวลาที่ใช้ไป :", elapsedTime);
+        debugLog("เวลาที่ใช้ไป :", elapsedTime);
         delayTime = remaining_rework_time - elapsedTime;
-        console.log("delayTime :", delayTime);
+        debugLog("delayTime :", delayTime);
         fieldToUpdate = 'rework_time';
       }
     }
     // Case 1: Check for Cold to Pack time
     else if (latestOutColdDate) {
-      console.log("วันที่ออกห้องเย็นล่าสุด :", latestOutColdDate);
-      console.log("วันที่ปัจจุบัน :", currentTime);
+      debugLog("วันที่ออกห้องเย็นล่าสุด :", latestOutColdDate);
+      debugLog("วันที่ปัจจุบัน :", currentTime);
       const elapsedTime = calculateTimeDiff(latestOutColdDate, currentTime);
-      console.log("เวลาที่ใช้ไป :", elapsedTime);
+      debugLog("เวลาที่ใช้ไป :", elapsedTime);
 
       // Use remaining time if available, otherwise use standard time
       const timeToUse = remaining_ctp_time !== null ? remaining_ctp_time : standard_ctp_time;
       delayTime = timeToUse - elapsedTime;
-      console.log("delayTime :", delayTime);
+      debugLog("delayTime :", delayTime);
 
       fieldToUpdate = 'cold_to_pack_time';
     }
     // Case 2: Use Prep to Pack time if no out_cold_date
     else if (rmitDateTime) {
-      console.log("วันที่เตรียมเสร็จ :", rmitDateTime);
-      console.log("วันที่ปัจจุบัน :", currentTime);
+      debugLog("วันที่เตรียมเสร็จ :", rmitDateTime);
+      debugLog("วันที่ปัจจุบัน :", currentTime);
       const elapsedTime = calculateTimeDiff(rmitDateTime, currentTime);
-      console.log("เวลาที่ใช้ไป :", elapsedTime);
+      debugLog("เวลาที่ใช้ไป :", elapsedTime);
       // Use remaining time if available, otherwise use standard time
       const timeToUse = remaining_ptp_time !== null ? remaining_ptp_time : standard_ptp_time;
       delayTime = timeToUse - elapsedTime;
-      console.log("delayTime :", delayTime);
+      debugLog("delayTime :", delayTime);
       fieldToUpdate = 'prep_to_pack_time';
     }
 
@@ -578,8 +579,8 @@ module.exports = (io) => {
     const { rows } = req.body;
     const sql = require("mssql");
 
-    console.log("=== PATCH PACK TIME REQUEST ===");
-    console.log("rows count:", rows?.length);
+    debugLog("=== PATCH PACK TIME REQUEST ===");
+    debugLog("rows count:", rows?.length);
 
     if (!rows || !Array.isArray(rows) || rows.length === 0) {
       return res.status(400).json({
@@ -667,7 +668,7 @@ module.exports = (io) => {
         const { mapping_id, ...rest } = row;
         const updateFields = Object.keys(rest).filter(k => ALLOWED_FIELDS.includes(k));
 
-        console.log(`📝 อัปเดต mapping_id=${mapping_id} fields:`, updateFields);
+        debugLog(`📝 อัปเดต mapping_id=${mapping_id} fields:`, updateFields);
 
         const checkResult = await transaction.request()
           .input('mapping_id', sql.Int, parseInt(mapping_id))
@@ -705,7 +706,7 @@ module.exports = (io) => {
         WHERE mapping_id = @mapping_id
       `);
 
-        console.log(`  ✅ mapping_id=${mapping_id} rowsAffected=${updateResult.rowsAffected[0]}`);
+        debugLog(`  ✅ mapping_id=${mapping_id} rowsAffected=${updateResult.rowsAffected[0]}`);
 
         results.push({
           mapping_id: parseInt(mapping_id),
@@ -715,7 +716,7 @@ module.exports = (io) => {
       }
 
       await transaction.commit();
-      console.log("✅ Transaction committed successfully");
+      debugLog("✅ Transaction committed successfully");
 
       const totalAffected = results.reduce((s, r) => s + r.rowsAffected, 0);
 
@@ -732,7 +733,7 @@ module.exports = (io) => {
     } catch (err) {
       if (transaction) {
         await transaction.rollback();
-        console.log("❌ Transaction rolled back");
+        console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Patch time error:', err);
       return res.status(500).json({
@@ -797,8 +798,8 @@ module.exports = (io) => {
     const { mapping_id } = req.body;
     const sql = require("mssql");
 
-    console.log("=== SOFT DELETE MIXPACK REQUEST ===");
-    console.log("mapping_id:", mapping_id);
+    debugLog("=== SOFT DELETE MIXPACK REQUEST ===");
+    debugLog("mapping_id:", mapping_id);
 
     // ===============================
     // Validation
@@ -849,11 +850,11 @@ module.exports = (io) => {
       const mappingData = checkResult.recordset[0];
       const rmfp_id = mappingData.rmfp_id;
 
-      console.log("📋 ข้อมูลที่จะอัปเดตสถานะ:");
-      console.log("  - Material:", mappingData.mat, mappingData.mat_name);
-      console.log("  - mapping_id:", mapping_id);
-      console.log("  - rmfp_id:", rmfp_id);
-      console.log("  - weight_RM:", mappingData.weight_RM, "กก.");
+      debugLog("📋 ข้อมูลที่จะอัปเดตสถานะ:");
+      debugLog("  - Material:", mappingData.mat, mappingData.mat_name);
+      debugLog("  - mapping_id:", mapping_id);
+      debugLog("  - rmfp_id:", rmfp_id);
+      debugLog("  - weight_RM:", mappingData.weight_RM, "กก.");
 
       // ===============================
       // 2) ดึงรายการวัตถุดิบที่ถูกผสม (เพื่อแสดงข้อมูล)
@@ -867,7 +868,7 @@ module.exports = (io) => {
       `);
 
       const mixedMaterials = mixPeckResult.recordset;
-      console.log(`📦 พบวัตถุดิบที่ถูกผสม ${mixedMaterials.length} รายการ`);
+      debugLog(`📦 พบวัตถุดิบที่ถูกผสม ${mixedMaterials.length} รายการ`);
 
       // ===============================
       // 3) อัปเดตสถานะแทนการลบ (Soft Delete)
@@ -889,13 +890,13 @@ module.exports = (io) => {
         });
       }
 
-      console.log("  ✅ อัปเดตสถานะ TrolleyRMMapping เรียบร้อย");
+      debugLog("  ✅ อัปเดตสถานะ TrolleyRMMapping เรียบร้อย");
 
       // ===============================
       // 4) Commit Transaction
       // ===============================
       await transaction.commit();
-      console.log("✅ Transaction committed successfully");
+      debugLog("✅ Transaction committed successfully");
 
       // ===============================
       // 5) ส่งผลลัพธ์กลับ
@@ -916,7 +917,7 @@ module.exports = (io) => {
     } catch (err) {
       if (transaction) {
         await transaction.rollback();
-        console.log("❌ Transaction rolled back");
+        console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Update error:', err);
       res.status(500).json({
@@ -949,15 +950,15 @@ module.exports = (io) => {
       processType
     } = req.body;
 
-    console.log("=== RECEIVED PAYLOAD ===");
-    console.log("selectedMaterials:", JSON.stringify(selectedMaterials, null, 2));
-    console.log("batch:", batch);
-    console.log("cookedTime:", cookedTime);
-    console.log("preparedTime:", preparedTime);
-    console.log("mixtime:", mixtime);
-    console.log("numberOfTrays:", numberOfTrays);
-    console.log("processType:", processType);
-    console.log("========================");
+    debugLog("=== RECEIVED PAYLOAD ===");
+    debugLog("selectedMaterials:", JSON.stringify(selectedMaterials, null, 2));
+    debugLog("batch:", batch);
+    debugLog("cookedTime:", cookedTime);
+    debugLog("preparedTime:", preparedTime);
+    debugLog("mixtime:", mixtime);
+    debugLog("numberOfTrays:", numberOfTrays);
+    debugLog("processType:", processType);
+    debugLog("========================");
 
     const formatDateTimeForSQL = (dateTimeStr) => {
       if (!dateTimeStr) return null;
@@ -988,11 +989,11 @@ module.exports = (io) => {
     const formattedMixtime = formatDateTimeForSQL(mixtime);
     const formattedGravyTime = formatDateTimeForSQL(gravyTime);
 
-    console.log("=== FORMATTED DATES ===");
-    console.log("formattedCookedTime:", formattedCookedTime);
-    console.log("formattedPreparedTime:", formattedPreparedTime);
-    console.log("formattedMixtime:", formattedMixtime);
-    console.log("========================");
+    debugLog("=== FORMATTED DATES ===");
+    debugLog("formattedCookedTime:", formattedCookedTime);
+    debugLog("formattedPreparedTime:", formattedPreparedTime);
+    debugLog("formattedMixtime:", formattedMixtime);
+    debugLog("========================");
 
     if (!mat || !batch || !weight) {
       return res.status(400).json({ success: false, message: "ข้อมูล mat, batch, weight ต้องระบุ" });
@@ -1052,7 +1053,7 @@ module.exports = (io) => {
         .map(m => m.mapping_id)
         .filter(id => id != null && id !== undefined && id !== '' && !isNaN(id));
 
-      console.log("✅ Filtered mapping IDs:", fromMappingIds);
+      debugLog("✅ Filtered mapping IDs:", fromMappingIds);
 
       let withdraw_date = null;
 
@@ -1072,7 +1073,7 @@ module.exports = (io) => {
           `);
 
           withdraw_date = minWithdrawResult.recordset[0]?.withdraw_date || null;
-          console.log("✅ withdraw_date:", withdraw_date);
+          debugLog("✅ withdraw_date:", withdraw_date);
         } catch (error) {
           console.error("❌ Error in withdraw_date query:", error);
         }
@@ -1114,7 +1115,7 @@ module.exports = (io) => {
           `);
 
           final_out_cold_date = coldResult.recordset[0]?.final_out_cold_date || null;
-          console.log("✅ final_out_cold_date:", final_out_cold_date);
+          debugLog("✅ final_out_cold_date:", final_out_cold_date);
         } catch (error) {
           console.error("❌ Error in out_cold_date query:", error);
         }
@@ -1140,7 +1141,7 @@ module.exports = (io) => {
           `);
 
           final_rmit_date_mix = rmitResult.recordset[0]?.final_rmit_date_mix || null;
-          console.log("✅ final_rmit_date_mix:", final_rmit_date_mix);
+          debugLog("✅ final_rmit_date_mix:", final_rmit_date_mix);
         } catch (error) {
           console.error("❌ Error in rmit_date_mix query:", error);
         }
@@ -1195,7 +1196,7 @@ module.exports = (io) => {
           `);
 
         const RMFP_ID = rmfpResult.recordset[0].rmfp_id;
-        console.log("✅ Created RMFP_ID:", RMFP_ID);
+        debugLog("✅ Created RMFP_ID:", RMFP_ID);
 
         // 4.2 INSERT History
         const historyResult = await transaction.request()
@@ -1237,7 +1238,7 @@ module.exports = (io) => {
           `);
 
         const hist_id = historyResult.recordset[0].hist_id;
-        console.log("✅ Created hist_id:", hist_id);
+        debugLog("✅ Created hist_id:", hist_id);
 
         // 4.3 INSERT TrolleyRMMapping
         const mappingResult = await transaction.request()
@@ -1266,7 +1267,7 @@ module.exports = (io) => {
           `);
 
         const mapping_id = mappingResult.recordset[0].mapping_id;
-        console.log("✅ Created mapping_id:", mapping_id);
+        debugLog("✅ Created mapping_id:", mapping_id);
 
         // 4.3.1 INSERT Mat
         await transaction.request()
@@ -1286,7 +1287,7 @@ module.exports = (io) => {
     )
   `);
 
-        console.log("✅ Inserted Mat:", mat, mapping_id);
+        debugLog("✅ Inserted Mat:", mat, mapping_id);
 
         // 4.4 UPDATE History
         await transaction.request()
@@ -1295,7 +1296,7 @@ module.exports = (io) => {
           .query(`
             UPDATE History SET mapping_id = @mapping_id WHERE hist_id = @hist_id
           `);
-        console.log("✅ Updated History with mapping_id");
+        debugLog("✅ Updated History with mapping_id");
 
         // 4.5 UPDATE RMForProd
         await transaction.request()
@@ -1304,7 +1305,7 @@ module.exports = (io) => {
           .query(`
             UPDATE RMForProd SET hist_id_rmfp = @hist_id WHERE rmfp_id = @rmfp_id
           `);
-        console.log("✅ Updated RMForProd with hist_id");
+        debugLog("✅ Updated RMForProd with hist_id");
 
         // 4.5.1 INSERT Batch
         if (batch) {
@@ -1314,13 +1315,13 @@ module.exports = (io) => {
             .query(`
               INSERT INTO Batch (mapping_id, batch_after) VALUES (@mapping_id, @batch_after)
             `);
-          console.log("✅ Inserted Batch:", batch);
+          debugLog("✅ Inserted Batch:", batch);
         }
 
         // 4.6 INSERT RM_MixPeck
-        console.log("📝 Inserting into RM_MixPeck...");
+        debugLog("📝 Inserting into RM_MixPeck...");
         for (const material of selectedMaterials) {
-          console.log("  - Material mapping_id:", material.mapping_id);
+          debugLog("  - Material mapping_id:", material.mapping_id);
           if (material.mapping_id) {
             await transaction.request()
               .input("rmfp_id", RMFP_ID)
@@ -1328,7 +1329,7 @@ module.exports = (io) => {
               .query(`
                 INSERT INTO RM_MixPeck (rmfp_id, mapping_id) VALUES (@rmfp_id, @mapping_id)
               `);
-            console.log("  ✅ Inserted successfully");
+            debugLog("  ✅ Inserted successfully");
           } else {
             console.warn("  ⚠️ Skipped - no mapping_id");
           }
@@ -1336,7 +1337,7 @@ module.exports = (io) => {
       }
 
       await transaction.commit();
-      console.log("✅ Transaction committed successfully");
+      debugLog("✅ Transaction committed successfully");
 
       req.app.get("io")?.emit("trolleyRMMappingSaved", {
         message: "TrolleyRMMapping data saved successfully!",
@@ -1926,13 +1927,13 @@ module.exports = (io) => {
 
   router.put("/coldstorage/outcoldstorage/pack/pull", async (req, res) => {
     try {
-      console.log("Raw Request Body:", req.body);
+      debugLog("Raw Request Body:", req.body);
 
       const { tro_id, slot_id, rm_cold_status, rm_status, dest, operator, materials } = req.body;
 
       // ตรวจสอบค่าที่ได้รับว่าครบถ้วน
       if (!tro_id || !slot_id || !rm_status || !rm_cold_status || !dest || !materials) {
-        console.log("Missing fields:", { tro_id, slot_id, rm_status, rm_cold_status, dest, materials });
+        console.warn("Missing fields:", { tro_id, slot_id, rm_status, rm_cold_status, dest, materials });
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -2280,7 +2281,7 @@ module.exports = (io) => {
       }
 
       const rmTrolleyId = req.params.rmTrolleyId;
-      console.log("Searching for trolley with rm_tro_id:", rmTrolleyId);
+      debugLog("Searching for trolley with rm_tro_id:", rmTrolleyId);
 
       // ปรับให้ค้นหาด้วย rm_tro_id เท่านั้น
       const result = await pool.request()
@@ -2314,7 +2315,7 @@ module.exports = (io) => {
           r.rm_tro_id = @rm_tro_id
       `);
 
-      console.log("Query result rows:", result.recordset.length);
+      debugLog("Query result rows:", result.recordset.length);
 
       const data = result.recordset;
 
@@ -3125,7 +3126,7 @@ module.exports = (io) => {
       `);
 
       const new_mixtp_id = insertMixToPackResult.recordset[0].mixtp_id;
-      console.log(`✅ INSERT ข้อมูลเข้า MixToPack สำเร็จ (mixtp_id: ${new_mixtp_id})`);
+      debugLog(`✅ INSERT ข้อมูลเข้า MixToPack สำเร็จ (mixtp_id: ${new_mixtp_id})`);
 
       // 1️⃣ เปลี่ยน dest → ผสมเตรียม + เคลียร์รถเข็น
       const updateMappingResult = await new sql.Request(transaction)
@@ -3151,7 +3152,7 @@ module.exports = (io) => {
         WHERE tro_id = @tro_id
       `);
 
-      console.log(`✅ เคลียร์รถเข็น tro_id = ${tro_id} ให้เป็นว่างแล้ว`);
+      debugLog(`✅ เคลียร์รถเข็น tro_id = ${tro_id} ให้เป็นว่างแล้ว`);
 
       await transaction.commit();
 
@@ -3854,7 +3855,7 @@ module.exports = (io) => {
   router.post("/rework/saveTrolley", async (req, res) => {
     const { license_plate, recorder, Dest, rm_tro_id, remark } = req.body;
 
-    console.log("Received data:", req.body);
+    debugLog("Received data:", req.body);
     const pool = await connectToDatabase();
     const sql = require("mssql");
     const transaction = new sql.Transaction(pool);
@@ -4218,7 +4219,7 @@ module.exports = (io) => {
     const { tro_id, rmfpID, mapping_id, weight_per_tro, ntray, batch_after } = req.body;
 
 
-    console.log("body :", req.body);
+    debugLog("body :", req.body);
 
 
     const pool = await connectToDatabase();
@@ -4911,7 +4912,7 @@ module.exports = (io) => {
       }
 
 
-      console.log("tro_id:", tro_id);
+      debugLog("tro_id:", tro_id);
 
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
@@ -5200,9 +5201,9 @@ module.exports = (io) => {
   router.post("/pack/mixed/delay-time", async (req, res) => {
     const { mixed_code, mapping_id, selectedDateTime } = req.body;
 
-    console.log("mixed_code:", mixed_code);
-    console.log("mapping_id:", mapping_id);
-    console.log("selectedDateTime (from frontend):", selectedDateTime);
+    debugLog("mixed_code:", mixed_code);
+    debugLog("mapping_id:", mapping_id);
+    debugLog("selectedDateTime (from frontend):", selectedDateTime);
 
     if (!mixed_code) {
       return res.status(400).json({ message: "mixed_code จำเป็นต้องระบุ" });
@@ -5279,7 +5280,7 @@ module.exports = (io) => {
       const updatedItems = [];
 
       for (let item of result.recordset) {
-        console.log("Processing item:", item);
+        debugLog("Processing item:", item);
 
         let remaining_mix_time = null;
         let mixed_date = null;
@@ -5309,10 +5310,10 @@ module.exports = (io) => {
           mixed_date: mixed_date
         });
 
-        console.log("Delay calculation result:", delayTimeResult);
+        debugLog("Delay calculation result:", delayTimeResult);
 
         if (!delayTimeResult.fieldToUpdate) {
-          console.log("No field to update for item:", item.mapping_id);
+          debugLog("No field to update for item:", item.mapping_id);
           continue;
         }
 
@@ -5669,7 +5670,7 @@ module.exports = (io) => {
         const weightToMove = weights[i];
 
         // Log เพื่อ debug
-        console.log(`Record ${i}:`, {
+        debugLog(`Record ${i}:`, {
           mapping_id: record.mapping_id,
           weight_RM: weight_RM,
           tray_count: record.tray_count,
@@ -6519,7 +6520,7 @@ module.exports = (io) => {
       const { dest, tro_id, receiver_pack_edit, remark_pack_edit, mapping_id } = req.body;
       const io = req.app.get("io"); // ✅ ดึง io object จาก express app
 
-      console.log("body : ", req.body);
+      debugLog("body : ", req.body);
 
       if (!dest || !tro_id) {
         return res.status(400).json({
@@ -6716,7 +6717,7 @@ WHERE
   router.get("/pack/time-variables", async (req, res) => {
     try {
       const { mix_code } = req.query;
-      console.log("mix_code : ", mix_code);
+      debugLog("mix_code : ", mix_code);
 
       // ตรวจสอบพารามิเตอร์ที่จำเป็น
       if (!mix_code) {
@@ -6737,7 +6738,7 @@ WHERE
         WHERE mix_code = @mixed_code
       `);
 
-      console.log("mixTimeResult : ", mixTimeResult)
+      debugLog("mixTimeResult : ", mixTimeResult)
 
       // เก็บค่า mix_time
       let mixTime = null;
@@ -6745,7 +6746,7 @@ WHERE
         mixTime = mixTimeResult.recordset[0].mix_time;
       }
 
-      console.log("mixTime :", mixTime)
+      debugLog("mixTime :", mixTime)
 
       // ค้นหา mapping_id ทั้งหมดจากตาราง RM_Mixed
       const mappingResult = await pool.request()
@@ -6763,7 +6764,7 @@ WHERE
         });
       }
 
-      console.log("mappingResult :", mappingResult.recordset);
+      debugLog("mappingResult :", mappingResult.recordset);
 
       // สร้าง array สำหรับเก็บผลลัพธ์ทั้งหมด
       const allTimeVariables = [];
@@ -7023,12 +7024,12 @@ WHERE
 
   router.put("/pack/sendback", async (req, res) => {
     try {
-      console.log("Raw Request Body:", req.body);
+      debugLog("Raw Request Body:", req.body);
       const { tro_id } = req.body;
 
       // ตรวจสอบค่าที่ได้รับมาอย่างละเอียด
       if (!tro_id || typeof tro_id !== 'string' || tro_id.trim() === '') {
-        console.log("Invalid trolley ID:", tro_id);
+        console.warn("Invalid trolley ID:", tro_id);
         return res.status(400).json({
           success: false,
           error: "Invalid trolley ID"
@@ -7165,7 +7166,7 @@ WHERE
 
   router.put("/pack/Add/request/rm/TrolleyMapping", async (req, res) => {
     const { mapping_id, weight_per_tro, line_id } = req.body;
-    console.log("body:", req.body);
+    debugLog("body:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -7423,7 +7424,7 @@ WHERE
 
   router.put("/pack/matmanage/Add/rm/request/TrolleyMapping", async (req, res) => {
     const { tro_id, rmfpID, mapping_id, weight_per_tro, ntray, request_rm_id, batch_after, from_line_name } = req.body;
-    console.log("body :", req.body);
+    debugLog("body :", req.body);
     const pool = await connectToDatabase();
     const transaction = new sql.Transaction(pool);
 
@@ -7650,8 +7651,8 @@ WHERE
   });
 
   router.post('/pack/data/pdf', upload.single('pdf'), async (req, res) => {
-    console.log('✅ /pack/data/pdf hit!');
-    console.log('File received:', req.file?.originalname, req.file?.size, 'bytes');
+    debugLog('✅ /pack/data/pdf hit!');
+    debugLog('File received:', req.file?.originalname, req.file?.size, 'bytes');
 
 
     const pool = await connectToDatabase();
@@ -7762,7 +7763,7 @@ WHERE
         throw new Error("ไม่พบข้อมูล TrolleyRMMapping สำหรับ tro_id นี้");
       }
 
-      console.log("tro_id:", tro_id);
+      debugLog("tro_id:", tro_id);
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
       const rawMaterialsResult = await transaction.request()
@@ -7978,7 +7979,7 @@ WHERE
   // });
 
   router.post("/pack/mixed/delay-time/test", async (req, res) => {
-    const { mapping_id, sc_pack_date, weight, group, remark_dalay, id_igd, mat_pkg, batch_pkg } = req.body;
+    const { mapping_id, sc_pack_date, weight, group, remark_dalay, id_igd, id_igd_no, mat_pkg, batch_pkg } = req.body;
 
     if (!mapping_id || isNaN(mapping_id)) {
       return res.status(400).json({ message: "mapping_id ต้องเป็นตัวเลข" });
@@ -7997,6 +7998,7 @@ WHERE
     if (remark_dalay != null && typeof remark_dalay === "string" && remark_dalay.length > 300) {
       return res.status(400).json({ message: "หมายเหตุต้องไม่เกิน 300 ตัวอักษร" });
     }
+
 
     const pool = await connectToDatabase();
     const transaction = new sql.Transaction(pool);
@@ -8268,6 +8270,7 @@ WHERE
           .input("at_pd_histamine_2", h.at_pd_histamine_2)
           .input("at_pd_histamine_3", h.at_pd_histamine_3)
           .input("id_igd", sql.NVarChar(100), id_igd ?? null)
+          .input("id_igd_no", sql.Int, id_igd_no != null ? parseInt(id_igd_no) : null)
           .input("mat_pkg", sql.NVarChar(100), mat_pkg ?? null)
           .input("batch_pkg", sql.NVarChar(100), batch_pkg ?? null)
           .query(`
@@ -8308,7 +8311,7 @@ WHERE
         start_defrost_date_four, end_defrost_date_four,
         at_pd_storage_purpose, at_pd_storage_purpose_2, at_pd_storage_purpose_3,
         at_pd_histamine, at_pd_histamine_2, at_pd_histamine_3,
-        id_igd, mat_pkg, batch_pkg
+        id_igd, id_igd_no, mat_pkg, batch_pkg
       )
       VALUES (
         @tro_id, @mapping_id, @withdraw_date, @cooked_date, @rmit_date, @qc_date,
@@ -8347,7 +8350,7 @@ WHERE
         @start_defrost_date_four, @end_defrost_date_four,
         @at_pd_storage_purpose, @at_pd_storage_purpose_2, @at_pd_storage_purpose_3,
         @at_pd_histamine, @at_pd_histamine_2, @at_pd_histamine_3,
-        @id_igd, @mat_pkg, @batch_pkg
+        @id_igd, @id_igd_no, @mat_pkg, @batch_pkg
       )
     `);
       }
@@ -8642,6 +8645,14 @@ WHERE
               CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
               CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
               CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
+
+              CONVERT(VARCHAR, h.cs_come_cold_date, 120) AS cs_come_cold_date,
+              CONVERT(VARCHAR, h.cs_out_cold_date, 120) AS cs_out_cold_date,
+              CONVERT(VARCHAR, h.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+              CONVERT(VARCHAR, h.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+              CONVERT(VARCHAR, h.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+              CONVERT(VARCHAR, h.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+
               CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
               h.receiver,
               h.receiver_qc,
@@ -8696,6 +8707,12 @@ WHERE
               h.out_cold_date_two,
               h.come_cold_date_three,
               h.out_cold_date_three,
+              h.cs_come_cold_date,
+              h.cs_out_cold_date,
+              h.cs_come_cold_date_two,
+              h.cs_out_cold_date_two,
+              h.cs_come_cold_date_three,
+              h.cs_out_cold_date_three,
               h.qc_date,
               h.receiver,
               h.receiver_qc,
@@ -8866,7 +8883,7 @@ WHERE
   //   }
   // });
 
-  router.get("/pack/manage/mixed/all/line", async (req, res) => {
+ router.get("/pack/manage/mixed/all/line", async (req, res) => {
     try {
       const { line_id } = req.query;
 
@@ -8914,6 +8931,14 @@ WHERE
           CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
           CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
           CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
+
+          CONVERT(VARCHAR, h.cs_come_cold_date, 120) AS cs_come_cold_date,
+          CONVERT(VARCHAR, h.cs_out_cold_date, 120) AS cs_out_cold_date,
+          CONVERT(VARCHAR, h.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+          CONVERT(VARCHAR, h.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+          CONVERT(VARCHAR, h.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+          CONVERT(VARCHAR, h.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+
           CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
           h.receiver,
           h.receiver_qc,
@@ -8970,6 +8995,12 @@ WHERE
           h.out_cold_date_two,
           h.come_cold_date_three,
           h.out_cold_date_three,
+          h.cs_come_cold_date,
+          h.cs_out_cold_date,
+          h.cs_come_cold_date_two,
+          h.cs_out_cold_date_two,
+          h.cs_come_cold_date_three,
+          h.cs_out_cold_date_three,
           h.qc_date,
           h.receiver,
           h.receiver_qc,
@@ -9109,7 +9140,12 @@ WHERE
           FORMAT(rmg.prep_to_cold, 'N2') AS DBS1,
           FORMAT(rmg.cold, 'N2') AS DBS2,
           FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
-          FORMAT(rmg.prep_to_pack, 'N2') AS DBS4,
+FORMAT(
+  CASE 
+    WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
+    ELSE rmg.prep_to_cold + rmg.cold_to_pack
+  END, 'N2'
+) AS DBS4,
 
           FORMAT(rmm.rework_time, 'N2') AS remaining_rework_time,
           FORMAT(rmg.rework, 'N2') AS standard_rework_time,
@@ -9168,6 +9204,8 @@ WHERE
           h.rd_section_colds,
           h.hu,
           h.remark,
+          h.id_igd AS wo_no,
+          h.id_igd_no AS basket_no,
           CONVERT(VARCHAR, h.start_defrost_date,       120) AS start_defrost_date,
           CONVERT(VARCHAR, h.end_defrost_date,         120) AS end_defrost_date,
           CONVERT(VARCHAR, h.start_defrost_date_two,   120) AS start_defrost_date_two,
@@ -9209,7 +9247,10 @@ WHERE
           h.at_pd_storage_purpose_3,
           h.at_pd_histamine,
           h.at_pd_histamine_2,
-          h.at_pd_histamine_3
+          h.at_pd_histamine_3,
+          h.id_igd,
+          h.id_igd_no,
+          h.mat_pkg
 
       FROM RMForProd rmf
       JOIN TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
@@ -9308,7 +9349,10 @@ WHERE
           h.start_defrost_date_three, h.end_defrost_date_three,
           h.start_defrost_date_four,  h.end_defrost_date_four,
           h.at_pd_storage_purpose,    h.at_pd_storage_purpose_2,  h.at_pd_storage_purpose_3,
-          h.at_pd_histamine,          h.at_pd_histamine_2,         h.at_pd_histamine_3
+          h.at_pd_histamine,          h.at_pd_histamine_2,         h.at_pd_histamine_3,
+          h.id_igd,
+          h.id_igd_no,
+          h.mat_pkg
 
       ORDER BY
           rmm.group_no ASC,
@@ -9348,6 +9392,406 @@ WHERE
     }
   });
 
+
+  // POST /pack/ingredient/wo-mapping
+  // บันทึกหลายชุด WONo + ช่วง Basket ให้กับ mapping_id เดียว (ลบของเก่าทิ้งก่อนแล้วค่อยเพิ่มใหม่ทั้งชุด)
+  // body: { mapping_id: number, entries: [{ wo_no, basket_from, basket_to }] }
+  router.post("/pack/ingredient/wo-mapping", async (req, res) => {
+    try {
+      const { mapping_id, entries } = req.body;
+      if (!mapping_id) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ mapping_id" });
+      }
+      if (!Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ entries อย่างน้อย 1 รายการ" });
+      }
+      for (const e of entries) {
+        if (!e.wo_no || e.basket_from == null || e.basket_from === '') {
+          return res.status(400).json({ success: false, error: "แต่ละ entry ต้องมี wo_no และ basket_from" });
+        }
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ Database ได้" });
+      }
+
+      const transaction = new sql.Transaction(pool);
+      await transaction.begin();
+      try {
+        // ลบของเดิมที่เคยบันทึกไว้สำหรับ mapping_id นี้ก่อน แล้วค่อยเพิ่มชุดใหม่ทั้งหมด
+        await transaction.request()
+          .input("mapping_id", sql.Int, parseInt(mapping_id, 10))
+          .query(`DELETE FROM dbo.HistoryIngredientWO WHERE mapping_id = @mapping_id`);
+
+        for (const e of entries) {
+          await transaction.request()
+            .input("mapping_id", sql.Int, parseInt(mapping_id, 10))
+            .input("wo_no", sql.NVarChar(100), String(e.wo_no).trim())
+            .input("basket_from", sql.Int, parseInt(e.basket_from, 10))
+            .input("basket_to", sql.Int, (e.basket_to != null && e.basket_to !== '') ? parseInt(e.basket_to, 10) : null)
+            .query(`
+            INSERT INTO dbo.HistoryIngredientWO (mapping_id, wo_no, basket_from, basket_to)
+            VALUES (@mapping_id, @wo_no, @basket_from, @basket_to)
+          `);
+        }
+
+        await transaction.commit();
+        res.json({ success: true, message: "บันทึกข้อมูล WONo/Basket สำเร็จ" });
+      } catch (err) {
+        await transaction.rollback();
+        throw err;
+      }
+    } catch (err) {
+      console.error("❌ [POST /pack/ingredient/wo-mapping] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /pack/ingredient/wo-mapping/:mapping_id
+  // ดึงชุด WONo/Basket ทั้งหมดที่เคยบันทึกไว้สำหรับ mapping_id หนึ่ง
+  router.get("/pack/ingredient/wo-mapping/:mapping_id", async (req, res) => {
+    try {
+      const mapping_id = parseInt(req.params.mapping_id, 10);
+      if (!mapping_id) {
+        return res.status(400).json({ success: false, error: "mapping_id ไม่ถูกต้อง" });
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ Database ได้" });
+      }
+
+      const result = await pool.request()
+        .input("mapping_id", sql.Int, mapping_id)
+        .query(`
+        SELECT ingredient_wo_id, mapping_id, wo_no, basket_from, basket_to, created_at
+        FROM dbo.HistoryIngredientWO
+        WHERE mapping_id = @mapping_id
+        ORDER BY ingredient_wo_id
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [GET /pack/ingredient/wo-mapping/:mapping_id] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /pack/ingredient/fetch-basket-range
+  // เหมือน fetch-basket เดิม แต่รองรับ "ช่วง" basket (basket_from → basket_to)
+  // ถ้าไม่ส่ง basket_to มา จะถือว่าดึงแค่ basket เดียว (= basket_from)
+  router.get("/pack/ingredient/fetch-basket-range", async (req, res) => {
+    try {
+      const { wo_no, basket_from, basket_to } = req.query;
+      if (!wo_no) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ wo_no" });
+      }
+
+      const poolWC = await connectToDatabaseWC();
+      if (!poolWC) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ WC Database ได้" });
+      }
+
+      const req2 = poolWC.request().input("wo_no", sql.NVarChar(100), wo_no);
+
+      let basketFilter = '';
+      if (basket_from != null && basket_from !== '') {
+        req2.input("basket_from", sql.Int, parseInt(basket_from, 10));
+        if (basket_to != null && basket_to !== '') {
+          req2.input("basket_to", sql.Int, parseInt(basket_to, 10));
+          basketFilter = `AND ng.BasketNumber BETWEEN @basket_from AND @basket_to`;
+        } else {
+          basketFilter = `AND ng.BasketNumber = @basket_from`;
+        }
+      }
+
+      const result = await req2.query(`
+        SELECT
+          ng.[ngdntCode]      AS MaterialCode,
+          ng.[ngdntName]      AS MaterialName,
+          ng.[ShortName]      AS MaterialShortName,
+          ng.[BatchNo]        AS IngredientBatchNo,
+          ng.[BasketNumber],
+          ng.[StdWt],
+          ng.[MinWt],
+          ng.[MaxWt],
+          ng.[NetWt],
+          ng.[Percentage],
+          CONVERT(VARCHAR, ng.[MixingTime],   120) AS MixingTime,
+          CONVERT(VARCHAR, ng.[MixingEndTime],120) AS MixingEndTime
+        FROM [dbo].[vw_ngdnt_listNgdnt] ng
+        WHERE ng.WONo = @wo_no ${basketFilter}
+        ORDER BY ng.BasketNumber, ng.ngdntCode
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/ingredient/fetch-basket-range] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+
+  // ─────────────────────────────────────────────────────────────
+  // GET /pack/ingredient/fetch-wo?wo_no=xxx
+  // ดึงข้อมูล Ingredient จาก WC database ด้วย WONo (= id_igd)
+  // ─────────────────────────────────────────────────────────────
+  router.get("/pack/ingredient/fetch-wo", async (req, res) => {
+    try {
+      const { wo_no, basket_no } = req.query;
+      if (!wo_no) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ wo_no" });
+      }
+
+      const poolWC = await connectToDatabaseWC();
+      if (!poolWC) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ WC Database ได้" });
+      }
+
+      const basketFilter = basket_no != null && basket_no !== '' ? `AND ng.BasketNumber = @basket_no` : '';
+
+      const req2 = poolWC.request().input("wo_no", sql.NVarChar(100), wo_no);
+      if (basket_no != null && basket_no !== '') {
+        req2.input("basket_no", sql.Int, parseInt(basket_no));
+      }
+
+      const result = await req2.query(`
+        SELECT
+          wo.[WONo],
+          wo.[Date],
+          wo.[Shift],
+          wo.[ProductCode],
+          wo.[BatchNo]        AS WOBatchNo,
+          wo.[packLine],
+          wo.[state],
+          ng.[ngdntCode]      AS MaterialCode,
+          ng.[ngdntName]      AS MaterialName,
+          ng.[ShortName]      AS MaterialShortName,
+          ng.[BatchNo]        AS IngredientBatchNo,
+          ng.[BasketNumber],
+          ng.[StdWt],
+          ng.[MinWt],
+          ng.[MaxWt],
+          ng.[NetWt],
+          ng.[Percentage],
+          CONVERT(VARCHAR, ng.[MixingTime],   120) AS MixingTime,
+          CONVERT(VARCHAR, ng.[MixingEndTime],120) AS MixingEndTime
+        FROM [dbo].[vw_ngdnt_listWOes] wo
+        INNER JOIN [dbo].[vw_ngdnt_listNgdnt] ng
+          ON wo.WONo = ng.WONo
+        WHERE wo.WONo = @wo_no ${basketFilter}
+        ORDER BY ng.BasketNumber, ng.ngdntCode
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/ingredient/fetch-wo] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+
+  // GET /pack/wo/fetch — ดึงข้อมูล Work Order อย่างเดียว (ไม่ join ingredient)
+  router.get("/pack/wo/fetch", async (req, res) => {
+    try {
+      const { wo_no } = req.query;
+      if (!wo_no) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ wo_no" });
+      }
+
+      const poolWC = await connectToDatabaseWC();
+      if (!poolWC) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ WC Database ได้" });
+      }
+
+      const result = await poolWC.request()
+        .input("wo_no", sql.NVarChar(100), wo_no)
+        .query(`
+        SELECT
+          wo.[WONo],
+          wo.[Date],
+          wo.[Shift],
+          wo.[ProductCode],
+          wo.[BatchNo]   AS WOBatchNo,
+          wo.[packLine],
+          wo.[state]
+        FROM [dbo].[vw_ngdnt_listWOes] wo
+        WHERE wo.WONo = @wo_no
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/wo/fetch] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /pack/ingredient/fetch-basket — ดึงข้อมูล ingredient/basket อย่างเดียว (ไม่ join WO)
+  router.get("/pack/ingredient/fetch-basket", async (req, res) => {
+    try {
+      const { wo_no, basket_no } = req.query;
+      if (!wo_no) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ wo_no" });
+      }
+
+      const poolWC = await connectToDatabaseWC();
+      if (!poolWC) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ WC Database ได้" });
+      }
+
+      const basketFilter = basket_no != null && basket_no !== '' ? `AND ng.BasketNumber = @basket_no` : '';
+
+      const req2 = poolWC.request().input("wo_no", sql.NVarChar(100), wo_no);
+      if (basket_no != null && basket_no !== '') {
+        req2.input("basket_no", sql.Int, parseInt(basket_no));
+      }
+
+      const result = await req2.query(`
+        SELECT
+          ng.[ngdntCode]      AS MaterialCode,
+          ng.[ngdntName]      AS MaterialName,
+          ng.[ShortName]      AS MaterialShortName,
+          ng.[BatchNo]        AS IngredientBatchNo,
+          ng.[BasketNumber],
+          ng.[StdWt],
+          ng.[MinWt],
+          ng.[MaxWt],
+          ng.[NetWt],
+          ng.[Percentage],
+          CONVERT(VARCHAR, ng.[MixingTime],   120) AS MixingTime,
+          CONVERT(VARCHAR, ng.[MixingEndTime],120) AS MixingEndTime
+        FROM [dbo].[vw_ngdnt_listNgdnt] ng
+        WHERE ng.WONo = @wo_no ${basketFilter}
+        ORDER BY ng.BasketNumber, ng.ngdntCode
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/ingredient/fetch-basket] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // PrintMaster Slip Routes
+  // ─────────────────────────────────────────────────────────────
+
+  router.get("/pack/printmaster/by-id", async (req, res) => {
+    try {
+      const { slip_id } = req.query;
+      if (!slip_id || isNaN(slip_id)) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ slip_id" });
+      }
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const result = await pool.request()
+        .input("slip_id", sql.Int, parseInt(slip_id))
+        .query(`
+          SELECT slip_id, type_choice, send_date, shift, seq_use,
+                 line_id, line_name, code_mat, batch_no,
+                 receive_date, produce_date, box_no, lot, roll_no,
+                 hu, size, te, qty, remark, created_at
+          FROM PrintMasterSlip
+          WHERE slip_id = @slip_id
+        `);
+      if (!result.recordset.length) {
+        return res.status(404).json({ success: false, error: "ไม่พบข้อมูล slip_id นี้" });
+      }
+      res.json({ success: true, data: result.recordset[0] });
+    } catch (err) {
+      console.error("❌ [/pack/printmaster/by-id] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.get("/pack/printmaster/lines", async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const result = await pool.request().query(`
+        SELECT TOP (1000) line_id, line_name, line_type_id FROM Line ORDER BY line_name
+      `);
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/printmaster/lines] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.get("/pack/printmaster/list", async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const result = await pool.request().query(`
+        SELECT slip_id, type_choice, send_date, shift, seq_use,
+               line_id, line_name, code_mat, batch_no,
+               receive_date, produce_date, box_no, lot, roll_no,
+               hu, size, te, qty, remark, created_at
+        FROM PrintMasterSlip
+        ORDER BY created_at DESC
+      `);
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/pack/printmaster/list] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.post("/pack/printmaster/save", async (req, res) => {
+    try {
+      const {
+        type_choice, send_date, shift, seq_use,
+        line_id, line_name, code_mat, batch_no,
+        receive_date, produce_date, box_no, lot,
+        roll_no, hu, size, te, qty, remark, code,
+      } = req.body;
+
+      if (!type_choice) return res.status(400).json({ success: false, error: "กรุณาระบุ type_choice" });
+
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+      const result = await pool.request()
+        .input("type_choice", sql.NVarChar(20), type_choice)
+        .input("send_date", sql.Date, send_date || null)
+        .input("shift", sql.NVarChar(10), shift || null)
+        .input("seq_use", sql.Int, seq_use ? parseInt(seq_use) : null)
+        .input("line_id", sql.Int, line_id ? parseInt(line_id) : null)
+        .input("line_name", sql.NVarChar(100), line_name || null)
+        .input("code_mat", sql.NVarChar(12), code_mat || null)
+        .input("batch_no", sql.NVarChar(10), batch_no || null)
+        .input("receive_date", sql.Date, receive_date || null)
+        .input("produce_date", sql.DateTime, produce_date ? thaiStrToDbDate(produce_date) : null)
+        .input("box_no", sql.NVarChar(50), box_no ? box_no : null)
+        .input("code", sql.NVarChar, code ? code : null)
+        .input("lot", sql.NVarChar(50), lot ? String(lot) : null)
+        .input("roll_no", sql.NVarChar(50), roll_no ? String(roll_no) : null)
+        .input("hu", sql.Int, hu ? parseInt(hu) : null)
+        .input("size", sql.NVarChar(30), size || null)
+        .input("te", sql.NVarChar(30), te || null)
+        .input("qty", sql.Int, qty ? parseInt(qty) : null)
+        .input("remark", sql.NVarChar(100), remark || null)
+        .query(`
+        INSERT INTO PrintMasterSlip
+          (type_choice, send_date, shift, seq_use, line_id, line_name,
+           code_mat, batch_no, receive_date, produce_date,
+           box_no, lot, roll_no, hu, size, te, qty, remark,code)
+        VALUES
+          (@type_choice, @send_date, @shift, @seq_use, @line_id, @line_name,
+           @code_mat, @batch_no, @receive_date, @produce_date,
+           @box_no, @lot, @roll_no, @hu, @size, @te, @qty, @remark,@code);
+        SELECT SCOPE_IDENTITY() AS slip_id;
+      `);
+
+      res.json({ success: true, slip_id: result.recordset[0].slip_id, message: "บันทึกข้อมูลสำเร็จ" });
+    } catch (err) {
+      console.error("❌ [/pack/printmaster/save] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────
 
   router.get("/pack/get/line", async (req, res) => {
     try {
@@ -9793,6 +10237,1204 @@ WHERE
       return res.status(500).json({ success: false, error: err.message });
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PackagingUsage APIs — /pack/pkg/*
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // GET /api/pack/pkg/lines — list all lines
+ router.get('/pack/pkg/lines', async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+    const result = await pool.request().query(`
+      SELECT 
+        l.line_id,
+        l.line_name,
+        l.line_type_id,
+        l.plant_id,
+        p.plant_name AS plant
+      FROM Line l
+      LEFT JOIN Plant p ON p.plant_id = l.plant_id
+      ORDER BY l.line_name ASC
+    `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ GET /pack/pkg/lines error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+  // Whitelist คอลัมน์ที่ให้เรียงได้ — ห้ามเอาค่าจาก req.query ไปต่อ SQL string ตรง ๆ
+  // เพราะ ORDER BY รับ column name แบบ parameterized ไม่ได้ (bound param ใช้ไม่ได้กับชื่อคอลัมน์)
+  // เลยต้องกรองผ่าน whitelist นี้ก่อนเสมอ
+  const DONE_SORT_COLUMNS = {
+    report_date: 'report_date',
+    shift: 'shift',
+    plant: 'plant',
+    package_type: 'package_type',
+    line_name: 'line_name',
+    reported_by: 'reported_by',
+    qc_supervisor: 'qc_supervisor',
+  };
+
+  router.get('/use/pkg/mnt/reports/done/filter-options', async (req, res) => {
+    try {
+      const pool = await poolPromise;
+
+      const [
+        dateRes, shiftRes, plantRes, pkgRes, lineRes, reportedByRes, qcRes,
+      ] = await Promise.all([
+        pool.request().query(`
+        SELECT DISTINCT CONVERT(varchar(10), report_date, 23) AS v
+        FROM ${TABLE}
+        WHERE status = 'done' AND report_date IS NOT NULL
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT shift AS v FROM ${TABLE}
+        WHERE status = 'done' AND shift IS NOT NULL AND shift <> ''
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT plant AS v FROM ${TABLE}
+        WHERE status = 'done' AND plant IS NOT NULL AND plant <> ''
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT package_type AS v FROM ${TABLE}
+        WHERE status = 'done' AND package_type IS NOT NULL AND package_type <> ''
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT line_name AS v FROM ${TABLE}
+        WHERE status = 'done' AND line_name IS NOT NULL AND line_name <> ''
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT reported_by AS v FROM ${TABLE}
+        WHERE status = 'done' AND reported_by IS NOT NULL AND reported_by <> ''
+        ORDER BY v
+      `),
+        pool.request().query(`
+        SELECT DISTINCT qc_supervisor AS v FROM ${TABLE}
+        WHERE status = 'done' AND qc_supervisor IS NOT NULL AND qc_supervisor <> ''
+        ORDER BY v
+      `),
+      ]);
+
+      const toList = (result) => result.recordset.map(r => r.v);
+
+      return res.json({
+        success: true,
+        data: {
+          report_date: toList(dateRes),
+          shift: toList(shiftRes),
+          plant: toList(plantRes),
+          package_type: toList(pkgRes),
+          line_name: toList(lineRes),
+          reported_by: toList(reportedByRes),
+          qc_supervisor: toList(qcRes),
+        },
+      });
+    } catch (err) {
+      console.error('GET /use/pkg/mnt/reports/done/filter-options error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // GET /use/pkg/mnt/reports/done/filtered
+  // รับ query params ตามชื่อคอลัมน์ (report_date, shift, plant, package_type,
+  // line_name, reported_by, qc_supervisor) — ทุกตัวเป็น optional
+  // ที่ส่งมาค่าไม่ว่างจะถูกต่อเป็น WHERE ... AND ... (parameterized กัน SQL injection)
+  // ─────────────────────────────────────────────────────────────
+  router.get('/use/pkg/mnt/reports/done/filtered', async (req, res) => {
+    try {
+      const pool = await poolPromise;
+      const request = pool.request();
+
+      const conditions = [`status = 'done'`];
+
+      // report_date: UI ส่งมาเป็น yyyy-mm-dd แต่คอลัมน์เป็น datetime
+      // เลยต้อง CONVERT คอลัมน์ให้เป็น varchar(10) ก่อนเทียบ
+      const reportDate = req.query.report_date;
+      if (reportDate) {
+        request.input('report_date', sql.VarChar(10), String(reportDate));
+        conditions.push(`CONVERT(varchar(10), report_date, 23) = @report_date`);
+      }
+
+      Object.entries(FILTERABLE_COLUMNS).forEach(([queryParam, column]) => {
+        const value = req.query[queryParam];
+        if (value === undefined || value === null || value === '') return;
+        request.input(column, sql.NVarChar, String(value));
+        conditions.push(`${column} = @${column}`);
+      });
+
+      const whereClause = conditions.join(' AND ');
+
+      const query = `
+      SELECT *
+      FROM ${TABLE}
+      WHERE ${whereClause}
+      ORDER BY report_date DESC, report_id DESC
+    `;
+
+      const result = await request.query(query);
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('GET /use/pkg/mnt/reports/done/filtered error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 1) นับจำนวนอย่างเดียว — ใช้โชว์ตัวเลขที่ badge แท็บ "บันทึกแล้ว (n)"
+  //    โดยไม่ต้องดึงข้อมูลทั้งหมดมาแค่เพื่อนับ
+  router.get('/pack/pkg/reports/done/count', async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+      const result = await pool.request().query(`
+      SELECT COUNT(*) AS count
+      FROM PackagingUsageReport
+      WHERE status = 'done'
+    `);
+
+      return res.json({ success: true, data: { count: result.recordset[0]?.count ?? 0 } });
+    } catch (err) {
+      console.error('❌ GET /pack/pkg/reports/done/count error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2) ดึงข้อมูล "บันทึกแล้ว" พร้อมเรียงลำดับที่ฝั่ง SQL (ORDER BY) โดยตรง
+  //    ไม่ใช่ดึงมาทั้งหมดแล้วเรียงใน JS — นี่คือจุดที่ช่วยเรื่อง performance
+  router.get('/pack/pkg/reports/done/sorted', async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+      const sortByParam = String(req.query.sort_by || 'report_date');
+      const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
+
+      // เช็ค whitelist ก่อนเสมอ ถ้าไม่ตรงให้ fallback เป็นค่า default ที่ปลอดภัย
+      const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
+      const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
+
+      const result = await pool.request().query(`
+      SELECT report_id, report_date, shift, plant, package_type,
+             reported_by, qc_supervisor, line_name, status, created_at
+      FROM PackagingUsageReport
+      WHERE status = 'done'
+      ORDER BY ${sortColumn} ${sortDir}, report_id DESC
+    `);
+
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('❌ GET /pack/pkg/reports/done/sorted error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+
+  router.get('/pkg/mnt/reports/done/sorted', async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+      const sortByParam = String(req.query.sort_by || 'report_date');
+      const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
+
+      // เช็ค whitelist ก่อนเสมอ ถ้าไม่ตรงให้ fallback เป็นค่า default ที่ปลอดภัย
+      const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
+      const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
+
+      const result = await pool.request().query(`
+      SELECT report_id, report_date, shift, plant, package_type,
+             reported_by, qc_supervisor, line_name, status, created_at
+      FROM PackagingUsageReport
+      WHERE status = 'done'
+      ORDER BY ${sortColumn} ${sortDir}, report_id DESC
+    `);
+
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('❌ GET /use/pkg/mnt/reports/done/sorted error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /api/pack/pkg/reports — active reports (status != 'done')
+  router.get('/pack/pkg/reports', async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      const result = await pool.request().query(`
+        SELECT report_id, report_date, shift, plant, package_type,
+               reported_by, qc_supervisor, line_name, status, created_at
+        FROM PackagingUsageReport
+        WHERE status != 'done'
+        ORDER BY created_at DESC
+      `);
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('❌ GET /pack/pkg/reports error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /api/pack/pkg/reports/done — done history
+  router.get('/pack/pkg/reports/done', async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      const result = await pool.request().query(`
+        SELECT report_id, report_date, shift, plant, package_type,
+               reported_by, qc_supervisor, line_name, status, created_at
+        FROM PackagingUsageReport
+        WHERE status = 'done'
+        ORDER BY created_at DESC
+      `);
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('❌ GET /pack/pkg/reports/done error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // POST /api/pack/pkg/reports — create new report
+  router.post('/pack/pkg/reports', async (req, res) => {
+    const { report_date, shift, plant, package_type, reported_by, qc_supervisor, line_name } = req.body;
+    if (!report_date) return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      const result = await pool.request()
+        .input('report_date', sql.Date, report_date)
+        .input('shift', sql.NVarChar(10), shift || null)
+        .input('plant', sql.NVarChar(20), plant || null)
+        .input('package_type', sql.NVarChar(50), package_type || null)
+        .input('reported_by', sql.NVarChar(100), reported_by || null)
+        .input('qc_supervisor', sql.NVarChar(100), qc_supervisor || null)
+        .input('line_name', sql.NVarChar(100), line_name || null)
+        .query(`
+          INSERT INTO PackagingUsageReport
+            (report_date, shift, plant, package_type, reported_by, qc_supervisor, line_name, status)
+          OUTPUT INSERTED.*
+          VALUES
+            (@report_date, @shift, @plant, @package_type, @reported_by, @qc_supervisor, @line_name, 'active')
+        `);
+      return res.json({ success: true, data: result.recordset[0] });
+    } catch (err) {
+      console.error('❌ POST /pack/pkg/reports error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /api/pack/pkg/reports/:report_id — report header + details
+// ─── GET /pack/pkg/reports/:report_id ─────────────────────────────────────────
+// แก้ไข: เพิ่ม qty ใน SELECT ของ detailRes ที่ขาดไป
+router.get('/pack/pkg/reports/:report_id', async (req, res) => {
+  const report_id = parseInt(req.params.report_id, 10);
+  if (!report_id) return res.status(400).json({ success: false, error: 'report_id ไม่ถูกต้อง' });
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+    const [headerRes, detailRes] = await Promise.all([
+      pool.request()
+        .input('report_id', sql.Int, report_id)
+        .query(`
+          SELECT report_id, report_date, shift, plant, package_type,
+                 reported_by, qc_supervisor, line_name, status, created_at
+          FROM PackagingUsageReport
+          WHERE report_id = @report_id
+        `),
+      pool.request()
+        .input('report_id', sql.Int, report_id)
+        .query(`
+          SELECT detail_id, report_id, slip_id, code,
+                 material_no, lot_no, box_no, produce_date, receive_date,
+                 batch_no, hu_no, qty,
+                 start_time, stop_time, remark,
+                 ink, roll_no, side,
+                 qty_received, qty_used, qty_damaged, qty_remaining
+          FROM PackagingUsageDetail
+          WHERE report_id = @report_id
+          ORDER BY detail_id ASC
+        `),
+    ]);
+
+    if (!headerRes.recordset[0])
+      return res.status(404).json({ success: false, error: 'ไม่พบเอกสาร' });
+
+    return res.json({
+      success: true,
+      data: { ...headerRes.recordset[0], details: detailRes.recordset },
+    });
+  } catch (err) {
+    console.error('❌ GET /pack/pkg/reports/:id error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── PUT /pack/pkg/reports/:report_id ─────────────────────────────────────────
+// ใหม่: แก้ไขข้อมูล header ของเอกสาร (ทุก field ยกเว้น status / created_at)
+router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
+  const report_id = parseInt(req.params.report_id, 10);
+  if (!report_id) return res.status(400).json({ success: false, error: 'report_id ไม่ถูกต้อง' });
+
+  const {
+    report_date, shift, plant, package_type,
+    reported_by, qc_supervisor, line_name,
+  } = req.body;
+
+  if (!report_date)
+    return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
+
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+    const result = await pool.request()
+      .input('report_id',    sql.Int,           report_id)
+      .input('report_date',  sql.Date,          report_date)
+      .input('shift',        sql.NVarChar(10),  shift        || null)
+      .input('plant',        sql.NVarChar(20),  plant        || null)
+      .input('package_type', sql.NVarChar(50),  package_type || null)
+      .input('reported_by',  sql.NVarChar(100), reported_by  || null)
+      .input('qc_supervisor',sql.NVarChar(100), qc_supervisor|| null)
+      .input('line_name',    sql.NVarChar(100), line_name    || null)
+      .query(`
+        UPDATE PackagingUsageReport SET
+          report_date    = @report_date,
+          shift          = @shift,
+          plant          = @plant,
+          package_type   = @package_type,
+          reported_by    = @reported_by,
+          qc_supervisor  = @qc_supervisor,
+          line_name      = @line_name
+        WHERE report_id  = @report_id;
+
+        SELECT report_id, report_date, shift, plant, package_type,
+               reported_by, qc_supervisor, line_name, status, created_at
+        FROM PackagingUsageReport
+        WHERE report_id = @report_id;
+      `);
+
+    if (!result.recordset[0])
+      return res.status(404).json({ success: false, error: 'ไม่พบเอกสาร' });
+
+    return res.json({ success: true, data: result.recordset[0] });
+  } catch (err) {
+    console.error('❌ PUT /pack/pkg/reports/:id error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+  // PUT /api/pack/pkg/reports/:report_id/done
+  router.put('/pack/pkg/reports/:report_id/done', async (req, res) => {
+    const report_id = parseInt(req.params.report_id, 10);
+    if (!report_id) return res.status(400).json({ success: false, error: 'report_id ไม่ถูกต้อง' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      await pool.request().input('report_id', sql.Int, report_id).query(`
+        UPDATE PackagingUsageReport SET status = 'done' WHERE report_id = @report_id
+      `);
+      return res.json({ success: true, message: 'บันทึก done สำเร็จ' });
+    } catch (err) {
+      console.error('❌ PUT /pack/pkg/reports/:id/done error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // DELETE /api/pack/pkg/reports/:report_id
+  router.delete('/pack/pkg/reports/:report_id', async (req, res) => {
+    const report_id = parseInt(req.params.report_id, 10);
+    if (!report_id) return res.status(400).json({ success: false, error: 'report_id ไม่ถูกต้อง' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      const txn = new sql.Transaction(pool);
+      await txn.begin();
+      try {
+        const req1 = new sql.Request(txn);
+        await req1.input('report_id', sql.Int, report_id).query(`DELETE FROM PackagingUsageDetail WHERE report_id = @report_id`);
+        const req2 = new sql.Request(txn);
+        await req2.input('report_id', sql.Int, report_id).query(`DELETE FROM PackagingUsageReport WHERE report_id = @report_id`);
+        await txn.commit();
+        return res.json({ success: true, message: 'ลบสำเร็จ' });
+      } catch (e) {
+        await txn.rollback();
+        throw e;
+      }
+    } catch (err) {
+      console.error('❌ DELETE /pack/pkg/reports/:id error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ─── Timezone helper ────────────────────────────────────────────────────────
+  // แปลงสตริง "YYYY-MM-DD HH:mm:ss" (เวลาไทย ไม่มี timezone tag ต่อท้าย) ให้เป็น
+  // JS Date object โดยฝัง "ตัวเลขเวลาไทย" นั้นเข้าไปเป็นค่า UTC ของ Date ตรงๆ
+  // (ไม่ใช้ new Date(str) เพราะ new Date(str) จะตีความ string ตาม timezone ของ
+  // เครื่อง Node server ซึ่งควบคุมไม่ได้ — ถ้า server รันเป็น UTC เวลาที่ได้จะ
+  // เพี้ยนไป 7 ชม. ทันที). ค่าที่ได้จาก Date.UTC() นี้ เมื่อส่งผ่าน mssql/tedious
+  // (ซึ่ง default ใช้ useUTC: true) จะถูกเขียนลง SQL DATETIME ตรงกับตัวเลขที่
+  // กรอก/สแกนมาเป๊ะๆ ไม่ว่า server จะตั้ง TZ เป็นอะไรก็ตาม
+  function thaiStrToDbDate(str) {
+    if (!str) return null;
+    const m = String(str).trim().match(
+      /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/
+    );
+    if (!m) return null;
+    const [, y, mo, d, h, mi, s] = m.map(Number);
+    return new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+  }
+
+  // "ตอนนี้" แบบเวลาไทย (Asia/Bangkok) คำนวณฝั่ง server — ใช้เป็น fallback
+  // เฉพาะกรณีที่ frontend ไม่ได้ส่ง start_time มาด้วย (เช่น เรียก API จากที่อื่น)
+  function nowThaiDbDate() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const get = (t) => parts.find(p => p.type === t)?.value;
+    return thaiStrToDbDate(`${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`);
+  }
+
+  // POST /api/pack/pkg/scan — scan slip_id → create or update detail row
+ router.post('/pack/pkg/scan', async (req, res) => {
+  const { report_id, slip_id, start_time } = req.body;
+  if (!report_id || !slip_id)
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ report_id และ slip_id' });
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+    // ดึงข้อมูลจาก PrintMasterSlip — เพิ่ม qty
+    const slipRes = await pool.request()
+      .input('slip_id', sql.Int, parseInt(slip_id, 10))
+      .query(`
+        SELECT slip_id, code, code_mat, lot, box_no, produce_date, receive_date, batch_no, hu, qty
+        FROM PrintMasterSlip
+        WHERE slip_id = @slip_id
+      `);
+
+    if (slipRes.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: `ไม่พบ slip_id: ${slip_id}` });
+    }
+    const slip = slipRes.recordset[0];
+
+    const rptRes = await pool.request()
+      .input('report_id', sql.Int, parseInt(report_id, 10))
+      .query(`SELECT line_name FROM PackagingUsageReport WHERE report_id = @report_id`);
+    const line_name = rptRes.recordset[0]?.line_name || null;
+
+    const toStr = (v) => (v !== null && v !== undefined) ? String(v) : null;
+    const startTimeVal = start_time ? thaiStrToDbDate(start_time) : nowThaiDbDate();
+
+    await pool.request()
+      .input('report_id',   sql.Int,          parseInt(report_id, 10))
+      .input('slip_id',     sql.Int,          parseInt(slip_id, 10))
+      .input('code',        sql.NVarChar(100), toStr(slip.code))
+      .input('material_no', sql.NVarChar(100), toStr(slip.code_mat))
+      .input('lot_no',      sql.NVarChar(100), toStr(slip.lot))
+      .input('box_no',      sql.NVarChar(50),  toStr(slip.box_no))
+      .input('produce_date',sql.Date,          slip.produce_date || null)
+      .input('receive_date',sql.Date,          slip.receive_date || null)
+      .input('batch_no',    sql.NVarChar(100), toStr(slip.batch_no))
+      .input('hu_no',       sql.NVarChar(100), toStr(slip.hu))
+      .input('qty',         sql.Int,           slip.qty ?? null)   // ← เพิ่ม
+      .input('start_time',  sql.DateTime,      startTimeVal)
+      .query(`
+        INSERT INTO PackagingUsageDetail
+          (report_id, slip_id, code, material_no, lot_no, box_no, produce_date, receive_date,
+           batch_no, hu_no, qty, start_time)
+        VALUES
+          (@report_id, @slip_id, @code, @material_no, @lot_no, @box_no, @produce_date, @receive_date,
+           @batch_no, @hu_no, @qty, @start_time)
+      `);
+
+    return res.json({ success: true, action: 'start', message: 'สร้างแถวและบันทึก start_time สำเร็จ' });
+  } catch (err) {
+    console.error('❌ POST /pack/pkg/scan error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+  // PUT /api/pack/pkg/details/:detail_id — update only supplied fields
+  router.put('/pack/pkg/details/:detail_id', async (req, res) => {
+    const detail_id = parseInt(req.params.detail_id, 10);
+    if (!detail_id) return res.status(400).json({ success: false, error: 'detail_id ไม่ถูกต้อง' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+      // start_time / stop_time: ใช้ thaiStrToDbDate แทน new Date(v) — new Date(v)
+      // จะตีความสตริงเวลาไทยที่ frontend ส่งมาตาม timezone ของเครื่อง server เอง
+      // (ควบคุมไม่ได้ ถ้า server เป็น UTC จะเพี้ยนไป 7 ชม.) ส่วน thaiStrToDbDate
+      // ฝังตัวเลขเวลาไทยเป็นค่า UTC ของ Date ตรงๆ จึงบันทึกลง SSMS ตรงเป๊ะเสมอ
+     const toIntOrNull = (v) => {
+        if (v === '' || v === null || v === undefined) return null;
+        const n = parseInt(v, 10);
+        return Number.isNaN(n) ? null : n;
+      };
+
+      const fieldMap = {
+        code: { type: sql.NVarChar(100), val: (v) => v || null },
+        start_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
+        stop_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
+        remark: { type: sql.NVarChar(500), val: (v) => v || null },
+        ink: { type: sql.NVarChar(50), val: (v) => v || null },
+        roll_no: { type: sql.NVarChar(50), val: (v) => v || null },
+        side: { type: sql.NVarChar(50), val: (v) => v || null },
+        qty_received: { type: sql.Int, val: toIntOrNull },
+        qty_used: { type: sql.Int, val: toIntOrNull },
+        qty_damaged: { type: sql.Int, val: toIntOrNull },
+        qty_remaining: { type: sql.Int, val: toIntOrNull },
+      };
+
+      const setClauses = [];
+      const request = pool.request().input('detail_id', sql.Int, detail_id);
+      for (const [key, def] of Object.entries(fieldMap)) {
+        if (key in req.body) {
+          request.input(key, def.type, def.val(req.body[key]));
+          setClauses.push(`${key} = @${key}`);
+        }
+      }
+
+      if (setClauses.length === 0) return res.status(400).json({ success: false, error: 'ไม่มีฟิลด์ที่ต้องการอัปเดต' });
+
+      await request.query(`UPDATE PackagingUsageDetail SET ${setClauses.join(', ')} WHERE detail_id = @detail_id`);
+      return res.json({ success: true, message: 'บันทึกสำเร็จ' });
+    } catch (err) {
+      console.error('❌ PUT /pack/pkg/details/:id error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────
+// GET /pack/traceback/:mapping_id
+//
+// Traceback:
+//   1) History ล่าสุด
+//   2) Batch before / after
+//   3) WO + Basket จาก HistoryIngredientWO
+//   4) Ingredient / Chemical ของแต่ละ WO + Basket
+//   5) Packaging ที่ถูกใช้ ณ sc_pack_date
+//   6) Packaging Report ตาม rmm_line_name
+// ─────────────────────────────────────────────────────────────────────────
+router.get("/pack/traceback/:mapping_id", async (req, res) => {
+  try {
+    const mapping_id = parseInt(req.params.mapping_id, 10);
+
+    if (!mapping_id) {
+      return res.status(400).json({
+        success: false,
+        error: "mapping_id ไม่ถูกต้อง",
+      });
+    }
+
+    // ============================================================
+    // 1) Connect PFCMv2
+    // ============================================================
+    const pool = await connectToDatabase();
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: "ไม่สามารถเชื่อมต่อ Database ได้",
+      });
+    }
+
+    // ============================================================
+    // 2) History + Batch + WO List
+    // ============================================================
+    const historyResult = await pool
+      .request()
+      .input("mapping_id", sql.Int, mapping_id)
+      .query(`
+        ;WITH wo_list AS (
+          SELECT
+            mapping_id,
+            STRING_AGG(
+              CONCAT(
+                wo_no,
+                CASE
+                  WHEN basket_no IS NULL THEN ''
+                  ELSE CONCAT('/B', basket_no)
+                END
+              ),
+              ', '
+            ) AS wo_no_list
+          FROM [PFCMv2].[dbo].[HistoryIngredientWO]
+          WHERE mapping_id = @mapping_id
+          GROUP BY mapping_id
+        )
+        SELECT TOP 1
+          h.mapping_id,
+          h.hist_id,
+          h.tro_id,
+          h.rmm_line_name,
+
+          CONVERT(VARCHAR, h.sc_pack_date, 120) AS sc_pack_date,
+          CONVERT(VARCHAR, h.withdraw_date, 120) AS withdraw_date,
+          CONVERT(VARCHAR, h.cooked_date, 120) AS cooked_date,
+          CONVERT(VARCHAR, h.rmit_date, 120) AS rmit_date,
+          CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
+
+          h.mat_pkg,
+          h.batch_pkg,
+          h.weight_RM,
+
+          h.id_igd AS history_wo_no,
+          h.id_igd_no AS history_basket_no,
+
+          b.batch_before,
+          b.batch_after,
+
+          COALESCE(
+            wl.wo_no_list,
+            h.id_igd
+          ) AS wo_no_list
+
+        FROM [PFCMv2].[dbo].[History] h
+
+        LEFT JOIN wo_list wl
+          ON wl.mapping_id = h.mapping_id
+
+        LEFT JOIN [PFCMv2].[dbo].[Batch] b
+          ON b.mapping_id = h.mapping_id
+
+        WHERE h.mapping_id = @mapping_id
+
+        ORDER BY h.hist_id DESC
+      `);
+
+    const historyRow = historyResult.recordset[0] || null;
+
+    if (!historyRow) {
+      return res.status(404).json({
+        success: false,
+        error: "ไม่พบข้อมูล History สำหรับ mapping_id นี้",
+      });
+    }
+
+    // ============================================================
+    // 3) WO + Basket
+    // ============================================================
+    const woResult = await pool
+      .request()
+      .input("mapping_id", sql.Int, mapping_id)
+      .query(`
+        SELECT
+          ingredient_wo_id,
+          mapping_id,
+          wo_no,
+          basket_no,
+          created_at
+        FROM [PFCMv2].[dbo].[HistoryIngredientWO]
+        WHERE mapping_id = @mapping_id
+        ORDER BY ingredient_wo_id
+      `);
+
+    let woList = woResult.recordset || [];
+
+    // ------------------------------------------------------------
+    // Fallback
+    // ถ้าไม่มี HistoryIngredientWO ให้ใช้ History.id_igd
+    // ------------------------------------------------------------
+    if (woList.length === 0 && historyRow.history_wo_no) {
+      woList = [
+        {
+          ingredient_wo_id: null,
+          mapping_id: mapping_id,
+          wo_no: historyRow.history_wo_no,
+          basket_no: historyRow.history_basket_no,
+          created_at: null,
+          fallback: true,
+        },
+      ];
+    }
+
+    // ============================================================
+    // 4) ดึง Ingredient / Chemical จาก WC Database
+    // ============================================================
+    const poolWC = await connectToDatabaseWC();
+
+    const ingredientGroups = [];
+
+    if (poolWC && woList.length > 0) {
+      for (const wo of woList) {
+        if (!wo.wo_no) continue;
+
+        try {
+          const requestWC = poolWC
+            .request()
+            .input(
+              "wo_no",
+              sql.NVarChar(100),
+              String(wo.wo_no).trim()
+            );
+
+          let basketFilter = "";
+
+          if (
+            wo.basket_no !== null &&
+            wo.basket_no !== undefined &&
+            wo.basket_no !== ""
+          ) {
+            const basketNo = parseInt(wo.basket_no, 10);
+
+            if (!Number.isNaN(basketNo)) {
+              requestWC.input("basket_no", sql.Int, basketNo);
+
+              basketFilter = `
+                AND (
+                  ng.BasketNumber = @basket_no
+                )
+              `;
+            }
+          }
+
+          const ingredientResult = await requestWC.query(`
+            SELECT
+              wo.[WONo],
+              wo.[Date],
+              wo.[Shift],
+              wo.[ProductCode],
+              wo.[BatchNo] AS WOBatchNo,
+              wo.[packLine],
+              wo.[state],
+
+              ng.[ngdntCode] AS MaterialCode,
+              ng.[ngdntName] AS MaterialName,
+              ng.[ShortName] AS MaterialShortName,
+              ng.[BatchNo] AS IngredientBatchNo,
+
+              ng.[BasketNumber],
+
+              ng.[StdWt],
+              ng.[MinWt],
+              ng.[MaxWt],
+              ng.[NetWt],
+              ng.[Percentage],
+
+              CONVERT(
+                VARCHAR,
+                ng.[MixingTime],
+                120
+              ) AS MixingTime,
+
+              CONVERT(
+                VARCHAR,
+                ng.[MixingEndTime],
+                120
+              ) AS MixingEndTime
+
+            FROM [dbo].[vw_ngdnt_listWOes] wo
+
+            INNER JOIN [dbo].[vw_ngdnt_listNgdnt] ng
+              ON wo.WONo = ng.WONo
+
+            WHERE wo.WONo = @wo_no
+
+            ${basketFilter}
+
+            ORDER BY
+              ng.BasketNumber,
+              ng.ngdntCode
+          `);
+
+          ingredientGroups.push({
+            wo_no: wo.wo_no,
+            basket_no: wo.basket_no,
+            wo_display: wo.basket_no != null
+              ? `${wo.wo_no}/B${wo.basket_no}`
+              : String(wo.wo_no),
+
+            mapped_at: wo.created_at,
+            fallback: !!wo.fallback,
+
+            items: ingredientResult.recordset || [],
+          });
+
+        } catch (e) {
+          console.error(
+            `❌ [/pack/traceback] WC lookup failed for wo_no=${wo.wo_no}:`,
+            e.message
+          );
+
+          ingredientGroups.push({
+            wo_no: wo.wo_no,
+            basket_no: wo.basket_no,
+
+            wo_display: wo.basket_no != null
+              ? `${wo.wo_no}/B${wo.basket_no}`
+              : String(wo.wo_no),
+
+            mapped_at: wo.created_at,
+            fallback: !!wo.fallback,
+
+            error: e.message,
+            items: [],
+          });
+        }
+      }
+    }
+
+    // ============================================================
+    // 5) Packaging
+    //
+    // sc_pack_date ต้องอยู่ระหว่าง
+    // PackagingUsageDetail.start_time และ stop_time
+    //
+    // และ Report ต้อง line_name เดียวกับ History.rmm_line_name
+    // ============================================================
+    let packagingList = [];
+
+    if (historyRow.sc_pack_date) {
+      const packagingResult = await pool
+        .request()
+        .input(
+          "mapping_id",
+          sql.Int,
+          mapping_id
+        )
+        .input(
+          "sc_pack_date",
+          sql.DateTime,
+          new Date(historyRow.sc_pack_date)
+        )
+        .input(
+          "rmm_line_name",
+          sql.NVarChar(100),
+          historyRow.rmm_line_name || null
+        )
+        .query(`
+          SELECT
+            d.detail_id,
+            d.report_id,
+
+            d.code,
+            d.material_no,
+            d.lot_no,
+            d.batch_no,
+            d.hu_no,
+
+            d.line_name,
+
+            CONVERT(
+              VARCHAR,
+              d.produce_date,
+              120
+            ) AS produce_date,
+
+            CONVERT(
+              VARCHAR,
+              d.receive_date,
+              120
+            ) AS receive_date,
+
+            CONVERT(
+              VARCHAR,
+              d.start_time,
+              120
+            ) AS start_time,
+
+            CONVERT(
+              VARCHAR,
+              d.stop_time,
+              120
+            ) AS stop_time,
+
+            d.remark,
+            d.slip_id,
+            d.box_no,
+            d.ink,
+            d.roll_no,
+            d.side,
+
+            d.qty_received,
+            d.qty_used,
+            d.qty_damaged,
+            d.qty_remaining,
+
+            -- Report
+            r.report_date,
+            r.shift,
+            r.plant,
+            r.package_type,
+            r.reported_by,
+            r.qc_supervisor,
+            r.status,
+
+            r.line_name AS report_line_name
+
+          FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
+
+          LEFT JOIN [PFCMv2].[dbo].[PackagingUsageReport] r
+            ON r.report_id = d.report_id
+           AND r.line_name = @rmm_line_name
+
+          WHERE
+            d.start_time <= @sc_pack_date
+            AND d.stop_time >= @sc_pack_date
+
+          ORDER BY
+            d.line_name,
+            d.code,
+            d.detail_id
+        `);
+
+      packagingList = packagingResult.recordset || [];
+    }
+
+    // ============================================================
+    // 6) Response
+    // ============================================================
+    return res.json({
+      success: true,
+
+      data: {
+        mapping_id,
+
+        // --------------------------------------------------------
+        // History + Batch
+        // --------------------------------------------------------
+        history: historyRow,
+
+        // --------------------------------------------------------
+        // WO List
+        // --------------------------------------------------------
+        wo_list: woList,
+
+        // --------------------------------------------------------
+        // WO + Chemical / Ingredient
+        // --------------------------------------------------------
+        ingredients: ingredientGroups,
+
+        // --------------------------------------------------------
+        // Packaging
+        // --------------------------------------------------------
+        packaging: packagingList,
+
+        // --------------------------------------------------------
+        // Summary
+        // --------------------------------------------------------
+        summary: {
+          wo_count: woList.length,
+
+          ingredient_count: ingredientGroups.reduce(
+            (total, group) =>
+              total + (group.items?.length || 0),
+            0
+          ),
+
+          packaging_count: packagingList.length,
+
+          sc_pack_date: historyRow.sc_pack_date,
+
+          rmm_line_name: historyRow.rmm_line_name,
+
+          batch_before: historyRow.batch_before,
+          batch_after: historyRow.batch_after,
+        },
+      },
+    });
+
+  } catch (err) {
+    console.error(
+      "❌ [/pack/traceback/:mapping_id] Error:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+  // DELETE /api/pack/pkg/details/:detail_id
+  router.delete('/pack/pkg/details/:detail_id', async (req, res) => {
+    const detail_id = parseInt(req.params.detail_id, 10);
+    if (!detail_id) return res.status(400).json({ success: false, error: 'detail_id ไม่ถูกต้อง' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      await pool.request()
+        .input('detail_id', sql.Int, detail_id)
+        .query(`DELETE FROM PackagingUsageDetail WHERE detail_id = @detail_id`);
+      return res.json({ success: true, message: 'ลบสำเร็จ' });
+    } catch (err) {
+      console.error('❌ DELETE /pack/pkg/details/:id error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+
+  async function decodeYMD3(pool, raw3char) {
+    if (!raw3char || raw3char.length !== 3) return { raw: raw3char, decoded: null, note: "รูปแบบไม่ใช่ 3 หลัก (ปี1/เดือน1/วัน1) ยังไม่รองรับ" };
+
+    const yearChar = raw3char[0];
+    const monthChar = raw3char[1];
+    const dayChar = raw3char[2];
+
+    const monthRes = await pool.request()
+      .input("code", sql.Char(1), monthChar)
+      .query(`SELECT month_number, month_en, month_th FROM dbo.Traceback_DateCode_Month WHERE code = @code`);
+
+    const dayRes = await pool.request()
+      .input("code", sql.Char(1), dayChar)
+      .query(`
+      SELECT day_number, 'standard' AS scheme FROM dbo.Traceback_DateCode_Day WHERE day_code_standard = @code
+      UNION ALL
+      SELECT day_number, 'rm' AS scheme FROM dbo.Traceback_DateCode_Day WHERE day_code_rm = @code AND day_number BETWEEN 23 AND 28
+    `);
+
+    return {
+      raw: raw3char,
+      year_code: yearChar,          // ปียังไม่มีตารางรหัสยืนยัน -- แสดงตัวดิบไว้ก่อน
+      month: monthRes.recordset[0] || null,
+      day_candidates: dayRes.recordset,  // อาจมีได้ทั้ง 2 แบบ (standard / R-M) ถ้าเลขวันที่ 23-28
+    };
+  }
+
+
+  router.get("/traceback/mat-batch", async (req, res) => {
+    try {
+      const { mat, batch_before, batch_after } = req.query;
+      if (!mat) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ mat" });
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ PFCMv2 Database ได้" });
+      }
+
+      const decodeOneBatch = async (batchValue, label) => {
+        if (!batchValue) return null;
+        const request = pool.request()
+          .input("mat", sql.VarChar(20), mat)
+          .input("batch", sql.VarChar(20), batchValue);
+        const result = await request.execute("usp_Traceback_MatBatch");
+        const [matDecodeSet, candidateSet, digitSet] = result.recordsets;
+
+        // จัดกลุ่ม digit rows ตาม batch_type_code แล้วพยายามถอดวันที่ให้ทุกแถวที่ meaning_th มีคำว่า "วันที่"
+        const byType = {};
+        for (const row of digitSet) {
+          if (!byType[row.batch_type_code]) byType[row.batch_type_code] = [];
+          byType[row.batch_type_code].push(row);
+        }
+
+        for (const type of Object.keys(byType)) {
+          for (const row of byType[type]) {
+            const looksLikeDate = /วันที่|ปี.*เดือน.*วัน/.test(row.meaning_th);
+            const isThreeChar = row.digit_to - row.digit_from + 1 === 3;
+            if (looksLikeDate && isThreeChar && row.raw_value) {
+              row.date_decode = await decodeYMD3(pool, row.raw_value);
+            }
+          }
+        }
+
+        return {
+          label,
+          raw: batchValue,
+          mat_decode: matDecodeSet[0] || null,
+          candidates: candidateSet,
+          digits_by_type: byType,
+        };
+      };
+
+      const [beforeDecode, afterDecode] = await Promise.all([
+        decodeOneBatch(batch_before, "batch_before"),
+        decodeOneBatch(batch_after, "batch_after"),
+      ]);
+
+      const matDecode = (beforeDecode || afterDecode)?.mat_decode || null;
+
+      res.json({
+        success: true,
+        data: { mat, mat_decode: matDecode, batch_before: beforeDecode, batch_after: afterDecode },
+      });
+    } catch (err) {
+      console.error("❌ [/traceback/mat-batch] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ===================================================================
+  // GET /api/traceback/packaging?line_name=...&sc_pack_date=...
+  // หา report+detail ที่ line_name ตรงกัน, report_date ตรงกับวันที่ของ sc_pack_date,
+  // และ sc_pack_date อยู่ในช่วง start_time..stop_time ของแถวนั้น
+  // ===================================================================
+
+
+  router.get("/traceback/packaging", async (req, res) => {
+    try {
+      const { line_name, sc_pack_date } = req.query;
+      if (!line_name || !sc_pack_date) {
+        return res.status(400).json({ success: false, error: "กรุณาระบุ line_name และ sc_pack_date" });
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อ Database ได้" });
+      }
+
+      const result = await pool.request()
+        .input("line_name", sql.NVarChar(100), line_name)
+        .input("sc_pack_date", sql.DateTime, thaiStrToDbDate(sc_pack_date))
+        .query(`
+        SELECT
+          r.report_id, r.report_date, r.shift, r.plant, r.package_type,
+          r.reported_by, r.qc_supervisor, r.line_name, r.status,
+          d.detail_id, d.code, d.material_no, d.lot_no, d.produce_date,
+          d.receive_date, d.batch_no, d.hu_no, d.start_time, d.stop_time,
+          d.remark, d.slip_id, d.box_no,
+          s.type_choice   AS slip_type_choice,
+          s.send_date     AS slip_send_date,
+          s.shift         AS slip_shift,
+          s.seq_use       AS slip_seq_use,
+          s.line_id       AS slip_line_id,
+          s.line_name     AS slip_line_name,
+          s.code_mat      AS slip_code_mat,
+          s.batch_no      AS slip_batch_no,
+          s.receive_date  AS slip_receive_date,
+          s.box_no        AS slip_box_no,
+          s.lot           AS slip_lot,
+          s.roll_no       AS slip_roll_no,
+          s.hu            AS slip_hu,
+          s.size          AS slip_size,
+          s.te            AS slip_te,
+          s.qty           AS slip_qty,
+          s.remark        AS slip_remark,
+          s.created_at    AS slip_created_at,
+          s.datetime      AS slip_datetime,
+          s.produce_date  AS slip_produce_date
+        FROM dbo.PackagingUsageReport r
+        INNER JOIN dbo.PackagingUsageDetail d ON d.report_id = r.report_id
+        LEFT JOIN dbo.PrintMasterSlip s ON s.slip_id = d.slip_id
+        WHERE r.line_name = @line_name
+          AND r.report_date = CAST(@sc_pack_date AS DATE)
+          AND @sc_pack_date BETWEEN CAST(d.start_time AS DATETIME) AND CAST(d.stop_time AS DATETIME)
+        ORDER BY d.start_time
+      `);
+
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [/traceback/packaging] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
 
   module.exports = router;
   return router;

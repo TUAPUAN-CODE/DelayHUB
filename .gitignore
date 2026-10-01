@@ -1,6 +1,28 @@
+# Environment / Secrets
 .env
-*.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# **de dependencies
+node_modules/
+**/**de_modules/
+
+# Database backups
+****k
 *.bacpac
-NUL
-backend/NUL
-frontend/NUL
+
+# Logs
+*.log
+logs/
+
+***emporary files
+*.tmp
+*.swp
+
+# Cl***e
+.claude/
+
+# OS files
+.DS_Store***umbs.db

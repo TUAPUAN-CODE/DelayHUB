@@ -6,6 +6,25 @@ axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const getEarliestComeColdDate = (data) => {
+    const candidates = [
+        data.come_cold_date,
+        data.come_cold_date_two,
+        data.come_cold_date_three,
+        data.cs_come_cold_date,
+        data.cs_come_cold_date_two,
+        data.cs_come_cold_date_three,
+    ]
+        .filter(Boolean)
+        .map(d => new Date(d))
+        .filter(d => !isNaN(d.getTime()));
+
+    if (candidates.length === 0) return null;
+
+    const earliest = new Date(Math.min(...candidates));
+    return earliest.toISOString();
+};
+
 const PrintModal = ({ open, onClose, data }) => {
     const [coldHistory, setColdHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -86,15 +105,17 @@ const PrintModal = ({ open, onClose, data }) => {
                     const historiesWithIndex = results.map((result, index) => ({
                         materialIndex: index,
                         history: result.data.history || [],
+                        history2: result.data.history2 || [],
                         qc_date: result.data.qc_date,
                         rework_date: result.data.rework_date,
                         rework_time: result.data.rework_time,
                         mix_time: result.data.mix_time,
                         cold_to_pack_time: result.data.cold_to_pack_time,
                         cold_to_pack: result.data.cold_to_pack,
-                        come_cold_date_latest: result.data.come_cold_date_latest,
+                        come_cold_date_latest: getEarliestComeColdDate(result.data),
                         rmit_date: result.data.rmit_date,
-                        remark: result.data.remark
+                        remark: result.data.remark,
+                        summary_withdraw_date: result.data.summary_withdraw_date
                     }));
 
                     setColdHistory(historiesWithIndex);
@@ -104,14 +125,16 @@ const PrintModal = ({ open, onClose, data }) => {
                     setColdHistory([{
                         materialIndex: 0,
                         history: response.data.history || [],
+                        history2: response.data.history2 || [],
                         qc_date: response.data.qc_date,
                         rework_date: response.data.rework_date,
                         rework_time: response.data.rework_time,
                         mix_time: response.data.mix_time,
                         cold_to_pack_time: response.data.cold_to_pack_time,
                         cold_to_pack: response.data.cold_to_pack,
-                        come_cold_date_latest: response.data.come_cold_date_latest,
-                        rmit_date: response.data.rmit_date
+                        come_cold_date_latest: getEarliestComeColdDate(response.data),
+                        rmit_date: response.data.rmit_date,
+                        summary_withdraw_date: response.data.summary_withdraw_date
                     }]);
                 }
 
@@ -253,7 +276,7 @@ const PrintModal = ({ open, onClose, data }) => {
 
     const {
         material_code, materialName, rm_cold_status, rm_status,
-        ComeColdDateTime, slot_id, tro_id, batch, mat, rmfp_id,batch_before,
+        ComeColdDateTime, slot_id, tro_id, batch, mat, rmfp_id, batch_before,
         Location, operator, level_eu, cooked_date, rmit_date, remark, rmm_line_name, name_prod_edit_two, name_prod_edit_three, first_prod, two_prod, three_prod, materials, prepare_mor_night, production
     } = data || {};
 
@@ -528,6 +551,7 @@ const PrintModal = ({ open, onClose, data }) => {
                             );
 
                             const materialHistory = historyData?.history || [];
+                            const materialHistory2 = historyData?.history2 || [];
                             const qcDate = historyData?.qc_date;
                             const reworkDate = historyData?.rework_date;
                             const reworkTime = historyData?.rework_time;
@@ -546,9 +570,11 @@ const PrintModal = ({ open, onClose, data }) => {
                                         mix_time: mixTime,
                                         cold_to_pack_time: coldToPackTime,
                                         cold_to_pack: coldToPack,
-                                        remark: historyData?.remark
+                                        remark: historyData?.remark,
+                                        summary_withdraw_date: historyData?.summary_withdraw_date
                                     }}
                                     history={materialHistory}
+                                    history2={materialHistory2}
                                     qcDate={qcDate}
                                     reworkDate={reworkDate}
                                     reworkTime={reworkTime}
@@ -584,6 +610,7 @@ const PrintModal = ({ open, onClose, data }) => {
                                 cold_to_pack_time: coldHistory[0]?.cold_to_pack_time,
                                 cold_to_pack: coldHistory[0]?.cold_to_pack,
                                 remark: coldHistory[0]?.remark,
+                                summary_withdraw_date: coldHistory[0]?.summary_withdraw_date,
                                 name_prod_edit_two: name_prod_edit_two,
                                 name_prod_edit_three: name_prod_edit_three,
                                 first_prod: first_prod,
@@ -592,6 +619,7 @@ const PrintModal = ({ open, onClose, data }) => {
 
                             }}
                             history={coldHistory[0]?.history || []}
+                            history2={coldHistory[0]?.history2 || []}
                             qcDate={coldHistory[0]?.qc_date}
                             reworkDate={coldHistory[0]?.rework_date}
                             reworkTime={coldHistory[0]?.rework_time}
@@ -618,6 +646,7 @@ const MaterialItem = ({
     index,
     item,
     history,
+    history2,
     qcDate,
     reworkDate,
     reworkTime,
@@ -896,6 +925,20 @@ const MaterialItem = ({
                             fontSizes={fontSizes}
                         />
                     </Box>
+
+                    <Box sx={{
+                        mb: 0.5,
+                        '@media print': {
+                            marginBottom: '1px',
+                        },
+                    }}>
+                        <InlineInfoItem
+                            label="วันที่สรุปเบิก"
+                            value={item.summary_withdraw_date || "-"}
+                            fontSizes={fontSizes}
+                        />
+                    </Box>
+
                     {/* Cooking/Processing Time */}
                     <Box sx={{
                         mb: 0.5,
@@ -969,7 +1012,7 @@ const MaterialItem = ({
                     )}
                 </Box>
 
-                {/* Cold Storage History */}
+                {/* Cold Storage History - ชุดที่ 1 (เข้าออกห้องเย็น1) */}
                 {history && history.length > 0 ? (
                     history.map((entry, idx) => (
                         <Box key={idx} sx={{
@@ -989,7 +1032,7 @@ const MaterialItem = ({
                                 },
                             }}>
                                 <InlineInfoItem
-                                    label={`เวลาเข้าห้องเย็น${history.length > 1 ? ` (ครั้งที่ ${entry.round})` : ''}`}
+                                    label={`เวลาเข้า PF${history.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
                                     value={entry.come_date ? formatThaiDateTime(entry.come_date) + " น." : "-"}
                                     fontSizes={fontSizes}
                                 />
@@ -1003,7 +1046,7 @@ const MaterialItem = ({
                                     },
                                 }}>
                                     <InlineInfoItem
-                                        label={`เวลาออกห้องเย็น${history.length > 1 ? ` (ครั้งที่ ${entry.round})` : ''}`}
+                                        label={`เวลาออก PF${history.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
                                         value={formatThaiDateTime(entry.out_date) + " น."}
                                         fontSizes={fontSizes}
                                     />
@@ -1018,7 +1061,7 @@ const MaterialItem = ({
                                     },
                                 }}>
                                     <InlineInfoItem
-                                        label={`DCS (ช่วงที่ 2) ${history.length > 1 ? `ครั้งที่ ${entry.round}` : ''}`}
+                                        label={`DCS PF ${history.length > 1 ? `รอบ ${entry.round}` : ''}`}
                                         value={calculateDCS(entry.come_date, entry.out_date) || "-"}
                                         fontSizes={fontSizes}
                                     />
@@ -1034,11 +1077,70 @@ const MaterialItem = ({
                         },
                     }}>
                         <InlineInfoItem
-                            label="เวลาเข้าห้องเย็น"
+                            label="เวลาเข้า PF"
                             value={item.come_cold_date ? formatThaiDateTime(item.come_cold_date) + " น." : "-"}
                             fontSizes={fontSizes}
                         />
                     </Box>
+                )}
+
+                {/* Cold Storage History - ชุดที่ 2 (เข้าออกห้องเย็น2) */}
+                {history2 && history2.length > 0 && (
+                    history2.map((entry, idx) => (
+                        <Box key={`h2-${idx}`} sx={{
+                            mb: 1,
+                            py: 0.5,
+                            borderTop: '1px dotted #eee',
+                            '@media print': {
+                                marginBottom: '2px',
+                                paddingTop: '1px',
+                                paddingBottom: '1px',
+                            },
+                        }}>
+                            <Box sx={{
+                                mb: 0.5,
+                                '@media print': {
+                                    marginBottom: '1px',
+                                },
+                            }}>
+                                <InlineInfoItem
+                                    label={`เวลาเข้า CS${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
+                                    value={entry.come_date ? formatThaiDateTime(entry.come_date) + " น." : "-"}
+                                    fontSizes={fontSizes}
+                                />
+                            </Box>
+
+                            {entry.out_date && (
+                                <Box sx={{
+                                    mb: 0.5,
+                                    '@media print': {
+                                        marginBottom: '1px',
+                                    },
+                                }}>
+                                    <InlineInfoItem
+                                        label={`เวลาออก CS${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
+                                        value={formatThaiDateTime(entry.out_date) + " น."}
+                                        fontSizes={fontSizes}
+                                    />
+                                </Box>
+                            )}
+
+                            {entry.come_date && entry.out_date && (
+                                <Box sx={{
+                                    mb: 0.5,
+                                    '@media print': {
+                                        marginBottom: '1px',
+                                    },
+                                }}>
+                                    <InlineInfoItem
+                                        label={`DCS CS ${history2.length > 1 ? `รอบ ${entry.round}` : ''}`}
+                                        value={calculateDCS(entry.come_date, entry.out_date) || "-"}
+                                        fontSizes={fontSizes}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
+                    ))
                 )}
 
                 {/* Packaging Deadline Section */}

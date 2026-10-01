@@ -779,6 +779,17 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 						}}>
 							วันที่/เวลา ออกจากห้องเย็นใหญ่ : {withdraw_date || "ไม่มีข้อมูล"}
 						</Typography>
+						<Typography variant="h6" className="print-text" sx={{
+							color: "#464646",
+							fontSize: "22px",
+							margin: "10px",
+							'@media print': {
+								fontSize: '10px',
+								margin: '2px 0',
+							},
+						}}>
+							วันที่สรุปเบิก : {qcData?.summary_withdraw_date_formatted || "ไม่มีข้อมูล"}
+						</Typography>
 
 						<Typography variant="h6" className="print-text" sx={{
 							color: "#464646",

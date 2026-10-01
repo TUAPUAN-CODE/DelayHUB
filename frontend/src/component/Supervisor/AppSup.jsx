@@ -47,6 +47,10 @@ const DelayTimeDBSTrackingPage = lazy(() => import("./DelayTimeTrackingDBS/Delay
 const DelayTimeLine = lazy(() => import("./DelayTimeTrackingByLine/DelayTimeTrackingPage.jsx"));
 const DelayTimepercentage_tie = lazy(() => import("./DelayTimeTrackingByPercentage/DelayTimeTrackingPage.jsx"));
 const DelayTimeTrackingRM = lazy(() => import("./DelayTimeTrackingRM/DelayTimeTrackingPage"));
+const DelayTimeTrackingRMinprocess = lazy(() => import("./DelayTimeTrackingRM copy/DelayTimeTrackingPage.jsx"));
+const TrackTrolleyQC = lazy(() => import("./TrackTrolley/TrackTrolleyQC.jsx"));
+const TrackTrolleyQCinprocess = lazy(() => import("./DelayTimeTrackingRM copy 2/DelayTimeTrackingPage.jsx"));
+
 
 // เก็บเส้นทางทั้งหมดไว้ใน Array เพื่อลดโค้ดซ้ำซ้อน
 const routes = [
@@ -95,6 +99,9 @@ const routes = [
 { path: "/delay/report/line", element: <DelayTimeLine/> },
 { path: "/DelayTimepercentage_tie", element: <DelayTimepercentage_tie/> },
 { path: "/DelayTimeTrackingRM", element: <DelayTimeTrackingRM/> },
+{ path: "/DelayTimeTrackingRMinprocess", element: <DelayTimeTrackingRMinprocess/> },
+{ path: "/TrackTrolley", element: <TrackTrolleyQC/> },
+{ path: "/TrackTrolley/inprocess", element: <TrackTrolleyQCinprocess/> },
   // // จัดการการทำงาน
   // { path: "/Table/WorkPlace", element: <TableWorkPlaceSup /> },
   // { path: "/Table/Role", element: <TableRoleSup /> },
