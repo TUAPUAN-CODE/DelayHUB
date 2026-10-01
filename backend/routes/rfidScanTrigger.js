@@ -370,4 +370,84 @@ router.get('/api/coldstorage/rfid/history/:readerId', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/coldstorage/rfid/unknown-epc
+ * รายการ EPC ที่ reader สแกนเจอแต่ยังไม่มีใน RFID_to_Trolley (ยังไม่ผูก tro_id)
+ */
+router.get('/api/coldstorage/rfid/unknown-epc', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT u.epc, u.reader_no, u.scan_count,
+             FORMAT(u.first_seen, 'yyyy-MM-dd HH:mm:ss') AS first_seen,
+             FORMAT(u.last_seen, 'yyyy-MM-dd HH:mm:ss') AS last_seen
+      FROM dbo.RFID_Unknown_EPC u
+      WHERE NOT EXISTS (SELECT 1 FROM dbo.RFID_to_Trolley r WHERE r.epc = u.epc)
+      ORDER BY u.last_seen DESC
+    `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('[Route /rfid/unknown-epc] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/coldstorage/rfid/bind-epc  body: { epc, tro_id }
+ * ผูก EPC เข้ากับ tro_id (4 หลัก) ใน RFID_to_Trolley
+ */
+router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
+  const epc = String(req.body?.epc || '').trim();
+  const troId = String(req.body?.tro_id || '').trim();
+
+  if (!epc) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ EPC' });
+  }
+  if (!/^\d{4}$/.test(troId)) {
+    return res.status(400).json({ success: false, error: 'tro_id ต้องเป็นตัวเลข 4 หลัก' });
+  }
+
+  try {
+    const pool = await getPool();
+    if (!pool) {
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    const troCheck = await pool.request()
+      .input('tro_id', sql.VarChar(4), troId)
+      .query('SELECT tro_id FROM dbo.Trolley WHERE tro_id = @tro_id');
+    if (troCheck.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: `ไม่พบรถเข็นหมายเลข ${troId} ในระบบ` });
+    }
+
+    const epcCheck = await pool.request()
+      .input('epc', sql.VarChar(50), epc)
+      .query('SELECT tro_id FROM dbo.RFID_to_Trolley WHERE epc = @epc');
+    if (epcCheck.recordset.length > 0) {
+      return res.status(409).json({ success: false, error: `EPC นี้ผูกกับรถเข็น ${epcCheck.recordset[0].tro_id} แล้ว` });
+    }
+
+    const troUsed = await pool.request()
+      .input('tro_id', sql.VarChar(4), troId)
+      .query('SELECT epc FROM dbo.RFID_to_Trolley WHERE tro_id = @tro_id');
+    if (troUsed.recordset.length > 0) {
+      return res.status(409).json({ success: false, error: `รถเข็น ${troId} ผูกกับ EPC อื่นอยู่แล้ว (${troUsed.recordset[0].epc})` });
+    }
+
+    await pool.request()
+      .input('epc', sql.VarChar(50), epc)
+      .input('tro_id', sql.VarChar(4), troId)
+      .query('INSERT INTO dbo.RFID_to_Trolley (epc, tro_id) VALUES (@epc, @tro_id)');
+
+    await pool.request()
+      .input('epc', sql.VarChar(50), epc)
+      .query('DELETE FROM dbo.RFID_Unknown_EPC WHERE epc = @epc');
+
+    return res.json({ success: true, message: `ผูก EPC กับรถเข็น ${troId} สำเร็จ` });
+  } catch (err) {
+    console.error('[Route /rfid/bind-epc] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

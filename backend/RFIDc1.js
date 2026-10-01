@@ -583,6 +583,21 @@ function connectReader() {
     });
 }
 
+async function recordUnknownEpc(pool, epc) {
+    try {
+        await pool.request()
+            .input('epc', sql.VarChar(50), epc)
+            .input('reader_no', sql.Int, READER_NO)
+            .query(`
+                UPDATE dbo.RFID_Unknown_EPC SET scan_count = scan_count + 1, last_seen = GETDATE(), reader_no = @reader_no WHERE epc = @epc;
+                IF @@ROWCOUNT = 0
+                    INSERT INTO dbo.RFID_Unknown_EPC (epc, reader_no) VALUES (@epc, @reader_no);
+            `);
+    } catch (err) {
+        console.error('❌ [recordUnknownEpc] บันทึก EPC ที่ไม่รู้จักไม่สำเร็จ:', err.message);
+    }
+}
+
 async function onReaderData(data) {
     const hexReply = data.toString('hex').toUpperCase();
     if (hexReply.startsWith("CCFFFF20") && hexReply.length >= 42) {
@@ -605,7 +620,11 @@ async function onReaderData(data) {
         try {
             const pool = await sql.connect(dbConfig);
             const troResult = await pool.request().input('epc', sql.VarChar, epc).query(`SELECT tro_id FROM RFID_to_Trolley WHERE epc = @epc`);
-            if (troResult.recordset.length === 0) { console.warn(`❌ ไม่พบ EPC ในระบบ: ${epc}`); return; }
+            if (troResult.recordset.length === 0) {
+                console.warn(`❌ ไม่พบ EPC ในระบบ: ${epc}`);
+                await recordUnknownEpc(pool, epc);
+                return;
+            }
             const tro_id = troResult.recordset[0].tro_id;
             tro_id_forDashboard = tro_id;
             debugLog("🚚 tro_id:", tro_id);

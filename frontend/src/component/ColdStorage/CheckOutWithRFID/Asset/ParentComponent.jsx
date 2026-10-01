@@ -11,12 +11,14 @@ import axios from "axios";
 axios.defaults.withCredentials = true; 
 import io from 'socket.io-client';
 import ReaderPanel from './ReaderPanel';
+import ModalUnboundEPC from './ModalUnboundEPC';
 import { after } from 'lodash';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ParentComponent = () => {
 
+  const [openUnboundModal, setOpenUnboundModal] = useState(false);
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [dataForPrintModal, setDataForPrintModal] = useState(null);
 
@@ -496,6 +498,16 @@ const combineAndUpdateTableData = (regularData, mixedData) => {
 
   return (
     <div>
+      <div style={{ textAlign: "right", padding: "4px 8px" }}>
+        <button
+          type="button"
+          onClick={() => setOpenUnboundModal(true)}
+          style={{ padding: "6px 14px", background: "#ed6c02", color: "#fff", borderRadius: 6, fontFamily: "Prompt, sans-serif" }}
+        >
+          EPC ที่ยังไม่ผูก tro_id
+        </button>
+      </div>
+      <ModalUnboundEPC open={openUnboundModal} onClose={() => setOpenUnboundModal(false)} />
       <ReaderPanel
         handleOpenModal={handleOpenModal1} 
         handleOpenEditModal={handleOpenEditModal}
