@@ -583,7 +583,14 @@ function connectReader() {
     });
 }
 
+// กัน reader อ่าน EPC เดิมซ้ำถี่ๆ แล้วยิง UPDATE ลง DB ทุกครั้ง — เขียนได้อย่างมากทุก 60 วินาทีต่อ EPC
+const UNKNOWN_EPC_THROTTLE_MS = 60 * 1000;
+const unknownEpcLastWrite = new Map();
+
 async function recordUnknownEpc(pool, epc) {
+    const last = unknownEpcLastWrite.get(epc);
+    if (last && Date.now() - last < UNKNOWN_EPC_THROTTLE_MS) return;
+    unknownEpcLastWrite.set(epc, Date.now());
     try {
         await pool.request()
             .input('epc', sql.VarChar(50), epc)

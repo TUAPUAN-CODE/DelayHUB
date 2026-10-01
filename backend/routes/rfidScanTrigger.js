@@ -434,10 +434,18 @@ router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
       return res.status(409).json({ success: false, error: `รถเข็น ${troId} ผูกกับ EPC อื่นอยู่แล้ว (${troUsed.recordset[0].epc})` });
     }
 
-    await pool.request()
+    // INSERT แบบมีเงื่อนไขในคำสั่งเดียว กันสองคนกดผูกพร้อมกันแล้วได้แถวซ้ำ
+    const inserted = await pool.request()
       .input('epc', sql.VarChar(50), epc)
       .input('tro_id', sql.VarChar(4), troId)
-      .query('INSERT INTO dbo.RFID_to_Trolley (epc, tro_id) VALUES (@epc, @tro_id)');
+      .query(`
+        INSERT INTO dbo.RFID_to_Trolley (epc, tro_id)
+        SELECT @epc, @tro_id
+        WHERE NOT EXISTS (SELECT 1 FROM dbo.RFID_to_Trolley WHERE epc = @epc OR tro_id = @tro_id)
+      `);
+    if (inserted.rowsAffected[0] === 0) {
+      return res.status(409).json({ success: false, error: 'EPC หรือรถเข็นนี้ถูกผูกไปแล้ว กรุณารีเฟรช' });
+    }
 
     await pool.request()
       .input('epc', sql.VarChar(50), epc)
