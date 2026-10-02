@@ -560,6 +560,8 @@ function scheduleReconnect() {
     if (reconnectTimer) { clearTimeout(reconnectTimer); }
     reconnectTimer = setTimeout(() => {
         console.warn(`🔄 กำลังลองเชื่อมต่อ Reader ใหม่: ${READER_IP}:${READER_PORT} ...`);
+        // ปล่อย guard ก่อนต่อใหม่ ไม่งั้นถ้ารอบนี้ต่อไม่ติด 'close' ครั้งถัดไปจะโดน guard ทิ้ง แล้วไม่มีการลองใหม่อีกเลย
+        isReconnecting = false;
         connectReader();
     }, 5000);
 }
