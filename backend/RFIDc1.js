@@ -300,6 +300,9 @@ async function writeColdRoomRoundTimestampOut(pool, hist_id, prefix) {
     return targetColumn;
 }
 
+// ห้องเย็น (Slot.cs_id) ที่อนุญาตให้ระบบรับเข้าอัตโนมัติ (RFID) เลือกช่องให้
+const AUTO_SLOT_CS_IDS = [1, 2, 3, 4, 5, 6, 7];
+
 async function assignColdRoomSlotForTrolley(pool, tro_id, items) {
     const transaction = new sql.Transaction(pool);
     try {
@@ -384,8 +387,16 @@ async function assignColdRoomSlotForTrolley(pool, tro_id, items) {
             return { action: 'NO_MAPPING_UPDATED', skipped };
         }
 
-        const slotResult = await new sql.Request(transaction).query(`
-            SELECT TOP (1) slot_id FROM Slot WITH (UPDLOCK, HOLDLOCK) WHERE tro_id IS NULL ORDER BY slot_id ASC
+        // เลือกช่องว่างเฉพาะห้องเย็นที่กำหนดใน AUTO_SLOT_CS_IDS (ช่องที่จองไว้มี tro_id = 'rsrv' จึงไม่ถูกเลือก)
+        const slotRequest = new sql.Request(transaction);
+        const csParams = AUTO_SLOT_CS_IDS.map((id, i) => {
+            slotRequest.input(`cs${i}`, sql.Int, id);
+            return `@cs${i}`;
+        });
+        const slotResult = await slotRequest.query(`
+            SELECT TOP (1) slot_id FROM Slot WITH (UPDLOCK, HOLDLOCK)
+            WHERE tro_id IS NULL AND cs_id IN (${csParams.join(', ')})
+            ORDER BY cs_id ASC, slot_id ASC
         `);
         if (slotResult.recordset.length === 0) {
             await transaction.commit();
