@@ -401,11 +401,33 @@ async function silentPrintHTML(html) {
 // network ไปเครื่องปลายทางตรงๆ ไม่ต้องมี print-agent รันอยู่บนเครื่องนั้นเลย
 // ถ้าไม่ส่งมา (ค่าว่าง) → fallback ไปวิธีเดิม (kiosk-printing ผ่าน default printer ของ
 // เครื่องที่รัน print-agent นี้อยู่ — ใช้กับสถานีที่ยังรัน print-agent local แบบเดิม)
+// ⭐ กันสลิปซ้ำที่ "จุดเดียวที่ทุกคำขอต้องผ่าน": หลายเบราว์เซอร์/หลายแท็บ (รวมถึงเครื่องที่ยังเปิดหน้าเว็บโค้ดเก่าค้างอยู่)
+// อาจส่งคำขอพิมพ์ของการสแกนเดียวกันมาพร้อมกัน → ถ้ารถเข็นคันเดิมถูกสั่งพิมพ์ไปเครื่องพิมพ์เดิมภายใน PRINT_DEDUPE_SECONDS
+// (ค่าเริ่มต้น 30 วินาที, ตั้ง 0 = ปิด) จะตอบ ok แต่ไม่พิมพ์ซ้ำ — reader มีดีเลย์กันสแกนซ้ำ ≥ 1 นาทีอยู่แล้ว จึงไม่กระทบการสแกนจริงรอบถัดไป
+const PRINT_DEDUPE_MS = (Number(process.env.PRINT_DEDUPE_SECONDS) >= 0 && process.env.PRINT_DEDUPE_SECONDS !== undefined
+  ? Number(process.env.PRINT_DEDUPE_SECONDS) : 30) * 1000;
+const recentPrints = new Map(); // key -> เวลาที่รับคำขอล่าสุด
+
 app.post("/print-slip", async (req, res) => {
   const { identifier, trolleyData: providedTrolleyData, printerHost, printerShare, printerDotWidth } = req.body || {};
   if (!identifier) {
     return res.status(400).json({ ok: false, error: "ไม่มี identifier (tro_id หรือ mapping_id) ส่งมา" });
   }
+
+  const dedupeKey = `${printerHost || "local"}|${printerShare || ""}|${identifier}`;
+  const who = `${req.ip} ${req.get("origin") || ""}`.trim(); // ดูใน log ว่าคำขอมาจากกี่เครื่อง
+  const nowMs = Date.now();
+  const lastMs = recentPrints.get(dedupeKey);
+  if (PRINT_DEDUPE_MS > 0 && lastMs !== undefined && nowMs - lastMs < PRINT_DEDUPE_MS) {
+    console.log(`⏭️ ข้ามคำขอพิมพ์ซ้ำ identifier=${identifier} (เพิ่งรับคำขอเดียวกันไป ${Math.round((nowMs - lastMs) / 1000)} วินาทีที่แล้ว) จาก ${who}`);
+    return res.json({ ok: true, printed: identifier, deduped: true });
+  }
+  // จองก่อนเริ่ม render (ใช้เวลาหลายวินาที) — คำขอที่ตามมาติดๆ จะถูกกันตั้งแต่ตอนนี้
+  recentPrints.set(dedupeKey, nowMs);
+  if (recentPrints.size > 500) {
+    for (const [k, t] of recentPrints) if (nowMs - t > 10 * 60 * 1000) recentPrints.delete(k);
+  }
+  console.log(`🖨️ รับคำขอพิมพ์ identifier=${identifier} จาก ${who}`);
 
   try {
     let trolleyData = providedTrolleyData;
@@ -436,6 +458,7 @@ app.post("/print-slip", async (req, res) => {
     res.json({ ok: true, printed: identifier });
   } catch (err) {
     console.error("พิมพ์สลิปอัตโนมัติไม่สำเร็จ:", err.message);
+    recentPrints.delete(dedupeKey); // พิมพ์ไม่สำเร็จ → ให้ลองสั่งพิมพ์ซ้ำได้ทันที ไม่ต้องรอ
     res.status(500).json({ ok: false, error: err.message });
   }
 });
