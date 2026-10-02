@@ -27,6 +27,8 @@ import {
   TableCell,
   TableBody,
   CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
@@ -1024,6 +1026,14 @@ const QcCheck = ({
   );
 };
 
+// สลีปมี QR รูปแบบ: "14M230000001 | LCMTP019AP | LCMTP019AP | 695089 | 245 | kg | PFCM"
+// ช่องที่ 4 คือ mapping_id (ดู qrValue ใน print-agent/server.js)
+const parseSlipMappingId = (text) => {
+  if (!text || !text.includes("|")) return null;
+  const parts = text.split("|").map((x) => x.trim());
+  return /^\d+$/.test(parts[3] || "") ? parts[3] : null;
+};
+
 const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [materialName, setMaterialName] = useState("");
@@ -1038,6 +1048,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
   const [scanError, setScanError] = useState("");
   const scanInputRef = useRef(null);
   const [inputMode, setInputMode] = useState("camera"); // 'camera' หรือ 'manual'
+  const [manualType, setManualType] = useState("tro"); // 'tro' = เลข 4 หลักท้ายป้ายทะเบียน, 'mapping' = mapping_id จากสลีป
+  const [isVerifyingMapping, setIsVerifyingMapping] = useState(false);
+  const verifyingMappingRef = useRef(false); // กล้องสแกน QR เดิมซ้ำหลายครั้งต่อวินาที กันยิง API ซ้ำ (ใช้ ref เพราะ callback กล้องเห็น state เก่า)
  
   // State สำหรับ QR Scanner
   const [isCameraActive, setIsCameraActive] = useState(true);
@@ -1245,6 +1258,60 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
   //   }
   // };
 
+  // ตรวจ mapping_id (จาก QR สลีป หรือพิมพ์เอง) ว่าอยู่บนรถเข็นของแถวนี้จริง โดยค้นจาก TrolleyRMMapping
+  const verifyByMappingId = async (mappingId) => {
+    if (verifyingMappingRef.current) return;
+    verifyingMappingRef.current = true;
+    setIsVerifyingMapping(true);
+    setScanError("");
+    try {
+      const response = await axios.get(`${API_URL}/api/checkin/pack/mappingTrolley`, {
+        params: { mapping_id: mappingId },
+      });
+      const found = response.data?.data?.[0];
+      if (found && String(found.tro_id) === String(tro_id)) {
+        setIsVerified(true);
+        setShowScanDialog(false);
+        stopCameraScanner();
+      } else {
+        setScanError(
+          found
+            ? `mapping_id ${mappingId} อยู่บนรถเข็น ${found.tro_id} ไม่ตรงกับรถเข็น ${tro_id}`
+            : `ไม่พบ mapping_id ${mappingId} ในระบบ`
+        );
+        setScannedCode("");
+      }
+    } catch (error) {
+      console.error("verifyByMappingId error:", error);
+      setScanError(error.response?.data?.error || "ตรวจสอบ mapping_id ไม่สำเร็จ");
+      setScannedCode("");
+    } finally {
+      setIsVerifyingMapping(false);
+      // เว้น 2 วินาทีก่อนรับ QR ใบเดิมซ้ำ กันกล้องยิงตรวจรัวๆ ตอนที่ผลไม่ผ่าน
+      setTimeout(() => {
+        verifyingMappingRef.current = false;
+      }, 2000);
+    }
+  };
+
+  // ยืนยันจากช่องกรอก: รองรับสลีป (มี |), mapping_id ที่พิมพ์เอง, และเลข 4 หลักท้ายป้ายทะเบียน
+  const handleScanSubmit = () => {
+    const text = scannedCode.trim();
+    if (text.includes("|")) {
+      const mappingId = parseSlipMappingId(text);
+      if (mappingId) verifyByMappingId(mappingId);
+      else {
+        setScanError("รูปแบบ QR สลีปไม่ถูกต้อง");
+        setScannedCode("");
+      }
+    } else if (manualType === "mapping") {
+      if (/^\d+$/.test(text)) verifyByMappingId(text);
+      else setScanError("กรุณากรอก mapping_id เป็นตัวเลข");
+    } else {
+      handleScanVerify();
+    }
+  };
+
   // ✅ แทนที่ด้วยโค้ดใหม่นี้
   const handleScanVerify = useCallback(() => {
     console.log("=== handleScanVerify called ===");
@@ -1286,8 +1353,12 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
   // ✅ แทนที่ด้วยโค้ดใหม่นี้
   const handleScanInputChange = (e) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-    console.log("Input value:", value); // เพิ่ม log
+    const raw = e.target.value;
+    // เครื่องสแกนมือถือ/เครื่องสแกนแบบคีย์บอร์ดพิมพ์ข้อความสลีปทั้งบรรทัดเข้ามา (มีตัวอักษรและ |)
+    const isSlipText = raw.includes("|") || /[A-Za-z]/.test(raw);
+    const value = isSlipText
+      ? raw.slice(0, 200)
+      : raw.replace(/\D/g, "").slice(0, manualType === "mapping" ? 10 : 4);
 
     setScannedCode(value);
     setScanError("");
@@ -1301,8 +1372,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
     // ❌ ไม่มี auto-submit ตรงนี้แล้ว
   };
   const handleScanKeyPress = (e) => {
-    if (e.key === "Enter" && scannedCode.length === 4) {
-      handleScanVerify();
+    if (e.key === "Enter" && scannedCode.trim()) {
+      handleScanSubmit();
     }
   };
 
@@ -1372,6 +1443,19 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
         },
         (decodedText) => {
           console.log("QR Code detected:", decodedText);
+
+          // QR จากสลีป → ใช้ mapping_id (ช่องที่ 4)
+          if (decodedText.includes("|")) {
+            const slipMappingId = parseSlipMappingId(decodedText);
+            if (slipMappingId) {
+              verifyByMappingId(slipMappingId);
+            } else {
+              setScanError("รูปแบบ QR สลีปไม่ถูกต้อง");
+              setTimeout(() => setScanError(""), 3000);
+            }
+            return;
+          }
+
           const last4 = decodedText.slice(-4).replace(/\D/g, "");
 
           if (last4.length === 4) {
@@ -1508,6 +1592,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
       setoperator("");
       setShowScanDialog(true);
       setIsVerified(false);
+      setManualType("tro");
+      verifyingMappingRef.current = false;
       setScannedCode("");
       setScanError("");
       setIsCameraActive(false);
@@ -1545,13 +1631,20 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
   // ✅ เพิ่มตรงนี้
   useEffect(() => {
-    if (scannedCode.length === 4) {
+    if (manualType === "tro" && /^\d{4}$/.test(scannedCode)) {
       const timer = setTimeout(() => {
         handleScanVerify();
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [scannedCode, handleScanVerify]);
+    // ข้อความสลีปจากเครื่องสแกน: อ่านครบแล้ว (ได้ mapping_id) รอสั้นๆ แล้วตรวจให้เอง
+    if (scannedCode.includes("|") && parseSlipMappingId(scannedCode) && scannedCode.trim().endsWith("PFCM")) {
+      const timer = setTimeout(() => {
+        handleScanSubmit();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [scannedCode, manualType, handleScanVerify]);
  
   const fetchMaterialName = async () => {
     try {
@@ -1960,22 +2053,40 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
             {/* Input Field */}
             <Box sx={{ width: "100%", maxWidth: 350 }}>
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                size="small"
+                value={manualType}
+                onChange={(e, value) => {
+                  if (!value) return;
+                  setManualType(value);
+                  setScannedCode("");
+                  setScanError("");
+                }}
+                sx={{ mb: 1 }}
+              >
+                <ToggleButton value="tro">ป้ายทะเบียน (4 หลัก)</ToggleButton>
+                <ToggleButton value="mapping">mapping_id (สลีป)</ToggleButton>
+              </ToggleButtonGroup>
               <TextField
                 inputRef={scanInputRef}
                 fullWidth
-                label="หรือพิมพ์เลข 4 หลักท้าย / ใช้ Scanner"
+                label={
+                  manualType === "mapping"
+                    ? "พิมพ์ mapping_id จากสลีป / ใช้ Scanner"
+                    : "หรือพิมพ์เลข 4 หลักท้าย / ใช้ Scanner"
+                }
                 value={scannedCode}
                 onChange={handleScanInputChange}
                 onKeyPress={handleScanKeyPress}
-                placeholder="0000"
+                placeholder={manualType === "mapping" ? "695089" : "0000"}
                 inputProps={{
-                  maxLength: 4,
                   inputMode: "numeric",
-                  pattern: "[0-9]*",
                   style: {
-                    fontSize: 24,
+                    fontSize: scannedCode.includes("|") ? 14 : 24,
                     textAlign: "center",
-                    letterSpacing: 8,
+                    letterSpacing: /^\d*$/.test(scannedCode) ? 8 : 0,
                   },
                 }}
                 error={!!scanError}
@@ -2009,7 +2120,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                   mt: 2,
                 }}
               >
-                {[1, 2, 3, 4].map((dot) => (
+                {manualType === "tro" && [1, 2, 3, 4].map((dot) => (
                   <Box
                     key={dot}
                     sx={{
@@ -2038,7 +2149,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               style={{ color: "#999" }}
               align="center"
             >
-              สแกน QR Code หรือพิมพ์เลข 4 หลักท้ายของป้ายทะเบียน
+              สแกน QR ป้ายทะเบียน / QR สลีป หรือพิมพ์เลข 4 หลักท้ายของป้ายทะเบียน / mapping_id
             </Typography>
 
             {/* Buttons */}
@@ -2059,8 +2170,14 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               <Button
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
-                onClick={handleScanVerify}
-                disabled={scannedCode.length !== 4}
+                onClick={handleScanSubmit}
+                disabled={
+                  isVerifyingMapping ||
+                  !scannedCode.trim() ||
+                  (manualType === "tro" &&
+                    !scannedCode.includes("|") &&
+                    scannedCode.length !== 4)
+                }
                 fullWidth
                 sx={{ backgroundColor: "#41a2e6" }}
               >

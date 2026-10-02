@@ -475,6 +475,39 @@ module.exports = (io) => {
   //   }
   // });
 
+  // GET /api/checkin/pack/mappingTrolley?mapping_id=695089
+  // ค้น tro_id ของ mapping_id จาก TrolleyRMMapping (ใช้ตรวจป้ายสลิปในหน้า Check In)
+  router.get("/checkin/pack/mappingTrolley", async (req, res) => {
+    try {
+      const mappingId = parseInt(req.query.mapping_id, 10);
+      if (!Number.isInteger(mappingId) || mappingId <= 0) {
+        return res.status(400).json({ success: false, error: "mapping_id ไม่ถูกต้อง" });
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) {
+        return res.status(503).json({ success: false, error: "Database unavailable" });
+      }
+
+      const result = await pool.request()
+        .input("mapping_id", sql.Int, mappingId)
+        .query(`
+          SELECT rmm.mapping_id, rmm.tro_id
+          FROM TrolleyRMMapping rmm
+          WHERE rmm.mapping_id = @mapping_id
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, error: `ไม่พบ mapping_id ${mappingId} ในระบบ` });
+      }
+
+      res.status(200).json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("[Route /checkin/pack/mappingTrolley] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   router.put("/checkin/pack", async (req, res) => {
     const transaction = new sql.Transaction();
 
