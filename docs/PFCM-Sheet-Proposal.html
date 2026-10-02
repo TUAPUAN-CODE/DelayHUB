@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PFCM Sheet — แนวคิดระบบใหม่บนฐาน DataSheet Pro</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#fff; --ink:#1c2430; --muted:#5b6675; --line:#dfe3e8;
+    --brand:#1f6feb; --brand-soft:#e6f0ff; --ok:#1a7f4b; --ok-soft:#e3f5ea;
+    --warn:#a15c00; --warn-soft:#fff1d6; --bad:#b42318; --bad-soft:#fde8e6;
+    --lock:#eef0f3; --code:#0f172a; --code-ink:#e2e8f0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f141b; --surface:#171d26; --ink:#e6ebf2; --muted:#98a3b3; --line:#2a3340;
+      --brand:#5b9dff; --brand-soft:#16294a; --ok:#4cc38a; --ok-soft:#12301f;
+      --warn:#f0b04a; --warn-soft:#3a2a0d; --bad:#ff8a80; --bad-soft:#3d1713;
+      --lock:#1f2733; --code:#0b0f15; --code-ink:#dbe4ef;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.7 "Prompt","Sarabun","Noto Sans Thai",system-ui,sans-serif}
+  header.hero{padding:48px 20px 36px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.25;margin:0 0 8px}
+  .sub{color:var(--muted);margin:0;max-width:760px}
+  .tag{display:inline-block;font-size:12px;padding:2px 10px;border-radius:99px;background:var(--brand-soft);color:var(--brand);margin-right:6px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  nav.toc a{font-size:13px;color:var(--ink);text-decoration:none;border:1px solid var(--line);padding:4px 12px;border-radius:99px;background:var(--surface)}
+  nav.toc a:hover{border-color:var(--brand);color:var(--brand)}
+  section{padding:36px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:24px;margin:0 0 6px}
+  h2 .n{color:var(--brand);margin-right:8px}
+  h3{font-size:18px;margin:26px 0 6px}
+  p{margin:8px 0}
+  .lead{color:var(--muted)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .callout{border-left:4px solid var(--brand);background:var(--brand-soft);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  .callout.warn{border-color:var(--warn);background:var(--warn-soft)}
+  .callout.bad{border-color:var(--bad);background:var(--bad-soft)}
+  table.t{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0;background:var(--surface)}
+  table.t th,table.t td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  table.t th{background:var(--lock);font-weight:600}
+  .scroll{overflow-x:auto}
+  code,pre{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:13px}
+  pre{background:var(--code);color:var(--code-ink);padding:14px 16px;border-radius:10px;overflow-x:auto;line-height:1.55}
+  :not(pre)>code{background:var(--lock);padding:1px 6px;border-radius:5px}
+  .ok{color:var(--ok)} .warnc{color:var(--warn)} .badc{color:var(--bad)}
+  ul{padding-left:22px;margin:6px 0} li{margin:3px 0}
+
+  /* ---------- Sheet mockup ---------- */
+  .sheet{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  .sheet .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--lock);font-size:13px}
+  .chip{padding:2px 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:12px}
+  table.sh{border-collapse:collapse;width:100%;min-width:980px;font-size:13px}
+  table.sh th,table.sh td{border:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+  table.sh thead th{background:var(--lock);font-weight:600}
+  table.sh thead tr.grp th{text-align:center;color:#fff;font-size:12px;border-color:transparent}
+  .g1{background:#3b6fd4}.g2{background:#0e8a8a}.g3{background:#8a5cd6}.g4{background:#c26a1c}.g5{background:#5a6b7d}
+  td.frz{background:var(--lock);font-weight:600;position:sticky;left:0}
+  td.done{background:var(--ok-soft);color:var(--ok)}
+  td.todo{background:#fff;outline:2px solid var(--brand);outline-offset:-2px}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) td.todo{background:var(--surface)}}
+  td.lock{background:var(--lock);color:var(--muted)}
+  td.warnc2{background:var(--warn-soft);color:var(--warn);font-weight:600}
+  td.over{background:var(--bad-soft);color:var(--bad);font-weight:600}
+  .mode{font-size:11px;opacity:.85}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;color:var(--muted);margin:10px 0}
+  .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line)}
+
+  /* ---------- Architecture ---------- */
+  .arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface)}
+  .box h4{margin:0 0 4px;font-size:15px}
+  .box small{color:var(--muted);display:block}
+  .box.new{border-color:var(--brand);background:var(--brand-soft)}
+  .box.old{border-style:dashed}
+  .flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}
+  .flow span.s{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:13px}
+  .flow span.a{color:var(--muted)}
+  .phase{display:grid;grid-template-columns:90px 1fr;gap:12px;padding:12px 0;border-top:1px dashed var(--line)}
+  .phase b.p{color:var(--brand)}
+  footer{padding:30px 0;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">แนวคิด (Concept)</span><span class="tag">ฉบับร่างเพื่อหารือ</span>
+    <h1>PFCM Sheet — สร้างระบบใหม่ในรูปแบบตารางแบบ Excel</h1>
+    <p class="sub">ปรับ UX/UI ใหม่ทั้งหมดโดยยึดโครงสร้างข้อมูลเดิมของ PFCM
+      ใช้ <b>DataSheet Pro (repo DocHUB)</b> เป็นฐาน แล้วเพิ่มความสามารถที่ระบบโรงงานต้องมี:
+      เงื่อนไขการลงข้อมูล (สแกน/พิมพ์/ผ่านเครื่องมือ), คอลัมน์สร้างเองจากหน้าเว็บ, ระบบ Delay และ RFID</p>
+    <nav class="toc">
+      <a href="#s1">1 สรุป</a><a href="#s2">2 DocHUB มีอะไรแล้ว</a><a href="#s3">3 โครงสร้างพื้นที่งาน</a>
+      <a href="#s4">4 หน้าตาตาราง</a><a href="#s5">5 กติกาการลงข้อมูล</a><a href="#s6">6 ระบบ Delay</a>
+      <a href="#s7">7 Flow ของ RM</a><a href="#s8">8 RFID</a><a href="#s9">9 สถาปัตยกรรม</a>
+      <a href="#s10">10 ข้อมูล/สิทธิ์</a><a href="#s11">11 การย้ายระบบ</a><a href="#s12">12 แผนงาน</a>
+      <a href="#s13">13 ความเสี่ยง</a><a href="#s14">14 คำถามที่ต้องตัดสินใจ</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <h2><span class="n">1</span>สรุปสำหรับผู้ตัดสินใจ</h2>
+  <div class="card">
+    <ul>
+      <li><b>แนวคิดหลัก:</b> ทุกอย่างในระบบคือ "ชีต" (ตาราง) หน้าตาเหมือน Excel — ตาราง Flow ของ RM, ข้อมูลวัตถุดิบ,
+        แผนการผลิต, รถเข็น, ช่องจอด ฯลฯ ใช้เครื่องมือเดียวกัน กฎการกรอก สิทธิ์ และประวัติการแก้ไขเหมือนกันทั้งหมด</li>
+      <li><b>ไม่ต้องเริ่มจาก 0 ทั้งหมด:</b> DocHUB มีตารางแบบ Excel, File Builder, สิทธิ์ระดับไฟล์/โฟลเดอร์,
+        ประวัติทุกเซลล์พร้อม rollback, Dashboard, Socket.IO และ JWT อยู่แล้ว (อ่านจาก README/สเปก/schema ใน repo)
+        ใช้ stack ตรงกับ PFCM เดิม (React, Express, MSSQL, Socket.IO)</li>
+      <li><b>สิ่งที่ต้องสร้างเพิ่ม 6 อย่าง:</b> (1) กติกาการลงข้อมูลต่อคอลัมน์ (2) Tool/Command Registry
+        (3) Delay Engine (4) สิทธิ์ระดับคอลัมน์/ขอบเขตแถว (5) Device Gateway สำหรับ RFID/สแกนเนอร์/เครื่องพิมพ์
+        (6) ตัวนำเข้า/สะพานข้อมูลจาก PFCM เดิม</li>
+      <li><b>วิธีเปลี่ยนระบบที่แนะนำ:</b> ค่อยๆ ย้ายทีละงาน (strangler) ไม่ปิดระบบเดิมในวันเดียว
+        เพราะระบบเดิมใช้งานจริงบนสายการผลิตและมี RFID ที่ต้องเชื่อมต่อต่อเนื่อง</li>
+    </ul>
+  </div>
+  <div class="callout warn"><b>หมายเหตุความน่าเชื่อถือ:</b> เอกสารนี้เป็นแนวคิด ไม่ใช่ข้อมูลจากระบบที่รันจริง —
+    ส่วน "DocHUB มีอะไรแล้ว" อ่านจากเอกสารและ schema ของ repo ยังไม่ได้ทดสอบการทำงาน/ประสิทธิภาพของ DocHUB ที่ปริมาณข้อมูลจริง
+    และตัวเลข/รายชื่อตารางของ PFCM เดิมอ้างอิงจากโค้ดที่อ่านในรอบก่อนหน้า</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <h2><span class="n">2</span>DocHUB (DataSheet Pro) มีอะไรแล้ว / ต้องเพิ่มอะไร</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>ความต้องการ</th><th>DocHUB ตอนนี้</th><th>สถานะ</th></tr>
+    <tr><td>ตารางแบบ Excel, ซูม, freeze, ปรับขนาดคอลัมน์/แถว, filter/sort แบบ Excel</td><td>มี (SpreadsheetGrid, ColumnFilterMenu, UserSheetPrefs)</td><td class="ok">พร้อมใช้</td></tr>
+    <tr><td>เพิ่ม/แก้คอลัมน์จากหน้าเว็บ</td><td>มี File Builder + ColumnManager, 12 ชนิดข้อมูล, validation, select มีสี</td><td class="ok">พร้อมใช้ (ต้องขยายชนิด)</td></tr>
+    <tr><td>จัดโฟลเดอร์/ไฟล์ แบบ SharePoint</td><td>มี โฟลเดอร์ซ้อนไม่จำกัด, ถังขยะ, ดาว, ค้นหา</td><td class="ok">พร้อมใช้</td></tr>
+    <tr><td>ยืนยันตัวตนและสิทธิ์ฝั่ง server</td><td>มี JWT + RefreshTokens, สิทธิ์ read/write/manage ต่อไฟล์/โฟลเดอร์, คำขอสิทธิ์</td><td class="ok">พร้อมใช้ (แก้ปัญหา "ไม่มี auth ฝั่ง server" ของ PFCM เดิม)</td></tr>
+    <tr><td>ประวัติทุกเซลล์ + ย้อนค่า (เซลล์/แถว/ชีต)</td><td>มี CellHistory, RowSnapshots, AuditLog</td><td class="ok">พร้อมใช้</td></tr>
+    <tr><td>เรียลไทม์</td><td>มี Socket.IO</td><td class="ok">พร้อมใช้</td></tr>
+    <tr><td>Dashboard / กราฟ</td><td>มี</td><td class="ok">พร้อมใช้</td></tr>
+    <tr><td><b>เงื่อนไขการลงข้อมูล</b> (ต้องสแกน / พิมพ์ได้ / ผ่าน tool)</td><td>ไม่มี — ทุกเซลล์พิมพ์ได้</td><td class="badc">ต้องสร้าง</td></tr>
+    <tr><td><b>Delay จากคอลัมน์ต่างๆ</b></td><td>ไม่มี formula / computed column</td><td class="badc">ต้องสร้าง</td></tr>
+    <tr><td><b>สิทธิ์ระดับคอลัมน์ / ขอบเขตแถว</b> (ตามไลน์/จุดงาน)</td><td>สิทธิ์ระดับไฟล์/โฟลเดอร์เท่านั้น</td><td class="badc">ต้องสร้าง</td></tr>
+    <tr><td><b>RFID / สแกนเนอร์ / เครื่องพิมพ์สลีป</b></td><td>ไม่มี</td><td class="badc">ต้องสร้าง</td></tr>
+    <tr><td><b>Flow ของ RM</b> (ขั้นตอนต่อกัน, รอบห้องเย็น 1–3, วัตถุดิบผสม)</td><td>ไม่มี (เป็นตารางทั่วไป)</td><td class="badc">ต้องออกแบบ</td></tr>
+    <tr><td>นำเข้าข้อมูล PFCM เดิม</td><td>มี csv.ts สำหรับ CSV เท่านั้น</td><td class="warnc">ต้องทำตัวนำเข้า</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <h2><span class="n">3</span>โครงสร้างพื้นที่งาน: "ทุกอย่างคือชีต"</h2>
+  <p class="lead">จับคู่หน้าเดิมของ PFCM (ซึ่งแยกตามบทบาท 7 โมดูล มีไฟล์ซ้ำจำนวนมาก) เป็นชีตไม่กี่ชุด</p>
+<pre>📁 PFCM
+├─ 📁 งานประจำวัน (Operations)
+│   ├─ 📊 RM Flow Board            ← ชีตหลัก 1 แถว = วัตถุดิบ 1 ตัว (mapping_id) เห็นทุกขั้นในบรรทัดเดียว
+│   ├─ 📊 รอบห้องเย็น (Cold Rounds) ← ชีตลูก 1 แถว = 1 รอบเข้า-ออก (แทน come_cold_date / _two / _three)
+│   └─ 📊 กล่องรอผูก EPC (RFID Inbox)
+├─ 📁 ข้อมูลหลัก (Master Data)     ← หน้า Sup เดิมมาอยู่รูปแบบเดียวกัน
+│   ├─ 📊 วัตถุดิบ (RawMat)  + เวลามาตรฐาน (PTC / Cold / Rework)
+│   ├─ 📊 แผนการผลิต (Production Plan)
+│   ├─ 📊 รถเข็น (Trolley) / ผูก EPC ↔ tro_id
+│   ├─ 📊 ห้องเย็นและช่อง (ColdStorage / Slot)
+│   └─ 📊 ผู้ใช้ / จุดงาน (Users / Workplace)
+├─ 📁 รายงาน (Reports)            ← มุมมอง/Dashboard ที่บันทึกไว้ (Delay, ประวัติ, การใช้บรรจุภัณฑ์)
+└─ 📁 ตั้งค่าระบบ (Tools, Rules, Devices)</pre>
+  <div class="callout">ข้อดี: เพิ่มข้อมูลหรือคอลัมน์ใหม่ (เช่น "อุณหภูมิตอนรับเข้า") ทำจากหน้าเว็บ ไม่ต้องแก้โค้ดและ deploy
+    และทุกชีตมีสิทธิ์ ประวัติ และ rollback แบบเดียวกัน</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <h2><span class="n">4</span>หน้าตา RM Flow Board (ภาพจำลอง)</h2>
+  <p class="lead">คอลัมน์จัดกลุ่มตามขั้นตอน หัวคอลัมน์บอกวิธีลงข้อมูล เซลล์บอกสถานะด้วยสี — เห็น flow และ Delay ในหน้าเดียว</p>
+  <div class="sheet">
+    <div class="bar"><b>RM Flow Board</b><span class="chip">กรอง: ไลน์ = A</span><span class="chip">เรียง: Delay มาก→น้อย</span>
+      <span class="chip">🔒 ฉันแก้ได้: ขั้น "ห้องเย็น"</span><span style="margin-left:auto;color:var(--muted)">ซูม 100% · freeze 2 คอลัมน์</span></div>
+    <div class="scroll"><table class="sh">
+      <thead>
+        <tr class="grp"><th class="g5" colspan="3">ข้อมูล RM</th><th class="g1" colspan="2">เตรียม</th><th class="g2" colspan="3">ห้องเย็น</th><th class="g3" colspan="2">อบ/ผสม</th><th class="g4" colspan="2">บรรจุ</th><th class="g5">สรุป</th></tr>
+        <tr>
+          <th>รถเข็น</th><th>วัตถุดิบ</th><th>Batch</th>
+          <th>ผู้เตรียม <span class="mode">⌨️</span></th><th>เวลาออกเตรียม <span class="mode">🔧</span></th>
+          <th>เข้าห้องเย็น <span class="mode">🤖RFID</span></th><th>ช่อง <span class="mode">🔧auto</span></th><th>ออกห้องเย็น <span class="mode">🤖RFID</span></th>
+          <th>เริ่มอบ <span class="mode">📷</span></th><th>เสร็จอบ <span class="mode">📷</span></th>
+          <th>รับบรรจุ <span class="mode">📷</span></th><th>น้ำหนัก (kg) <span class="mode">⌨️</span></th>
+          <th>Delay <span class="mode">ƒ</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="frz">0868</td><td class="frz">ไก่สด 14M23…</td><td>695089</td>
+          <td class="done">สมชาย</td><td class="done">08:10</td><td class="done">09:02</td><td class="done">1A-07</td><td class="warnc2">รอออก 4:10</td>
+          <td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="warnc2">🟡 เหลือ 0:50</td></tr>
+        <tr><td class="frz">0412</td><td class="frz">หมูบด LCMTP…</td><td>695102</td>
+          <td class="done">สมศรี</td><td class="done">06:40</td><td class="done">07:15</td><td class="done">2B-03</td><td class="done">11:30</td>
+          <td class="todo">📷 สแกนเพื่อกรอก</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="over">🔴 เกิน 1:20</td></tr>
+        <tr><td class="frz">1130</td><td class="frz">ผัก-ผสม MIX-7</td><td>695140</td>
+          <td class="todo">⌨️ พิมพ์ชื่อ</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td>
+          <td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="lock">🔒</td><td class="done">🟢 ปกติ</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--ok-soft)"></i>ลงข้อมูลแล้ว</span>
+    <span><i style="background:#fff;outline:2px solid var(--brand);outline-offset:-2px"></i>ถึงคิวและฉันมีสิทธิ์กรอก</span>
+    <span><i style="background:var(--lock)"></i>ยังไม่ถึงขั้น / ไม่มีสิทธิ์</span>
+    <span><i style="background:var(--warn-soft)"></i>ใกล้ Delay</span><span><i style="background:var(--bad-soft)"></i>เกิน Delay</span>
+    <span>⌨️ พิมพ์ได้ · 📷 ต้องสแกน · 🔧 ผ่าน Tool · 🤖 อุปกรณ์ (RFID) · ƒ คำนวณอัตโนมัติ</span>
+  </div>
+  <h3>พฤติกรรมของเซลล์</h3>
+  <ul>
+    <li>กดเซลล์ที่ถึงคิว → ช่องกรอกพอดีกับกติกาของคอลัมน์ (ช่องสแกน, dropdown, ตัวเลข, หรือปุ่ม Tool) ไม่ใช่ช่องข้อความอิสระ</li>
+    <li>ขั้นต่อไปปลดล็อกเมื่อขั้นก่อนหน้าเสร็จ (กำหนดเป็นเงื่อนไขของคอลัมน์ได้)</li>
+    <li>เซลล์ที่คนอื่นหรือ RFID เพิ่งแก้ จะกะพริบ (DocHUB มี remote edit flash อยู่แล้ว) และถ้าชนกันให้ขึ้น "ข้อมูลเปลี่ยนแล้ว" แทนการเขียนทับ</li>
+    <li>บนมือถือ/เครื่องสแกน: แสดงเป็นมุมมองการ์ดของแถวเดียวที่เน้นเฉพาะเซลล์ที่ต้องกรอก (ตารางเต็มเหมาะกับหัวหน้างาน/ผู้ดูแล)</li>
+  </ul>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <h2><span class="n">5</span>กติกาการลงข้อมูลต่อคอลัมน์ (Entry Rules)</h2>
+  <p class="lead">เพิ่มช่อง <code>entry</code> ในนิยามคอลัมน์ (JSON) ตั้งได้จากหน้าเว็บ โดย server เป็นผู้บังคับใช้ทุกครั้ง</p>
+  <div class="scroll"><table class="t">
+    <tr><th>โหมด</th><th>ความหมาย</th><th>ตัวอย่างใช้กับ</th></tr>
+    <tr><td><code>type</code> ⌨️</td><td>พิมพ์/เลือกเองได้ ตรวจรูปแบบตาม validation</td><td>ผู้เตรียม, หมายเหตุ</td></tr>
+    <tr><td><code>scan</code> 📷</td><td>ต้องสแกนเท่านั้น (ปิดการพิมพ์) ระบุชนิดที่ยอมรับ + วิธีแปลงค่า</td><td>รับบรรจุ = สแกน QR ป้ายทะเบียน หรือ QR สลีป</td></tr>
+    <tr><td><code>scan_or_type</code></td><td>สแกนหรือพิมพ์ก็ได้ (เหมือนหน้า Check In Pack ที่เพิ่งทำ: QR ป้ายทะเบียน / QR สลีป / พิมพ์ mapping_id)</td><td>ยืนยันรถเข็น</td></tr>
+    <tr><td><code>tool</code> 🔧</td><td>ห้ามแก้เซลล์ตรงๆ ต้องกดปุ่ม Tool ที่ผูกไว้ ซึ่งทำงานหลายอย่างในธุรกรรมเดียว</td><td>เข้าห้องเย็น (จองช่อง+บันทึกเวลา), ส่งออก (เคลียร์ช่อง+พิมพ์สลีป)</td></tr>
+    <tr><td><code>device</code> 🤖</td><td>เฉพาะอุปกรณ์ที่ลงทะเบียนเขียนได้ (RFID reader ฯลฯ) ผู้ใช้แก้มือไม่ได้ ยกเว้นบทบาทที่อนุญาต "แก้ไขกรณีพิเศษ" (มี audit)</td><td>เวลาเข้า/ออกห้องเย็นอัตโนมัติ</td></tr>
+    <tr><td><code>computed</code> ƒ</td><td>คำนวณจากคอลัมน์อื่น ห้ามกรอก</td><td>Delay, ระยะเวลาอยู่ห้องเย็น</td></tr>
+  </table></div>
+<pre>{
+  "column_name": "รับบรรจุ",
+  "data_type": "varchar",
+  "entry": {
+    "mode": "scan_or_type",
+    "accept": [
+      { "kind": "tro_id",        "pattern": "^\\d{4}$",                      "resolve": "trolley.by_id" },
+      { "kind": "slip_qr",       "pattern": "^.+\\|.+\\|.+\\|(\\d+)\\|",   "resolve": "mapping.by_id" },
+      { "kind": "mapping_id",    "pattern": "^\\d{4,10}$",                   "resolve": "mapping.by_id" }
+    ],
+    "must_match_row": "tro_id",             // ค่าที่สแกนต้องเป็นของแถวนี้
+    "requires": ["เข้าห้องเย็น", "ออกห้องเย็น"], // คอลัมน์ที่ต้องมีค่าก่อน
+    "allow_manual_override": { "roles": ["supervisor"], "reason_required": true }
+  },
+  "permissions": { "view": ["*"], "edit": ["pack_operator", "supervisor"] }
+}</pre>
+  <div class="callout"><b>หลักการ:</b> หน้าเว็บแสดงช่องกรอกตาม <code>entry</code> เพื่อความสะดวก แต่ server ตรวจซ้ำทุกคำขอ
+    — ถ้าส่ง API ตรงๆ ก็ผ่านกติกาเดียวกัน ผลคือกติกา "ต้องสแกน" บังคับได้จริง ไม่ใช่แค่ซ่อนปุ่ม</div>
+
+  <h3>Tool Registry (คำสั่งที่ทำหลายอย่างในครั้งเดียว)</h3>
+  <p>ตรรกะธุรกิจเดิมของ PFCM (เข้า/ออกห้องเย็น, จองช่อง, พิมพ์สลีป, รับเข้าบรรจุ) ย้ายมาเป็น "Tool" ที่ลงทะเบียนชื่อไว้
+     คอลัมน์ผูกกับ Tool ได้จากหน้าเว็บ ส่วนตรรกะข้างในเป็นโค้ดที่ทดสอบแล้ว ไม่ให้ผู้ใช้เขียนเอง</p>
+<pre>tool: "cold.checkin"
+  input:  { mapping_ids[], reader_no? }
+  checks: สถานะต้องเป็น (stay_place = จุดเตรียม, dest = รอCheckin) ฯลฯ
+  does:   อัปเดตสถานะ → จองช่องใน cs_id ที่กำหนด → บันทึกรอบ → แจ้งเรียลไทม์   (ทั้งหมดในธุรกรรมเดียว)
+  idempotency_key: reader_no + epc + window   // กันสแกนซ้ำ</pre>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <h2><span class="n">6</span>ระบบ Delay (กำหนดจากคอลัมน์ได้เอง)</h2>
+  <p class="lead">Delay คือ "กติกาเวลา" ที่ผูกกับคอลัมน์ ตั้งจากหน้าเว็บ ไม่ฮาร์ดโค้ดเหมือนระบบเดิม</p>
+<pre>{
+  "delay_rule": {
+    "name": "อยู่ห้องเย็นเกินมาตรฐาน",
+    "start":   { "column": "เข้าห้องเย็น" },
+    "stop":    { "column": "ออกห้องเย็น", "or": "now" },       // ยังไม่ออก = นับถึงปัจจุบัน
+    "limit":   { "from": "lookup", "sheet": "วัตถุดิบ", "key": "mat", "column": "cold_std_hr" },
+    "warn_at": 0.8,                                              // เตือนที่ 80% ของเวลาที่กำหนด
+    "pause_when": [ { "column": "สถานะ", "in": ["รอ QC"] } ],  // หยุดนับ (เช่นรอตรวจ)
+    "calendar": "24h",                                           // หรือปฏิทินกะ/วันหยุด
+    "notify": { "over": ["supervisor"], "channel": ["in_app", "line"] }
+  }
+}</pre>
+  <ul>
+    <li><b>ผลลัพธ์เป็นคอลัมน์ ƒ</b> (เช่น "เหลือเวลา", "เกิน") ใช้กรอง/เรียง/ทำกราฟได้เหมือนคอลัมน์ปกติ จึงเรียงแถวตาม Delay ได้ทันที</li>
+    <li><b>เวลามาตรฐานมาจากชีตข้อมูลหลัก</b> (ตารางวัตถุดิบ) เปลี่ยนมาตรฐานที่ที่เดียว ทุกแถวที่เกี่ยวข้องเปลี่ยนตาม</li>
+    <li><b>รองรับกติกาเดิม:</b> PTC (เตรียม→ห้องเย็น), Cold (อยู่ห้องเย็น), Rework, Mix time, หลายรอบ (รอบ 1–3) — แต่ละอย่างเป็น 1 rule</li>
+    <li><b>วิธีคำนวณ:</b> บันทึกค่า "เวลาครบกำหนด" (due_at) ลง DB ตอนเซลล์เปลี่ยน แล้วให้ worker ตรวจเป็นระยะและส่ง event
+      (ไม่คำนวณใหม่ทุกครั้งที่เปิดหน้า) เพื่อให้เร็วและแจ้งเตือนได้แม้ไม่มีใครเปิดเว็บ</li>
+  </ul>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <h2><span class="n">7</span>Flow ของ RM และความสัมพันธ์ระหว่างชีต</h2>
+  <div class="flow">
+    <span class="s">แผนผลิต</span><span class="a">→</span><span class="s">เตรียม</span><span class="a">→</span>
+    <span class="s">ห้องเย็น (หลายรอบ)</span><span class="a">→</span><span class="s">อบ / ผสม</span><span class="a">→</span>
+    <span class="s">QC</span><span class="a">→</span><span class="s">บรรจุ</span>
+  </div>
+  <ul>
+    <li><b>1 แถว = 1 mapping_id</b> (คงรหัสเดิม) เพื่อให้เทียบกับระบบเดิมและสลีปที่พิมพ์ไปแล้วได้ (QR สลีปมี mapping_id)</li>
+    <li><b>รอบห้องเย็นแยกเป็นชีตลูก</b> แทนคอลัมน์ซ้ำ ×3 — รองรับกี่รอบก็ได้ และรายงานง่ายขึ้น
+      (ชีตหลักแสดงรอบล่าสุดผ่านคอลัมน์ lookup)</li>
+    <li><b>วัตถุดิบผสม</b> = แถวแม่ (mix_code) + แถวลูกอ้างอิง mapping_id ของส่วนผสม (คอลัมน์ชนิด relation)</li>
+    <li><b>คอลัมน์ชนิดใหม่:</b> <code>relation</code> (อ้างชีตอื่น), <code>lookup</code> (ดึงค่าจากชีตอื่น), <code>scan</code>, <code>duration</code>, <code>status</code> (มีลำดับ/สี/ขั้นตอนถัดไป)</li>
+    <li><b>มุมมองตามบทบาท (Saved Views):</b> ทุกบทบาทเปิดชีตเดียวกัน แต่มีมุมมองที่กรอง/ซ่อนคอลัมน์ไว้ให้ ("ห้องเย็น: รอเข้า", "บรรจุ: รอรับ", "ผู้ดูแล: ที่เกิน Delay")
+      แทนการสร้าง 7 โมดูลแยก</li>
+  </ul>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <h2><span class="n">8</span>การรองรับ RFID</h2>
+  <div class="flow">
+    <span class="s">RFID Reader (TCP)</span><span class="a">→</span><span class="s">Device Gateway (fork เดียวต่อ reader)</span><span class="a">→</span>
+    <span class="s">Ingest API (idempotent)</span><span class="a">→</span><span class="s">Tool: cold.checkin / cold.checkout</span><span class="a">→</span><span class="s">เซลล์กะพริบ + พิมพ์สลีป</span>
+  </div>
+  <ul>
+    <li><b>Device Gateway แยกเป็น service เดียวต่อ reader</b> (ข้อจำกัดฮาร์ดแวร์เดิม: ห้ามต่อซ้อนหลาย process) ทำหน้าที่แยกเฟรม กรอง EPC ขยะ ตรวจ watchdog
+      — พอร์ตมาจาก <code>RFIDc1.js</code> และ <code>rfidFrameParser.js</code> ที่ทดสอบแล้ว</li>
+    <li><b>เขียนข้อมูลผ่านทางเดียวกับผู้ใช้</b> ในนามผู้ใช้ระบบ <code>device:reader-1</code> ใช้ Tool และกติกาชุดเดียวกัน จึงมี audit/rollback ครบ
+      (หมายเหตุ: rollback แก้ข้อมูลได้ แต่ย้อนการพิมพ์สลีปหรือการเคลื่อนที่จริงไม่ได้)</li>
+    <li><b>ชีตข้อมูลหลัก "EPC ↔ รถเข็น"</b> + กล่องรอผูก (EPC ที่ไม่รู้จัก) ใช้การผูก/แก้/ยกเลิกที่ทำไว้แล้ว ย้ายมาเป็นชีตปกติ</li>
+    <li><b>ตั้งค่า reader จากหน้าเว็บ:</b> IP/พอร์ต, ห้องเย็นที่ให้เลือกช่อง (เช่น cs_id 1–7), เวลา cooldown, เครื่องพิมพ์ปลายทาง — เก็บเป็นชีตตั้งค่า</li>
+    <li><b>พิมพ์สลีป:</b> เป็น Tool ฝั่ง server เรียก print-agent เอง ไม่ต้องมีเบราว์เซอร์เปิดค้างไว้
+      (ข้อมูลสลีปถูก snapshot ก่อนรถออกจากช่อง) แก้ข้อจำกัดของระบบเดิมที่การพิมพ์ทำฝั่งเบราว์เซอร์</li>
+  </ul>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <h2><span class="n">9</span>สถาปัตยกรรมโดยสรุป</h2>
+  <div class="arch">
+    <div class="box"><h4>Client (React + TS)</h4><small>SpreadsheetGrid, Saved Views, Scan input, Column Builder, Rule editor</small></div>
+    <div class="box"><h4>API (Express + TS)</h4><small>Auth/JWT, ACL, Sheets/Rows/Cells, Socket.IO + Redis adapter</small></div>
+    <div class="box new"><h4>Entry Engine <i>(ใหม่)</i></h4><small>ตรวจ entry/permissions/requires ทุกการเขียนเซลล์</small></div>
+    <div class="box new"><h4>Tool Registry <i>(ใหม่)</i></h4><small>cold.checkin, cold.checkout, print.slip, pack.checkin …</small></div>
+    <div class="box new"><h4>Delay Worker <i>(ใหม่)</i></h4><small>คำนวณ due_at, ส่งเตือน, สถานะเกินกำหนด</small></div>
+    <div class="box new"><h4>Device Gateway <i>(ใหม่)</i></h4><small>RFID (fork เดี่ยว), สแกนเนอร์, print-agent</small></div>
+    <div class="box"><h4>MSSQL</h4><small>ตารางหลักของ DocHUB + ตารางใหม่ (ด้านล่าง)</small></div>
+    <div class="box old"><h4>PFCM เดิม (ช่วงเปลี่ยนผ่าน)</h4><small>อ่านอย่างเดียวผ่านสะพานข้อมูล / รันคู่ขนาน</small></div>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <h2><span class="n">10</span>ข้อมูลและสิทธิ์ (ส่วนที่ต้องเพิ่มใน schema)</h2>
+<pre>-- เพิ่มในตาราง Columns
+ALTER TABLE Columns ADD entry_config NVARCHAR(MAX) NULL;   -- JSON: mode, accept, requires, override
+ALTER TABLE Columns ADD delay_config NVARCHAR(MAX) NULL;   -- JSON: rule ของคอลัมน์ ƒ
+ALTER TABLE Columns ADD formula_config NVARCHAR(MAX) NULL; -- lookup / computed
+
+-- ใหม่
+ColumnPermissions (column_id, principal_type, principal_id, can_view, can_edit)   -- สิทธิ์ระดับคอลัมน์
+RowScopes        (sheet_id, principal_id, filter_json)                            -- เห็น/แก้เฉพาะไลน์/จุดงานของตัวเอง
+Tools            (tool_id, name, version, schema_json, is_active)
+ToolRuns         (run_id, tool_id, actor, input_json, result_json, idempotency_key, created_at)
+DelayStates      (row_id, column_id, due_at, state, updated_at)                   -- ผลลัพธ์ Delay ที่คำนวณไว้
+Devices          (device_id, kind, name, config_json, system_user_id)
+DeviceEvents     (event_id, device_id, payload_json, received_at, processed_at)   -- inbox กันข้อมูลหาย + ตรวจซ้ำ</pre>
+  <h3>สิทธิ์ 3 ชั้น</h3>
+  <ol>
+    <li><b>ไฟล์/โฟลเดอร์</b> (มีใน DocHUB แล้ว): ใครเปิดชีตไหนได้</li>
+    <li><b>คอลัมน์:</b> ใครเห็น/แก้คอลัมน์ไหน (เช่น "บรรจุ" แก้ได้เฉพาะขั้นบรรจุ)</li>
+    <li><b>แถว (scope):</b> เห็น/แก้เฉพาะไลน์หรือจุดงานของตัวเอง (ใช้ wp_id เดิม)</li>
+  </ol>
+  <div class="callout warn"><b>จุดที่ต้องตัดสินใจเรื่องประสิทธิภาพ:</b> DocHUB เก็บค่าเซลล์แบบ EAV (1 แถวใน <code>Cells</code> ต่อ 1 เซลล์) ยืดหยุ่นมาก
+    แต่ที่ปริมาณหลายแสนแถว × หลายสิบคอลัมน์ พร้อม RFID เขียนต่อเนื่อง การกรอง/รายงานจะหนักกว่าตารางจริง
+    แนวทาง: ทำ proof-of-concept วัดก่อน และถ้าไม่ผ่าน ให้ชีต Flow Board ใช้ "ตารางจริง" (typed table) ที่สร้างจากนิยามคอลัมน์
+    หรือมี materialized view สำหรับคอลัมน์ที่ค้นบ่อย — ต้องวัดจริง ไม่ควรเดา</div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="s11">
+  <h2><span class="n">11</span>การย้ายจากระบบเดิม</h2>
+  <p>ระบบเดิมคือ production จริง การเปลี่ยนวันเดียวเสี่ยงสายการผลิตหยุด แนะนำย้ายทีละงาน:</p>
+  <ol>
+    <li><b>สะพานข้อมูลอ่านอย่างเดียว:</b> ชีต Flow Board ดึงข้อมูลจาก <code>TrolleyRMMapping</code> / <code>History</code> เดิมมาแสดงก่อน ใช้พิสูจน์ UX โดยไม่แตะข้อมูลจริง</li>
+    <li><b>ย้ายข้อมูลหลัก:</b> วัตถุดิบ, รถเข็น, ช่อง, ผู้ใช้ — นำเข้าแล้วตรวจเทียบจำนวน/ค่า</li>
+    <li><b>ย้ายทีละงานที่เขียนข้อมูล</b> (เช่น Check In บรรจุ → ห้องเย็น → ส่งออก) ผ่าน Tool ที่ผลลัพธ์ตรงกับ API เดิม มีช่วงรันคู่ขนานและเทียบผล</li>
+    <li><b>ย้าย RFID เป็นขั้นสุดท้าย:</b> หยุด service เดิม 1 ตัว/reader แล้วเปิด Gateway ใหม่ ห้ามรันพร้อมกันสองระบบ (ข้อจำกัดฮาร์ดแวร์)</li>
+    <li>คงรหัส <code>mapping_id</code>, <code>tro_id</code>, <code>epc</code> เดิม เพื่อให้สลีป ป้าย และประวัติเดิมยังใช้ได้</li>
+  </ol>
+</section>
+
+<!-- ============ 12 ============ -->
+<section id="s12">
+  <h2><span class="n">12</span>แผนงานเป็นระยะ (ไม่ระบุเวลา — ขึ้นกับขนาดทีม)</h2>
+  <div class="phase"><b class="p">ระยะ 0</b><div><b>ตรวจสอบฐาน + สัมภาษณ์หน้างาน</b> — ติดตั้ง DocHUB, วัดประสิทธิภาพกับข้อมูลจำลองขนาดจริง, ดูว่าตารางเรนเดอร์แบบ virtualized ไหม, เลือก 3 งานหลักที่จะลองก่อน<br><i>ผ่านเมื่อ:</i> ตาราง 100k แถวเลื่อน/กรองลื่น และเลือก EAV หรือ typed table ได้</div></div>
+  <div class="phase"><b class="p">ระยะ 1</b><div><b>Entry Engine + สิทธิ์ระดับคอลัมน์/แถว</b> — entry_config, ColumnPermissions, RowScopes, ชนิดคอลัมน์ใหม่ (scan, relation, lookup)<br><i>ผ่านเมื่อ:</i> ส่ง API ตรงๆ แล้วถูกปฏิเสธตามกติกา</div></div>
+  <div class="phase"><b class="p">ระยะ 2</b><div><b>Flow Board อ่านอย่างเดียว + สะพานข้อมูลเดิม</b> — Saved Views ตามบทบาท, ให้ผู้ใช้จริงลอง<br><i>ผ่านเมื่อ:</i> ผู้ดูแลตอบ "RM นี้อยู่ขั้นไหน/อะไร Delay" ได้จากหน้าเดียว</div></div>
+  <div class="phase"><b class="p">ระยะ 3</b><div><b>Tool Registry + สแกน + พิมพ์สลีป</b> — พอร์ต Check In บรรจุ / เข้า-ออกห้องเย็น เป็น Tool, รันคู่ขนานเทียบผล<br><i>ผ่านเมื่อ:</i> ผลลัพธ์ตรง API เดิม 100% ในชุดทดสอบ</div></div>
+  <div class="phase"><b class="p">ระยะ 4</b><div><b>Delay Engine</b> — delay_rule, DelayStates, worker, แจ้งเตือน, ย้ายกติกา PTC/Cold/Rework/Mix<br><i>ผ่านเมื่อ:</i> ค่า Delay ตรงรายงานเดิมในตัวอย่างข้อมูลจริง</div></div>
+  <div class="phase"><b class="p">ระยะ 5</b><div><b>Device Gateway + RFID</b> — พอร์ตจาก RFIDc1.js, ชีตตั้งค่า reader, inbox EPC<br><i>ผ่านเมื่อ:</i> รันข้างระบบเดิมเงียบๆ (log-only) แล้วผลตรงกัน จึงสลับ</div></div>
+  <div class="phase"><b class="p">ระยะ 6</b><div><b>Master Data ฝั่ง Sup + Dashboard + ปลดระวางหน้าเดิม</b> — แผนการผลิต, วัตถุดิบ, รายงาน<br><i>ผ่านเมื่อ:</i> หน้าเดิมไม่มีผู้ใช้ตามสถิติ จึงปิดทีละโมดูล</div></div>
+</section>
+
+<!-- ============ 13 ============ -->
+<section id="s13">
+  <h2><span class="n">13</span>ความเสี่ยงและข้อควรระวัง</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>ความเสี่ยง</th><th>ผลกระทบ</th><th>แนวทาง</th></tr>
+    <tr><td>ความอิสระของ "เพิ่มคอลัมน์ได้เองทั้งหมด" ทำให้ข้อมูลหลุดมาตรฐาน</td><td>รายงาน/Delay พัง เมื่อมีคนลบหรือเปลี่ยนชนิดคอลัมน์ที่ถูกอ้างอิง</td><td>คอลัมน์ "ระบบ" (ล็อกชื่อ/ชนิด) แยกจากคอลัมน์ผู้ใช้; ตรวจ dependency ก่อนลบ/เปลี่ยนชนิด</td></tr>
+    <tr><td>ประสิทธิภาพ EAV + RFID เขียนต่อเนื่อง</td><td>ตารางช้า, deadlock</td><td>ระยะ 0 วัดจริง; ทางเลือก typed table; ธุรกรรมสั้น, ดัชนีที่เหมาะสม</td></tr>
+    <tr><td>ผู้ใช้หน้างานไม่ถนัดตาราง</td><td>ใช้งานช้ากว่าเดิม</td><td>มุมมองการ์ดสำหรับมือถือ/สแกนเนอร์ + ทดลองกับกลุ่มเล็กก่อน</td></tr>
+    <tr><td>Rollback ย้อนเหตุการณ์จริงไม่ได้</td><td>ย้อนข้อมูลแต่สลีปพิมพ์ไปแล้ว/รถเคลื่อนไปแล้ว</td><td>Tool บันทึกผลข้างเคียง; rollback แสดงคำเตือน; ใช้ "แก้ไขพร้อมเหตุผล" แทนการย้อนในงานที่มีผลทางกายภาพ</td></tr>
+    <tr><td>รันสองระบบพร้อมกันตอนเปลี่ยนผ่าน</td><td>ข้อมูลไม่ตรงกัน, RFID ชนกัน</td><td>กำหนดแหล่งความจริงต่องาน (source of truth) ทีละงาน; RFID สลับครั้งเดียว</td></tr>
+    <tr><td>ความพร้อมใช้งานจริงของ DocHUB</td><td>อาจยังไม่ผ่านการใช้งานจริงที่ปริมาณสูง/ความปลอดภัย</td><td>ทบทวนโค้ด/ทดสอบโหลด/security review ก่อนยึดเป็นฐาน</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 14 ============ -->
+<section id="s14">
+  <h2><span class="n">14</span>คำถามที่ต้องตัดสินใจก่อนเริ่ม</h2>
+  <ol>
+    <li><b>ฐานระบบ:</b> สร้างบน DocHUB (fork) หรือเขียนใหม่ทั้งหมดโดยยืมแนวคิด? (แนะนำ fork เพราะประหยัดเวลามากและแก้ปัญหา auth/สิทธิ์/ประวัติไว้แล้ว)</li>
+    <li><b>1 แถวคืออะไร:</b> 1 mapping_id (แนะนำ) หรือ 1 รถเข็น?</li>
+    <li><b>ผู้ใช้หลักของตารางเต็ม:</b> ผู้ดูแล/หัวหน้างาน หรือพนักงานหน้างานด้วย (ถ้าด้วย ต้องทำมุมมองการ์ดมือถือตั้งแต่ระยะแรก)</li>
+    <li><b>ตารางสิทธิ์:</b> บทบาทไหนแก้คอลัมน์/ขั้นไหนได้, แก้ย้อนหลังได้ไหม, ใครอนุมัติ?</li>
+    <li><b>กติกาเวลา Delay:</b> นับเวลา 24 ชม. หรือตามกะ/วันหยุด? มีสถานะ "หยุดนับ" อะไรบ้าง? แจ้งเตือนช่องทางไหน (ในระบบ/LINE/อีเมล)?</li>
+    <li><b>ข้อมูลเดิม:</b> ย้ายประวัติย้อนหลังกี่ปี หรือเก็บระบบเดิมไว้อ่านอย่างเดียว?</li>
+    <li><b>ผู้ดูแลระบบ:</b> ใครเป็นเจ้าของนิยามคอลัมน์/Tool/Rule (กลุ่มเล็ก) เพื่อกันการเปลี่ยนที่กระทบสายการผลิต?</li>
+    <li><b>โครงสร้างพื้นฐาน:</b> เสิร์ฟจาก build (ไม่ใช้ dev server), HTTPS, Redis/Socket.IO แบบเดิมใช่หรือไม่?</li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    เอกสารแนวคิดสำหรับหารือภายในทีม · อ้างอิง: DataSheet Pro / DocHUB (README, สเปก, schema) และโค้ด PFCM เดิม ·
+    ข้อเสนอทั้งหมดยังไม่ผ่านการทดสอบกับข้อมูลหรืออุปกรณ์จริง
+  </div>
+</footer>
+</body>
+</html>
