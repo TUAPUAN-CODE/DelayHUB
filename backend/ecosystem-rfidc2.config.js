@@ -16,7 +16,7 @@ module.exports = {
       READER_NO: '2',
       READER_IP: '10.246.145.187',
       READER_PORT: 49152,
-      READER_NAME: 'เครื่องอ่าน RFID จุด B',
+      READER_NAME: 'ฝั่งประตูเหลือง',
       PRINT_AGENT_URL: 'http://172.48.0.115:9100',
       WEB_SERVER_URL: 'http://172.48.0.115:3000',
       DB_USER: 'PFCMv3',
