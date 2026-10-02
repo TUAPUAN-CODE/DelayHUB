@@ -392,8 +392,77 @@ router.get('/api/coldstorage/rfid/unknown-epc', async (req, res) => {
   }
 });
 
+// ============================================================
+// จัดการการผูก EPC ↔ tro_id (RFID_to_Trolley) — ทุกการแก้ไขเขียน RFID_EPC_Bind_Log ในธุรกรรมเดียวกัน
+// ระบบไม่มี session/JWT ฝั่ง server จึงรับ user_id จากหน้าเว็บ แล้วตรวจว่ามีใน Users จริง + บันทึกลง log
+// (เป็นการติดตามผู้ทำรายการ ไม่ใช่การยืนยันตัวตนเต็มรูปแบบ)
+// ============================================================
+const TRO_ID_PATTERN = /^\d{4}$/;
+
+async function resolveOperator(pool, rawUserId) {
+  const userId = String(rawUserId ?? '').trim();
+  if (!userId) return null;
+  const result = await pool.request()
+    .input('user_id', userId)
+    .query('SELECT u.user_id FROM Users u WHERE u.user_id = @user_id');
+  return result.recordset.length > 0 ? String(result.recordset[0].user_id) : null;
+}
+
+async function writeBindLog(transaction, { epc, action, oldTroId, newTroId, userId, ip }) {
+  await new sql.Request(transaction)
+    .input('epc', sql.VarChar(50), epc)
+    .input('action', sql.VarChar(10), action)
+    .input('old_tro_id', sql.VarChar(10), oldTroId ?? null)
+    .input('new_tro_id', sql.VarChar(10), newTroId ?? null)
+    .input('user_id', sql.VarChar(50), userId)
+    .input('client_ip', sql.VarChar(64), ip ?? null)
+    .query(`
+      INSERT INTO dbo.RFID_EPC_Bind_Log (epc, action, old_tro_id, new_tro_id, user_id, client_ip)
+      VALUES (@epc, @action, @old_tro_id, @new_tro_id, @user_id, @client_ip)
+    `);
+}
+
+// รันงานในธุรกรรม: commit เมื่อสำเร็จ, rollback เมื่อ throw
+async function withTransaction(pool, work) {
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const result = await work(transaction);
+    await transaction.commit();
+    return result;
+  } catch (err) {
+    try { await transaction.rollback(); } catch (rollbackErr) { console.error('[rfid bind] rollback error:', rollbackErr.message); }
+    throw err;
+  }
+}
+
 /**
- * POST /api/coldstorage/rfid/bind-epc  body: { epc, tro_id }
+ * GET /api/coldstorage/rfid/bound-epc?q=&limit=
+ * รายการ EPC ที่ผูกแล้ว (ค้นด้วย EPC หรือ tro_id) ใช้ในหน้าแก้ไข/ยกเลิกการผูก
+ */
+router.get('/api/coldstorage/rfid/bound-epc', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').replace(/[^0-9A-Za-z]/g, '').slice(0, 50);
+    const limit = Math.min(Number(req.query.limit) || 100, 200);
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('q', sql.VarChar(50), q)
+      .input('limit', sql.Int, limit)
+      .query(`
+        SELECT TOP (@limit) r.epc, r.tro_id
+        FROM dbo.RFID_to_Trolley r
+        WHERE @q = '' OR r.epc LIKE '%' + @q + '%' OR r.tro_id = @q
+        ORDER BY r.id DESC
+      `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('[Route /rfid/bound-epc] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/coldstorage/rfid/bind-epc  body: { epc, tro_id, user_id }
  * ผูก EPC เข้ากับ tro_id (4 หลัก) ใน RFID_to_Trolley
  */
 router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
@@ -403,7 +472,7 @@ router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
   if (!epc) {
     return res.status(400).json({ success: false, error: 'กรุณาระบุ EPC' });
   }
-  if (!/^\d{4}$/.test(troId)) {
+  if (!TRO_ID_PATTERN.test(troId)) {
     return res.status(400).json({ success: false, error: 'tro_id ต้องเป็นตัวเลข 4 หลัก' });
   }
 
@@ -411,6 +480,11 @@ router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
     const pool = await getPool();
     if (!pool) {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    const userId = await resolveOperator(pool, req.body?.user_id);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'ไม่พบผู้ใช้ กรุณาเข้าสู่ระบบใหม่' });
     }
 
     const troCheck = await pool.request()
@@ -434,26 +508,148 @@ router.post('/api/coldstorage/rfid/bind-epc', async (req, res) => {
       return res.status(409).json({ success: false, error: `รถเข็น ${troId} ผูกกับ EPC อื่นอยู่แล้ว (${troUsed.recordset[0].epc})` });
     }
 
-    // INSERT แบบมีเงื่อนไขในคำสั่งเดียว กันสองคนกดผูกพร้อมกันแล้วได้แถวซ้ำ
-    const inserted = await pool.request()
-      .input('epc', sql.VarChar(50), epc)
-      .input('tro_id', sql.VarChar(4), troId)
-      .query(`
-        INSERT INTO dbo.RFID_to_Trolley (epc, tro_id)
-        SELECT @epc, @tro_id
-        WHERE NOT EXISTS (SELECT 1 FROM dbo.RFID_to_Trolley WHERE epc = @epc OR tro_id = @tro_id)
-      `);
-    if (inserted.rowsAffected[0] === 0) {
+    const inserted = await withTransaction(pool, async (transaction) => {
+      // INSERT แบบมีเงื่อนไขในคำสั่งเดียว กันสองคนกดผูกพร้อมกันแล้วได้แถวซ้ำ
+      const insertResult = await new sql.Request(transaction)
+        .input('epc', sql.VarChar(50), epc)
+        .input('tro_id', sql.VarChar(4), troId)
+        .query(`
+          INSERT INTO dbo.RFID_to_Trolley (epc, tro_id)
+          SELECT @epc, @tro_id
+          WHERE NOT EXISTS (SELECT 1 FROM dbo.RFID_to_Trolley WHERE epc = @epc OR tro_id = @tro_id)
+        `);
+      if (insertResult.rowsAffected[0] === 0) return false;
+
+      await writeBindLog(transaction, { epc, action: 'BIND', oldTroId: null, newTroId: troId, userId, ip: req.ip });
+      await new sql.Request(transaction)
+        .input('epc', sql.VarChar(50), epc)
+        .query('DELETE FROM dbo.RFID_Unknown_EPC WHERE epc = @epc');
+      return true;
+    });
+
+    if (!inserted) {
       return res.status(409).json({ success: false, error: 'EPC หรือรถเข็นนี้ถูกผูกไปแล้ว กรุณารีเฟรช' });
     }
-
-    await pool.request()
-      .input('epc', sql.VarChar(50), epc)
-      .query('DELETE FROM dbo.RFID_Unknown_EPC WHERE epc = @epc');
-
     return res.json({ success: true, message: `ผูก EPC กับรถเข็น ${troId} สำเร็จ` });
   } catch (err) {
     console.error('[Route /rfid/bind-epc] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * PUT /api/coldstorage/rfid/rebind-epc  body: { epc, tro_id, user_id }
+ * เปลี่ยน tro_id ของ EPC ที่ผูกไว้แล้ว (แก้กรณีผูกผิด)
+ */
+router.put('/api/coldstorage/rfid/rebind-epc', async (req, res) => {
+  const epc = String(req.body?.epc || '').trim();
+  const troId = String(req.body?.tro_id || '').trim();
+
+  if (!epc) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ EPC' });
+  }
+  if (!TRO_ID_PATTERN.test(troId)) {
+    return res.status(400).json({ success: false, error: 'tro_id ต้องเป็นตัวเลข 4 หลัก' });
+  }
+
+  try {
+    const pool = await getPool();
+    if (!pool) {
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    const userId = await resolveOperator(pool, req.body?.user_id);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'ไม่พบผู้ใช้ กรุณาเข้าสู่ระบบใหม่' });
+    }
+
+    const current = await pool.request()
+      .input('epc', sql.VarChar(50), epc)
+      .query('SELECT tro_id FROM dbo.RFID_to_Trolley WHERE epc = @epc');
+    if (current.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: 'ไม่พบ EPC นี้ในรายการที่ผูกไว้' });
+    }
+    const oldTroId = current.recordset[0].tro_id;
+    if (String(oldTroId) === troId) {
+      return res.status(400).json({ success: false, error: 'tro_id ใหม่ซ้ำกับค่าเดิม' });
+    }
+
+    const troCheck = await pool.request()
+      .input('tro_id', sql.VarChar(4), troId)
+      .query('SELECT tro_id FROM dbo.Trolley WHERE tro_id = @tro_id');
+    if (troCheck.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: `ไม่พบรถเข็นหมายเลข ${troId} ในระบบ` });
+    }
+
+    const updated = await withTransaction(pool, async (transaction) => {
+      const updateResult = await new sql.Request(transaction)
+        .input('epc', sql.VarChar(50), epc)
+        .input('tro_id', sql.VarChar(4), troId)
+        .query(`
+          UPDATE dbo.RFID_to_Trolley SET tro_id = @tro_id
+          WHERE epc = @epc AND NOT EXISTS (SELECT 1 FROM dbo.RFID_to_Trolley WHERE tro_id = @tro_id)
+        `);
+      if (updateResult.rowsAffected[0] === 0) return false;
+
+      await writeBindLog(transaction, { epc, action: 'REBIND', oldTroId: String(oldTroId), newTroId: troId, userId, ip: req.ip });
+      return true;
+    });
+
+    if (!updated) {
+      return res.status(409).json({ success: false, error: `รถเข็น ${troId} ผูกกับ EPC อื่นอยู่แล้ว` });
+    }
+    return res.json({ success: true, message: `เปลี่ยนเป็นรถเข็น ${troId} สำเร็จ` });
+  } catch (err) {
+    console.error('[Route /rfid/rebind-epc] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/coldstorage/rfid/delete-epc  body: { epc, user_id }
+ * ยกเลิกการผูก EPC (ลบแถวใน RFID_to_Trolley) — EPC จะกลับไปอยู่ในรายการ "รอผูก" เมื่อ reader อ่านเจออีก
+ */
+router.delete('/api/coldstorage/rfid/delete-epc', async (req, res) => {
+  const epc = String(req.body?.epc || '').trim();
+  if (!epc) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ EPC' });
+  }
+
+  try {
+    const pool = await getPool();
+    if (!pool) {
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    const userId = await resolveOperator(pool, req.body?.user_id);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'ไม่พบผู้ใช้ กรุณาเข้าสู่ระบบใหม่' });
+    }
+
+    const current = await pool.request()
+      .input('epc', sql.VarChar(50), epc)
+      .query('SELECT tro_id FROM dbo.RFID_to_Trolley WHERE epc = @epc');
+    if (current.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: 'ไม่พบ EPC นี้ในรายการที่ผูกไว้' });
+    }
+    const oldTroId = String(current.recordset[0].tro_id);
+
+    const deleted = await withTransaction(pool, async (transaction) => {
+      const deleteResult = await new sql.Request(transaction)
+        .input('epc', sql.VarChar(50), epc)
+        .query('DELETE FROM dbo.RFID_to_Trolley WHERE epc = @epc');
+      if (deleteResult.rowsAffected[0] === 0) return false;
+
+      await writeBindLog(transaction, { epc, action: 'UNBIND', oldTroId, newTroId: null, userId, ip: req.ip });
+      return true;
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'EPC นี้ถูกยกเลิกการผูกไปแล้ว กรุณารีเฟรช' });
+    }
+    return res.json({ success: true, message: `ยกเลิกการผูก EPC กับรถเข็น ${oldTroId} สำเร็จ` });
+  } catch (err) {
+    console.error('[Route /rfid/delete-epc] Error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

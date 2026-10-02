@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
+import RFIDSlipPrintService from "./component/ColdStorage/CheckOutWithRFID/Asset/RFIDSlipPrintService.jsx";
 
 // MUI Theme
 const theme = createTheme({
@@ -56,6 +57,7 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
+      <RFIDSlipPrintService />
       <Suspense fallback={<Loading />}>
         <Routes>
           {/* Auth */}

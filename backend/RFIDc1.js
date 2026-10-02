@@ -3,6 +3,8 @@ require('dotenv').config();
 const net = require('net');
 const sql = require('mssql');
 const https = require('https');
+const fs = require('fs');
+const { createFrameParser, isValidEpc } = require('./rfidFrameParser');
 const { io: ioClient } = require('socket.io-client');
 // NEW: เรียก print-agent (http://<เครื่องที่ต่อปริ้นเตอร์>:9100) เพื่อสั่งพิมพ์สลิปตอน "ออก" ห้องเย็น
 // ต้องรัน `npm install axios` ในโปรเจกต์นี้ก่อน ถ้ายังไม่มี axios อยู่แล้ว
@@ -13,10 +15,16 @@ const axios = require('axios');
 // แหล่งข้อมูลจริง (single source of truth) คือ DB — โหลดทับค่าพวกนี้ทันทีที่ต่อ DB ได้ (ดู loadReaderConfigFromDb() ด้านล่าง)
 // ⚠️ ห้ามแก้ IP ที่นี่แล้วคิดว่าจะมีผล ถ้ามีแถวใน RFIDReaderConfig อยู่แล้วสำหรับ reader_no นี้ ให้ไปแก้ผ่านหน้า Control Panel แทน
 const READER_NO = Number(process.env.READER_NO) || 1;
-let READER_IP = process.env.READER_IP || "10.246.145.182";
+let READER_IP = process.env.READER_IP || "";
 let READER_PORT = Number(process.env.READER_PORT) || 49152;
 let READER_NAME = process.env.READER_NAME || `RFID_READER_${READER_NO}`;
 const READER_DELAY_MINUTES = Number(process.env.READER_DELAY_MINUTES) || 1;
+// ถ้าไม่ได้รับข้อมูลจาก reader เลยนานเท่านี้ (ms) ให้ตัดแล้วต่อใหม่ กันกรณีสายหลุดแบบเงียบ (half-open)
+// 0 = ปิด; ค่าเริ่มต้น 10 นาที (reader จะเงียบเมื่อไม่มีรถเข็นผ่าน การต่อใหม่ไม่เสียหาย)
+const SILENCE_RECONNECT_MS = process.env.RFID_SILENCE_RECONNECT_MS === undefined
+    ? 10 * 60 * 1000
+    : Number(process.env.RFID_SILENCE_RECONNECT_MS) || 0;
+const CONNECT_TIMEOUT_MS = 10 * 1000;
 
 // NEW: log log ปกติ/routine (ทุกครั้งที่สแกน, ทุกขั้นตอนย่อย) จะไม่โผล่ใน `pm2 logs` อีกต่อไป
 // เพราะแค่ก่อกวน — เห็นเฉพาะ log ที่เป็นปัญหาจริง (console.warn/console.error) เท่านั้น
@@ -78,10 +86,20 @@ if (WEB_SERVER_URL) {
         transports: ['websocket'],
         reconnection: true,
         reconnectionDelay: 2000,
-        rejectUnauthorized: false,
     };
     if (isHttps) {
-        socketOptions.agent = new https.Agent({ rejectUnauthorized: false });
+        // ตรวจใบรับรองของเว็บ server เสมอ — ถ้าใช้ self-signed ให้ระบุไฟล์ CA ใน .env: WEB_SERVER_CA_FILE=/path/to/cert.pem
+        // (ปิดการตรวจชั่วคราวได้ด้วย WEB_SERVER_INSECURE_TLS=true แต่ไม่แนะนำบน production)
+        const insecureTls = process.env.WEB_SERVER_INSECURE_TLS === 'true';
+        const agentOptions = { rejectUnauthorized: !insecureTls };
+        if (process.env.WEB_SERVER_CA_FILE) {
+            agentOptions.ca = fs.readFileSync(process.env.WEB_SERVER_CA_FILE);
+        }
+        if (insecureTls) {
+            console.warn('⚠️ WEB_SERVER_INSECURE_TLS=true — ไม่ตรวจใบรับรองของ WEB_SERVER_URL');
+        }
+        socketOptions.rejectUnauthorized = !insecureTls;
+        socketOptions.agent = new https.Agent(agentOptions);
     }
     webSocket = ioClient(WEB_SERVER_URL, socketOptions);
     webSocket.on('connect', () => {
@@ -300,6 +318,9 @@ async function writeColdRoomRoundTimestampOut(pool, hist_id, prefix) {
     return targetColumn;
 }
 
+// ห้องเย็น (Slot.cs_id) ที่อนุญาตให้ระบบรับเข้าอัตโนมัติ (RFID) เลือกช่องให้
+const AUTO_SLOT_CS_IDS = [1, 2, 3, 4, 5, 6, 7];
+
 async function assignColdRoomSlotForTrolley(pool, tro_id, items) {
     const transaction = new sql.Transaction(pool);
     try {
@@ -384,8 +405,16 @@ async function assignColdRoomSlotForTrolley(pool, tro_id, items) {
             return { action: 'NO_MAPPING_UPDATED', skipped };
         }
 
-        const slotResult = await new sql.Request(transaction).query(`
-            SELECT TOP (1) slot_id FROM Slot WITH (UPDLOCK, HOLDLOCK) WHERE tro_id IS NULL ORDER BY slot_id ASC
+        // เลือกช่องว่างเฉพาะห้องเย็นที่กำหนดใน AUTO_SLOT_CS_IDS (ช่องที่จองไว้มี tro_id = 'rsrv' จึงไม่ถูกเลือก)
+        const slotRequest = new sql.Request(transaction);
+        const csParams = AUTO_SLOT_CS_IDS.map((id, i) => {
+            slotRequest.input(`cs${i}`, sql.Int, id);
+            return `@cs${i}`;
+        });
+        const slotResult = await slotRequest.query(`
+            SELECT TOP (1) slot_id FROM Slot WITH (UPDLOCK, HOLDLOCK)
+            WHERE tro_id IS NULL AND cs_id IN (${csParams.join(', ')})
+            ORDER BY cs_id ASC, slot_id ASC
         `);
         if (slotResult.recordset.length === 0) {
             await transaction.commit();
@@ -547,6 +576,12 @@ function bindReaderClientEvents(sock) {
         console.error("❌ ERROR:", err.message);
     });
 
+    // ต่อไม่ติดภายในเวลาที่กำหนด (เช่น ปลายทางไม่ตอบ) → ตัดแล้วให้ 'close' เรียก reconnect
+    sock.on('timeout', () => {
+        console.warn(`⏱️ ต่อ Reader ไม่ติดภายใน ${CONNECT_TIMEOUT_MS / 1000} วินาที — ตัดการเชื่อมต่อ`);
+        sock.destroy();
+    });
+
     sock.on('close', () => {
         console.warn("🔌 การเชื่อมต่อ Reader ถูกปิด — จะลองเชื่อมต่อใหม่อัตโนมัติ");
         scheduleReconnect();
@@ -560,16 +595,27 @@ function scheduleReconnect() {
     if (reconnectTimer) { clearTimeout(reconnectTimer); }
     reconnectTimer = setTimeout(() => {
         console.warn(`🔄 กำลังลองเชื่อมต่อ Reader ใหม่: ${READER_IP}:${READER_PORT} ...`);
+        // ปล่อย guard ก่อนต่อใหม่ ไม่งั้นถ้ารอบนี้ต่อไม่ติด 'close' ครั้งถัดไปจะโดน guard ทิ้ง แล้วไม่มีการลองใหม่อีกเลย
+        isReconnecting = false;
         connectReader();
     }, 5000);
 }
 
 function connectReader() {
+    if (client) {
+        client.removeAllListeners();
+        client.on('error', () => {});
+        client.destroy();
+    }
     client = new net.Socket();
+    frameParser.reset();
     bindReaderClientEvents(client);
+    client.setTimeout(CONNECT_TIMEOUT_MS);
 
     client.connect(READER_PORT, READER_IP, async () => {
         isReconnecting = false;
+        client.setTimeout(0);
+        lastDataAt = Date.now();
         console.log(`✅ CONNECTED TO READER: ${READER_IP}:${READER_PORT}`);
         console.log(`📡 Reader เครื่องที่: ${READER_NO} (โหมด: สลับเข้า-ออกอัตโนมัติ, ดีเลย์กันสแกนซ้ำ: ${READER_DELAY_MINUTES} นาที)`);
 
@@ -587,7 +633,27 @@ function connectReader() {
 const UNKNOWN_EPC_THROTTLE_MS = 60 * 1000;
 const unknownEpcLastWrite = new Map();
 
+// EPC ที่ไม่รู้จักต้องถูกอ่านซ้ำอย่างน้อยกี่ครั้งภายในกี่ ms ถึงจะบันทึก (กันค่าอ่านเพี้ยนครั้งเดียว)
+const UNKNOWN_EPC_MIN_READS = 2;
+const UNKNOWN_EPC_WINDOW_MS = 30 * 1000;
+const unknownEpcSeen = new Map();
+
+function shouldRecordUnknownEpc(epc) {
+    const now = Date.now();
+    if (unknownEpcSeen.size > 1000) {
+        for (const [k, v] of unknownEpcSeen) { if (now - v.first > UNKNOWN_EPC_WINDOW_MS) { unknownEpcSeen.delete(k); } }
+    }
+    const seen = unknownEpcSeen.get(epc);
+    if (!seen || now - seen.first > UNKNOWN_EPC_WINDOW_MS) {
+        unknownEpcSeen.set(epc, { first: now, count: 1 });
+        return UNKNOWN_EPC_MIN_READS <= 1;
+    }
+    seen.count += 1;
+    return seen.count >= UNKNOWN_EPC_MIN_READS;
+}
+
 async function recordUnknownEpc(pool, epc) {
+    if (!shouldRecordUnknownEpc(epc)) return;
     const last = unknownEpcLastWrite.get(epc);
     if (last && Date.now() - last < UNKNOWN_EPC_THROTTLE_MS) return;
     unknownEpcLastWrite.set(epc, Date.now());
@@ -605,10 +671,22 @@ async function recordUnknownEpc(pool, epc) {
     }
 }
 
-async function onReaderData(data) {
-    const hexReply = data.toString('hex').toUpperCase();
-    if (hexReply.startsWith("CCFFFF20") && hexReply.length >= 42) {
-        const epc = hexReply.substring(18, 42);
+const frameParser = createFrameParser();
+let lastDataAt = Date.now();
+
+function onReaderData(data) {
+    lastDataAt = Date.now();
+    for (const epc of frameParser.push(data)) {
+        handleEpc(epc).catch((err) => console.error("❌ handleEpc error:", err.message));
+    }
+}
+
+async function handleEpc(epc) {
+    {
+        if (!isValidEpc(epc)) {
+            debugLog(`⏭️ ข้าม EPC ที่รูปแบบผิดปกติ: ${epc}`);
+            return;
+        }
 
         if (processingEpcs.has(epc)) {
             debugLog(`⏭️ EPC กำลังประมวลผลอยู่: ${epc}`);
@@ -799,8 +877,22 @@ async function onReaderData(data) {
     }
 }
 
+// watchdog: ต่อค้างแต่เงียบนานผิดปกติ → ตัดแล้วต่อใหม่
+setInterval(() => {
+    if (SILENCE_RECONNECT_MS > 0 && client && client.readyState === 'open' && Date.now() - lastDataAt > SILENCE_RECONNECT_MS) {
+        console.warn(`⚠️ ไม่ได้รับข้อมูลจาก Reader นาน ${Math.round((Date.now() - lastDataAt) / 1000)} วินาที — ตัดการเชื่อมต่อเพื่อต่อใหม่`);
+        client.destroy();
+    }
+}, 30 * 1000);
+
 (async () => {
     await loadReaderConfigFromDb();
+    // ไม่มี IP สำรองฮาร์ดโค้ดแล้ว — ต้องมีแถวใน RFIDReaderConfig หรือ READER_IP ใน .env
+    while (!READER_IP) {
+        console.error(`❌ ไม่พบ IP ของ Reader #${READER_NO} (ไม่มีแถวใน RFIDReaderConfig และไม่ได้ตั้ง READER_IP ใน .env) — จะลองใหม่ใน 30 วินาที`);
+        await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
+        await loadReaderConfigFromDb();
+    }
     connectReader();
 })();
 

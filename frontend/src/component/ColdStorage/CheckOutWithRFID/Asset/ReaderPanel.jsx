@@ -9,31 +9,9 @@ import {
 import { Settings as SettingsIcon, PowerSettingsNew as PowerIcon, History as HistoryIcon, ArrowBack as ArrowBackIcon, Fullscreen as FullscreenIcon, Add as AddIcon } from '@mui/icons-material';
 import { io } from "socket.io-client";
 import axios from "axios";
+import { DEFAULT_PRINT_AGENT_URL, resolveAgentUrl, SLIP_PRINT_STATUS_EVENT, setSlipPrinterEnabled, useSlipPrinterEnabled } from './RFIDSlipPrintService';
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// Print Agent อยู่เครื่องเดียวกับ API server เสมอ (รันผ่าน ecosystem.config.js เดียวกัน)
-// แก้ host 'localhost/127.0.0.1' -> host ของ API เพื่อให้เปิดเว็บจากเครื่องอื่นแล้วไปหา server ได้ถูก
-const AGENT_PORT = 9100;
-const DEFAULT_PRINT_AGENT_URL = (() => {
-  try {
-    const u = new URL(API_URL);
-    return `${u.protocol}//${u.hostname}:${AGENT_PORT}`;
-  } catch {
-    return `http://localhost:${AGENT_PORT}`;
-  }
-})();
-const resolveAgentUrl = (configured) => {
-  try {
-    const u = new URL(configured || DEFAULT_PRINT_AGENT_URL);
-    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '0.0.0.0') {
-      u.hostname = new URL(DEFAULT_PRINT_AGENT_URL).hostname;
-    }
-    return u.toString().replace(/\/$/, '');
-  } catch {
-    return DEFAULT_PRINT_AGENT_URL;
-  }
-};
 
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -777,6 +755,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
   const [passwordDialog, setPasswordDialog] = useState({ open: false, config: null, mode: 'edit', error: '' });
   const [togglingId, setTogglingId] = useState(null);
   const [focusReaderId, setFocusReaderId] = useState(null);
+  const slipPrinterEnabled = useSlipPrinterEnabled();
 
   const fetchedDataRef = useRef(fetchedData);
   useEffect(() => {
@@ -923,52 +902,25 @@ const ReaderPanel = ({ fetchedData = [] }) => {
       }));
 
       playPassSound();
-
-      // หา print agent URL ของ reader ตัวนี้
-      const readerConfig = readerConfigs.find(c => c.reader_no === readerId);
-      const printAgentUrl = resolveAgentUrl(readerConfig?.printer_agent_url);
-
-      const trolleyData = fetchedDataRef.current.find(
-        (item) => String(item.tro_id) === String(tro_id)
-      );
-
-      if (!trolleyData) {
-        console.warn(`⚠️ ไม่พบ tro_id=${tro_id} ใน fetchedData`);
-      }
-
-      setPrintingId(readerId);
-      try {
-        const res = await fetch(`${printAgentUrl}/print-slip`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identifier: tro_id,
-            trolleyData,
-            // NEW: ถ้าตั้ง printer_host/printer_share ไว้ (Control Panel) → print-agent จะพิมพ์
-            // แบบ RAW ข้าม network ไปเครื่องนั้นตรงๆ แทนการพิมพ์ผ่าน default printer ของเครื่องที่รัน agent
-            printerHost: readerConfig?.printer_host || undefined,
-            printerShare: readerConfig?.printer_share || undefined,
-            printerDotWidth: readerConfig?.printer_dot_width || undefined,
-          }),
-        });
-        const result = await res.json();
-        if (!result.ok) throw new Error(result.error || "พิมพ์ไม่สำเร็จ");
-        setPrinterError(null);
-      } catch (err) {
-        console.error("พิมพ์สลิปไม่สำเร็จ:", err);
-        setPrinterError(
-          err.message.includes("fetch")
-            ? `เชื่อมต่อ Print Agent (${printAgentUrl}) ไม่ได้`
-            : err.message
-        );
-      } finally {
-        setPrintingId(null);
-      }
+      // การสั่งพิมพ์ย้ายไปอยู่ที่ RFIDSlipPrintService (ทำงานทุกหน้า) — หน้านี้แสดงผลอย่างเดียว
     };
 
     socket.on("readerScanUpdate", handleScanUpdate);
     return () => socket.off("readerScanUpdate", handleScanUpdate);
-  }, [readerConfigs]);
+  }, []);
+
+  // สถานะการพิมพ์จาก RFIDSlipPrintService
+  useEffect(() => {
+    const handleStatus = (e) => {
+      const { readerId, status, error } = e.detail || {};
+      if (status === "printing") setPrintingId(readerId);
+      else setPrintingId(null);
+      if (status === "done") setPrinterError(null);
+      if (status === "error") setPrinterError(error);
+    };
+    window.addEventListener(SLIP_PRINT_STATUS_EVENT, handleStatus);
+    return () => window.removeEventListener(SLIP_PRINT_STATUS_EVENT, handleStatus);
+  }, []);
 
   // ============================================
   // Filter readers by selected location
@@ -1019,6 +971,17 @@ const ReaderPanel = ({ fetchedData = [] }) => {
               backgroundColor: agentOnline ? '#e6f7ec' : '#fdecea',
               color: agentOnline ? '#2e7d32' : '#c62828',
             }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={slipPrinterEnabled}
+                onChange={(e) => setSlipPrinterEnabled(e.target.checked)}
+              />
+            }
+            label={slipPrinterEnabled ? "เครื่องนี้พิมพ์สลิปอัตโนมัติ (ทุกหน้า)" : "เครื่องนี้ไม่พิมพ์สลิป"}
+            sx={{ marginRight: 1, '& .MuiFormControlLabel-label': { fontSize: 13 } }}
           />
           <Button
             size="small"
