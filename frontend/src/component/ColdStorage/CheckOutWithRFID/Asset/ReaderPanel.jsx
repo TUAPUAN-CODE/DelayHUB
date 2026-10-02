@@ -228,7 +228,7 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
 // ============================================
 // PasswordPromptDialog - ใส่รหัสผ่านก่อนเปิดหน้าตั้งค่า
 // ============================================
-const PasswordPromptDialog = ({ open, onClose, onVerify, error }) => {
+const PasswordPromptDialog = ({ open, onClose, onVerify, error, hint }) => {
   const [value, setValue] = useState('');
 
   // รีเซ็ตรหัสทิ้งทุกครั้งที่เปิด dialog ใหม่
@@ -257,7 +257,7 @@ const PasswordPromptDialog = ({ open, onClose, onVerify, error }) => {
             size="small"
             autoFocus
             error={!!error}
-            helperText={error || 'กรุณาใส่รหัสผ่านเพื่อเข้าแก้ไขการตั้งค่า'}
+            helperText={error || hint || 'กรุณาใส่รหัสผ่านเพื่อเข้าแก้ไขการตั้งค่า'}
           />
         </Box>
       </DialogContent>
@@ -878,8 +878,12 @@ const ReaderPanel = ({ fetchedData = [] }) => {
 
   const handleVerifyPasscode = (value) => {
     if (value === SETTINGS_PASSCODE) {
-      const { config, mode } = passwordDialog;
+      const { config, mode, target } = passwordDialog;
       setPasswordDialog({ open: false, config: null, mode: 'edit', error: '' });
+      if (mode === 'slipToggle') {
+        setSlipPrinterEnabled(!!target);
+        return;
+      }
       setSettingsModal({ open: true, config, mode });
     } else {
       setPasswordDialog((prev) => ({ ...prev, error: 'รหัสผ่านไม่ถูกต้อง' }));
@@ -977,11 +981,12 @@ const ReaderPanel = ({ fetchedData = [] }) => {
               <Switch
                 size="small"
                 checked={slipPrinterEnabled}
-                onChange={(e) => setSlipPrinterEnabled(e.target.checked)}
+                // เปิด/ปิดต้องใส่รหัสผ่านก่อน (กันคนกดปิดโดยไม่ตั้งใจ) — ยังไม่เปลี่ยนค่าจนกว่ารหัสจะถูก
+                onChange={(e) => setPasswordDialog({ open: true, config: null, mode: 'slipToggle', target: e.target.checked, error: '' })}
               />
             }
             label={slipPrinterEnabled ? "เครื่องนี้พิมพ์สลิปอัตโนมัติ (ทุกหน้า)" : "เครื่องนี้ไม่พิมพ์สลิป"}
-            sx={{ marginRight: 1, '& .MuiFormControlLabel-label': { fontSize: 13 } }}
+            sx={{ marginRight: 1, '& .MuiFormControlLabel-label': { fontSize: 13, color: '#222', fontWeight: 600 } }}
           />
           <Button
             size="small"
@@ -1061,6 +1066,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
         onClose={() => setPasswordDialog({ open: false, config: null, mode: 'edit', error: '' })}
         onVerify={handleVerifyPasscode}
         error={passwordDialog.error}
+        hint={passwordDialog.mode === 'slipToggle' ? (passwordDialog.target ? 'ใส่รหัสผ่านเพื่อเปิดการพิมพ์สลิปอัตโนมัติบนเครื่องนี้' : 'ใส่รหัสผ่านเพื่อปิดการพิมพ์สลิปอัตโนมัติบนเครื่องนี้') : undefined}
       />
 
       {/* Settings modal (ใช้ร่วมกันทั้งแก้ไขเครื่องเดิม และเพิ่มเครื่องใหม่) */}

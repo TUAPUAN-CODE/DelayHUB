@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { clearUserLocalStorage } from "../../services/localStorageUtil";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
 import {
@@ -43,7 +44,7 @@ const Login = () => {
 
   useEffect(() => {
     // ล้างข้อมูลทั้งหมดใน localStorage ก่อน เพื่อเคลียร์ข้อมูลของ user ก่อนหน้า
-    localStorage.clear();
+    clearUserLocalStorage(); // ล้างของผู้ใช้เดิม แต่คงค่าประจำเครื่อง (เช่น สวิตช์พิมพ์สลิปอัตโนมัติ) ไว้
   });
 
   const onSubmit = async (data) => {
