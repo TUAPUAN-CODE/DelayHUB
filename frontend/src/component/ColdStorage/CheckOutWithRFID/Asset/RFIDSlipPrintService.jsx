@@ -76,13 +76,31 @@ const emitStatus = (detail) => {
   window.dispatchEvent(new CustomEvent(SLIP_PRINT_STATUS_EVENT, { detail }));
 };
 
-// รวมข้อมูลรถเข็นแบบปกติ + แบบผสม ให้เป็น Map ตาม tro_id (ตัวแรกที่เจอชนะ เหมือน find() เดิมในหน้า RFID)
+// รวมแถวข้อมูล (1 แถว = 1 mapping_id) ของรถเข็นแบบปกติ + แบบผสม ให้เป็น 1 รายการต่อ tro_id
+// โดยใส่วัตถุดิบทุกตัวบนรถไว้ใน materials[] (print-agent พิมพ์ทุกตัวลงสลิปใบเดียว และย่อขนาดตามจำนวน)
+// — เหมือนที่หน้า CheckOut (Table.jsx) จัดกลุ่มตาม tro_id ก่อนส่งไปพิมพ์
 const indexByTrolley = (regular, mixed) => {
+  const rows = [
+    ...(regular || []).map((i) => ({ ...i, rawMatType: "regular" })),
+    ...(mixed || []).map((i) => ({ ...i, rawMatType: "mixed" })),
+  ];
   const map = new Map();
-  [...(regular || []).map((i) => ({ ...i, rawMatType: "regular" })),
-   ...(mixed || []).map((i) => ({ ...i, rawMatType: "mixed" }))].forEach((item) => {
+  rows.forEach((item) => {
     const key = String(item.tro_id);
-    if (!map.has(key)) map.set(key, item);
+    if (!map.has(key)) map.set(key, { ...item, materials: [] });
+    const group = map.get(key);
+    if (group.materials.some((m) => m.mapping_id === item.mapping_id)) return;
+    group.materials.push({
+      material_code: item.mat,
+      materialName: item.mat_name,
+      batch: item.batch,
+      batch_before: item.batch_before,
+      production: item.production,
+      mapping_id: item.mapping_id,
+      weight_RM: item.weight_RM,
+      tray_count: item.tray_count,
+      levelEu: item.level_eu,
+    });
   });
   return map;
 };
