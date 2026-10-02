@@ -10443,127 +10443,138 @@ FORMAT(
 
   // 2) ดึงข้อมูล "บันทึกแล้ว" พร้อมเรียงลำดับที่ฝั่ง SQL (ORDER BY) โดยตรง
   //    ไม่ใช่ดึงมาทั้งหมดแล้วเรียงใน JS — นี่คือจุดที่ช่วยเรื่อง performance
-  router.get('/pack/pkg/reports/done/sorted', async (req, res) => {
-    try {
-      const pool = await connectToDatabase();
-      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-
-      const sortByParam = String(req.query.sort_by || 'report_date');
-      const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
-
-      // เช็ค whitelist ก่อนเสมอ ถ้าไม่ตรงให้ fallback เป็นค่า default ที่ปลอดภัย
-      const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
-      const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
-
-      const result = await pool.request().query(`
+ router.get('/pack/pkg/reports/done/sorted', async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+ 
+    const sortByParam = String(req.query.sort_by || 'report_date');
+    const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
+ 
+    // เช็ค whitelist ก่อนเสมอ ถ้าไม่ตรงให้ fallback เป็นค่า default ที่ปลอดภัย
+    const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
+    const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
+ 
+    const result = await pool.request().query(`
       SELECT report_id, report_date, shift, plant, package_type,
-             reported_by, qc_supervisor, line_name, status, created_at
+             reported_by, qc_supervisor, line_name, machine_name, status, created_at
       FROM PackagingUsageReport
       WHERE status = 'done'
       ORDER BY ${sortColumn} ${sortDir}, report_id DESC
     `);
+ 
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ GET /pack/pkg/reports/done/sorted error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-      return res.json({ success: true, data: result.recordset });
-    } catch (err) {
-      console.error('❌ GET /pack/pkg/reports/done/sorted error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
 
-
-  router.get('/pkg/mnt/reports/done/sorted', async (req, res) => {
-    try {
-      const pool = await connectToDatabase();
-      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-
-      const sortByParam = String(req.query.sort_by || 'report_date');
-      const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
-
-      // เช็ค whitelist ก่อนเสมอ ถ้าไม่ตรงให้ fallback เป็นค่า default ที่ปลอดภัย
-      const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
-      const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
-
-      const result = await pool.request().query(`
+ router.get('/pkg/mnt/reports/done/sorted', async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+ 
+    const sortByParam = String(req.query.sort_by || 'report_date');
+    const sortDirParam = String(req.query.sort_dir || 'desc').toLowerCase();
+ 
+    const sortColumn = DONE_SORT_COLUMNS[sortByParam] || DONE_SORT_COLUMNS.report_date;
+    const sortDir = sortDirParam === 'asc' ? 'ASC' : 'DESC';
+ 
+    const result = await pool.request().query(`
       SELECT report_id, report_date, shift, plant, package_type,
-             reported_by, qc_supervisor, line_name, status, created_at
+             reported_by, qc_supervisor, line_name, machine_name, status, created_at
       FROM PackagingUsageReport
       WHERE status = 'done'
       ORDER BY ${sortColumn} ${sortDir}, report_id DESC
     `);
-
-      return res.json({ success: true, data: result.recordset });
-    } catch (err) {
-      console.error('❌ GET /use/pkg/mnt/reports/done/sorted error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
+ 
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ GET /use/pkg/mnt/reports/done/sorted error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
   // GET /api/pack/pkg/reports — active reports (status != 'done')
   router.get('/pack/pkg/reports', async (req, res) => {
-    try {
-      const pool = await connectToDatabase();
-      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-      const result = await pool.request().query(`
-        SELECT report_id, report_date, shift, plant, package_type,
-               reported_by, qc_supervisor, line_name, status, created_at
-        FROM PackagingUsageReport
-        WHERE status != 'done'
-        ORDER BY created_at DESC
-      `);
-      return res.json({ success: true, data: result.recordset });
-    } catch (err) {
-      console.error('❌ GET /pack/pkg/reports error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+    const result = await pool.request().query(`
+      SELECT report_id, report_date, shift, plant, package_type,
+             reported_by, qc_supervisor, line_name, machine_name, status, created_at
+      FROM PackagingUsageReport
+      WHERE status != 'done'
+      ORDER BY created_at DESC
+    `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ GET /pack/pkg/reports error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
   // GET /api/pack/pkg/reports/done — done history
-  router.get('/pack/pkg/reports/done', async (req, res) => {
-    try {
-      const pool = await connectToDatabase();
-      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-      const result = await pool.request().query(`
-        SELECT report_id, report_date, shift, plant, package_type,
-               reported_by, qc_supervisor, line_name, status, created_at
-        FROM PackagingUsageReport
-        WHERE status = 'done'
-        ORDER BY created_at DESC
-      `);
-      return res.json({ success: true, data: result.recordset });
-    } catch (err) {
-      console.error('❌ GET /pack/pkg/reports/done error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
+router.get('/pack/pkg/reports/done', async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+    const result = await pool.request().query(`
+      SELECT report_id, report_date, shift, plant, package_type,
+             reported_by, qc_supervisor, line_name, machine_name, status, created_at
+      FROM PackagingUsageReport
+      WHERE status = 'done'
+      ORDER BY created_at DESC
+    `);
+    return res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ GET /pack/pkg/reports/done error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
   // POST /api/pack/pkg/reports — create new report
-  router.post('/pack/pkg/reports', async (req, res) => {
-    const { report_date, shift, plant, package_type, reported_by, qc_supervisor, line_name } = req.body;
-    if (!report_date) return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
-    try {
-      const pool = await connectToDatabase();
-      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-      const result = await pool.request()
-        .input('report_date', sql.Date, report_date)
-        .input('shift', sql.NVarChar(10), shift || null)
-        .input('plant', sql.NVarChar(20), plant || null)
-        .input('package_type', sql.NVarChar(50), package_type || null)
-        .input('reported_by', sql.NVarChar(100), reported_by || null)
-        .input('qc_supervisor', sql.NVarChar(100), qc_supervisor || null)
-        .input('line_name', sql.NVarChar(100), line_name || null)
-        .query(`
-          INSERT INTO PackagingUsageReport
-            (report_date, shift, plant, package_type, reported_by, qc_supervisor, line_name, status)
-          OUTPUT INSERTED.*
-          VALUES
-            (@report_date, @shift, @plant, @package_type, @reported_by, @qc_supervisor, @line_name, 'active')
-        `);
-      return res.json({ success: true, data: result.recordset[0] });
-    } catch (err) {
-      console.error('❌ POST /pack/pkg/reports error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
+router.post('/pack/pkg/reports', async (req, res) => {
+  const {
+    report_date, shift, plant, package_type,
+    reported_by, qc_supervisor, line_name, machine_name,
+  } = req.body;
+ 
+  if (!report_date) return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
+ 
+  // ถ้าไลน์เป็น Sachet ต้องระบุเครื่องผลิตด้วย (ป้องกันกรณียิง API ตรงๆ ไม่ผ่านหน้าเว็บ)
+  if (/sachet/i.test(line_name || '') && !machine_name) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุเครื่องผลิต (machine_name)' });
+  }
+ 
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+    const result = await pool.request()
+      .input('report_date', sql.Date, report_date)
+      .input('shift', sql.NVarChar(10), shift || null)
+      .input('plant', sql.NVarChar(20), plant || null)
+      .input('package_type', sql.NVarChar(50), package_type || null)
+      .input('reported_by', sql.NVarChar(100), reported_by || null)
+      .input('qc_supervisor', sql.NVarChar(100), qc_supervisor || null)
+      .input('line_name', sql.NVarChar(100), line_name || null)
+      .input('machine_name', sql.NVarChar(20), machine_name || null)
+      .query(`
+        INSERT INTO PackagingUsageReport
+          (report_date, shift, plant, package_type, reported_by, qc_supervisor, line_name, machine_name, status)
+        OUTPUT INSERTED.*
+        VALUES
+          (@report_date, @shift, @plant, @package_type, @reported_by, @qc_supervisor, @line_name, @machine_name, 'active')
+      `);
+    return res.json({ success: true, data: result.recordset[0] });
+  } catch (err) {
+    console.error('❌ POST /pack/pkg/reports error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
   // GET /api/pack/pkg/reports/:report_id — report header + details
 // ─── GET /pack/pkg/reports/:report_id ─────────────────────────────────────────
@@ -10574,13 +10585,13 @@ router.get('/pack/pkg/reports/:report_id', async (req, res) => {
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-
+ 
     const [headerRes, detailRes] = await Promise.all([
       pool.request()
         .input('report_id', sql.Int, report_id)
         .query(`
           SELECT report_id, report_date, shift, plant, package_type,
-                 reported_by, qc_supervisor, line_name, status, created_at
+                 reported_by, qc_supervisor, line_name, machine_name, status, created_at
           FROM PackagingUsageReport
           WHERE report_id = @report_id
         `),
@@ -10598,10 +10609,10 @@ router.get('/pack/pkg/reports/:report_id', async (req, res) => {
           ORDER BY detail_id ASC
         `),
     ]);
-
+ 
     if (!headerRes.recordset[0])
       return res.status(404).json({ success: false, error: 'ไม่พบเอกสาร' });
-
+ 
     return res.json({
       success: true,
       data: { ...headerRes.recordset[0], details: detailRes.recordset },
@@ -10617,28 +10628,33 @@ router.get('/pack/pkg/reports/:report_id', async (req, res) => {
 router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
   const report_id = parseInt(req.params.report_id, 10);
   if (!report_id) return res.status(400).json({ success: false, error: 'report_id ไม่ถูกต้อง' });
-
+ 
   const {
     report_date, shift, plant, package_type,
-    reported_by, qc_supervisor, line_name,
+    reported_by, qc_supervisor, line_name, machine_name,
   } = req.body;
-
+ 
   if (!report_date)
     return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
-
+ 
+  if (/sachet/i.test(line_name || '') && !machine_name) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุเครื่องผลิต (machine_name)' });
+  }
+ 
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-
+ 
     const result = await pool.request()
-      .input('report_id',    sql.Int,           report_id)
-      .input('report_date',  sql.Date,          report_date)
-      .input('shift',        sql.NVarChar(10),  shift        || null)
-      .input('plant',        sql.NVarChar(20),  plant        || null)
-      .input('package_type', sql.NVarChar(50),  package_type || null)
-      .input('reported_by',  sql.NVarChar(100), reported_by  || null)
-      .input('qc_supervisor',sql.NVarChar(100), qc_supervisor|| null)
-      .input('line_name',    sql.NVarChar(100), line_name    || null)
+      .input('report_id',     sql.Int,           report_id)
+      .input('report_date',   sql.Date,          report_date)
+      .input('shift',         sql.NVarChar(10),  shift         || null)
+      .input('plant',         sql.NVarChar(20),  plant         || null)
+      .input('package_type',  sql.NVarChar(50),  package_type  || null)
+      .input('reported_by',   sql.NVarChar(100), reported_by   || null)
+      .input('qc_supervisor', sql.NVarChar(100), qc_supervisor || null)
+      .input('line_name',     sql.NVarChar(100), line_name     || null)
+      .input('machine_name',  sql.NVarChar(20),  machine_name  || null)
       .query(`
         UPDATE PackagingUsageReport SET
           report_date    = @report_date,
@@ -10647,24 +10663,26 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
           package_type   = @package_type,
           reported_by    = @reported_by,
           qc_supervisor  = @qc_supervisor,
-          line_name      = @line_name
+          line_name      = @line_name,
+          machine_name   = @machine_name
         WHERE report_id  = @report_id;
-
+ 
         SELECT report_id, report_date, shift, plant, package_type,
-               reported_by, qc_supervisor, line_name, status, created_at
+               reported_by, qc_supervisor, line_name, machine_name, status, created_at
         FROM PackagingUsageReport
         WHERE report_id = @report_id;
       `);
-
+ 
     if (!result.recordset[0])
       return res.status(404).json({ success: false, error: 'ไม่พบเอกสาร' });
-
+ 
     return res.json({ success: true, data: result.recordset[0] });
   } catch (err) {
     console.error('❌ PUT /pack/pkg/reports/:id error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
   // PUT /api/pack/pkg/reports/:report_id/done
   router.put('/pack/pkg/reports/:report_id/done', async (req, res) => {
     const report_id = parseInt(req.params.report_id, 10);
