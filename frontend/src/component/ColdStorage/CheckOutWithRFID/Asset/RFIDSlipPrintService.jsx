@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
+import { SLIP_PRINTER_ENABLE_KEY } from "../../../../services/localStorageUtil";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -31,7 +32,7 @@ export const resolveAgentUrl = (configured) => {
 // ============================================
 // สวิตช์ "เบราว์เซอร์นี้เป็นเครื่องพิมพ์สลิป" (เก็บใน localStorage ของเบราว์เซอร์นั้น)
 // ============================================
-const ENABLE_KEY = "pfcm_rfid_slip_printer_enabled";
+const ENABLE_KEY = SLIP_PRINTER_ENABLE_KEY;
 const LEADER_KEY = "pfcm_rfid_slip_printer_leader";
 const CHANGE_EVENT = "pfcm-rfid-slip-printer-changed";
 export const SLIP_PRINT_STATUS_EVENT = "pfcm-rfid-slip-print-status";
@@ -200,9 +201,24 @@ const RFIDSlipPrintService = () => {
         const { readerId, tro_id } = payload || {};
         if (!readerId || !tro_id || !isLeader) return;
 
-        const dedupeKey = `${readerId}:${tro_id}:${payload.updatedAt || ""}`;
+        // รหัสประจำการสแกนครั้งนี้ (RFIDc1.js ส่ง scanId มาให้) — ห้ามใช้ updatedAt เพราะ server สร้างใหม่ทุกครั้งที่ส่ง event
+        // ทำให้ไม่เคยซ้ำ กันพิมพ์ซ้ำไม่ได้เลย; ถ้า RFIDc1.js ยังเป็นรุ่นเก่า (ไม่มี scanId) ใช้ reader+รถเข็น+นาทีเดียวกันแทน
+        // (reader มีดีเลย์กันสแกนซ้ำ ≥ 1 นาทีอยู่แล้ว จึงไม่ชนกับการสแกนจริงครั้งถัดไป)
+        const dedupeKey = payload.scanId || `${readerId}:${tro_id}:${Math.floor(Date.now() / 60000)}`;
         if (printing.has(dedupeKey)) return;
         printing.add(dedupeKey);
+
+        // หลายเบราว์เซอร์/หลายเครื่องอาจเปิดสวิตช์พิมพ์พร้อมกัน → ให้ server เลือกตัวเดียวที่ได้พิมพ์ (กันสลิปออกซ้ำหลายใบ)
+        try {
+          const claim = await axios.post(`${API_URL}/api/coldstorage/rfid/print-claim`, { scanId: dedupeKey, claimedBy: tabId });
+          if (claim.data && claim.data.claimed === false) {
+            setTimeout(() => printing.delete(dedupeKey), 30000);
+            return; // เครื่องอื่นพิมพ์ไปแล้ว
+          }
+        } catch (err) {
+          // จองไม่ได้ (เช่น ยังไม่ได้รัน migration) → พิมพ์ต่อดีกว่าสลิปหาย
+          console.warn("RFIDSlipPrintService: จองสิทธิ์พิมพ์ไม่ได้ พิมพ์ต่อ:", err.message);
+        }
 
         const readerConfig = readerConfigs.find((c) => c.reader_no === readerId);
         const printAgentUrl = resolveAgentUrl(readerConfig?.printer_agent_url);

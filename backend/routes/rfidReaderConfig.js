@@ -353,4 +353,38 @@ router.get('/api/coldstorage/rfid/pm2-status', async (req, res) => {
   }
 });
 
+// ============================================
+// POST /api/coldstorage/rfid/print-claim   body: { scanId, claimedBy }
+// หลายเบราว์เซอร์อาจเปิดสวิตช์ "พิมพ์สลิปอัตโนมัติ" พร้อมกัน → ทุกตัวได้รับ readerScanUpdate เดียวกัน
+// ตัวแรกที่จอง scanId สำเร็จ (claimed:true) เป็นตัวเดียวที่พิมพ์ ตัวอื่นข้าม — สลิปออกใบเดียวต่อการสแกน
+// ต้องรัน migrations/create_RFID_Print_Claim.sql ก่อน
+// ============================================
+router.post('/api/coldstorage/rfid/print-claim', async (req, res) => {
+  const scanId = String(req.body?.scanId ?? '').slice(0, 100);
+  const claimedBy = String(req.body?.claimedBy ?? '').slice(0, 100);
+  if (!scanId) return res.status(400).json({ success: false, message: 'ไม่มี scanId' });
+  try {
+    const pool = await getPool();
+    try {
+      await pool.request()
+        .input('scan_id', sql.VarChar(100), scanId)
+        .input('claimed_by', sql.VarChar(100), claimedBy)
+        .query(`INSERT INTO dbo.RFID_Print_Claim (scan_id, claimed_by) VALUES (@scan_id, @claimed_by)`);
+    } catch (err) {
+      if (err.number === 2627 || err.number === 2601) {
+        return res.json({ success: true, claimed: false }); // มีเบราว์เซอร์อื่นจองไปแล้ว
+      }
+      throw err;
+    }
+    // เก็บกวาดข้อมูลเก่า (เป็นครั้งคราว ไม่ต้องทุกครั้ง)
+    if (Math.random() < 0.02) {
+      pool.request().query(`DELETE FROM dbo.RFID_Print_Claim WHERE claimed_at < DATEADD(DAY, -1, GETDATE())`).catch(() => {});
+    }
+    return res.json({ success: true, claimed: true });
+  } catch (err) {
+    console.error('[print-claim] Error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

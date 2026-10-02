@@ -797,6 +797,7 @@ async function handleEpc(epc) {
                         debugLog(`🗄️ เคลียร์ Slot แล้ว (tro_id=${tro_id})`);
                         notifyWebClients({
                             readerId: READER_NO,
+                            scanId: `${READER_NO}-${tro_id}-${now.getTime()}`, // รหัสประจำการสแกนครั้งนี้ — หน้าเว็บใช้กันพิมพ์สลิปซ้ำ
                             tro_id,
                             mapping_ids: exitResult.closed.map(c => c.mapping_id),
                             event: 'coldRoomExit',
@@ -853,6 +854,7 @@ async function handleEpc(epc) {
 
                         notifyWebClients({
                             readerId: READER_NO,
+                            scanId: `${READER_NO}-${tro_id}-${now.getTime()}`, // รหัสประจำการสแกนครั้งนี้ — หน้าเว็บใช้กันพิมพ์สลิปซ้ำ
                             tro_id,
                             mapping_ids: slotResult.updated.map(u => u.mapping_id),
                             event: 'coldRoomEntry',
