@@ -100,7 +100,7 @@
       <a href="#s4">4 หน้าตาตาราง</a><a href="#s5">5 กติกาการลงข้อมูล</a><a href="#s6">6 ระบบ Delay</a>
       <a href="#s7">7 Flow ของ RM</a><a href="#s8">8 RFID</a><a href="#s9">9 สถาปัตยกรรม</a>
       <a href="#s10">10 ข้อมูล/สิทธิ์</a><a href="#s11">11 การย้ายระบบ</a><a href="#s12">12 แผนงาน</a>
-      <a href="#s13">13 ความเสี่ยง</a><a href="#s14">14 คำถามที่ต้องตัดสินใจ</a>
+      <a href="#s13">13 ความเสี่ยง</a><a href="#s14">14 คำถามที่ต้องตัดสินใจ</a><a href="#s15">15 พิมพ์สลีป</a><a href="#s16">16 รวมฐานข้อมูล</a>
     </nav>
   </div>
 </header>
@@ -421,6 +421,73 @@ DeviceEvents     (event_id, device_id, payload_json, received_at, processed_at) 
   </ol>
 </section>
 
+
+<!-- ============ 15 ============ -->
+<section id="s15">
+  <h2><span class="n">15</span>การพิมพ์สลีปในระบบใหม่</h2>
+  <p class="lead">สลีปเป็น "Tool" ฝั่ง server (<code>print.slip</code>) ไม่ผูกกับเบราว์เซอร์ จึงพิมพ์ได้แม้ไม่มีใครเปิดหน้าเว็บ</p>
+  <div class="flow">
+    <span class="s">เซลล์ถูกกรอก / RFID สแกน / ผู้ใช้กดปุ่ม 🖨️</span><span class="a">→</span>
+    <span class="s">Tool print.slip ดึงข้อมูลจาก DB ตอนนั้น</span><span class="a">→</span>
+    <span class="s">สร้างสลีป (หลายวัตถุดิบ + QR ต่อตัว)</span><span class="a">→</span>
+    <span class="s">print-agent → เครื่องพิมพ์ของจุดนั้น</span><span class="a">→</span>
+    <span class="s">บันทึก ToolRuns</span>
+  </div>
+  <ul>
+    <li><b>3 วิธีสั่งพิมพ์:</b> (1) อัตโนมัติจากกติกา "เมื่อเซลล์ X มีค่า → พิมพ์" เช่น เมื่อออกห้องเย็น (2) ปุ่ม 🖨️ ในแถว/คอลัมน์ชนิด <code>tool</code> สำหรับพิมพ์ซ้ำ
+      (3) จาก RFID Gateway ตอนสแกนรถเข็น</li>
+    <li><b>รถเข็น 1 คันหลายวัตถุดิบ = สลีปใบเดียว</b> พิมพ์ทุกตัว มี QR ต่อวัตถุดิบ และย่อขนาดอัตโนมัติ — ใช้ตรรกะที่ทำไว้ใน print-agent เดิม (<code>materials[]</code>)</li>
+    <li><b>QR บนสลีปคงรูปแบบเดิม</b> (<code>รหัสวัตถุดิบ | batch | batch_before | mapping_id | น้ำหนัก | kg | PFCM</code>)
+      เพื่อให้สแกนกลับเป็นข้อมูลนำเข้าของคอลัมน์ <code>scan_or_type</code> ได้ (เช่น หน้า Check In บรรจุ) สลีปเก่าที่พิมพ์ไปแล้วจึงยังใช้ได้</li>
+    <li><b>ข้อมูลสลีปมาจาก DB ณ ขณะสั่งพิมพ์</b> ไม่ใช่ข้อมูลที่ค้างในเบราว์เซอร์ (ระบบเดิมต้อง snapshot ฝั่งหน้าเว็บก่อนรถออกจากช่อง เพราะดึงสดแล้วหายไป)
+      ระบบใหม่เก็บ <code>slip_snapshot</code> ลง <code>ToolRuns</code> เพื่อพิมพ์ซ้ำตรงกับต้นฉบับได้</li>
+    <li><b>เครื่องพิมพ์ต่อจุด:</b> ตั้งในชีต Devices (printer_host / share / dot width เหมือน <code>RFIDReaderConfig</code> เดิม) เปลี่ยนจากหน้าเว็บ ไม่ต้องแก้โค้ด</li>
+    <li><b>รูปแบบสลีปปรับได้:</b> เทมเพลตสลีปเก็บเป็นข้อมูล (เลือกคอลัมน์ที่จะแสดง, หัวข้อ, ขนาด) แทนการฮาร์ดโค้ดใน <code>server.js</code> ของ print-agent</li>
+    <li><b>กันพิมพ์ซ้ำ:</b> ใช้ idempotency key (แถว + เหตุการณ์ + เวลา) พิมพ์ซ้ำโดยตั้งใจต้องกดปุ่มเองและถูกบันทึกว่าเป็น "พิมพ์ซ้ำ" โดยใคร</li>
+    <li><b>ถ้าเครื่องพิมพ์ใช้ไม่ได้:</b> งานพิมพ์ค้างในคิว (<code>ToolRuns.status = pending</code>) ลองใหม่อัตโนมัติ และแสดงเตือนในตาราง ไม่หายเงียบ</li>
+  </ul>
+</section>
+
+<!-- ============ 16 ============ -->
+<section id="s16">
+  <h2><span class="n">16</span>รวมฐานข้อมูลเดิม (PFCMv2) กับของ DocHUB ได้ไหม</h2>
+  <div class="callout"><b>ตอบสั้น:</b> ได้ — และแนะนำทางที่ "รวมแบบมี schema แยก" ไม่ใช่แปลงตารางเดิมทั้งหมดเป็นแถว/เซลล์ของ DocHUB</div>
+  <div class="scroll"><table class="t">
+    <tr><th>ทางเลือก</th><th>อธิบาย</th><th>ข้อดี</th><th>ข้อเสีย</th></tr>
+    <tr><td><b>A. คนละ DB ใน SQL Server เดียวกัน</b></td><td>PFCMv2 และ DataSheetPro อยู่ใน instance เดียว ใช้ view/query ข้าม DB (<code>PFCMv2.dbo.X</code>)</td>
+      <td>เร็วที่สุด เสี่ยงต่ำ ไม่แตะ PFCMv2; ทรานแซกชันข้าม DB ใน instance เดียวทำได้</td><td>ข้อมูลอยู่สองที่; ต้องเช็ค collation ให้ตรงกัน</td></tr>
+    <tr><td><b>B. DB เดียว แยก schema (แนะนำเป้าหมายระยะยาว)</b></td><td>ย้ายตาราง DocHUB ไปอยู่ schema <code>sheet</code> ใน PFCMv2 (หรือสร้าง DB ใหม่ที่มี <code>pfcm</code> + <code>sheet</code>)</td>
+      <td>ชื่อไม่ชนกัน, JOIN ตรงๆ, backup/restore ครั้งเดียว</td><td>ต้องแก้โค้ด DocHUB ให้ระบุ schema; โหลดรวมที่ DB เดียว</td></tr>
+    <tr><td><b>C. แปลงตาราง PFCM เป็น Rows/Cells ทั้งหมด</b></td><td>ให้ <code>TrolleyRMMapping</code>, <code>History</code> ฯลฯ กลายเป็นข้อมูลในชีต</td>
+      <td>รวมเป็นโมเดลเดียว</td><td><b>ไม่แนะนำ:</b> ตารางธุรกรรมที่ RFID เขียนถี่จะช้า (EAV), ต้องเขียนตรรกะเดิมใหม่ทั้งหมด, ความเสี่ยงสูงสุด</td></tr>
+  </table></div>
+  <h3>แนวทางที่แนะนำ: ชีตเป็น "หน้าต่าง" ไปยังตารางจริง</h3>
+  <ul>
+    <li>ตารางธุรกรรมเดิม (<code>TrolleyRMMapping</code>, <code>History</code>, <code>Slot</code>, <code>RFID_to_Trolley</code> ฯลฯ) <b>ยังเป็นเจ้าของข้อมูลเหมือนเดิม</b></li>
+    <li>ชีต Flow Board ชนิด <b>"ชีตผูกตาราง" (bound sheet)</b>: คอลัมน์ผูกกับคอลัมน์จริงของตาราง/วิว การแก้เซลล์ผ่าน Tool ที่เรียกตรรกะเดิม ไม่เขียน EAV
+      — ได้หน้าตาและสิทธิ์/ประวัติแบบ DocHUB โดยไม่ย้ายข้อมูลธุรกรรม</li>
+    <li>ข้อมูลหลักที่เปลี่ยนไม่บ่อย (วัตถุดิบ, แผนการผลิต, ห้องเย็น, ผู้ใช้) ค่อยย้ายเป็นชีตปกติหรือชีตผูกตารางก็ได้ตามความเหมาะสม</li>
+    <li>ชีตที่ผู้ใช้สร้างเอง (คอลัมน์เพิ่มเอง, ข้อมูลเสริม) ใช้ EAV ของ DocHUB ตามปกติและอ้างอิงตารางหลักผ่านคอลัมน์ <code>relation</code> (เช่น <code>mapping_id</code>)</li>
+  </ul>
+  <h3>สิ่งที่ต้องจัดการเมื่อรวม</h3>
+  <div class="scroll"><table class="t">
+    <tr><th>ประเด็น</th><th>รายละเอียด / วิธีจัดการ</th></tr>
+    <tr><td>ชื่อตารางชนกัน</td><td>ทั้งสองระบบมีตาราง <code>Users</code> (PFCM: <code>user_id</code> + bcrypt, DocHUB: <code>user_id</code> แบบ GUID + RefreshTokens)
+      และชื่อทั่วไปเช่น <code>Folders</code>, <code>Notifications</code>, <code>Rows</code>, <code>Columns</code> — ใช้ schema แยก (<code>sheet.*</code>) และตารางแมป <code>UserMap(pfcm_user_id ↔ sheet_user_id)</code></td></tr>
+    <tr><td>การล็อกอิน</td><td>ผู้ใช้ชุดเดียว: ให้ผู้ใช้ PFCM เดิมล็อกอินด้วยรหัสเดิม (ตรวจ hash เดิม แล้วออก JWT ของระบบใหม่) ต้องเช็คว่า hash ของ DocHUB เข้ากันกับ bcrypt เดิมหรือไม่ — ผมยังไม่ได้ตรวจในโค้ด</td></tr>
+    <tr><td>Collation</td><td>DocHUB ใช้ <code>Thai_CI_AS</code> (ตามสคริปต์สร้าง DB) ต้องตรวจ collation ของ PFCMv2 ก่อน ถ้าต่างกัน JOIN ข้าม DB/ตารางจะ error ต้องแก้ด้วย <code>COLLATE</code> หรือปรับให้ตรงกัน</td></tr>
+    <tr><td>ประเภทคีย์</td><td>PFCM ใช้ <code>INT</code>/<code>VARCHAR</code> (เช่น <code>tro_id = '0868'</code>, <code>mapping_id</code> เป็น int) DocHUB ใช้ <code>UNIQUEIDENTIFIER</code> — เก็บรหัสเดิมเป็นคอลัมน์ธุรกิจ (<code>entity_key</code>) ไม่แทนที่ด้วย GUID</td></tr>
+    <tr><td>โหลดและ connection pool</td><td>RFID เขียนถี่ + ตารางหลายผู้ใช้พร้อมกัน บน instance เดียว — แยก connection pool ต่อบริการ, ตั้งดัชนี, ตรวจ deadlock; ระบบเดิมตั้ง pool max 2000 ซึ่งสูงมาก ต้องทดสอบโหลดก่อนรวม</td></tr>
+    <tr><td>สิทธิ์ใน DB</td><td>ใช้ login/ผู้ใช้ DB แยกต่อบริการ สิทธิ์ขั้นต่ำ (ห้าม <code>sa</code>); ชีตผูกตารางได้สิทธิ์ตามตารางที่ระบุเท่านั้น</td></tr>
+    <tr><td>การเปลี่ยน schema บน production</td><td>ตามกฎ CLAUDE.md: ต้องมีแผน rollback, ให้ DBA ทำ, ทดสอบบน DB สำเนาก่อน; เริ่มด้วยทางเลือก A (ไม่แตะ PFCMv2) แล้วค่อยพิจารณา B</td></tr>
+  </table></div>
+  <h3>ลำดับที่แนะนำ</h3>
+  <ol>
+    <li><b>ขั้น 1:</b> สร้าง DataSheetPro เป็น DB แยกใน instance เดิม ตรวจ collation และสร้างวิวอ่านอย่างเดียวของ PFCMv2 → ทำ Flow Board แบบอ่านอย่างเดียว</li>
+    <li><b>ขั้น 2:</b> เพิ่ม "ชีตผูกตาราง" + Tool ที่เรียกตรรกะเดิม (รวม <code>print.slip</code>) ทดลองกับงานเดียว รันคู่ขนาน</li>
+    <li><b>ขั้น 3:</b> เมื่อเสถียร พิจารณารวมเป็น DB เดียวแยก schema (ทางเลือก B) ผ่านแผนของ DBA</li>
+  </ol>
+</section>
 </main>
 
 <footer>
