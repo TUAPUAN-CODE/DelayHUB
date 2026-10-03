@@ -463,6 +463,75 @@ app.post("/print-slip", async (req, res) => {
   }
 });
 
+// ============================================================
+// POST /print-generic — สลิปทั่วไป (ใช้กับ DocHUB / ระบบอื่นที่ไม่ใช่ข้อมูลรถเข็นของ PFCM)
+// รับ { identifier, title, subtitle?, rows:[{label,value}], qr?, footer?, printerHost?, printerShare?, printerDotWidth? }
+// แล้ว render เป็นสลิปหน้าตาเดียวกับสลิปรถเข็น (กว้าง 80mm) พิมพ์ผ่านเส้นทางเดียวกัน (RAW ESC/POS ไป \\printerHost\printerShare)
+// กันพิมพ์ซ้ำด้วยตัวกัน identifier เดียวกับ /print-slip
+// ============================================================
+const escHtml = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function buildGenericSlipHTML({ title, subtitle, rows, qr, footer }) {
+  const list = Array.isArray(rows) ? rows.slice(0, 40) : [];
+  const scale = calcAutoScale(Math.ceil(list.length / 4) || 1);
+  const px = (base) => Math.round(base * scale);
+  const PAGE_WIDTH_MM = 80, CONTAINER_WIDTH_MM = 60, LEFT_MARGIN_MM = 5;
+  const qrPx = Math.min(210, Math.max(80, px(150)));
+  const qrDataUri = qr ? await buildQRDataUri(String(qr)) : null;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
+    @page { size: ${PAGE_WIDTH_MM}mm auto; margin: 0mm; }
+    * { box-sizing: border-box; }
+    html, body { width: ${PAGE_WIDTH_MM}mm; margin: 0; padding: 0; overflow-x: hidden; font-family: "Tahoma", sans-serif; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .container { width: ${CONTAINER_WIDTH_MM}mm; max-width: ${CONTAINER_WIDTH_MM}mm; margin-left: ${LEFT_MARGIN_MM}mm; padding: ${px(2)}mm 0 8mm 0; overflow-wrap: break-word; word-break: break-word; color: #000; }
+    .header { text-align: center; font-size: ${px(20)}px; font-weight: bold; margin-bottom: ${px(4)}px; }
+    .sub { text-align: center; font-size: ${px(13)}px; margin-bottom: ${px(6)}px; }
+    .row { font-size: ${px(14)}px; margin-bottom: ${px(3)}px; line-height: 1.3; border-bottom: 1px dashed #000; padding-bottom: ${px(2)}px; }
+    .row b { font-weight: bold; }
+    .qr { text-align: center; margin-top: ${px(6)}px; line-height: 0; }
+    .qr img { width: ${qrPx}px; height: ${qrPx}px; max-width: 100%; display: inline-block; }
+    .foot { text-align: center; font-size: ${px(11)}px; margin-top: ${px(6)}px; }
+  </style></head><body><div class="container">
+    <div class="header">${escHtml(title || "สลิป")}</div>
+    ${subtitle ? `<div class="sub">${escHtml(subtitle)}</div>` : ""}
+    ${list.map((r) => `<div class="row"><b>${escHtml(r.label)}:</b> ${escHtml(r.value)}</div>`).join("")}
+    ${qrDataUri ? `<div class="qr"><img src="${qrDataUri}" width="${qrPx}" height="${qrPx}" /></div>` : ""}
+    ${footer ? `<div class="foot">${escHtml(footer)}</div>` : ""}
+  </div></body></html>`;
+}
+
+app.post("/print-generic", async (req, res) => {
+  const { identifier, title, subtitle, rows, qr, footer, printerHost, printerShare, printerDotWidth } = req.body || {};
+  if (!identifier) return res.status(400).json({ ok: false, error: "ไม่มี identifier ส่งมา" });
+  if (!Array.isArray(rows)) return res.status(400).json({ ok: false, error: "ไม่มี rows ส่งมา" });
+
+  const dedupeKey = `${printerHost || "local"}|${printerShare || ""}|generic:${identifier}`;
+  const who = `${req.ip} ${req.get("origin") || ""}`.trim();
+  const nowMs = Date.now();
+  const lastMs = recentPrints.get(dedupeKey);
+  if (PRINT_DEDUPE_MS > 0 && lastMs !== undefined && nowMs - lastMs < PRINT_DEDUPE_MS) {
+    console.log(`⏭️ ข้ามคำขอพิมพ์ซ้ำ (generic) identifier=${identifier} จาก ${who}`);
+    return res.json({ ok: true, printed: identifier, deduped: true });
+  }
+  recentPrints.set(dedupeKey, nowMs);
+  console.log(`🖨️ รับคำขอพิมพ์ (generic) identifier=${identifier} จาก ${who}`);
+
+  try {
+    const html = await buildGenericSlipHTML({ title, subtitle, rows, qr, footer });
+    if (printerHost && printerShare) {
+      const result = await printHtmlToNetworkPrinter(html, { printerHost, printerShare, dotWidth: printerDotWidth });
+      console.log(`✅ พิมพ์สลิป (generic, RAW ผ่าน network → ${result.target}) สำเร็จ identifier=${identifier}`);
+    } else {
+      await silentPrintHTML(html);
+      console.log(`✅ พิมพ์สลิป (generic, local kiosk-printing) สำเร็จ identifier=${identifier}`);
+    }
+    res.json({ ok: true, printed: identifier });
+  } catch (err) {
+    console.error("พิมพ์สลิป (generic) ไม่สำเร็จ:", err.message);
+    recentPrints.delete(dedupeKey);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🖨️  Print Agent กำลังทำงานที่ http://0.0.0.0:${PORT}`);
   console.log(`   ทดสอบ: http://localhost:${PORT}/health`);
