@@ -16,6 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import dochubTheme from "../../theme/dochubTheme";
+import FloatingLanguageSwitcher from "../Layout/FloatingLanguageSwitcher";
 // Theme ป้องกันการเบลอ
 const sharpTheme = dochubTheme;
 
@@ -94,6 +95,8 @@ const WorkplaceSelector = () => {
   };
 
   return (
+    <>
+    <FloatingLanguageSwitcher />
     <ThemeProvider theme={sharpTheme}>
       <CssBaseline />
       <Box
@@ -231,6 +234,7 @@ const WorkplaceSelector = () => {
         </Container>
       </Box>
     </ThemeProvider>
+    </>
   );
 };
 

@@ -15,6 +15,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
 
+import FloatingLanguageSwitcher from "../Layout/FloatingLanguageSwitcher";
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Schema ตรวจสอบข้อมูล
@@ -61,6 +62,8 @@ const ForgotPassword = () => {
   };
 
   return (
+    <>
+    <FloatingLanguageSwitcher />
     <Box
       sx={{
         minHeight: "100vh",
@@ -184,6 +187,7 @@ const ForgotPassword = () => {
         </Paper>
       </Container>
     </Box>
+    </>
   );
 };
 

@@ -19,6 +19,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
+import { initI18n } from "./i18n/translator";
 
 // Find the root DOM node
 const container = document.getElementById("root");
@@ -34,3 +35,5 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+initI18n();

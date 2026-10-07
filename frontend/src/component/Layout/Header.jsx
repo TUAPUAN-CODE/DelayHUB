@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import LanguageSwitcher from "./LanguageSwitcher";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Header = ({ title }) => {
@@ -95,6 +96,8 @@ const Header = ({ title }) => {
         {title}
       </h6>
 
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <LanguageSwitcher />
       {/* User Card */}
       <div
         className="user-card"
@@ -123,6 +126,7 @@ const Header = ({ title }) => {
             {position || "ตำแหน่งไม่พบ"} | {workplace || "จุดทำงานไม่พบ"} {rawmatType || ""}
           </p>
         </div>
+      </div>
       </div>
     </header>
   );

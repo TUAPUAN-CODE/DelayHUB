@@ -17,6 +17,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import FloatingLanguageSwitcher from "../Layout/FloatingLanguageSwitcher";
 import { useNavigate } from "react-router-dom"; // นำเข้า useNavigate
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -100,6 +101,8 @@ const Login = () => {
 };
 
   return (
+    <>
+    <FloatingLanguageSwitcher />
     <Box
       sx={{
         minHeight: "100vh",
@@ -216,6 +219,7 @@ const Login = () => {
         </Paper>
       </Container>
     </Box>
+    </>
   );
 };
 

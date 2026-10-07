@@ -144,3 +144,7 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
   .app-nav-pill, .app-nav-sub, .app-sidebar-desktop, .app-nav-link, .app-nav-label { transition: none !important; }
   .app-sidebar-drawer, .app-sidebar-drawer-panel { animation: none; }
 }
+
+/* multilingual fonts (system fonts first, no download needed) */
+html[lang="my"] body, html[lang="my"] .MuiTypography-root, html[lang="my"] .MuiButton-root, html[lang="my"] .MuiTableCell-root, html[lang="my"] .app-sidebar { font-family: 'Prompt', 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', sans-serif; }
+html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiButton-root, html[lang="km"] .MuiTableCell-root, html[lang="km"] .app-sidebar { font-family: 'Prompt', 'Noto Sans Khmer', 'Khmer UI', 'Leelawadee UI', sans-serif; }
