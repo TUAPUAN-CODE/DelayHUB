@@ -1,34 +1,27 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 
 import SidebarPack from "./SidebarPack";
 // import MainPack from "./Main/MainPage";
 import CheckStatusPage from "./CheckStatus/CheckStatusPage";
-import HistoryPage from "./History/HistoryPage";
 import WorkplacePage from "./Workplace/WorkplacePage";
 import LineSelectWP from "../User/LineSelectWP";
 import ManagePack from "./Manage/ManagePage";
-import PackTroPage from "./PackTro/PackTroPage";
 import MixRMPage from "./MixRM/MixRMPage";
 import RequestRawmat from "./RequestRawmat/RequestrawmatPage";
 import OrderRequestRawmat from "./OrderRequestrawmat/RequestrawmatPage";
 import ManageRequestOrder from "./ManageRequestOrder/ManagePage";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
-import CSCheckOutPage from "./CheckOut/CheckOutPage.jsx"
 import ScanBarcodePage from "./ScanSAP/ScanBatcodePage.jsx"
 import ManageRawmatPack from "./ManageRawmat/ManagePage.jsx"
-import ReportRawmatPack from "./ReportRawmatEditTIME/ManagePage.jsx"
-import TrackTrolley from "./TrackTrolley/TrackTrolley.jsx";
 import ReportDelay from "./ReportDelay/ManagePage.jsx"
 import Managedelaymaster from "./ManageDelay/ManagePage.jsx";
 import CheckInPage from "./CheckIn/CheckInPage.jsx";
-import IncludeRawmatPage from "./IncludeRawmatPack/IncludeRawmatPage.jsx";
 import Pull_History from "./PullHistory/ManagePage.jsx";
-import ReportPull from "./ReportPull/ManagePage.jsx";
-import ReportRawmatPackuser from "./ReportRawmatNotEditTIME/ManagePage.jsx";
 import PrintMasterPage from "./PrintMaster/CheckInPage.jsx";
 import Printpackandroid from  "./PrintMasters/CheckInPage.jsx";
 import PrintMasterPages from "./PrintMasters/CheckInPage.jsx";
 import UsePKGPage from "./UsePKG/CheckInPage.jsx";
+import ReportHubPage from "./Reports/ReportHubPage.jsx";
 
 function AppPack() {
   return (
@@ -43,11 +36,9 @@ function AppPack() {
       <Routes>
         
 
-        <Route path="/TrackTrolley" element={<TrackTrolley />} />
         <Route path="/CheckStatus/CheckStatusPage" element={<CheckStatusPage />} />
-        <Route path="/" element={<TrackTrolley />} />
+        <Route path="/" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
         {/* <Route path="/manage/ManagePage" element={<ManagePack />} /> */}
-        <Route path="/History/HistoryPage" element={<HistoryPage />} />
         <Route path="/Workplace/WorkplacePage" element={<WorkplacePage />} />
         <Route path="/Mixed/Trolley" element={<MixRMPage />} />
         <Route path="/Request/Rawmat" element={<RequestRawmat />} />
@@ -57,18 +48,21 @@ function AppPack() {
         {/* <Route path="/" element={<MainPack />} /> */}
         {/* เลือกสถานที่ไลน์ผลิต */}
         <Route path="/User/LineSelectWP" element={<LineSelectWP />} />
-        <Route path="/PackTro/PackTroPage" element={<PackTroPage />} />
-        <Route path="/CheckOut" element={<CSCheckOutPage />} />
         <Route path="/ScanBarcodePage" element={<ScanBarcodePage />} />
         <Route path="/ManageRawmatPack" element={<ManageRawmatPack />} />
-        <Route path="/Report/sup" element={<ReportRawmatPack />} />
+        <Route path="/Report/sup" element={<ReportHubPage initialView="sup" />} />
         <Route path="/ReportDelay" element={<ReportDelay />} />
         <Route path="/Managedelaymaster" element={<Managedelaymaster />} />
         <Route path="/CheckInPagePack" element={<CheckInPage />} />
-        <Route path="/IncludeRawmatPagePack" element={<IncludeRawmatPage />} />
         <Route path="/Pull_History" element={<Pull_History />} />
-        <Route path="/ReportPull" element={<ReportPull />} />
-        <Route path="/ReportRawmatPackuser" element={<ReportRawmatPackuser />} />
+        <Route path="/ReportPull" element={<ReportHubPage initialView="history" />} />
+        <Route path="/ReportRawmatPackuser" element={<ReportHubPage initialView="report" />} />
+        {/* หน้าเดิมที่รวมเข้าตาราง Delay แล้ว */}
+        <Route path="/TrackTrolley" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/CheckOut" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/IncludeRawmatPagePack" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/PackTro/PackTroPage" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/History/HistoryPage" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
         <Route path="/PrintMaster" element={<PrintMasterPage />} />
         <Route path="/Printpackandroid" element={<Printpackandroid />} />
         <Route path="/UsePKG" element={<UsePKGPage />} />

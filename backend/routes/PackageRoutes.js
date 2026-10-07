@@ -8788,6 +8788,116 @@ WHERE
     }
   });
 
+  // รายการเพิ่มเติมสำหรับตาราง Delay รวม (อ่านอย่างเดียว):
+  //   stage = 'qc'      -> รอ QC ตรวจสอบ (ยังไม่เข้ารถเข็น)
+  //   stage = 'trolley' -> อยู่ในรถเข็นของไลน์นี้ รอส่งไปปลายทาง
+  router.get("/pack/unified/line", async (req, res) => {
+    const lineIdNum = parseInt(req.query.line_id, 10);
+    if (isNaN(lineIdNum)) {
+      return res.status(400).json({ success: false, error: "line_id must be a number" });
+    }
+
+    try {
+      const data = await withRetry(async () => {
+        const pool = await getPool();
+        const result = await pool.request()
+          .input("line_id", sql.Int, lineIdNum)
+          .input("line_id_str", sql.NVarChar(20), String(lineIdNum))
+          .query(`
+            SELECT TOP (2000)
+                rmf.rmfp_id,
+                b.batch_after,
+                rm.mat,
+                rm.mat_name,
+                rmm.mapping_id,
+                rmm.dest,
+                rmm.stay_place,
+                rmg.rm_type_id,
+                rmm.rm_status,
+                rmm.tray_count,
+                rmm.weight_RM,
+                rmm.level_eu,
+                rmm.tro_id,
+                rmm.mix_code,
+                p.doc_no,
+                CONVERT(VARCHAR, h.cooked_date, 120) AS cooked_date,
+                CONVERT(VARCHAR, h.rmit_date, 120) AS rmit_date,
+                CONVERT(VARCHAR, h.come_cold_date, 120) AS come_cold_date,
+                CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
+                CONVERT(VARCHAR, h.come_cold_date_two, 120) AS come_cold_date_two,
+                CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
+                CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
+                CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
+                CONVERT(VARCHAR, h.cs_come_cold_date, 120) AS cs_come_cold_date,
+                CONVERT(VARCHAR, h.cs_out_cold_date, 120) AS cs_out_cold_date,
+                CONVERT(VARCHAR, h.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+                CONVERT(VARCHAR, h.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+                CONVERT(VARCHAR, h.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+                CONVERT(VARCHAR, h.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+                CONVERT(VARCHAR, h.qc_date, 120) AS qc_date,
+                l.line_name,
+                rmm.rmm_line_name,
+                CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS code,
+                rmm.qc_id,
+                CASE WHEN rmm.rm_status IN (N'รอQCตรวจสอบ', N'รอ MD') THEN 'qc' ELSE 'trolley' END AS stage
+            FROM TrolleyRMMapping rmm WITH (NOLOCK)
+            JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+            JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+            JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+            JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+            JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+            LEFT JOIN Line l WITH (NOLOCK) ON rmm.rmm_line_name = l.line_name
+            LEFT JOIN PackTrolley ptl WITH (NOLOCK) ON ptl.tro_id = rmm.tro_id AND ptl.pack_tro_status = '0'
+            OUTER APPLY (
+                SELECT TOP 1 hh.cooked_date, hh.rmit_date,
+                       hh.come_cold_date, hh.out_cold_date,
+                       hh.come_cold_date_two, hh.out_cold_date_two,
+                       hh.come_cold_date_three, hh.out_cold_date_three,
+                       hh.cs_come_cold_date, hh.cs_out_cold_date,
+                       hh.cs_come_cold_date_two, hh.cs_out_cold_date_two,
+                       hh.cs_come_cold_date_three, hh.cs_out_cold_date_three,
+                       hh.qc_date
+                FROM History hh WITH (NOLOCK)
+                WHERE hh.mapping_id = rmm.mapping_id
+                ORDER BY hh.hist_id DESC
+            ) h
+            LEFT JOIN (
+                SELECT mapping_id, STRING_AGG(batch_after, ', ') AS batch_after
+                FROM Batch WITH (NOLOCK)
+                GROUP BY mapping_id
+            ) b ON b.mapping_id = rmm.mapping_id
+            WHERE
+                (
+                    rmm.stay_place IN (N'จุดเตรียม', N'หม้ออบ')
+                    AND rmm.dest IN (N'รอCheckin', N'ห้องเย็นใหญ่')
+                    AND rmm.rm_status IN (N'รอQCตรวจสอบ', N'รอ MD')
+                    AND l.line_id = @line_id
+                )
+                OR
+                (
+                    rmm.tro_id IS NOT NULL
+                    AND rmm.dest IN (N'บรรจุ', N'รถเข็นรอจัดส่ง')
+                    AND CAST(ptl.line_tro AS NVARCHAR(20)) = @line_id_str
+                )
+            ORDER BY rmm.mapping_id DESC
+          `);
+        return result.recordset;
+      });
+
+      const rows = data.map((row) => ({
+        ...row,
+        production: row.code,
+        CookedDateTime: row.cooked_date ? String(row.cooked_date).slice(0, 16) : null,
+      }));
+
+      res.set('Cache-Control', 'no-store');
+      return res.json({ success: true, data: rows, count: rows.length });
+    } catch (err) {
+      console.error("❌ [Route /pack/unified/line] Error:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
 
   // router.get("/pack/manage/all/line", async (req, res) => {
   //   try {

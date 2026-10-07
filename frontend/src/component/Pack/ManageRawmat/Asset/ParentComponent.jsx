@@ -6,6 +6,8 @@ import ModalEditPD from './ModalEditPD';
 import ModalSuccess from './ModalSuccess';
 import ModalDelete from './ModalDelete';
 import ModalEditLine from './ModalEditLine';
+import PackFlows from './flow/PackFlows';
+import { Snackbar, Alert } from '@mui/material';
 import axios from "axios";
 axios.defaults.withCredentials = true;
 import io from 'socket.io-client';
@@ -73,6 +75,9 @@ const ParentComponent = () => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [unifiedError, setUnifiedError] = useState(false);
+  const [toast, setToast] = useState('');
+  const flowsRef = useRef(null);
 
   const socketRef = useRef(null);
   const fetchDebounceRef = useRef(null);
@@ -113,11 +118,15 @@ const ParentComponent = () => {
       }
 
       // ✅ allSettled — ถ้า API ตัวใดล้มเหลว ยังแสดงข้อมูลจากอีกตัวได้
-      const [resLine, resMix] = await Promise.allSettled([
+      const [resLine, resMix, resExtra] = await Promise.allSettled([
         axiosInstance.get(`${API_URL}/api/pack/manage/all/line`, {
           params: { line_id: lineId }
         }),
         axiosInstance.get(`${API_URL}/api/pack/manage/mixed/all/line`, {
+          params: { line_id: lineId }
+        }),
+        // รายการ "รอ QC" และ "อยู่ในรถเข็น" ของไลน์นี้ (ถ้า endpoint ใช้ไม่ได้ ตารางหลักยังทำงานต่อได้)
+        axiosInstance.get(`${API_URL}/api/pack/unified/line`, {
           params: { line_id: lineId }
         })
       ]);
@@ -147,14 +156,31 @@ const ParentComponent = () => {
         return resMix.value?.data?.success ? (resMix.value.data.data || []) : [];
       })();
 
-      console.log(`✅ Fetched: line=${lineData.length}, mix=${mixData.length}`);
+      const extraData = (() => {
+        if (resExtra.status === 'rejected' || !resExtra.value?.data?.success) {
+          console.error("❌ Unified API:", resExtra.reason?.message || resExtra.value?.data?.error);
+          if (mountedRef.current) setUnifiedError(true);
+          return [];
+        }
+        if (mountedRef.current) setUnifiedError(false);
+        return resExtra.value.data.data || [];
+      })();
 
-      const transformedData = [...lineData, ...mixData].map(item => ({
+      console.log(`✅ Fetched: line=${lineData.length}, mix=${mixData.length}, extra=${extraData.length}`);
+
+      // stage: ready = พร้อมใส่รถเข็น (รายการเดิม) · qc = รอ QC · trolley = อยู่ในรถเข็น
+      const readyRows = [...lineData, ...mixData].map(item => ({
         ...item,
+        stage: 'ready',
         production: item.code,
         weight_RM: item.weight_RM,
         weight_per_tray: item.weight_in_trolley / (item.tray_count || 1)
       }));
+      const knownIds = new Set(readyRows.map(r => r.mapping_id));
+      const extraRows = extraData
+        .filter(r => !knownIds.has(r.mapping_id))
+        .map(item => ({ ...item, production: item.code }));
+      const transformedData = [...extraRows.filter(r => r.stage === 'qc'), ...readyRows, ...extraRows.filter(r => r.stage !== 'qc')];
 
       if (mountedRef.current) {
         setTableData(transformedData);
@@ -355,7 +381,17 @@ const ParentComponent = () => {
         data={tableData}
         loading={loading}
         checkTroId={hasTroId}
+        onQc={(row) => flowsRef.current?.qc(row)}
+        onSend={(row) => flowsRef.current?.send(row.tro_id)}
+        onMix={() => flowsRef.current?.mix()}
+        onAddTrolley={() => flowsRef.current?.addTrolley()}
+        unifiedError={unifiedError}
       />
+
+      <PackFlows ref={flowsRef} onDone={fetchData} onNotify={setToast} />
+      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="info" onClose={() => setToast('')} sx={{ width: '100%' }}>{toast}</Alert>
+      </Snackbar>
 
       <Modal2
         open={modals.modal2}

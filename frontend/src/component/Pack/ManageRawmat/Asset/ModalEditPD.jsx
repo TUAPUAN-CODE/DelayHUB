@@ -17,6 +17,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlined";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
 import ModalAlert from "../../../../Popup/AlertSuccess";
+import AddTrolleyDialog from "./flow/AddTrolleyDialog";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -85,6 +86,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
   const [isConfirmProdOpen, setIsConfirmProdOpen] = useState(false);
   const [maxWeight, setMaxWeight] = useState(0);
   const [isValidWeight, setIsValidWeight] = useState(false);
+  const [addTrolleyOpen, setAddTrolleyOpen] = useState(false);
 
   const { batch_after, mat, rmfp_id, mapping_id } = data || {};
 
@@ -195,7 +197,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Divider />
             <Autocomplete 
               options={trolleys} 
-              getOptionLabel={(option) => `${option.tro_id}`} 
+              getOptionLabel={(option) => `${option.tro_id}`}
+              isOptionEqualToValue={(o, v) => o.tro_id === v.tro_id}
               value={selectedTrolley} 
               onChange={(event, newValue) => {
                 setSelectedTrolley(newValue);
@@ -203,6 +206,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               }} 
               renderInput={(params) => <TextField {...params} label="เลือกรถเข็น" variant="outlined" />} 
             />
+            <Button size="small" onClick={() => setAddTrolleyOpen(true)} sx={{ alignSelf: "flex-start", mt: -1 }}>
+              + เพิ่มรถเข็นใหม่
+            </Button>
             <TextField 
               label="จำนวนถาด" 
               type="number" 
@@ -253,6 +259,15 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
           </Stack>
         </DialogContent>
       </Dialog>
+      <AddTrolleyDialog
+        open={addTrolleyOpen}
+        onClose={() => setAddTrolleyOpen(false)}
+        onAdded={async (troId) => {
+          await fetchTrolleys();
+          setSelectedTrolley({ tro_id: troId });
+          setErrorMessage("");
+        }}
+      />
       <ConfirmProdModal 
         open={isConfirmProdOpen} 
         onClose={() => setIsConfirmProdOpen(false)} 

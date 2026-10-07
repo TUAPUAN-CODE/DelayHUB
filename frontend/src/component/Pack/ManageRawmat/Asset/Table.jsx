@@ -17,6 +17,10 @@ import ClearIcon from '@mui/icons-material/Clear';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import BlenderOutlinedIcon from '@mui/icons-material/BlenderOutlined';
+import AddRoadIcon from '@mui/icons-material/AddRoad';
 import QrScanner from 'qr-scanner';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -26,10 +30,19 @@ import dayjs from 'dayjs';
 import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
+const STAGES = {
+  qc: { label: 'รอ QC', color: '#B45309', bg: '#FEF3C7' },
+  ready: { label: 'พร้อมใส่รถเข็น', color: '#1552F0', bg: '#EAF0FF' },
+  trolley: { label: 'อยู่ในรถเข็น', color: '#047857', bg: '#D1FAE5' },
+};
+const stageOf = (row) => row.stage || 'ready';
+
 const CUSTOM_COLUMN_WIDTHS = {
   checkbox: '60px',
   weight: '120px',
   cart: '40px',
+  qc: '40px',
+  send: '40px',
   edit: '40px',
   delete: '40px'
 };
@@ -298,6 +311,18 @@ const ActionCell = ({ width, onClick, icon, backgroundColor, hoverColor, iconCol
   </TableCell>
 );
 
+const BlankActionCell = ({ width, backgroundColor }) => (
+  <TableCell
+    style={{
+      width, textAlign: 'center', color: '#B0BAC9', height: '48px', padding: '0px',
+      borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', borderLeft: '1px solid #EAF0FF',
+      backgroundColor
+    }}
+  >
+    -
+  </TableCell>
+);
+
 // ─────────────────────────────────────────────
 // Row
 // ─────────────────────────────────────────────
@@ -316,9 +341,15 @@ const Row = ({
   onSelectRow,
   weight,
   onWeightChange,
-  isConfirmed
+  isConfirmed: confirmedByDate,
+  onQc,
+  onSend
 }) => {
   const backgroundColor = index % 2 === 0 ? '#ffffff' : '#F0F8FF';
+  const stage = stageOf(row);
+  const isReady = stage === 'ready';
+  // แถวที่ยังไม่พร้อม (รอ QC / อยู่ในรถเข็น) ยืนยัน/กรอกน้ำหนักในตารางนี้ไม่ได้
+  const isConfirmed = confirmedByDate || !isReady;
 
   const [localWeight, setLocalWeight] = useState(weight || row.weight || '');
   const [weightError, setWeightError] = useState('');
@@ -344,6 +375,13 @@ const Row = ({
   const displayRow = {};
   displayColumns.forEach(col => {
     switch (col) {
+      case 'stage':
+        displayRow[col] = (
+          <span style={{ background: STAGES[stage].bg, color: STAGES[stage].color, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {STAGES[stage].label}
+          </span>
+        );
+        break;
       case 'cold_slot_1_in':  displayRow[col] = sortedColdPairs[0]?.in  ?? '-'; break;
       case 'cold_slot_1_out': displayRow[col] = sortedColdPairs[0]?.out ?? '-'; break;
       case 'cold_slot_2_in':  displayRow[col] = sortedColdPairs[1]?.in  ?? '-'; break;
@@ -412,6 +450,48 @@ const Row = ({
             }}
           />
         </TableCell>
+
+        {/* QC (เฉพาะรายการรอ QC) */}
+        {stage === 'qc' ? (
+          <ActionCell
+            width={CUSTOM_COLUMN_WIDTHS.qc}
+            onClick={(e) => { e.stopPropagation(); onQc?.(row); }}
+            icon={<FactCheckOutlinedIcon style={{ color: '#B45309', fontSize: '22px' }} />}
+            backgroundColor={backgroundColor}
+            hoverColor="#B45309"
+            iconColor="#B45309"
+          />
+        ) : (
+          <BlankActionCell width={CUSTOM_COLUMN_WIDTHS.qc} backgroundColor={backgroundColor} />
+        )}
+
+        {/* ใส่รถเข็น (เฉพาะรายการพร้อม) */}
+        {isReady ? (
+          <ActionCell
+            width={CUSTOM_COLUMN_WIDTHS.cart}
+            onClick={(e) => { e.stopPropagation(); handleOpenEditModal(row); }}
+            icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '22px' }} />}
+            backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
+            hoverColor="#1552F0"
+            iconColor="#1552F0"
+          />
+        ) : (
+          <BlankActionCell width={CUSTOM_COLUMN_WIDTHS.cart} backgroundColor={backgroundColor} />
+        )}
+
+        {/* ส่งรถเข็นไปปลายทาง (เฉพาะรายการที่อยู่ในรถเข็น) */}
+        {stage === 'trolley' ? (
+          <ActionCell
+            width={CUSTOM_COLUMN_WIDTHS.send}
+            onClick={(e) => { e.stopPropagation(); onSend?.(row); }}
+            icon={<LocalShippingOutlinedIcon style={{ color: '#047857', fontSize: '22px' }} />}
+            backgroundColor={backgroundColor}
+            hoverColor="#047857"
+            iconColor="#047857"
+          />
+        ) : (
+          <BlankActionCell width={CUSTOM_COLUMN_WIDTHS.send} backgroundColor={backgroundColor} />
+        )}
 
         {/* Data Columns */}
         {Object.entries(displayRow).map(([key, value], idx) => (
@@ -483,35 +563,33 @@ const Row = ({
           )}
         </TableCell>
 
-        {/* Cart */}
-        <ActionCell
-          width={CUSTOM_COLUMN_WIDTHS.cart}
-          onClick={(e) => { e.stopPropagation(); handleOpenEditModal(row); }}
-          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
-          hoverColor="#1552F0"
-          iconColor="#1552F0"
-        />
-
         {/* Edit */}
-        <ActionCell
-          width={CUSTOM_COLUMN_WIDTHS.edit}
-          onClick={(e) => { e.stopPropagation(); handleOpenEditLineModal(row); }}
-          icon={<EditIcon style={{ color: '#ffc107', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
-          hoverColor="#ffc107"
-          iconColor="#ffc107"
-        />
+        {isReady ? (
+          <ActionCell
+            width={CUSTOM_COLUMN_WIDTHS.edit}
+            onClick={(e) => { e.stopPropagation(); handleOpenEditLineModal(row); }}
+            icon={<EditIcon style={{ color: '#ffc107', fontSize: '22px' }} />}
+            backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
+            hoverColor="#ffc107"
+            iconColor="#ffc107"
+          />
+        ) : (
+          <BlankActionCell width={CUSTOM_COLUMN_WIDTHS.edit} backgroundColor={backgroundColor} />
+        )}
 
         {/* Delete / Confirm */}
-        <ActionCell
-          width={CUSTOM_COLUMN_WIDTHS.delete}
-          onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal(row); }}
-          icon={<FaRegCheckCircle style={{ color: '#ff0000', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
-          hoverColor="#ff4444"
-          iconColor="#ff0000"
-        />
+        {isReady ? (
+          <ActionCell
+            width={CUSTOM_COLUMN_WIDTHS.delete}
+            onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal(row); }}
+            icon={<FaRegCheckCircle style={{ color: '#ff0000', fontSize: '22px' }} />}
+            backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
+            hoverColor="#ff4444"
+            iconColor="#ff0000"
+          />
+        ) : (
+          <BlankActionCell width={CUSTOM_COLUMN_WIDTHS.delete} backgroundColor={backgroundColor} />
+        )}
       </TableRow>
 
       <TableRow>
@@ -798,8 +876,14 @@ const TableMainPrep = ({
   handleOpenDeleteModal,
   handleOpenEditLineModal,
   handleOpenSuccess,
-  onConfirmRow
+  onConfirmRow,
+  onQc,
+  onSend,
+  onMix,
+  onAddTrolley,
+  unifiedError
 }) => {
+  const [stageFilter, setStageFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredRows, setFilteredRows] = useState(data);
   const [page, setPage] = useState(0);
@@ -819,7 +903,7 @@ const TableMainPrep = ({
 
   // ✅ เพิ่มคอลัมน์ cold storage ทั้ง 6 รอบ (แทนของเดิมที่มีแค่ 2 รอบ)
   const displayColumns = [
-    'batch_after', 'mat_name', 'production', 'rmit_date',
+    'stage', 'batch_after', 'mat_name', 'production', 'tro_id', 'rmit_date',
     'cold_slot_1_in', 'cold_slot_1_out',
     'cold_slot_2_in', 'cold_slot_2_out',
     'cold_slot_3_in', 'cold_slot_3_out',
@@ -849,9 +933,13 @@ const TableMainPrep = ({
       filtered = filtered.filter(row => row.doc_no === selectedDocNo);
     }
 
+    if (stageFilter !== 'all') {
+      filtered = filtered.filter(row => stageOf(row) === stageFilter);
+    }
+
     setFilteredRows(filtered);
     setPage(0);
-  }, [searchTerm, data, selectedDocNo]);
+  }, [searchTerm, data, selectedDocNo, stageFilter]);
 
   const handleSelectRow = (mappingId) => {
     setSelectedRows(prev => {
@@ -871,7 +959,7 @@ const TableMainPrep = ({
     setRowWeights(prev => ({ ...prev, [mappingId]: weight }));
   };
 
-  const unconfirmedRows = filteredRows.filter(row => !row.sc_pack_date || row.sc_pack_date === '-');
+  const unconfirmedRows = filteredRows.filter(row => stageOf(row) === 'ready' && (!row.sc_pack_date || row.sc_pack_date === '-'));
   const allSelected = selectedRows.length > 0 && selectedRows.length === unconfirmedRows.length;
 
   const handleSelectAll = () => {
@@ -989,6 +1077,8 @@ const TableMainPrep = ({
 
   // ✅ header ของคอลัมน์ cold storage 6 รอบ
   const headerNames = {
+    stage: 'สถานะ',
+    tro_id: 'รถเข็น',
     batch_after: 'Batch',
     mat_name: 'ชื่อวัตถุดิบ',
     rmit_date: 'เวลาเตรียม',
@@ -1025,7 +1115,8 @@ const TableMainPrep = ({
       cold_slot_6_in: '110px',
       cold_slot_6_out: '110px',
       production: '80px',
-      tro_id: '180px',
+      tro_id: '110px',
+      stage: '130px',
       weight_RM: '10px',
       batch_after: '50px'
     };
@@ -1098,6 +1189,11 @@ const TableMainPrep = ({
           />
         </Box>
 
+        {unifiedError && (
+          <Box sx={{ mb: 1.5, color: '#fff', fontSize: 13, background: 'rgba(0,0,0,0.18)', borderRadius: '8px', p: '6px 12px' }}>
+            โหลดรายการ "รอ QC / อยู่ในรถเข็น" ไม่สำเร็จ — ตารางแสดงเฉพาะรายการพร้อมใส่รถเข็น
+          </Box>
+        )}
         {/* Filters */}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1122,6 +1218,37 @@ const TableMainPrep = ({
               '& .MuiChip-icon': { color: '#1552F0' }
             }}
           />
+
+          {[['all', 'ทั้งหมด'], ['qc', 'รอ QC'], ['ready', 'พร้อมใส่รถเข็น'], ['trolley', 'อยู่ในรถเข็น']].map(([key, label]) => (
+            <Chip
+              key={key}
+              label={`${label} (${key === 'all' ? data.length : data.filter(r => stageOf(r) === key).length})`}
+              onClick={() => setStageFilter(key)}
+              sx={{
+                height: '42px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
+                backgroundColor: stageFilter === key ? '#fff' : 'rgba(255,255,255,0.18)',
+                color: stageFilter === key ? '#1552F0' : '#fff',
+                '&:hover': { backgroundColor: stageFilter === key ? '#fff' : 'rgba(255,255,255,0.3)' }
+              }}
+            />
+          ))}
+
+          <Button
+            variant="contained"
+            onClick={onMix}
+            startIcon={<BlenderOutlinedIcon />}
+            sx={{ backgroundColor: '#fff', color: '#1552F0', borderRadius: '12px', height: '42px', textTransform: 'none', fontWeight: 600, '&:hover': { backgroundColor: '#EAF0FF' } }}
+          >
+            ผสมวัตถุดิบ
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onAddTrolley}
+            startIcon={<AddRoadIcon />}
+            sx={{ backgroundColor: '#fff', color: '#1552F0', borderRadius: '12px', height: '42px', textTransform: 'none', fontWeight: 600, '&:hover': { backgroundColor: '#EAF0FF' } }}
+          >
+            เพิ่มรถเข็น
+          </Button>
 
           {selectedRows.length > 0 && (
             <>
@@ -1191,6 +1318,12 @@ const TableMainPrep = ({
                 />
               </TableCell>
 
+              {[['QC', '70px'], ['ใส่รถเข็น', '90px'], ['ส่งไป', '80px']].map(([label, w]) => (
+                <TableCell key={label} align="center" style={{ ...headerCellBase, width: w }}>
+                  <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>{label}</Box>
+                </TableCell>
+              ))}
+
               {displayColumns.map((header, index) => (
                 <TableCell
                   key={index}
@@ -1208,17 +1341,11 @@ const TableMainPrep = ({
                 <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>น้ำหนัก (kg)</Box>
               </TableCell>
 
-              {/* Cart */}
-              <TableCell align="center" style={{ ...headerCellBase, width: '90px' }}>
-                <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>รถเข็น</Box>
-              </TableCell>
-
-              {/* Edit */}
-              <TableCell align="center" style={{ ...headerCellBase, width: '90px' }}>
+              <TableCell align="center" style={{ ...headerCellBase, width: '80px' }}>
                 <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>แก้ไข</Box>
               </TableCell>
 
-              {/* Delete */}
+              {/* Confirm */}
               <TableCell align="center" style={{
                 ...headerCellBase,
                 borderRight: '1px solid #1552F0',
@@ -1226,7 +1353,7 @@ const TableMainPrep = ({
                 borderBottomRightRadius: '12px',
                 width: '90px'
               }}>
-                <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>ลบ</Box>
+                <Box style={{ fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>ยืนยัน</Box>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -1255,12 +1382,14 @@ const TableMainPrep = ({
                       weight={rowWeights[row.mapping_id]}
                       onWeightChange={handleWeightChange}
                       isConfirmed={isConfirmed}
+                      onQc={onQc}
+                      onSend={onSend}
                     />
                   );
                 })
             ) : (
               <TableRow>
-                <TableCell colSpan={displayColumns.length + 5} align="center" sx={{
+                <TableCell colSpan={displayColumns.length + 8} align="center" sx={{
                   padding: '40px', fontSize: '16px', color: '#90A4AE', fontWeight: '500'
                 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -1321,4 +1450,4 @@ const TableMainPrep = ({
   );
 };
 
-export default withTableTools(TableMainPrep);
+export default withTableTools(TableMainPrep, 'data', { keepState: true });
