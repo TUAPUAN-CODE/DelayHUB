@@ -13,6 +13,7 @@ import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ClearIcon from "@mui/icons-material/Clear";
 
+import withTableTools from "../../../Layout/withTableTools";
 // ─── Helper: derive display location string ───────────────────────────────────
 const getDisplayLocation = (row) => {
   const loc = row.trolley_location || '';
@@ -590,4 +591,4 @@ const TrolleyTable = ({ data }) => {
   );
 };
 
-export default TrolleyTable;
+export default withTableTools(TrolleyTable);

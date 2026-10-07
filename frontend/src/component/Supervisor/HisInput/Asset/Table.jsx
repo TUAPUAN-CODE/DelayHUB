@@ -22,6 +22,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ModalPrint from './ModalPrint';
 
+import withTableTools from "../../../Layout/withTableTools";
 // จัดรูปแบบวันที่
 const formatDate = (dateString) => {
   if (!dateString) return "-";
@@ -406,4 +407,4 @@ const ColdStorageTable = ({
   );
 };
 
-export default ColdStorageTable;
+export default withTableTools(ColdStorageTable, "filteredData");

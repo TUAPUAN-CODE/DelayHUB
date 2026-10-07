@@ -9,6 +9,7 @@ import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { RiArrowUpBoxLine } from "react-icons/ri";
 import { io } from "socket.io-client";
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -505,4 +506,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

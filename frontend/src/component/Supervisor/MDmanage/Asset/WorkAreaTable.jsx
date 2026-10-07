@@ -27,6 +27,7 @@ import {
 import { PiMapPinAreaFill } from "react-icons/pi";
 
 
+import withTableTools from "../../../Layout/withTableTools";
 // กำหนดสีฟ้าที่ใช้ทั้งระบบ
 const BLUE_COLOR = "#1552F0";
 const LIGHT_BLUE_COLOR = "#EAF0FF";
@@ -292,4 +293,4 @@ const WorkAreaTable = ({
   );
 };
 
-export default WorkAreaTable;
+export default withTableTools(WorkAreaTable, "filteredData");

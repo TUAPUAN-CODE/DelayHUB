@@ -12,6 +12,7 @@ import { TfiShoppingCartFull } from "react-icons/tfi";
 import { io } from "socket.io-client";
 import EditDestinationModal from './EditDestinationModal'; // นำเข้า Modal component ที่เราสร้างไว้
 import axios from 'axios';
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
  const socket = io(API_URL, {
         transports: ["websocket"],
@@ -941,4 +942,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

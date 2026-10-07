@@ -5,6 +5,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle, FaRegCheckCircle, FaEye } from "react-icons/fa";
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
   delayTime: '200px',
   viewDetails: '70px'
@@ -750,4 +751,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainSupv;
+export default withTableTools(TableMainSupv);

@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 import ReplyIcon from "@mui/icons-material/Reply"; // Add this import at the top with other imports
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -864,4 +865,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
 };
 
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

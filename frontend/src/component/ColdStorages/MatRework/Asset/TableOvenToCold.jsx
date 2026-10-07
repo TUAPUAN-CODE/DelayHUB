@@ -6,6 +6,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import { FaRegCircle } from "react-icons/fa";
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
   delayTime: '180px',
   cart: '70px',
@@ -454,4 +455,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
 };
 
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

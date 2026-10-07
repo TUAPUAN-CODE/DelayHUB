@@ -31,14 +31,19 @@ import ModalEditRawmatGroup from "./EditRawmatGroup";
 import ModalDeleteRawmatGroup from "./DeleteRawmatGroup";
 import ViewRawmatTimeModal from "./ViewRawmatTimeModal";
 
+import TableToolbar from "../../../../Layout/TableToolbar";
+import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const MainRawmatGroup = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredRows, setFilteredRows] = useState([]);
   const [RawmatGroup, setRawmatGroup] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [baseRows, setFilteredRows] = useState([]);
+  const tableTools = useTableTools(baseRows);
+  const filteredRows = tableTools.result;
+  useEffect(() => { setPage(0); }, [tableTools.search, tableTools.sorts]);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const navigate = useNavigate();
 
@@ -215,6 +220,7 @@ const MainRawmatGroup = () => {
         </div>
       </Box>
 
+      <TableToolbar tools={tableTools} resultCount={filteredRows.length} />
       <TableContainer
         sx={{
           height: "calc(68vh)",

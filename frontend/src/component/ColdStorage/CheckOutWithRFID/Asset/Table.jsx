@@ -17,6 +17,7 @@ import { buildTsplLabel } from "../../../../utils/tsplLabel";
 
 import { io } from "socket.io-client";
 import { before } from 'lodash';
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -1452,4 +1453,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
     </div>
   );
 };
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

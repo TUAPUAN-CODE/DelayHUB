@@ -25,6 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { BsFillClipboardCheckFill } from "react-icons/bs";
 
 import { io } from "socket.io-client";
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, {
   transports: ["websocket"] // 👈 ห้าม fallback เป็น polling
@@ -694,4 +695,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

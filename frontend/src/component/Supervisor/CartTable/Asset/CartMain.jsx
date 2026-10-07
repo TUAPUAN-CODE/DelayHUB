@@ -32,14 +32,19 @@ import CartEditModal from "./CartEditModal";
 import CartDeleteModal from "./CartDeleteModal";
 import CartBatchDeleteModal from "./CartBatchDeleteModal"; // New modal
 
+import TableToolbar from "../../../Layout/TableToolbar";
+import useTableTools from "../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CartMain = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredRows, setFilteredRows] = useState([]);
   const [carts, setCarts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [baseRows, setFilteredRows] = useState([]);
+  const tableTools = useTableTools(baseRows);
+  const filteredRows = tableTools.result;
+  useEffect(() => { setPage(0); }, [tableTools.search, tableTools.sorts]);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [selectedCart, setSelectedCart] = useState(null);
   
@@ -265,6 +270,7 @@ const CartMain = () => {
       </Box>
 
       {/* Table Container */}
+      <TableToolbar tools={tableTools} resultCount={filteredRows.length} />
       <TableContainer
         sx={{
           flex: 1,

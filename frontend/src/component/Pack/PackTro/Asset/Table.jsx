@@ -12,6 +12,7 @@ import { BsFillClipboardCheckFill } from "react-icons/bs";
 import { RiArrowUpBoxLine } from "react-icons/ri";
 
 import { io } from "socket.io-client";
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
  const socket= io(API_URL, {
         transports: ["websocket"],
@@ -585,4 +586,4 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

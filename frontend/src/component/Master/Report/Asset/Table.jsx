@@ -20,6 +20,7 @@ import { thSarabunBoldBase64 } from "../../../../fonts/thSarabunBoldBase64";
 import axios from "axios";
 axios.defaults.withCredentials = true;
 import io from 'socket.io-client';
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 // ─────────────────────────────────────────────────────────────
@@ -2489,4 +2490,4 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

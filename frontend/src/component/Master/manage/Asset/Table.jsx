@@ -8,6 +8,7 @@ import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 import { io } from "socket.io-client";
 const API_URL = import.meta.env.VITE_API_URL;
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
+import withTableTools from "../../../Layout/withTableTools";
  const socket= io(API_URL, {
         transports: ["websocket"],
         reconnectionAttempts: 5, // จำนวนครั้งที่ลอง reconnect
@@ -817,4 +818,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
 };
 
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

@@ -19,6 +19,8 @@ import { IoIosAddCircleOutline } from "react-icons/io";
 import axios from "axios";
 import * as XLSX from "xlsx";
 
+import TableToolbar from "../../../../Layout/TableToolbar";
+import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const ENDPOINT = `${API_URL}/api/PkgDgSupp`;
 
@@ -583,10 +585,13 @@ const ImportModal = ({ open, onClose, onSuccess }) => {
 // ─────────────────────────────────────────────────────────────
 const MainLineType = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredRows, setFilteredRows] = useState([]);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [baseRows, setFilteredRows] = useState([]);
+  const tableTools = useTableTools(baseRows);
+  const filteredRows = tableTools.result;
+  useEffect(() => { setPage(0); }, [tableTools.search, tableTools.sorts]);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [selected, setSelected] = useState(null);
 
@@ -702,7 +707,8 @@ const MainLineType = () => {
         </Box>
 
         {/* Table */}
-        <TableContainer sx={{ flex: 1, overflow: "auto", padding: "0 15px", width: "100%" }}>
+        <TableToolbar tools={tableTools} resultCount={filteredRows.length} />
+      <TableContainer sx={{ flex: 1, overflow: "auto", padding: "0 15px", width: "100%" }}>
           <Table stickyHeader sx={{ minWidth: "100%", width: "100%" }}>
             <TableHead>
               <TableRow sx={{ height: "50px" }}>

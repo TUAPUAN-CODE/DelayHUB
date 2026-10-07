@@ -18,6 +18,7 @@ import { InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 
+import withTableTools from "../../../Layout/withTableTools";
 const TrolleyTable = ({ data, handleOpenEditModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredRows, setFilteredRows] = useState(data?.trolleys || []);
@@ -547,4 +548,4 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
   );
 };
 
-export default TrolleyTable;
+export default withTableTools(TrolleyTable);

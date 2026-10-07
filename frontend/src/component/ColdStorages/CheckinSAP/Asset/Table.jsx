@@ -12,6 +12,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { io } from "socket.io-client";
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 1000, autoConnect: true });
 
@@ -351,4 +352,4 @@ const TableMainPrep = ({
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

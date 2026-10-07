@@ -32,6 +32,7 @@ import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputCompone
 import StraightenIcon from '@mui/icons-material/Straighten';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 
+import withTableTools from "../../../Layout/withTableTools";
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   const date = new Date(dateString);
@@ -504,4 +505,4 @@ const QcHisTable = ({
   );
 };
 
-export default QcHisTable;
+export default withTableTools(QcHisTable, "filteredData");

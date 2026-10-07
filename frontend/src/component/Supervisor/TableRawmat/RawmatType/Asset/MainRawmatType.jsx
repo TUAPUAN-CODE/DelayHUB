@@ -27,14 +27,19 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ModalAddRawmatType from "./AddRawmatType";
 import ModalEditRawmatType from "./EditRawmatType";
 import ModalDeleteRawmatType from "./DeleteRawmatType";
+import TableToolbar from "../../../../Layout/TableToolbar";
+import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const MainRawmatType = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredRows, setFilteredRows] = useState([]);
   const [RawmatTypes, setRawmatTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [baseRows, setFilteredRows] = useState([]);
+  const tableTools = useTableTools(baseRows);
+  const filteredRows = tableTools.result;
+  useEffect(() => { setPage(0); }, [tableTools.search, tableTools.sorts]);
   const [rowsPerPage, setRowsPerPage] = useState(20);
 
   const navigate = useNavigate();
@@ -189,6 +194,7 @@ const MainRawmatType = () => {
         </div>
       </Box>
 
+      <TableToolbar tools={tableTools} resultCount={filteredRows.length} />
       <TableContainer
         sx={{
           height: "calc(68vh)",

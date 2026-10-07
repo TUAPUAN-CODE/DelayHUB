@@ -21,6 +21,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
+import withTableTools from "../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = {
@@ -593,4 +594,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
 };
 
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

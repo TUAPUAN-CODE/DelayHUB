@@ -10,6 +10,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle } from "react-icons/fa";
 
+import withTableTools from "../../../Layout/withTableTools";
 // คอลัมน์หลักที่แสดงในตาราง
 const MAIN_COLS = [
   { key: 'batch',         label: 'Batch' },
@@ -378,4 +379,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

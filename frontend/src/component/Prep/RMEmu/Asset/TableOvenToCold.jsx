@@ -7,6 +7,7 @@ import { FaRegCircle } from "react-icons/fa";
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import InfoIcon from '@mui/icons-material/Info';
 
+import withTableTools from "../../../Layout/withTableTools";
 // ปรับขนาดของคอลัมน์ให้เหมาะสมกับข้อมูลใหม่
 const CUSTOM_COLUMN_WIDTHS = {
   batch: '180px',
@@ -435,4 +436,4 @@ const TableRMForProd = ({ data }) => {
   );
 };
 
-export default TableRMForProd;
+export default withTableTools(TableRMForProd);

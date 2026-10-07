@@ -13,6 +13,7 @@ import { FaEdit } from "react-icons/fa";
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -359,4 +360,4 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

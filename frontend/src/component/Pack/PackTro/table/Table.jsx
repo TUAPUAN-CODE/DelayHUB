@@ -6,6 +6,7 @@ import { FaRegCircle } from "react-icons/fa";
 import { io } from "socket.io-client";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
  const socket= io(API_URL, {
         transports: ["websocket"],
@@ -812,4 +813,4 @@ const TableMainPrepDetail = ({ handleOpenModal, data, handleRowClick, handleOpen
 };
 
 
-export default TableMainPrepDetail;
+export default withTableTools(TableMainPrepDetail);

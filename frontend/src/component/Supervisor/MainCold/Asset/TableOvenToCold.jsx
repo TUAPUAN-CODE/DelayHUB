@@ -8,6 +8,7 @@ import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import DeleteIcon from "@mui/icons-material/Delete"; // Added Delete icon
 import InfoIcon from '@mui/icons-material/Info';
 
+import withTableTools from "../../../Layout/withTableTools";
 // ปรับขนาดของคอลัมน์ให้กว้างขึ้น
 const CUSTOM_COLUMN_WIDTHS = {
   licensePlate: '200px',
@@ -952,4 +953,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableOvenToCold;
+export default withTableTools(TableOvenToCold);

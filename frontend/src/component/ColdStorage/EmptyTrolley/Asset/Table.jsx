@@ -6,6 +6,7 @@ import { FaRegCircle } from "react-icons/fa";
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ConfirmationModal from './ConfirmationModal';
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
   trolleyId: '150px',
   csName: '200px',
@@ -286,4 +287,4 @@ const TableMainPrep = ({ data, handleClearTrolley, handleOpenModal, handleRowCli
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

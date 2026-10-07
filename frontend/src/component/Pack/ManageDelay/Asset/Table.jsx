@@ -14,6 +14,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
   weight: '120px',
   prepDateTime: '100px',
@@ -1123,4 +1124,4 @@ const TableMainPrep = ({
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

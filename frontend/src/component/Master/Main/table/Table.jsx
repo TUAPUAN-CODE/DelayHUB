@@ -4,6 +4,7 @@ import { InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 import { io } from "socket.io-client";
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(`http://${API_URL}:3000`);
 // Replace the existing calculateTimeDifference, formatTime, and getRowStatus functions with these:
@@ -637,4 +638,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

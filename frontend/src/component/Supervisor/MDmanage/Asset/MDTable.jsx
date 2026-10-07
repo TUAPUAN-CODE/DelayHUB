@@ -29,6 +29,7 @@ import {
 
 import { GiMechanicalArm } from "react-icons/gi";
 
+import withTableTools from "../../../Layout/withTableTools";
 // กำหนดสีฟ้าที่ใช้ทั้งระบบ
 const BLUE_COLOR = "#1552F0";
 const LIGHT_BLUE_COLOR = "#EAF0FF";
@@ -293,4 +294,4 @@ const MDTable = ({
   );
 };
 
-export default MDTable;
+export default withTableTools(MDTable, "filteredData");

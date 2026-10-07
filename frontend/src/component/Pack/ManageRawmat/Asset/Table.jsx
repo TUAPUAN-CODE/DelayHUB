@@ -23,6 +23,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = {
@@ -1320,4 +1321,4 @@ const TableMainPrep = ({
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

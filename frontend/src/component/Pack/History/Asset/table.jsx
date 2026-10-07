@@ -29,6 +29,7 @@ import MixIcon from '@mui/icons-material/Blender';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // For trolley items
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
+import withTableTools from "../../../Layout/withTableTools";
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'none',
   backgroundColor: theme.palette.primary.main,
@@ -491,4 +492,4 @@ const HistoryTablePage = ({ data = [], onPrint = () => { }, onViewDetails = () =
   );
 };
 
-export default HistoryTablePage;
+export default withTableTools(HistoryTablePage);

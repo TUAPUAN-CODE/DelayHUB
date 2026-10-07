@@ -13,6 +13,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteIcon from "@mui/icons-material/Delete";
 
+import withTableTools from "../../../Layout/withTableTools";
 // ─── Helper: derive display location string ───────────────────────────────────
 const getDisplayLocation = (row) => {
   const loc = row.trolley_location || '';
@@ -669,4 +670,4 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
   );
 };
 
-export default TrolleyTable;
+export default withTableTools(TrolleyTable);

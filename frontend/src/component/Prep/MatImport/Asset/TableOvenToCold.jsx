@@ -8,6 +8,7 @@ import { SlClose } from "react-icons/sl";
 import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 import { io } from "socket.io-client";
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -586,4 +587,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

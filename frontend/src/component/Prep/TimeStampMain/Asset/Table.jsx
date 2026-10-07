@@ -13,6 +13,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { TIME_FIELDS, shortDateTime, sortByTime } from './timeFields';
 import { searchText } from './unify';
 
+import withTableTools from "../../../Layout/withTableTools";
 const PRIMARY = '#1552F0';
 const STAMPS = [
   { id: 'receive', label: 'รับ', title: 'บันทึกเวลารับวัตถุดิบ', color: '#2e7d32' },
@@ -172,4 +173,4 @@ const TimeStampTable = ({ rows, date, onDateChange, loading, errors, updatedAt, 
   );
 };
 
-export default TimeStampTable;
+export default withTableTools(TimeStampTable, "rows");

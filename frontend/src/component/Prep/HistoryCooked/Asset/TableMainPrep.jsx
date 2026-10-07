@@ -9,6 +9,7 @@ import { FaRegCircle } from "react-icons/fa";
 import { FaRegCheckCircle } from "react-icons/fa";
 import { BsPrinter } from "react-icons/bs";
 
+import withTableTools from "../../../Layout/withTableTools";
 const Row = ({
   row,
   columnCount,
@@ -451,4 +452,4 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
     </Paper>
   );
 };
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

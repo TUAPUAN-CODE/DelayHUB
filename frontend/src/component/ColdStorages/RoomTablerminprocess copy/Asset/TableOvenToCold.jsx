@@ -15,6 +15,7 @@ import QualityCheckModal from './QualityCheckModal';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 // ✅ cs_id ที่ไม่คำนวณ DCS (temp <18 องศา)
@@ -869,4 +870,4 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
   );
 };
 
-export default TableMainprep;
+export default withTableTools(TableMainprep);

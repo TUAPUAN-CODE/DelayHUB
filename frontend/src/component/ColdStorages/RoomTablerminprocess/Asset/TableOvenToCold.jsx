@@ -12,6 +12,7 @@ import QualityCheckModal from './QualityCheckModal';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = { viewDetails: '80px', qualityCheck: '80px', editAction: '80px' };
@@ -491,4 +492,4 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

@@ -10,6 +10,7 @@ import axios from 'axios';
 import { RiArrowUpBoxLine } from "react-icons/ri";
 
 
+import withTableTools from "../../../Layout/withTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = {
@@ -1201,4 +1202,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

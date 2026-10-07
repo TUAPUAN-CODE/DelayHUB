@@ -8,6 +8,7 @@ import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import InfoIcon from '@mui/icons-material/Info';
 
 
+import withTableTools from "../../../Layout/withTableTools";
 // ปรับขนาดของคอลัมน์ให้กว้างขึ้น
 const CUSTOM_COLUMN_WIDTHS = {
   licensePlate: '300px',
@@ -1806,7 +1807,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
 };
 
 
-export default TableOvenToCold;
-
-
-
+export default withTableTools(TableOvenToCold);

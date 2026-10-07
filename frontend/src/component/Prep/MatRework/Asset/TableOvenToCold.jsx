@@ -7,6 +7,7 @@ import EditIcon from "@mui/icons-material/EditOutlined";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle, FaRegCheckCircle } from "react-icons/fa";
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
   delayTime: '180px',
   cart: '70px',
@@ -476,4 +477,4 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
   );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);

@@ -33,16 +33,21 @@ import AddLineNameModal from "./AddLinename";
 import EditLineNameModal from "./EditLinename";
 import DeleteModal from "./DeleteLinename";
 
+import TableToolbar from "../../../../Layout/TableToolbar";
+import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const LineName = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredRows, setFilteredRows] = useState([]);
   const [lineNames, setLineNames] = useState([]);
   const [lineTypes, setLineTypes] = useState([]);
   const [selectedLineType, setSelectedLineType] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [baseRows, setFilteredRows] = useState([]);
+  const tableTools = useTableTools(baseRows);
+  const filteredRows = tableTools.result;
+  useEffect(() => { setPage(0); }, [tableTools.search, tableTools.sorts]);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [selectedLineName, setSelectedLineName] = useState(null);
 
@@ -388,7 +393,8 @@ const LineName = () => {
         </Box>
 
         {/* Table Container */}
-        <TableContainer
+        <TableToolbar tools={tableTools} resultCount={filteredRows.length} />
+      <TableContainer
           sx={{
             flex: 1,
             overflow: "auto",

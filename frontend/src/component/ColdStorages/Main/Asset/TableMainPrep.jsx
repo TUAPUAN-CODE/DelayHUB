@@ -6,6 +6,7 @@ import EditIcon from "@mui/icons-material/EditOutlined";
 import { SlClose } from "react-icons/sl";
 import { FaRegCircle } from "react-icons/fa";
 
+import withTableTools from "../../../Layout/withTableTools";
 const CUSTOM_COLUMN_WIDTHS = {
     edit: '70px',
     complete: '70px',
@@ -354,4 +355,4 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
     );
 };
 
-export default TableMainPrep;
+export default withTableTools(TableMainPrep);
