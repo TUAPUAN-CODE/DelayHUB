@@ -42,6 +42,7 @@ import SalesPage from "./MatCold/MatColdPage.jsx";
 import HistoryBakingPrep from "./HistoryBaking/HistoryBakingPage.jsx";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import SapSheetPage from "./SapSheet/SapSheetPage.jsx";
+import MasterSheetPage from "../Sheet/SheetPage";
 import RoomTableCSSupOnly from "./RoomTablerminprocess/RoomTable.jsx";
 import RoomTableCSSupOnlysend from "./RoomMonitor/RoomTable.jsx";
 import ScanSAPPageComeAnti from "./ScanSAPComeAnti/ScanSAPPage.jsx";
@@ -63,6 +64,7 @@ function AppColdStorages() {
       <Routes>
         <Route path="/" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
         <Route path="/SapSheet" element={<SapSheetPage />} />
+        <Route path="/Sheet" element={<MasterSheetPage role="cs2" />} />
         <Route path="/LargeRooms" element={<RoomTableCSSupOnlysend />} />
         {/* หน้าเดิมที่รวมเข้าตารางเดียวแล้ว */}
         <Route path="/products" element={<Navigate to="/ColdStorages/SapSheet" replace />} />

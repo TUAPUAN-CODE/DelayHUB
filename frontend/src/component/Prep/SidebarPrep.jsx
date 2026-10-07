@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Clock, Soup, RotateCcw, ScanLine, Blend, Layers, ListChecks, LogOut } from "lucide-react";
+import { Clock, Soup, RotateCcw, ScanLine, Blend, Layers, ListChecks, LogOut, Table2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const readRmTypeIds = () => {
@@ -14,6 +14,7 @@ const SidebarPrep = () => {
     {
       title: "Time Stamp",
       items: [
+        { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/prep/Sheet" },
         { name: "Time Stamp วัตถุดิบ", icon: Clock, href: "/prep", exact: true },
         { name: "Time Stamp น้ำต้มไก่", icon: Soup, href: "/prep/timestamp" },
         { name: "วัตถุดิบรอแก้ไข / กลับมาเตรียม", icon: RotateCcw, href: "/prep/MatRework/MatReworkPage" },

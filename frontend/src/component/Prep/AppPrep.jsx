@@ -19,6 +19,7 @@ import Timestamp from "./Timestampbroth/Timestampborth.jsx";
 import TimeStampMainPage from "./TimeStampMain/TimeStampMainPage.jsx";
 
 
+import SheetPage from "../Sheet/SheetPage";
 function AppPrep() {
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 overflow-hidden">
@@ -30,6 +31,7 @@ function AppPrep() {
 
       <SidebarPrep />
       <Routes>
+        <Route path="/Sheet" element={<SheetPage role="prep" />} />
         <Route path="/" element={<TimeStampMainPage />} />
         <Route
           path="/HistoryCooked/HistoryCookedPage"

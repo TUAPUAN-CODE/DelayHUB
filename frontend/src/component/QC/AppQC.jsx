@@ -8,6 +8,7 @@ import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import QCSelectWP from "../User/QCSelectWP"
 import TrackTrolleyQC from "./TrackTrolley/TrackTrolleyQC.jsx"
 
+import SheetPage from "../Sheet/SheetPage";
 function AppQualityControl() {
 	return (
 		<div className='flex h-screen text-gray-100 overflow-hidden'>
@@ -19,6 +20,7 @@ function AppQualityControl() {
 
 			<SidebarQC />
 			<Routes>
+				<Route path="/Sheet" element={<SheetPage role="qc" />} />
 				<Route path='/TrackTrolleyQC' element={<TrackTrolleyQC />} />
 				<Route path='/HisCheck/HisCheckPage' element={<HisCheck />} />
 				<Route path='/' element={<QCCheckPage />} />

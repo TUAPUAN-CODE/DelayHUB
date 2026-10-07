@@ -23,6 +23,7 @@ import PrintMasterPages from "./PrintMasters/CheckInPage.jsx";
 import UsePKGPage from "./UsePKG/CheckInPage.jsx";
 import ReportHubPage from "./Reports/ReportHubPage.jsx";
 
+import SheetPage from "../Sheet/SheetPage";
 function AppPack() {
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 overflow-hidden">
@@ -36,6 +37,7 @@ function AppPack() {
       <Routes>
         
 
+        <Route path="/Sheet" element={<SheetPage role="pack" />} />
         <Route path="/CheckStatus/CheckStatusPage" element={<CheckStatusPage />} />
         <Route path="/" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
         {/* <Route path="/manage/ManagePage" element={<ManagePack />} /> */}

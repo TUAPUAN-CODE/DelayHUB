@@ -1,7 +1,8 @@
-import { Snowflake, Warehouse, LogOut } from "lucide-react";
+import { Snowflake, Warehouse, LogOut, Table2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SECTIONS = [
+  { items: [{ name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/ColdStorages/Sheet" }] },
   {
     title: "RM ไม่แปรรูป",
     items: [{ name: "Time Stamp วัตถุดิบ", icon: Snowflake, href: "/ColdStorages/SapSheet" }],

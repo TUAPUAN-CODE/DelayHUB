@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 
 import Sidebar from "./SidebarSup";
 
+import SheetPage from "../Sheet/SheetPage";
 // ใช้ Lazy Loading เพื่อลดขนาดไฟล์ที่โหลดตอนแรก
 const MainSup = lazy(() => import("./Main/MainPage"));
 const TableMainSupv = lazy(() => import("./Main/Asset/TableOvenToCold"));
@@ -127,6 +128,7 @@ function AppSup() {
         }
       >
         <Routes>
+          <Route path="/Sheet" element={<SheetPage role="sup" />} />
           {routes.map((route, index) => (
             <Route key={index} path={route.path} element={route.element} />
           ))}

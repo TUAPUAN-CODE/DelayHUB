@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Home, Fish, Factory, Package, Rows3, ShoppingCart, Users, Newspaper, ScanEye, FileUp, Timer, LogOut } from "lucide-react";
+import { Home, Fish, Factory, Package, Rows3, ShoppingCart, Users, Newspaper, ScanEye, FileUp, Timer, LogOut, Table2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarSup = () => {
@@ -9,6 +9,7 @@ const SidebarSup = () => {
   const sections = useMemo(() => [
     {
       items: [
+        { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/sup/Sheet" },
         { name: "หน้าหลัก", icon: Home, href: "/sup" },
         {
           name: "จัดการวัตถุดิบ", icon: Fish,

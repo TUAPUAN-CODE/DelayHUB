@@ -31,6 +31,7 @@ import RoomTableCS from "./RoomTable/RoomTable";
 import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
 import RoomSelectPage from "./Room/RoomSelectPage.jsx";
+import SheetPage from "../Sheet/SheetPage";
 const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -46,6 +47,7 @@ function AppColdStorage() {
 
 			<Sidebar />
 			<Routes>
+				<Route path="/Sheet" element={<SheetPage role="cs1" />} />
 				{/* <Route path='/' element={<MainCS />} /> */}
 				<Route path='/' element={<Navigate to='/coldStorage/RoomTable/RoomTableCSSupOnly' replace />} />
 				<Route path='/Room' element={<RoomSelectPage />} />

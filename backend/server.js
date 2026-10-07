@@ -215,6 +215,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const HeaderRoutes = require("./routes/HeaderRoutes");
   const Routes = require("./routes/Rotes")(io);
   const QualityControlRoutes = require("./routes/QualityControlRoutes")(io);
+  const SheetRoutes = require("./routes/SheetRoutes");
 
   // Route registration
   app.use("/api", OvenRoutes);
@@ -230,6 +231,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api", HeaderRoutes);
   app.use("/api", Routes);
   app.use("/api", QualityControlRoutes);
+  app.use("/api", SheetRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);
 

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart2, LogIn, FileWarning, MapPin, PackageCheck, Printer, LogOut } from "lucide-react";
+import { BarChart2, LogIn, FileWarning, MapPin, PackageCheck, Printer, LogOut, Table2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const allowedPositions = ["3", "4", "5", "6"];
@@ -10,6 +10,7 @@ const SidebarPack = () => {
   const sections = useMemo(() => [
     {
       items: [
+        { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/packaging/Sheet" },
         // หน้าเดียวสำหรับ ผสม · QC · ใส่รถเข็น · ส่งปลายทาง · ยืนยัน Delay
         { name: "รายงาน Delay", icon: FileWarning, href: "/packaging/ManageRawmatPack", exact: true },
         ...(canSeeDelayRM ? [{ name: "รายงาน Delay +RM", icon: FileWarning, href: "/packaging/managedelaymaster" }] : []),
