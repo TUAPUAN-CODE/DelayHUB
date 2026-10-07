@@ -3768,6 +3768,134 @@ ORDER BY rmm.mapping_id DESC
     });
 
 
+    /**
+     * Trolleys that may be checked in to a cold room but are not in a slot yet (read only).
+     * Same conditions as the check-in API: dest is one of the allowed destinations and the trolley has no Slot.
+     * Same columns as /coldstorage/incold/fetchSlotRawMat (cs_name / slot_id are NULL) so the table can show both lists.
+     */
+    router.get("/coldstorage/pending/checkin", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
+            if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+            const query = `
+SELECT TOP (2000)
+    rmm.mapping_id,
+    rmf.rmfp_id,
+
+    COALESCE(b.batch_after, rmf.batch) AS batch,
+
+    rm.mat,
+    rm.mat_name,
+
+    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+
+    CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
+    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
+    CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
+
+    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
+
+    rmf.rm_group_id AS rmf_rm_group_id,
+    rmg.rm_group_id AS rmg_rm_group_id,
+
+    rmm.tro_id,
+    rmm.rm_cold_status,
+    rmm.rm_status,
+    rmm.dest,
+
+    rmm.weight_RM,
+    rmm.tray_count,
+    rmm.level_eu,
+
+    htr.hist_id,
+
+    CAST(NULL AS NVARCHAR(50)) AS cs_name,
+    CAST(NULL AS VARCHAR(10)) AS slot_id,
+
+    htr.qccheck_cold,
+    htr.remark_rework_cold,
+
+    CONVERT(varchar, htr.withdraw_date, 120) AS withdraw_date,
+    CONVERT(varchar, htr.cooked_date, 120) AS cooked_date,
+    CONVERT(varchar, htr.rmit_date, 120) AS rmit_date,
+    CONVERT(varchar, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(varchar, htr.come_cold_date_two, 120) AS come_cold_date_two,
+    CONVERT(varchar, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
+    CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+    CONVERT(varchar, htr.cs_come_cold_date_five, 120) AS cs_come_cold_date_five,
+    CONVERT(varchar, htr.cs_out_out_date_five, 120) AS cs_out_out_date_five,
+    CONVERT(varchar, htr.cs_come_cold_date_six, 120) AS cs_come_cold_date_six,
+    CONVERT(varchar, htr.cs_out_cold_date_six, 120) AS cs_out_cold_date_six,
+    CONVERT(varchar, htr.cs_come_cold_date_seven, 120) AS cs_come_cold_date_seven,
+    CONVERT(varchar, htr.cs_out_cold_date_seven, 120) AS cs_out_cold_date_seven,
+    CONVERT(varchar, htr.cs_come_cold_date_eight, 120) AS cs_come_cold_date_eight,
+    CONVERT(varchar, htr.cs_out_cold_date_eight, 120) AS cs_out_cold_date_eight,
+    CONVERT(varchar, htr.cs_come_cold_date_nine, 120) AS cs_come_cold_date_nine,
+    CONVERT(varchar, htr.cs_out_cold_date_nine, 120) AS cs_out_cold_date_nine,
+    CONVERT(varchar, htr.cs_come_cold_date_ten, 120) AS cs_come_cold_date_ten,
+    CONVERT(varchar, htr.cs_out_cold_date_ten, 120) AS cs_out_cold_date_ten,
+    CONVERT(varchar, htr.rework_date, 120) AS rework_date
+
+FROM TrolleyRMMapping rmm
+
+JOIN RMForProd rmf
+    ON rmm.rmfp_id = rmf.rmfp_id
+
+JOIN ProdRawMat pr
+    ON rmm.tro_production_id = pr.prod_rm_id
+
+JOIN RawMat rm
+    ON pr.mat = rm.mat
+
+JOIN Production p
+    ON pr.prod_id = p.prod_id
+
+JOIN RawMatGroup rmg
+    ON rmf.rm_group_id = rmg.rm_group_id
+
+
+OUTER APPLY (
+    SELECT STRING_AGG(batch_after, ', ') AS batch_after
+    FROM Batch
+    WHERE mapping_id = rmm.mapping_id
+) b
+
+
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM History h
+    WHERE h.mapping_id = rmm.mapping_id
+    ORDER BY h.hist_id DESC
+) htr
+
+
+WHERE
+    rmm.tro_id IS NOT NULL
+    AND rmm.dest IN (N'เข้าห้องเย็น', N'รอCheckin', N'ห้องเย็น', N'ส่งกลับจากห้องเย็นใหญ่')
+    AND NOT EXISTS (SELECT 1 FROM Slot sx WHERE sx.tro_id = rmm.tro_id)
+
+ORDER BY rmm.mapping_id DESC
+`;
+            const result = await pool.request().query(query);
+            res.json(result.recordset);
+        } catch (error) {
+            console.error("[Route /coldstorage/pending/checkin] Error:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     router.get('/mat-info/:mapping_id', async (req, res) => {
         const { mapping_id } = req.params;
         const result = await pool.request()

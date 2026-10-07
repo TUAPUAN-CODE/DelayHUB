@@ -9,6 +9,7 @@ import QualityCheckModal from './QualityCheckModal';
 import axios from 'axios';
 import { RiArrowUpBoxLine } from "react-icons/ri";
 
+import { comeTimes, outTimes, shortTime } from './flow/timeline';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CUSTOM_COLUMN_WIDTHS = {
@@ -341,6 +342,59 @@ const updateRmStatus = async (mapping_id) => {
   }
 };
 
+
+const TimeChips = ({ times }) => (
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
+    {times.map((t, i) => (
+      <span key={`${t}-${i}`} title={String(t)} style={{ background: '#EAF0FF', color: '#1552F0', borderRadius: 8, padding: '1px 7px', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}>
+        {shortTime(t)}
+      </span>
+    ))}
+  </div>
+);
+
+const ActionCell = ({ onClick, tone = 'blue', children, title }) => {
+  const tones = { blue: ['#1552F0', '#EAF0FF'], green: ['#16A34A', '#E8F7EE'], orange: ['#D97706', '#FFF4E0'] };
+  const [fg, bg] = tones[tone];
+  return (
+    <button type="button" title={title} onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{ background: bg, color: fg, border: `1px solid ${fg}33`, borderRadius: 10, padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', maxWidth: '100%' }}>
+      {children}
+    </button>
+  );
+};
+
+/** Cells of the cold-room columns: times in order; a click on the cell does the action of that column */
+const renderColdCell = (column, row, { onCheckin, onMove, onCheckout }) => {
+  const inTimes = comeTimes(row);
+  const outs = outTimes(row);
+  if (column.kind === 'in') {
+    if (row.isPending) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          {inTimes.length > 0 && <TimeChips times={inTimes} />}
+          <ActionCell tone="green" title="เลือกห้องและช่องจอดเพื่อรับเข้าห้องเย็น" onClick={() => onCheckin?.(row)}>รับเข้า · เลือกห้อง/ช่อง</ActionCell>
+        </div>
+      );
+    }
+    return inTimes.length ? <TimeChips times={inTimes} /> : '-';
+  }
+  if (column.kind === 'slot') {
+    if (row.isPending || !row.slot_id) return '-';
+    return <ActionCell tone="blue" title="กดเพื่อย้ายรถเข็นไปช่องอื่น" onClick={() => onMove?.(row)}>{row.cs_name ? `${row.cs_name} · ` : ''}{row.slot_id}</ActionCell>;
+  }
+  if (column.kind === 'out') {
+    if (row.isPending) return '-';
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+        {outs.length > 0 && <TimeChips times={outs} />}
+        <ActionCell tone="orange" title="ส่งออกจากห้องเย็น" onClick={() => onCheckout?.(row)}>ส่งออก</ActionCell>
+      </div>
+    );
+  }
+  return row[column.id];
+};
+
 const Row = ({
   row,
   tableColumns,
@@ -350,6 +404,9 @@ const Row = ({
   handleOpenDeleteModal,
   handleOpenSuccess,
   handleOpenQualityCheckModal,
+  onCheckin,
+  onMove,
+  onCheckout,
   selectedColor,
   openRowId,
   setOpenRowId,
@@ -368,7 +425,8 @@ const Row = ({
   const shouldBeReworkStatus = isOverdue && row.rm_status !== 'รอแก้ไข';
 
   useEffect(() => {
-    if (shouldBeReworkStatus) {
+    // a trolley that is not in a cold room yet must not be marked as waiting for rework by the cold-room timer
+    if (shouldBeReworkStatus && !row.isPending) {
       updateRmStatus(row.mapping_id)
         .then((response) => {
           console.log(`Updated status for ${row.mapping_id} to 'รอแก้ไข'`, response);
@@ -479,7 +537,7 @@ const Row = ({
               backgroundColor: backgroundColor
             }}
           >
-            {row[column.id]}
+            {column.kind ? renderColdCell(column, row, { onCheckin, onMove, onCheckout }) : row[column.id]}
           </TableCell>
         ))}
 
@@ -930,12 +988,13 @@ const tableColumns = [
       }
     }
   },// ลดลง
-  { id: 'cs_name', name: 'ชื่อห้องเย็น', width: '90px' }, // ลดลง
-  { id: 'slot_id', name: 'ช่องจอด', width: '60px' }, // ลดลง
+  { id: 'come_times', kind: 'in', name: 'เวลารับเข้าห้องเย็น', width: '190px' },
+  { id: 'slot', kind: 'slot', name: 'ห้อง / ช่องจอด', width: '130px' },
+  { id: 'out_times', kind: 'out', name: 'ส่งออก', width: '170px' },
 
 ];
 
-const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditModal, handleOpenSuccess, handleOpenDeleteModal }) => {
+const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditModal, handleOpenSuccess, handleOpenDeleteModal, onCheckin, onMove, onCheckout, pendingError }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredRows, setFilteredRows] = useState([]);
   const [page, setPage] = useState(0);
@@ -1057,12 +1116,18 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           ))}
         </Box>
       </Box>
+      {pendingError && (
+        <div style={{ margin: '0 15px 6px', padding: '6px 12px', borderRadius: 10, background: '#FFF4E0', color: '#92400E', fontSize: 13 }}>
+          โหลดรายการ "รอรับเข้า" ไม่สำเร็จ (ต้อง reload backend ให้มี API /coldstorage/pending/checkin) — ตอนนี้แสดงเฉพาะของที่อยู่ในห้องเย็นแล้ว
+        </div>
+      )}
       <div style={{ padding: '0px 10px', position: 'relative' }}>
         <TableContainer
           style={{ padding: '0px 5px' }}
           sx={{
             height: 'calc(70vh)',
             overflowY: 'auto',
+            overflowX: 'auto',
             whiteSpace: 'nowrap',
             '&::-webkit-scrollbar': {
               width: '8px',
@@ -1074,7 +1139,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
             }
           }}
         >
-          <Table stickyHeader style={{ tableLayout: 'fixed' }} sx={{ width: '100%' }}>
+          <Table stickyHeader style={{ tableLayout: 'fixed' }} sx={{ width: '100%', minWidth: 1560 }}>
             <TableHead style={{ marginBottom: "5px" }}>
               <TableRow sx={{ height: '36px' }}>
                 {/* คอลัมน์ DelayTime */}
@@ -1183,6 +1248,9 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                     handleOpenEditModal={handleOpenEditModal}
                     handleOpenDeleteModal={handleOpenDeleteModal}
                     handleOpenQualityCheckModal={handleOpenQualityCheckModal}
+                    onCheckin={onCheckin}
+                    onMove={onMove}
+                    onCheckout={onCheckout}
                     handleOpenSuccess={handleOpenSuccess}
                     selectedColor={selectedColor}
                     openRowId={openRowId}

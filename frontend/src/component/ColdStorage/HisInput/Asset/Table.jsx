@@ -86,6 +86,11 @@ const TrolleyRow = ({ trolleyData, index }) => {
       >
         <TableCell align="center" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#444', fontWeight: 'medium' }}>
           {trolleyData.trolleyId || "-"}
+          {trolleyData.tripStart ? (
+            <div style={{ fontSize: 11, color: '#6B7489', fontWeight: 400 }}>
+              {new Date(trolleyData.tripStart).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          ) : null}
         </TableCell>
         <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {trolleyData.totalWeight ? parseFloat(trolleyData.totalWeight).toFixed(2) : "-"} kg
@@ -286,35 +291,52 @@ const ColdStorageTable = ({
 
   useEffect(() => {
     // จัดกลุ่มข้อมูลตามรถเข็น
+    // Rows of one trolley are split into trips. The same trolley is used again and again (other days, other batches), so grouping
+    // by trolleyId alone merged every trip of the loaded period into one line (and summed their weights).
+    // The materials of one trip are checked in together, so their first cold-room time is (almost) the same: a gap of more than
+    // TRIP_GAP_MINUTES between two rows of the same trolley starts a new trip.
+    const TRIP_GAP_MINUTES = 30;
+    const tripTimeOf = (item) => {
+      const times = [item.enterColdTime1, item.enterColdTime2, item.enterColdTime3, item.exitColdTime1, item.exitColdTime2, item.exitColdTime3, item.prepCompleteTime, item.withdraw_date]
+        .filter(Boolean).map((t) => new Date(String(t).replace(' ', 'T')).getTime()).filter((n) => !Number.isNaN(n));
+      return times.length ? Math.min(...times) : 0;
+    };
     const groupByTrolley = () => {
-      const trolleys = {};
-
-      // จัดกลุ่มข้อมูลตาม trolleyId
-      filteredData.forEach(item => {
-        const trolleyId = item.trolleyId;
-        const prepare_mor_night = item.prepare_mor_night;
-        
-        if (!trolleys[trolleyId]) {
-          trolleys[trolleyId] = {
-            trolleyId: trolleyId,
-            cold_dest: item.cold_dest,
-            prepare_mor_night : prepare_mor_night,
-            materials: [],
-            totalWeight: 0,
-            totalTrayCount: 0
-          };
-        }
-
-        // เพิ่มวัตถุดิบลงในรถเข็น
-        trolleys[trolleyId].materials.push(item);
-
-        // คำนวณน้ำหนักรวมและจำนวนถาดรวม
-        trolleys[trolleyId].totalWeight += parseFloat(item.weight || 0);
-        trolleys[trolleyId].totalTrayCount += parseInt(item.trayCount || 0, 10);
+      const byTrolley = new Map();
+      filteredData.forEach((item) => {
+        const list = byTrolley.get(item.trolleyId) ?? [];
+        list.push({ item, t: tripTimeOf(item) });
+        byTrolley.set(item.trolleyId, list);
       });
 
-      // แปลงเป็น array เพื่อใช้ใน map
-      return Object.values(trolleys);
+      const trips = [];
+      byTrolley.forEach((list, trolleyId) => {
+        list.sort((x, y) => x.t - y.t);
+        let current = null;
+        list.forEach(({ item, t }) => {
+          if (!current || t - current.lastTime > TRIP_GAP_MINUTES * 60 * 1000) {
+            current = {
+              groupKey: `${trolleyId}#${trips.length}`,
+              trolleyId,
+              tripStart: t || null,
+              lastTime: t,
+              cold_dest: item.cold_dest,
+              prepare_mor_night: item.prepare_mor_night,
+              materials: [],
+              totalWeight: 0,
+              totalTrayCount: 0,
+            };
+            trips.push(current);
+          }
+          current.lastTime = t;
+          current.materials.push(item);
+          current.totalWeight += parseFloat(item.weight || 0);
+          current.totalTrayCount += parseInt(item.trayCount || 0, 10);
+        });
+      });
+
+      // newest trip first, like the history list from the server
+      return trips.sort((x, y) => (y.tripStart ?? 0) - (x.tripStart ?? 0));
     };
 
     setGroupedData(groupByTrolley());
@@ -364,7 +386,7 @@ const ColdStorageTable = ({
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {groupedData.length > 0 ? (
               groupedData.map((trolley, index) => (
-                <TrolleyRow key={trolley.trolleyId} trolleyData={trolley} index={index} />
+                <TrolleyRow key={trolley.groupKey} trolleyData={trolley} index={index} />
               ))
             ) : (
               <TableRow>

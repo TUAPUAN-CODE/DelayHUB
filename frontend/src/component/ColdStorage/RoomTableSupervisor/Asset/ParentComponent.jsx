@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // Update this import path to match your project structure
 import TableMainPrep from './TableOvenToCold';
 import axios from "axios";
@@ -7,6 +7,8 @@ import ExportExcelButton from "./ExportExcelButton";
 import ModalEditPD from './ModalEditPD';
 import ModalDelete from './ModalDelete';
 import WeightSummaryCard from "./WeightSummaryCard"; // นำเข้าคอมโพเนนต์การ์ดสรุปน้ำหนัก
+import TrolleyFlows from "./flow/TrolleyFlows";
+import CheckoutFlow from "./flow/CheckoutFlow";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ParentComponent = () => {
@@ -25,6 +27,9 @@ const ParentComponent = () => {
   const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingError, setPendingError] = useState(false);
+  const flowsRef = useRef(null);
+  const checkoutRef = useRef(null);
   const [showSummaryCard, setShowSummaryCard] = useState(false); // เพิ่มสถานะสำหรับเปิด/ปิดการ์ดสรุป
 
   // เพิ่มสถานะสำหรับการค้นหาตามช่วงเวลา
@@ -39,11 +44,14 @@ const ParentComponent = () => {
     try {
       setLoading(true);
 
-      // ดึงข้อมูลจาก API ทั้งสองตัวพร้อมกัน
-      const [normalDataResponse, mixDataResponse] = await Promise.all([
+      // ดึงข้อมูลจาก API พร้อมกัน: ในห้องเย็น (ปกติ/ผสม) + รอรับเข้า (รถเข็นที่ยังไม่มีช่องจอด)
+      const [normalDataResponse, mixDataResponse, pendingResponse] = await Promise.all([
         axios.get(`${API_URL}/api/coldstorage/incold/fetchSlotRawMat`),
-        axios.get(`${API_URL}/api/coldstorage/incold/mix/fetchSlotRawMat`)
+        axios.get(`${API_URL}/api/coldstorage/incold/mix/fetchSlotRawMat`),
+        // the pending list is new: if the server has not been updated yet the two old lists must still load
+        axios.get(`${API_URL}/api/coldstorage/pending/checkin`).catch((err) => { console.error("โหลดรายการรอรับเข้าไม่สำเร็จ:", err); return null; }),
       ]);
+      setPendingError(!pendingResponse);
 
       // ประมวลผลข้อมูลวัตถุดิบทั่วไป
       const processedNormalData = normalDataResponse.data && Array.isArray(normalDataResponse.data)
@@ -65,8 +73,19 @@ const ParentComponent = () => {
         }))
         : [];
 
-      // รวมข้อมูลทั้งสองส่วนเข้าด้วยกัน
-      const combinedData = [...processedNormalData, ...processedMixData];
+      // รถเข็นที่รอรับเข้าห้องเย็น (ยังไม่มีช่องจอด)
+      const inColdIds = new Set(processedNormalData.map((r) => r.mapping_id));
+      const processedPending = pendingResponse && Array.isArray(pendingResponse.data)
+        ? pendingResponse.data.filter((item) => !inColdIds.has(item.mapping_id)).map((item) => ({
+          ...item,
+          qc_datetime: item.rmit_date,
+          isMixed: false,
+          isPending: true,
+        }))
+        : [];
+
+      // รวมข้อมูลทั้งสามส่วนเข้าด้วยกัน
+      const combinedData = [...processedPending, ...processedNormalData, ...processedMixData];
 
       setTableData(combinedData);
       setFilteredData(combinedData);
@@ -468,8 +487,15 @@ const ParentComponent = () => {
           handleOpenDeleteModal={handleOpenDeleteModal} // ✅ ส่ง handler ไปให้ TableMainPrep
           data={filteredData || []}
           handleRowClick={handleRowClick}
+          onCheckin={(row) => flowsRef.current?.checkin(row)}
+          onMove={(row) => flowsRef.current?.move(row)}
+          onCheckout={(row) => checkoutRef.current?.open(row)}
+          pendingError={pendingError}
         />
       )}
+
+      <TrolleyFlows ref={flowsRef} rows={tableData} onDone={fetchData} />
+      <CheckoutFlow ref={checkoutRef} onDone={fetchData} />
 
       {/* ✅ ModalEditPD */}
       {dataForEditModal && (

@@ -1,14 +1,6 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import Sidebar from "./SidebarCS";
-import CSAntePageCI from "./CheckIn/AntePage/AntePage";
-import CS4CPageCI from "./CheckIn/4C/4CPage";
-import CSChill2PageCI from "./CheckIn/Chill2/Chill2Page";
-import CSCSR3PageCI from "./CheckIn/CSR3/CSR3Page";
-import CSChill4PageCI from "./CheckIn/Chill4/Chill4Page";
-import CSChill5PageCI from "./CheckIn/Chill5/Chill5Page";
-import CSChill6PageCI from "./CheckIn/Chill6/Chill6Page";
-import CSLargePageCI from "./CheckIn/LargeColdRoom/LargePage";
 
 import CSAntePageCO from "./Room/AntePage/AntePage";
 import CS4CPageCO from "./Room/4C/4CPage";
@@ -22,9 +14,6 @@ import CSLargePageCO from "./Room/LargeColdRoom/LargePage"
 
 import CSHisInputPage from "./HisInput/HisInputPage";
 import MainCS from "./Main/MainPage";
-import CSMovePage from "./Move/MovePage";
-import CSCheckOutPage from "./CheckOut/CheckOutPage";
-import ParentComponent from "./CheckIn/4C/ParentComponent4C";
 
 import Modal4C from "./Room/Modals/Modal4C";
 import ModalAnte from "./Room/Modals/ModalAnte";
@@ -34,14 +23,6 @@ import Modalchill4 from "./Room/Modals/Modalchill4";
 import Modalchill5 from "./Room/Modals/Modalchill5";
 import ModalCSR3 from "./Room/Modals/ModalCSR3";
 
-import CS4CPageMove from "./Move/4C/4CPage";
-import CSAntePageMove from "./Move/AntePage/AntePage";
-import CSCSR3PageCOS from "./Move/CSR3/CSR3Page";
-import CSChill2PageCOS from "./Move/Chill2/Chill2Page";
-import CSChill4PageCOS from "./Move/Chill4/Chill4Page";
-import CSChill5PageCOS from "./Move/Chill5/Chill5Page";
-import CSChill6PageCOS from "./Move/Chill6/Chill6Page";
-import CSLargePageCOS from "./Move/LargeColdRoom/LargePage";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import EmptyTrolley from "./EmptyTrolley/DeleteTrolleyPage"
 
@@ -49,7 +30,7 @@ import RoomTableCSSupOnly from "./RoomTableSupervisor/RoomTable.jsx";
 import RoomTableCS from "./RoomTable/RoomTable";
 import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
-import TrackTrolley from "./TrackTrolley/TrackTrolley.jsx"
+import RoomSelectPage from "./Room/RoomSelectPage.jsx";
 const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -66,17 +47,13 @@ function AppColdStorage() {
 			<Sidebar />
 			<Routes>
 				{/* <Route path='/' element={<MainCS />} /> */}
-				<Route path='/' element={<TrackTrolley />} />
+				<Route path='/' element={<Navigate to='/coldStorage/RoomTable/RoomTableCSSupOnly' replace />} />
+				<Route path='/Room' element={<RoomSelectPage />} />
+				{/* check-in / check-out / move were merged into the raw material table: old addresses go there */}
+				{['/CheckIn/*', '/CheckOut/*', '/Move/*'].map((p) => (
+					<Route key={p} path={p} element={<Navigate to='/coldStorage/RoomTable/RoomTableCSSupOnly' replace />} />
+				))}
 
-				<Route path='/CheckIn/ParentComponent' element={<ParentComponent />} />
-				<Route path='/CheckIn/4C/4CPage' element={<CS4CPageCI />} />
-				<Route path='/CheckIn/AntePage/AntePage' element={<CSAntePageCI />} />
-				<Route path='/CheckIn/Chill2/Chill2Page' element={<CSChill2PageCI />} />
-				<Route path='/CheckIn/CSR3/CSR3Page' element={<CSCSR3PageCI />} />
-				<Route path='/CheckIn/Chill4/Chill4Page' element={<CSChill4PageCI />} />
-				<Route path='/CheckIn/Chill5/Chill5Page' element={<CSChill5PageCI />} />
-				<Route path='/CheckIn/Chill6/Chill6Page' element={<CSChill6PageCI />} />
-				<Route path='/CheckIn/Large/LargePage' element={<CSLargePageCI />} />
 
 				<Route path='/Room/4C/4CPage' element={<CS4CPageCO />} />
 				<Route path='/Room/AntePage/AntePage' element={<CSAntePageCO />} />
@@ -87,8 +64,6 @@ function AppColdStorage() {
 				<Route path='/Room/Chill6/Chill6Page' element={<CSChill6PageCO />} />
 				<Route path='/Room/Large/LargePage' element={<CSLargePageCO />} />
 				<Route path='/HisInput/HisInputPage' element={<CSHisInputPage />} />
-				<Route path='/Move/MovePage' element={<CSMovePage />} />
-				<Route path='/CheckOut/CheckOutPage' element={<CSCheckOutPage />} />
 				<Route path='/RoomTable/RoomTable' element={<RoomTableCS />} />
 				<Route path='/RoomTable/RoomTableCSSupOnly' element={<RoomTableCSSupOnly />} />
 
@@ -100,14 +75,6 @@ function AppColdStorage() {
 				<Route path='/Room/Modals/Modalchill5' element={<Modalchill5 />} />
 				<Route path='/Room/Modals/ModalCSR3' element={<ModalCSR3 />} />
 
-				<Route path='/Move/4C/4CPage' element={<CS4CPageMove />} />
-				<Route path='/Move/AntePage/AntePage' element={<CSAntePageMove />} />
-				<Route path='/Move/CSR3/CSR3Page' element={<CSCSR3PageCOS />} />
-				<Route path='/Move/Chill2/Chill2Page' element={<CSChill2PageCOS />} />
-				<Route path='/Move/Chill4/Chill4Page' element={<CSChill4PageCOS />} />
-				<Route path='/Move/Chill5/Chill5Page' element={<CSChill5PageCOS />} />
-				<Route path='/Move/Chill6/Chill6Page' element={<CSChill6PageCOS />} />
-				<Route path='/Move/Large/LargePage' element={<CSLargePageCOS />} />
 				
 				<Route path='/WorkplaceSelector' element={<WorkplaceSelector />} />
 
