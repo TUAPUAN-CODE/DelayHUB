@@ -24,8 +24,7 @@ import {
 import WarehouseIcon from '@mui/icons-material/Warehouse';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import { Storage as StorageIcon, AddShoppingCart as AddShoppingCartIcon } from '@mui/icons-material';
-import RawMatSelectionModal from './RawMatSelectionModal';
-import MoveRawMaterialModal from './MoveRawMaterialModal';
+import GatherMaterialsDialog from './GatherMaterialsDialog';
 import EditIcon from '@mui/icons-material/Edit'; // เพิ่ม Icon สำหรับปุ่มแก้ไขแผนผลิต
 import PrintTrolleyModal from './PrintTrolleyModal';
 import PrintIcon from '@mui/icons-material/Print';
@@ -376,24 +375,13 @@ const handleMoveSuccess = () => {
       )}
 
       {/* Modals */}
-      <RawMatSelectionModal
+      <GatherMaterialsDialog
         open={openRawMatModal}
         onClose={handleCloseRawMatModal}
-        onAdd={handleAddRawMaterials}
         currentTroId={slotInfo?.tro_id}
-        onSelectionClear={() => setSelectedMaterials([])} // เพิ่ม callback นี้
+        currentSlotId={slotId}
+        onSuccess={(n) => { showSnackbar(`รวมวัตถุดิบเข้ารถเข็นแล้ว ${n} รายการ`, 'success'); fetchAllData(slotId); }}
       />
-
-      {openMoveModal && (
-        <MoveRawMaterialModal
-          open={openMoveModal}
-          onClose={() => setOpenMoveModal(false)}
-          selectedMaterials={selectedMaterials}
-          currentTroId={slotInfo?.tro_id}
-          currentSlotId={slotId}
-          onSuccess={handleMoveSuccess}
-        />
-      )}
 
       {openPrintModal && (
         <PrintTrolleyModal
