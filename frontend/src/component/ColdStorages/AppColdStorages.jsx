@@ -2,14 +2,11 @@
 // Replace the old per-room imports/routes (Chill2, CSR3, Chill4, etc.)
 // with a single UniversalColdStoragePage for all cs_id >= 10
 
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 
 import Sidebar from "./SidebarOven.jsx";
 
-import OverviewPage from "./Main/MainPage.jsx";
-import ProductsPage from "./ScanSAP/ScanSAPPage.jsx";
 
-import CSCheckOutPage from "./CheckOut/CheckOutPage.jsx";
 import ParentComponent from "./CheckIn/4C/ParentComponent4C";
 import CSAntePageCI from "./CheckIn/AntePage/AntePage";
 import CS4CPageCI from "./CheckIn/4C/4CPage";
@@ -23,7 +20,6 @@ import CSChill6PageCI from "./CheckIn/Chill6/Chill6Page";
 import CSLargePageCI from "./CheckIn/LargeColdRoom/LargePage";
 
 // ▼ cs_id >= 10: ไฟล์ universal ไฟล์เดียว
-import UniversalColdStoragePage from "./CheckIn/Universal/UniversalColdStoragePage";
 
 import CSAntePageCO from "./Room/AntePage/AntePage";
 import CS4CPageCO from "./Room/4C/4CPage";
@@ -45,17 +41,13 @@ import ModalCSR3 from "./Room/Modals/ModalCSR3";
 import SalesPage from "./MatCold/MatColdPage.jsx";
 import HistoryBakingPrep from "./HistoryBaking/HistoryBakingPage.jsx";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
+import SapSheetPage from "./SapSheet/SapSheetPage.jsx";
 import RoomTableCSSupOnly from "./RoomTablerminprocess/RoomTable.jsx";
-import RoomTableCSSupOnlysend from "./RoomTablerminprocess copy/RoomTable.jsx";
-import ScanSAPPage from "./ScanThawStart/ScanSAPPage.jsx";
-import ScanSAPPageEDF from "./ScanThawEnd/ScanSAPPage.jsx";
+import RoomTableCSSupOnlysend from "./RoomMonitor/RoomTable.jsx";
 import ScanSAPPageComeAnti from "./ScanSAPComeAnti/ScanSAPPage.jsx";
 import ScanSAPPageOutCS from "./ScanSAPOutCS/ScanSAPPage.jsx";
-import CheckinSAP from "./CheckinSAP/BatchSAPPage.jsx";
 import Dashboardrmoutprocess from "./Dashboardrmoutprocess/RoomTable.jsx";
 import Dashboardrminprocess from "./dashboardrminprocess/RoomTable.jsx";
-import Roomtableoutprocess from "./RoomTablermoutprocess/RoomTable.jsx";
-import RoomTableCS from "./RoomTablecs/RoomTable.jsx";
 
 
 function AppColdStorages() {
@@ -69,12 +61,21 @@ function AppColdStorages() {
 
       <Sidebar />
       <Routes>
-        <Route path="/" element={<OverviewPage />} />
-        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/SapSheet" element={<SapSheetPage />} />
+        <Route path="/LargeRooms" element={<RoomTableCSSupOnlysend />} />
+        {/* หน้าเดิมที่รวมเข้าตารางเดียวแล้ว */}
+        <Route path="/products" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/ScanSAPPage/defrost" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/ScanSAPPageEDF/end/defrost" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/Checkin/rm/in/line/not/inprocess" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/table/rm" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/RoomTableCS" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/CheckIn/rooms" element={<Navigate to="/ColdStorages/LargeRooms" replace />} />
+        <Route path="/CheckOut/CheckOutPage" element={<Navigate to="/ColdStorages/LargeRooms" replace />} />
         <Route path="/sales" element={<SalesPage />} />
         <Route path="/analytics" element={<HistoryBakingPrep />} />
         <Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
-        <Route path="/CheckOut/CheckOutPage" element={<CSCheckOutPage />} />
         <Route
           path="/CheckIn/ParentComponent"
           element={<ParentComponent />}
@@ -109,27 +110,12 @@ function AppColdStorages() {
         />
 
         {/* ── cs_id >= 10: single universal page ── */}
-        <Route
-          path="/CheckIn/rooms"
-          element={<UniversalColdStoragePage />}
-        />
 
         <Route
           path="/RoomTable/RoomTable"
           element={<RoomTableCSSupOnly />}
         />
-        <Route
-          path="/RoomTable/RoomTable/send"
-          element={<RoomTableCSSupOnlysend />}
-        />
-        <Route
-          path="/ScanSAPPage/defrost"
-          element={<ScanSAPPage />}
-        />
-        <Route
-          path="/ScanSAPPageEDF/end/defrost"
-          element={<ScanSAPPageEDF />}
-        />
+        <Route path="/RoomTable/RoomTable/send" element={<Navigate to="/ColdStorages/LargeRooms" replace />} />
         <Route
           path="/ScanSAPPageEDF/come/cs/after/defrost"
           element={<ScanSAPPageComeAnti />}
@@ -137,14 +123,6 @@ function AppColdStorages() {
         <Route
           path="/ScanSAPPageOUTcs/out/cs"
           element={<ScanSAPPageOutCS />}
-        />
-        <Route
-          path="/Checkin/rm/in/line/not/inprocess"
-          element={<CheckinSAP />}
-        />
-        <Route
-          path="/table/rm"
-          element={<Roomtableoutprocess />}
         />
 
         <Route
@@ -155,11 +133,6 @@ function AppColdStorages() {
         <Route
           path="/dashboardrmoutprocess"
           element={<Dashboardrmoutprocess />}
-        />
-
-        <Route
-          path="/RoomTableCS"
-          element={<RoomTableCS />}
         />
       </Routes>
     </div>

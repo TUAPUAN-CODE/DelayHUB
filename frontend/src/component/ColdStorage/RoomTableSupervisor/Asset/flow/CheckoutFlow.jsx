@@ -273,7 +273,11 @@ const groupTrolley = (items) => {
   return Array.from(trolleyMap.values())[0];
 };
 
-const CheckoutFlow = forwardRef(function CheckoutFlow({ onDone }, ref) {
+// The large cold room module (/coldStorages) reuses this flow with its own API prefix, delay calculation and dialog.
+const CheckoutFlow = forwardRef(function CheckoutFlow(
+  { onDone, apiBase = "/api/coldstorage", Modal = ModalEditPD, delayFn = calculateMaterialDelayTime },
+  ref,
+) {
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -281,8 +285,9 @@ const CheckoutFlow = forwardRef(function CheckoutFlow({ onDone }, ref) {
   const load = useCallback(async (row) => {
     try {
       const [regular, mixed] = await Promise.all([
-        axios.get(`${API_URL}/api/coldstorage/export/fetchSlotRawMat`),
-        axios.get(`${API_URL}/api/coldstorage/mix/export/fetchSlotRawMat`),
+        axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`),
+        // not every module has a mixed-material export list: treat a missing one as "no mixed materials"
+        axios.get(`${API_URL}${apiBase}/mix/export/fetchSlotRawMat`).catch(() => ({ data: { success: false } })),
       ]);
       const regularList = (regular.data?.success ? regular.data.data : []).map((x) => ({ ...x, rawMatType: "regular" }));
       const mixedList = (mixed.data?.success ? mixed.data.data : []).map((x) => ({ ...x, rawMatType: "mixed" }));
@@ -290,7 +295,7 @@ const CheckoutFlow = forwardRef(function CheckoutFlow({ onDone }, ref) {
       const trolley = items.length ? groupTrolley(items) : null;
       if (!trolley) { setMessage(`ไม่พบรถเข็น ${row.tro_id} ในรายการส่งออก (อาจถูกส่งออกไปแล้ว)`); return; }
       const materials = (trolley.materials || []).map((m) => {
-        const { statusMessage, color } = calculateMaterialDelayTime(m);
+        const { statusMessage, color } = delayFn(m);
         return { ...m, delayTime: statusMessage, delayTimeColor: color };
       });
       setData(buildEditData({ ...trolley, ptc_time: trolley.ptc_time, materials }));
@@ -299,13 +304,13 @@ const CheckoutFlow = forwardRef(function CheckoutFlow({ onDone }, ref) {
       console.error("โหลดรายการส่งออกไม่สำเร็จ:", err);
       setMessage("โหลดข้อมูลส่งออกไม่สำเร็จ");
     }
-  }, []);
+  }, [apiBase, delayFn]);
 
   useImperativeHandle(ref, () => ({ open: load }), [load]);
 
   return (
     <>
-      {data && <ModalEditPD open={open} onClose={() => setOpen(false)} onNext={() => setOpen(false)} data={data} onSuccess={() => { setOpen(false); onDone?.(); }} />}
+      {data && <Modal open={open} onClose={() => setOpen(false)} onNext={() => setOpen(false)} data={data} onSuccess={() => { setOpen(false); onDone?.(); }} />}
       <Snackbar open={Boolean(message)} autoHideDuration={5000} onClose={() => setMessage("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="warning" onClose={() => setMessage("")}>{message}</Alert>
       </Snackbar>

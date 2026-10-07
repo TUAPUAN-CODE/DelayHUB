@@ -1,4 +1,4 @@
-// Delay time of one material of a trolley — moved unchanged from the old check-out table (CheckOut/Asset/Table.jsx).
+// Delay time of one material of a trolley in the large cold room — moved unchanged from the old check-out table (CheckOut/Asset/Table.jsx).
 // ModalEditPD (check-out) shows these values for every material.
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -59,9 +59,9 @@ const formatTime = (minutes) => {
 const getLatestComeColdDateForMaterial = (material) => {
   // เก็บวันที่ทั้งหมดในอาร์เรย์
   const dates = [
-    material.come_cold_date,
-    material.come_cold_date_two,
-    material.come_cold_date_three
+    material.cs_come_cold_date,
+    material.cs_come_cold_date_two,
+    material.cs_come_cold_date_three
   ].filter(date => date); // กรองเอาเฉพาะค่าที่ไม่เป็น null หรือ undefined
 
   console.log("เวลาเข้าห้องเย็นทั้งหมดของวัตถุดิบ:", material.material, dates);
@@ -81,37 +81,6 @@ const calculateTimeDifferenceForMaterial = (comeColdDateTime) => {
   return (currentDate - comecolddatetime) / (1000 * 60);
 };
 
-// รวมเวลาอยู่ในห้องเย็นทุกรอบ (นาที)
-const calculateTotalColdMinutes = (material) => {
-  const now = new Date();
-  const pairs = [
-    [material.come_cold_date,       material.out_cold_date],
-    [material.come_cold_date_two,   material.out_cold_date_two],
-    [material.come_cold_date_three, material.out_cold_date_three],
-    [material.cs_come_cold_date,    material.cs_out_cold_date],
-    [material.cs_come_cold_date_two,   material.cs_out_cold_date_two],
-    [material.cs_come_cold_date_three, material.cs_out_cold_date_three],
-    [material.cs_come_cold_date_four,  material.cs_out_cold_date_four],
-    [material.cs_come_cold_date_five,  material.cs_out_out_date_five],
-    [material.cs_come_cold_date_six,   material.cs_out_cold_date_six],
-    [material.cs_come_cold_date_seven, material.cs_out_cold_date_seven],
-    [material.cs_come_cold_date_eight, material.cs_out_cold_date_eight],
-    [material.cs_come_cold_date_nine,  material.cs_out_cold_date_nine],
-    [material.cs_come_cold_date_ten,   material.cs_out_cold_date_ten],
-  ];
-  let total = 0;
-  for (const [come, out] of pairs) {
-    if (!come) continue;
-    const comeDate = new Date(come);
-    if (isNaN(comeDate.getTime())) continue;
-    const outDate = out ? new Date(out) : now;
-    total += (outDate - comeDate) / (1000 * 60);
-  }
-  return total;
-};
-
-
-// สร้างรายละเอียดแต่ละรอบเพื่อแสดงใน dialog
 
 // ปรับปรุงฟังก์ชัน calculateMaterialDelayTime เพื่อแก้ไขวิธีการคำนวณเวลาสำหรับวัตถุดิบผสม
 const calculateMaterialDelayTime = (material) => {
@@ -350,34 +319,109 @@ const calculateMaterialDelayTime = (material) => {
       delayTimeValue: updatedReworkTime
     };
   }
-  // กรณีไม่มี remaining_rework_time — รวมเวลาห้องเย็นทุกรอบแล้วเปรียบเทียบกับ standard_cold
+  // กรณีไม่มี remaining_rework_time ให้ใช้การคำนวณแบบเดิม (ใช้ cold_time)
   else {
+    // ใช้ข้อมูล cold_time จากตัวข้อมูลวัตถุดิบแต่ละรายการ
+    const coldValue = parseFloat(material.cold_time);
+    console.log(`Material ${material.material_code} cold_time:`, coldValue);
+
     const standardCold = parseFloat(material.standard_cold);
+    console.log(`Material ${material.material_code} standard_cold:`, standardCold);
+
+    // แปลงค่า standard_cold จากรูปแบบ ชั่วโมง.นาที เป็นนาทีทั้งหมด
     const standardColdMinutes = Math.floor(standardCold) * 60 + (standardCold % 1) * 100;
+    console.log("Material standard cold minutes:", standardColdMinutes);
 
-    const totalMinutes = calculateTotalColdMinutes(material);
+    // คำนวณเวลาที่ผ่านไปจริงตั้งแต่เข้าห้องเย็น
+    const timePassed = calculateTimeDifferenceForMaterial(latestComeColdDate);
+    console.log("Material time passed (minutes):", timePassed);
 
-    const percentage = (totalMinutes / standardColdMinutes) * 100;
-    checkAndUpdateMaterialStatus(material, percentage);
+    // กรณีที่ค่า cold เป็นลบ - แสดงว่าเลยกำหนดแล้ว
+    if (coldValue < 0) {
+      const exceededMinutesFromCold = Math.floor(Math.abs(coldValue)) * 60 + (Math.abs(coldValue) % 1) * 100;
+      const rs_exceededMinutesFromCold = -1 * exceededMinutesFromCold - timePassed;
+      console.log("Material exceeded minutes:", rs_exceededMinutesFromCold);
 
-    if (totalMinutes >= standardColdMinutes) {
-      const exceeded = totalMinutes - standardColdMinutes;
+      const percentage = ((standardColdMinutes + (-1 * rs_exceededMinutesFromCold)) / standardColdMinutes) * 100;
+
+      console.log(`เปอร์เซ็นของ cold < 0 (${standardColdMinutes} + ${-1 * rs_exceededMinutesFromCold}) / ${standardColdMinutes} = ${percentage}`)
+      console.log("Material percentage (exceeded): coldtime < 0", percentage);
+
+      checkAndUpdateMaterialStatus(material, percentage);
+
       return {
-        statusMessage: `เลยกำหนด ${formatTime(exceeded)}`,
+        statusMessage: `เลยกำหนด ${formatTime(rs_exceededMinutesFromCold)}`,
         color: "red",
+        delayTimeValue: coldValue,
         isOverdue: true
       };
     }
 
-    const timeRemaining = standardColdMinutes - totalMinutes;
+    // กรณีที่ค่า cold = 0 แสดงว่าหมดเวลาพอดี
+    if (coldValue === 0) {
+
+      const percentage = ((standardColdMinutes + timePassed) / standardColdMinutes) * 100;
+      console.log("Material percentage (exceeded) coldtime = 0 :", percentage);
+
+      checkAndUpdateMaterialStatus(material, percentage);
+
+      return {
+        statusMessage: `เลยกำหนด ${formatTime(timePassed)}`,
+        color: "red",
+        delayTimeValue: 0
+      };
+    }
+
+    // กรณีที่ค่า cold เป็นบวกและมากกว่า 0 - ยังมีเวลาเหลือ
+    const coldValueMinutes = Math.floor(coldValue) * 60 + (coldValue % 1) * 100;
+
+    // ตรวจสอบว่าเวลาที่ผ่านไปจริงมากกว่าเวลาที่เหลือจาก cold หรือไม่
+    if (timePassed > coldValueMinutes) {
+      const exceededMinutes = timePassed - coldValueMinutes;
+      console.log("Material exceeded minutes from real time:", exceededMinutes);
+
+      const percentage = ((standardColdMinutes + exceededMinutes) / standardColdMinutes) * 100;
+
+      checkAndUpdateMaterialStatus(material, percentage);
+
+      // คำนวณค่า cold_time ที่ปรับปรุงแล้ว (เป็นค่าลบ)
+      // แปลงจากนาทีเป็นรูปแบบ ชั่วโมง.นาที (ติดลบ)
+      const updatedColdTime = -1 * (Math.floor(exceededMinutes / 60) + ((exceededMinutes % 60) / 100));
+
+      return {
+        statusMessage: `เลยกำหนด ${formatTime(exceededMinutes)}`,
+        color: "red",
+        delayTimeValue: updatedColdTime
+      };
+    }
+
+    // กรณีที่ยังไม่เกินเวลา
+    const timeRemaining = coldValueMinutes - timePassed;
+    const resultRemainningCold = standardColdMinutes - coldValueMinutes;
+    console.log("Material time remaining (minutes):", timeRemaining);
+
+    console.log(`การคำนวณ percentage: ${resultRemainningCold} = ${standardColdMinutes} - ${coldValueMinutes}`)
+
+    // คำนวณเปอร์เซ็นต์
+    const percentage = ((timePassed + resultRemainningCold) / standardColdMinutes) * 100;
+    console.log("Material percentage:", percentage);
+
+    checkAndUpdateMaterialStatus(material, percentage);
+
+    // กำหนดสีตามเปอร์เซ็นต์
     let color;
-    if (percentage >= 70) color = "orange";
+    if (percentage >= 100) color = "red";
+    else if (percentage >= 70) color = "orange";
     else color = "green";
+
+    // คำนวณค่า cold_time ที่ปรับปรุงแล้ว
+    // แปลงจากนาทีกลับเป็นรูปแบบ ชั่วโมง.นาที
+    const updatedColdTime = Math.floor(timeRemaining / 60) + ((timeRemaining % 60) / 100);
 
     return {
       statusMessage: `เหลืออีก ${formatTime(timeRemaining)}`,
       color,
-      isOverdue: false
+      delayTimeValue: updatedColdTime
     };
   }
 };

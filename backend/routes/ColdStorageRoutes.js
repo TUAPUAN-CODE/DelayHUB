@@ -3974,6 +3974,78 @@ ORDER BY rmm.mapping_id DESC
     });
 
 
+    // ตาราง Time Stamp รวมของวัตถุดิบไม่แปรรูป (SAP_Receive) — อ่านอย่างเดียว
+    // ส่งรายการที่มีความเคลื่อนไหวภายใน ?days วัน (ค่าเริ่มต้น 14) และรายการที่ยังค้างอยู่ (อยู่ในห้องเย็น / รอรับเข้า) ไม่ว่าเก่าแค่ไหน
+    router.get("/coldstorages/sap/unified", async (req, res) => {
+        try {
+            const days = Math.min(Math.max(parseInt(req.query.days, 10) || 14, 1), 365);
+            const pool = await connectToDatabase();
+            if (!pool) {
+                return res.status(503).json({ success: false, error: "Database unavailable" });
+            }
+
+            const result = await pool.request()
+                .input("days", sql.Int, days)
+                .query(`
+                SELECT TOP (3000)
+                    s.sap_re_id,
+                    s.batch,
+                    s.mat,
+                    rm.mat_name,
+                    s.hu,
+                    s.before_hu,
+                    s.weight,
+                    s.remark,
+                    s.cs_re,
+                    s.cs_re_2,
+                    s.cs_re_3,
+                    CONVERT(varchar, s.withdraw_date, 120) AS withdraw_date,
+                    CONVERT(varchar, s.start_defrost_date, 120) AS start_defrost_date,
+                    CONVERT(varchar, s.end_defrost_date, 120) AS end_defrost_date,
+                    CONVERT(varchar, s.input_pd_date, 120) AS input_pd_date,
+                    CONVERT(varchar, s.output_pd_date, 120) AS output_pd_date,
+                    CONVERT(varchar, s.input_cd_date, 120) AS input_cd_date,
+                    CONVERT(varchar, s.withdraw_date_two, 120) AS withdraw_date_two,
+                    CONVERT(varchar, s.start_defrost_date_two, 120) AS start_defrost_date_two,
+                    CONVERT(varchar, s.end_defrost_date_two, 120) AS end_defrost_date_two,
+                    CONVERT(varchar, s.input_pd_date_two, 120) AS input_pd_date_two,
+                    CONVERT(varchar, s.output_pd_date_two, 120) AS output_pd_date_two,
+                    CONVERT(varchar, s.input_cd_date_two, 120) AS input_cd_date_two,
+                    CONVERT(varchar, s.withdraw_date_three, 120) AS withdraw_date_three,
+                    CONVERT(varchar, s.start_defrost_date_three, 120) AS start_defrost_date_three,
+                    CONVERT(varchar, s.end_defrost_date_three, 120) AS end_defrost_date_three,
+                    CONVERT(varchar, s.input_pd_date_three, 120) AS input_pd_date_three,
+                    CONVERT(varchar, s.output_pd_date_three, 120) AS output_pd_date_three,
+                    CONVERT(varchar, s.input_cd_date_three, 120) AS input_cd_date_three,
+                    CONVERT(varchar, s.withdraw_date_four, 120) AS withdraw_date_four,
+                    CONVERT(varchar, s.start_defrost_date_four, 120) AS start_defrost_date_four,
+                    CONVERT(varchar, s.end_defrost_date_four, 120) AS end_defrost_date_four
+                FROM SAP_Receive s
+                LEFT JOIN RawMat rm ON rm.mat = s.mat
+                CROSS APPLY (
+                    SELECT MAX(v.d) AS last_at
+                    FROM (VALUES (s.withdraw_date),(s.start_defrost_date),(s.end_defrost_date),(s.input_pd_date),(s.output_pd_date),(s.input_cd_date),(s.withdraw_date_two),(s.start_defrost_date_two),(s.end_defrost_date_two),(s.input_pd_date_two),(s.output_pd_date_two),(s.input_cd_date_two),(s.withdraw_date_three),(s.start_defrost_date_three),(s.end_defrost_date_three),(s.input_pd_date_three),(s.output_pd_date_three),(s.input_cd_date_three),(s.withdraw_date_four),(s.start_defrost_date_four),(s.end_defrost_date_four)) AS v(d)
+                ) la
+                WHERE s.status = 1
+                  AND (
+                        la.last_at >= DATEADD(DAY, -@days, GETDATE())
+                        OR (s.input_cd_date IS NOT NULL AND s.withdraw_date_two IS NULL)
+                        OR (s.input_cd_date_two IS NOT NULL AND s.withdraw_date_three IS NULL)
+                        OR (s.input_cd_date_three IS NOT NULL AND s.withdraw_date_four IS NULL)
+                        OR (s.output_pd_date IS NOT NULL AND s.input_cd_date IS NULL)
+                        OR (s.output_pd_date_two IS NOT NULL AND s.input_cd_date_two IS NULL)
+                        OR (s.output_pd_date_three IS NOT NULL AND s.input_cd_date_three IS NULL)
+                  )
+                ORDER BY la.last_at DESC, s.sap_re_id DESC
+            `);
+
+            res.json({ success: true, data: result.recordset });
+        } catch (error) {
+            console.error("[Route /coldstorages/sap/unified] Error:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     router.get("/coldstorages/incold/fetchSlotRawMat", async (req, res) => {
         try {
             const pool = await connectToDatabase();
@@ -4148,6 +4220,180 @@ ORDER BY rmm.mapping_id DESC
             res.status(500).json({ error: "Internal Server Error" });
         }
     });
+    // รายการที่รับเข้าห้องเย็นใหญ่ได้ (รถเข็นที่ยังไม่อยู่ในช่องจอดใดๆ และปลายทางคือห้องเย็นใหญ่) — อ่านอย่างเดียว
+    // เงื่อนไขเดียวกับ PUT /largecold/checkin/update/Trolley: รถเข็นมีวัตถุดิบ และยังไม่อยู่ใน Slot
+    router.get("/coldstorages/pending/checkin", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
+            if (!pool) {
+                return res.status(503).json({ success: false, error: "Database unavailable" });
+            }
+
+            const query = `
+
+SELECT TOP (2000)
+    rmm.mapping_id,
+    rmf.rmfp_id,
+
+    COALESCE(b.batch_after, rmf.batch) AS batch,
+
+    rm.mat,
+    rm.mat_name,
+
+    CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
+
+    CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
+    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
+    CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
+
+    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
+
+    rmf.rm_group_id AS rmf_rm_group_id,
+    rmg.rm_group_id AS rmg_rm_group_id,
+    rmg.rm_group_name,
+
+    rmm.tro_id,
+    rmm.rm_cold_status,
+    rmm.rm_status,
+    rmm.stay_place,
+    rmm.dest,
+
+    rmm.weight_RM,
+    rmm.tray_count,
+    rmm.level_eu,
+
+    htr.hist_id,
+
+
+    htr.qccheck_cold,
+    htr.remark_rework_cold,
+    htr.receiver_out_cold,
+    htr.receiver_out_cold_two,
+    htr.receiver_out_cold_three,
+    htr.rd_section_colds,
+    htr.storage_purpose,
+    htr.histamine,
+    htr.at_pd_storage_purpose,
+    htr.at_pd_histamine,
+    htr.at_pd_storage_purpose_2,
+    htr.at_pd_histamine_2,
+    htr.at_pd_storage_purpose_3,
+    htr.at_pd_histamine_3,
+    htr.at_pd_cold_remark,
+    htr.at_pd_cold_remark_2,
+    htr.at_pd_cold_remark_3,
+    CONVERT(varchar, htr.at_pd_deposit_date,   120) AS at_pd_deposit_date,
+    CONVERT(varchar, htr.at_pd_deposit_date_2, 120) AS at_pd_deposit_date_2,
+    CONVERT(varchar, htr.at_pd_deposit_date_3, 120) AS at_pd_deposit_date_3,
+
+    CONVERT(varchar, htr.withdraw_date, 120) AS withdraw_date,
+    CONVERT(varchar, htr.cooked_date, 120) AS cooked_date,
+    CONVERT(varchar, htr.rmit_date, 120) AS rmit_date,
+    CONVERT(varchar, htr.come_cold_date, 120) AS come_cold_date,
+    CONVERT(varchar, htr.come_cold_date_two, 120) AS come_cold_date_two,
+    CONVERT(varchar, htr.come_cold_date_three, 120) AS come_cold_date_three,
+    CONVERT(varchar, htr.out_cold_date, 120) AS out_cold_date,
+    CONVERT(varchar, htr.out_cold_date_two, 120) AS out_cold_date_two,
+    CONVERT(varchar, htr.out_cold_date_three, 120) AS out_cold_date_three,
+    CONVERT(varchar, htr.rework_date, 120) AS rework_date,
+    CONVERT(varchar, htr.cs_come_cold_date, 120) AS cs_come_cold_date,
+    CONVERT(varchar, htr.cs_out_cold_date, 120) AS cs_out_cold_date,
+    CONVERT(varchar, htr.cs_come_cold_date_two, 120) AS cs_come_cold_date_two,
+    CONVERT(varchar, htr.cs_out_cold_date_two, 120) AS cs_out_cold_date_two,
+    CONVERT(varchar, htr.cs_come_cold_date_three, 120) AS cs_come_cold_date_three,
+    CONVERT(varchar, htr.cs_out_cold_date_three, 120) AS cs_out_cold_date_three,
+    CONVERT(varchar, htr.cs_come_cold_date_four, 120) AS cs_come_cold_date_four,
+    CONVERT(varchar, htr.cs_out_cold_date_four, 120) AS cs_out_cold_date_four,
+
+    htr.remark,
+    htr.weight,
+    htr.pd_send,
+    htr.pd_send2,
+    htr.pd_send3,
+    htr.cs_re,
+    htr.cs_re_2,
+    htr.cs_re_3,
+    htr.storage_purpose_2,
+    htr.storage_purpose_3,
+    htr.histamine_2,
+    htr.histamine_3,
+    htr.cs_wd_2,
+    htr.cs_wd_3,
+    htr.cs_wd_4,
+    CAST(NULL AS INT) AS cs_id,
+    CAST(NULL AS NVARCHAR(100)) AS cs_name,
+
+    CONVERT(varchar, htr.start_defrost_date,       120) AS start_defrost_date,
+    CONVERT(varchar, htr.end_defrost_date,         120) AS end_defrost_date,
+    CONVERT(varchar, htr.start_defrost_date_two,   120) AS start_defrost_date_two,
+    CONVERT(varchar, htr.end_defrost_date_two,     120) AS end_defrost_date_two,
+    CONVERT(varchar, htr.start_defrost_date_three, 120) AS start_defrost_date_three,
+    CONVERT(varchar, htr.end_defrost_date_three,   120) AS end_defrost_date_three,
+    CONVERT(varchar, htr.start_defrost_date_four,  120) AS start_defrost_date_four,
+    CONVERT(varchar, htr.end_defrost_date_four,    120) AS end_defrost_date_four,
+    CONVERT(varchar, htr.input_pd_date,            120) AS input_pd_date,
+    CONVERT(varchar, htr.input_pd_date_two,        120) AS input_pd_date_two,
+    CONVERT(varchar, htr.input_pd_date_three,      120) AS input_pd_date_three,
+    CONVERT(varchar, htr.output_pd_date,           120) AS output_pd_date,
+    CONVERT(varchar, htr.output_pd_date_two,       120) AS output_pd_date_two,
+    CONVERT(varchar, htr.output_pd_date_three,     120) AS output_pd_date_three,
+    CONVERT(varchar, htr.withdraw_date_two,        120) AS withdraw_date_two,
+    CONVERT(varchar, htr.withdraw_date_three,      120) AS withdraw_date_three,
+    CONVERT(varchar, htr.withdraw_date_four,       120) AS withdraw_date_four,
+    CONVERT(varchar, htr.input_cd_date,            120) AS input_cd_date,
+    CONVERT(varchar, htr.input_cd_date_two,        120) AS input_cd_date_two,
+    CONVERT(varchar, htr.input_cd_date_three,      120) AS input_cd_date_three
+
+FROM TrolleyRMMapping rmm
+
+JOIN RMForProd rmf
+    ON rmm.rmfp_id = rmf.rmfp_id
+
+JOIN ProdRawMat pr
+    ON rmm.tro_production_id = pr.prod_rm_id
+
+JOIN RawMat rm
+    ON pr.mat = rm.mat
+
+JOIN Production p
+    ON pr.prod_id = p.prod_id
+
+JOIN RawMatGroup rmg
+    ON rmf.rm_group_id = rmg.rm_group_id
+
+
+OUTER APPLY (
+    SELECT STRING_AGG(batch_after, ', ') AS batch_after
+    FROM Batch
+    WHERE mapping_id = rmm.mapping_id
+) b
+
+
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM History h
+    WHERE h.mapping_id = rmm.mapping_id
+    ORDER BY h.hist_id DESC
+) htr
+
+
+WHERE
+    rmm.dest IN (N'ห้องเย็นใหญ่', N'เข้าห้องเย็นใหญ่')
+    AND rmm.tro_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM Slot sx WHERE sx.tro_id = rmm.tro_id)
+ORDER BY rmm.mapping_id DESC
+`;
+
+            const result = await pool.request().query(query);
+            res.json({ success: true, data: result.recordset });
+        } catch (error) {
+            console.error("[Route /coldstorages/pending/checkin] Error:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     router.get("/coldstorages/incold/fetchSlotRawMatsend", async (req, res) => {
         try {
             const pool = await connectToDatabase();

@@ -1,25 +1,14 @@
-import { Snowflake, LogOut } from "lucide-react";
+import { Snowflake, Warehouse, LogOut } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SECTIONS = [
   {
     title: "RM ไม่แปรรูป",
-    items: [
-      { name: "0) วัตถุดิบแปรรูป", icon: Snowflake, href: "/coldStorages/table/rm" },
-      { name: "1) รับเข้าไม่แปรรูป", icon: Snowflake, href: "/ColdStorages/Checkin/rm/in/line/not/inprocess" },
-      { name: "2) เริ่มละลาย", icon: Snowflake, href: "/ColdStorages/ScanSAPPage/defrost" },
-      { name: "3) ละลายเสร็จ", icon: Snowflake, href: "/ColdStorages/ScanSAPPageEDF/end/defrost" },
-      { name: "4) จ่ายลงไลน์", icon: Snowflake, href: "/ColdStorages/products" },
-      { name: "5) Monitor", icon: Snowflake, href: "/ColdStorages/RoomTableCS" },
-    ],
+    items: [{ name: "Time Stamp วัตถุดิบ", icon: Snowflake, href: "/ColdStorages/SapSheet" }],
   },
   {
     title: "RM แปรรูป",
-    items: [
-      { name: "0) Monitor", icon: Snowflake, href: "/coldStorages/RoomTable/RoomTable/send" },
-      { name: "1) รับเข้า RM แปรรูป", icon: Snowflake, href: "/ColdStorages/CheckIn/rooms" },
-      { name: "2) ส่งออก RM แปรรูป", icon: Snowflake, href: "/coldStorages/CheckOut/CheckOutPage" },
-    ],
+    items: [{ name: "ห้องเย็นใหญ่", icon: Warehouse, href: "/ColdStorages/LargeRooms" }],
   },
   { items: [{ name: "ออกจากระบบ", icon: LogOut, href: "/logout" }] },
 ];
