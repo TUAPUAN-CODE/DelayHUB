@@ -92,7 +92,7 @@ const StatusBadge = ({ status }) => {
   const colors = {
     active:   { bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7', label: 'ใช้งาน' },
     archived: { bg: '#F3E5F5', color: '#6A1B9A', border: '#CE93D8', label: 'จัดเก็บ' },
-    default:  { bg: '#F5F5F5', color: '#616161', border: '#BDBDBD', label: status || '-' },
+    default:  { bg: '#F5F8FF', color: '#616161', border: '#BDBDBD', label: status || '-' },
   };
   const c = colors[status] || colors.default;
   return (
@@ -223,7 +223,7 @@ const PaperPDFViewer = () => {
   const styles = {
     wrap: {
       fontFamily: "'Noto Sans Thai', 'Sarabun', sans-serif",
-      background: 'linear-gradient(135deg, #f0f7ff 0%, #fafcff 100%)',
+      background: 'linear-gradient(135deg, #F5F8FF 0%, #fafcff 100%)',
       minHeight: '100vh',
       padding: '24px',
     },
@@ -234,7 +234,7 @@ const PaperPDFViewer = () => {
       overflow: 'hidden',
     },
     header: {
-      background: 'linear-gradient(135deg, #1565C0 0%, #00a6ff 100%)',
+      background: 'linear-gradient(135deg, #0F3FC4 0%, #1552F0 100%)',
       padding: '20px 28px',
       display: 'flex',
       alignItems: 'center',
@@ -252,12 +252,12 @@ const PaperPDFViewer = () => {
     },
     toolbar: {
       padding: '16px 24px',
-      borderBottom: '1px solid #E3F2FD',
+      borderBottom: '1px solid #EAF0FF',
       display: 'flex',
       gap: '12px',
       flexWrap: 'wrap',
       alignItems: 'center',
-      background: '#F8FBFF',
+      background: '#F5F8FF',
     },
     searchBox: {
       display: 'flex',
@@ -295,7 +295,7 @@ const PaperPDFViewer = () => {
       fontSize: '14px',
     },
     th: (col) => ({
-      backgroundColor: '#1976D2',
+      backgroundColor: '#1552F0',
       color: '#fff',
       padding: '12px 14px',
       textAlign: 'center',
@@ -316,7 +316,7 @@ const PaperPDFViewer = () => {
     tdBase: (even) => ({
       padding: '10px 14px',
       textAlign: 'center',
-      borderBottom: '1px solid #E3F2FD',
+      borderBottom: '1px solid #EAF0FF',
       borderRight: '1px solid #F0F8FF',
       backgroundColor: even ? '#fff' : '#F0F8FF',
       color: '#353535',
@@ -342,8 +342,8 @@ const PaperPDFViewer = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '14px 24px',
-      borderTop: '1px solid #E3F2FD',
-      background: '#F8FBFF',
+      borderTop: '1px solid #EAF0FF',
+      background: '#F5F8FF',
       fontSize: '13px',
       color: '#546E7A',
       flexWrap: 'wrap',
@@ -354,8 +354,8 @@ const PaperPDFViewer = () => {
       height: '34px',
       borderRadius: '8px',
       border: active ? 'none' : '1px solid #BBDEFB',
-      background: active ? '#1976D2' : '#fff',
-      color: active ? '#fff' : '#1976D2',
+      background: active ? '#1552F0' : '#fff',
+      color: active ? '#fff' : '#1552F0',
       cursor: 'pointer',
       fontWeight: active ? '700' : '400',
       fontSize: '13px',
@@ -381,7 +381,7 @@ const PaperPDFViewer = () => {
       overflow: 'hidden',
     },
     modalHeader: {
-      background: 'linear-gradient(135deg, #1565C0 0%, #00a6ff 100%)',
+      background: 'linear-gradient(135deg, #0F3FC4 0%, #1552F0 100%)',
       padding: '14px 20px',
       display: 'flex',
       alignItems: 'center',
@@ -468,7 +468,7 @@ const PaperPDFViewer = () => {
                       <div style={{
                         width: '36px', height: '36px',
                         border: '3px solid #BBDEFB',
-                        borderTop: '3px solid #1976D2',
+                        borderTop: '3px solid #1552F0',
                         borderRadius: '50%',
                         animation: 'spin 0.8s linear infinite',
                       }} />
@@ -496,19 +496,19 @@ const PaperPDFViewer = () => {
                   );
                   return (
                     <tr key={row.paper_id}
-                      onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(c => { c.style.backgroundColor = even ? '#E3F2FD' : '#DCEEFB'; })}
+                      onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(c => { c.style.backgroundColor = even ? '#EAF0FF' : '#DCEEFB'; })}
                       onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(c => { c.style.backgroundColor = even ? '#fff' : '#F0F8FF'; })}
                       style={{ transition: 'background 0.15s' }}
                     >
                       {td(<span style={{ color: '#90A4AE', fontSize: '12px' }}>#{row.paper_id}</span>)}
                       {td(
-                        <span style={{ fontWeight: '600', color: '#1565C0' }}>{formatDate(row.date)}</span>
+                        <span style={{ fontWeight: '600', color: '#0F3FC4' }}>{formatDate(row.date)}</span>
                       )}
                       {td(<ShiftBadge shift={row.shift} />)}
                       {td(
                         <span style={{
                           display: 'inline-block',
-                          background: '#E3F2FD',
+                          background: '#EAF0FF',
                           color: '#0D47A1',
                           borderRadius: '8px',
                           padding: '2px 10px',
@@ -521,7 +521,7 @@ const PaperPDFViewer = () => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}>
                           <span style={{
                             width: '26px', height: '26px', borderRadius: '50%',
-                            background: '#E3F2FD', color: '#1565C0',
+                            background: '#EAF0FF', color: '#0F3FC4',
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: '11px', fontWeight: '700', flexShrink: 0,
                           }}>
@@ -536,7 +536,7 @@ const PaperPDFViewer = () => {
                       {td(
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button
-                            style={styles.actionBtn('#1976D2')}
+                            style={styles.actionBtn('#1552F0')}
                             title="ดู PDF"
                             onClick={() => setPreviewPaper(row)}
                             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
@@ -626,8 +626,8 @@ const PaperPDFViewer = () => {
               {/* Info bar */}
               <div style={{
                 padding: '10px 20px',
-                borderTop: '1px solid #E3F2FD',
-                background: '#F8FBFF',
+                borderTop: '1px solid #EAF0FF',
+                background: '#F5F8FF',
                 display: 'flex',
                 gap: '24px',
                 flexWrap: 'wrap',

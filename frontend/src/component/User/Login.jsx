@@ -103,22 +103,23 @@ const Login = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        minWidth: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#1770b8",
-        backgroundImage: "url('/')",
+        px: { xs: 2, md: 0 },
+        background: "linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)",
       }}
     >
       <CssBaseline />
       <Container maxWidth="lg">
         <Paper
-          elevation={6}
+          elevation={0}
           sx={{
             display: "flex",
             overflow: "hidden",
-            borderRadius: 3,
+            borderRadius: 5,
+            boxShadow: "0 24px 60px rgba(8, 28, 110, .35)",
+            animation: "pageIn .45s cubic-bezier(.22,1,.36,1) both",
           }}
         >
           {/* พื้นที่รูปภาพ */}
@@ -137,19 +138,19 @@ const Login = () => {
           <Box
             sx={{
               width: { xs: "100%", md: "50%" },
-              paddingTop: 20,
-              paddingBottom: 20,
-              paddingLeft: 10,
-              paddingRight: 10,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              py: { xs: 6, md: 10 },
+              px: { xs: 3, sm: 8, md: 10 },
               textAlign: "center",
-              maxHeight: "650px",
-              minHeight: "650px",
+              minHeight: { xs: "auto", md: "650px" },
             }}
           >
             <Typography
               variant="h4"
               gutterBottom
-              sx={{ fontWeight: "bold", color: "#1e3c72" }}
+              sx={{ fontWeight: 600, color: "#1552F0" }}
             >
               ยินดีต้อนรับ
             </Typography>

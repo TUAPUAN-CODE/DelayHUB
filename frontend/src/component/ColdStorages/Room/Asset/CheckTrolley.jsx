@@ -91,7 +91,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedSlot, selectedOption
       
       <Box sx={{ paddingLeft: "18px",paddingRight: "18px",paddingBottom: "18px", display: "flex", justifyContent: "space-between" }}>
         <Button
-          style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+          style={{ backgroundColor: "#E5484D", color: "#fff" }}
           variant="contained"
           startIcon={<CancelIcon />}
           onClick={onClose}
@@ -99,7 +99,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedSlot, selectedOption
           ยกเลิก
         </Button>
         <Button
-          style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+          style={{ backgroundColor: "#1552F0", color: "#fff" }}
           variant="contained"
           startIcon={<CheckCircleIcon />}
           onClick={handleConfirm} // เรียกฟังก์ชัน handleConfirm

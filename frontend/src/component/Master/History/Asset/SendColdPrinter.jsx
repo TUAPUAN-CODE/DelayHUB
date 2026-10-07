@@ -283,7 +283,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                             flex: 1,
                             maxWidth: "250px",
                             height: "50px",
-                            backgroundColor: "#2388d1",
+                            backgroundColor: "#1552F0",
                             fontSize: "16px",
                         }}
                     >
@@ -452,15 +452,15 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                     mt: 2,
                                                     mb: 3,
                                                     p: 1.5,
-                                                    border: '2px solid #2388d1',
+                                                    border: '2px solid #1552F0',
                                                     borderRadius: '8px',
-                                                    backgroundColor: '#f0f7ff',
+                                                    backgroundColor: '#F5F8FF',
                                                     '@media print': {
                                                         mt: 1,
                                                         mb: 1.5,
                                                         p: 0.8,
                                                         borderRadius: '4px',
-                                                        border: '1px solid #2388d1'
+                                                        border: '1px solid #1552F0'
                                                     }
                                                 }}>
                                                     <Typography sx={{
@@ -468,7 +468,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                         fontWeight: 'normal',
                                                         mb: 1,
                                                         color: '#0c5460',
-                                                        borderBottom: '1px dashed #2388d1',
+                                                        borderBottom: '1px dashed #1552F0',
                                                         pb: 0.5,
                                                         '@media print': {
                                                             fontSize: '15px',
@@ -578,7 +578,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                                         p: 1,
                                                                         border: "1px dashed #ccc",
                                                                         borderRadius: "4px",
-                                                                        backgroundColor: "#f9f9f9",
+                                                                        backgroundColor: "#F5F8FF",
                                                                         '@media print': {
                                                                             mt: 0.5,
                                                                             mb: 1,
@@ -769,7 +769,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                                 p: 1,
                                                                 border: '1px dashed #ccc',
                                                                 borderRadius: '4px',
-                                                                backgroundColor: '#f5f5f5',
+                                                                backgroundColor: '#F5F8FF',
                                                                 '@media print': {
                                                                     mt: 0.5,
                                                                     p: 0.5,
@@ -824,7 +824,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                                 p: 1,
                                                                 border: "1px dashed #ccc",
                                                                 borderRadius: "4px",
-                                                                backgroundColor: "#f9f9f9",
+                                                                backgroundColor: "#F5F8FF",
                                                                 '@media print': {
                                                                     mt: 0.5,
                                                                     mb: 1,

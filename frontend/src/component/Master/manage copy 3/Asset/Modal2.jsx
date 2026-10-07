@@ -190,7 +190,7 @@ const Modal2 = ({ open, onClose, onNext, data, rmfp_id, rm_tro_id,CookedDateTime
 
         <Box sx={{ padding: "0px 16px 16px 16px", display: "flex", justifyContent: "space-between" }}>
           <Button
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={handleClose}
@@ -198,7 +198,7 @@ const Modal2 = ({ open, onClose, onNext, data, rmfp_id, rm_tro_id,CookedDateTime
             ยกเลิก
           </Button>
           <Button
-            style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            style={{ backgroundColor: "#1552F0", color: "#fff" }}
             variant="contained"
             startIcon={<CheckCircleIcon />}
             onClick={handleNext}

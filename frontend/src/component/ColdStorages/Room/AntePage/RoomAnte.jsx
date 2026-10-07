@@ -144,7 +144,7 @@ const ParkingLayou4C = ({ onSlotClick }) => {
           <TableRow>
             <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50] }}></TableCell>
             {columns.map((col, index) => (
-              <TableCell key={index} align="center" sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50], color: '#787878' }}>
+              <TableCell key={index} align="center" sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50], color: '#6B7489' }}>
                 {col}
               </TableCell>
             ))}
@@ -153,7 +153,7 @@ const ParkingLayou4C = ({ onSlotClick }) => {
         <TableBody>
           {Object.keys(rows).map((rowKey, rowIndex) => (
             <TableRow key={rowIndex}>
-              <TableCell align="center" sx={{ fontWeight: 'bold', color: '#787878' }}>
+              <TableCell align="center" sx={{ fontWeight: 'bold', color: '#6B7489' }}>
                 {rowKey}
               </TableCell>
               {columns.map((col, colIndex) => {
@@ -174,7 +174,7 @@ const ParkingLayou4C = ({ onSlotClick }) => {
                           width: { xs: '150px', sm: '180px', md: '220px' },
                           height: '80px',
                           backgroundColor: '#fff',
-                          borderLeft: `6px solid ${isReserved ? "#787878" : isOccupied ? "#80FF75" : "#787878"}`,
+                          borderLeft: `6px solid ${isReserved ? "#6B7489" : isOccupied ? "#80FF75" : "#6B7489"}`,
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center',

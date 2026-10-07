@@ -554,7 +554,7 @@ const QcCheck = ({
         <DialogContent>
           <Typography
             variant="h6"
-            style={{ fontSize: "18px", color: "#787878" }}
+            style={{ fontSize: "18px", color: "#6B7489" }}
             mb={2}
           >
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
@@ -573,7 +573,7 @@ const QcCheck = ({
               mb: 2,
               maxHeight: 300,
               overflow: "auto",
-              border: "1px solid #e0e0e0",
+              border: "1px solid #E3E8F2",
               borderRadius: "4px",
               p: 2,
             }}
@@ -591,7 +591,7 @@ const QcCheck = ({
                 >
                   <Typography
                     variant="subtitle2"
-                    sx={{ fontWeight: "bold", mb: 1, color: "#2388d1" }}
+                    sx={{ fontWeight: "bold", mb: 1, color: "#1552F0" }}
                   >
                     วัตถุดิบที่ {index + 1}
                   </Typography>
@@ -974,7 +974,7 @@ const QcCheck = ({
                 height: "50px",
                 marginBottom: "20px",
                 margin: "5px",
-                backgroundColor: "#2388d1",
+                backgroundColor: "#1552F0",
                 "@media print": {
                   display: "none",
                 },
@@ -1776,7 +1776,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
             <Box
               sx={{
                 fontSize: 60,
-                color: scannedCode.length === 4 ? "#4caf50" : "#2388d1",
+                color: scannedCode.length === 4 ? "#4caf50" : "#1552F0",
                 transition: "color 0.3s",
               }}
             >
@@ -1787,7 +1787,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
             <Typography
               variant="h6"
               align="center"
-              style={{ color: "#787878" }}
+              style={{ color: "#6B7489" }}
             >
               สแกนป้ายทะเบียนรถเข็น
             </Typography>
@@ -1796,7 +1796,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
             <Typography
               variant="body2"
               align="center"
-              style={{ color: "#787878" }}
+              style={{ color: "#6B7489" }}
             >
               รถเข็น: <strong>{tro_id}</strong>
             </Typography>
@@ -1834,7 +1834,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                     alignItems: "center",
                     justifyContent: "center",
                     minHeight: 300,
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor: "#F5F8FF",
                     borderRadius: 2,
                   }}
                 >
@@ -1874,7 +1874,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                       sx={{
                         textAlign: "center",
                         py: 4,
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: "#F5F8FF",
                         borderRadius: 2,
                       }}
                     >
@@ -1902,13 +1902,13 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                       sx={{
                         textAlign: "center",
                         py: 4,
-                        backgroundColor: "#f0f7ff",
+                        backgroundColor: "#F5F8FF",
                         borderRadius: 2,
-                        border: "2px dashed #2388d1",
+                        border: "2px dashed #1552F0",
                       }}
                     >
                       <KeyboardIcon
-                        sx={{ fontSize: 48, color: "#2388d1", mb: 1 }}
+                        sx={{ fontSize: 48, color: "#1552F0", mb: 1 }}
                       />
                       <Typography variant="body2" color="text.secondary">
                         โหมดพิมพ์เอง
@@ -1933,7 +1933,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                       sx={{
                         textAlign: "center",
                         py: 2,
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: "#F5F8FF",
                         borderRadius: 2,
                       }}
                     >
@@ -2017,7 +2017,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                       height: 12,
                       borderRadius: "50%",
                       backgroundColor:
-                        scannedCode.length >= dot ? "#2388d1" : "#e0e0e0",
+                        scannedCode.length >= dot ? "#1552F0" : "#E3E8F2",
                       transition: "background-color 0.3s",
                     }}
                   />
@@ -2049,8 +2049,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                 onClick={handleClose}
                 fullWidth
                 sx={{
-                  color: "#E74A3B",
-                  borderColor: "#E74A3B",
+                  color: "#E5484D",
+                  borderColor: "#E5484D",
                 }}
               >
                 ยกเลิก
@@ -2062,7 +2062,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                 onClick={handleScanVerify}
                 disabled={scannedCode.length !== 4}
                 fullWidth
-                sx={{ backgroundColor: "#41a2e6" }}
+                sx={{ backgroundColor: "#1552F0" }}
               >
                 ยืนยัน
               </Button>
@@ -2084,7 +2084,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
         <DialogContent>
           <Typography
             variant="h6"
-            style={{ fontSize: "18px", color: "#787878" }}
+            style={{ fontSize: "18px", color: "#6B7489" }}
             mb={2}
           >
             จุดเตรียม Check In
@@ -2273,8 +2273,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                       control={
                         <Radio
                           sx={{
-                            color: "#2196f3",
-                            "&.Mui-checked": { color: "#1976d2" },
+                            color: "#1552F0",
+                            "&.Mui-checked": { color: "#1552F0" },
                           }}
                         />
                       }
@@ -2327,8 +2327,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                         control={
                           <Radio
                             sx={{
-                              color: "#2196f3",
-                              "&.Mui-checked": { color: "#1976d2" },
+                              color: "#1552F0",
+                              "&.Mui-checked": { color: "#1552F0" },
                             }}
                           />
                         }
@@ -2362,8 +2362,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                         control={
                           <Radio
                             sx={{
-                              color: "#2196f3",
-                              "&.Mui-checked": { color: "#1976d2" },
+                              color: "#1552F0",
+                              "&.Mui-checked": { color: "#1552F0" },
                             }}
                           />
                         }
@@ -2398,8 +2398,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                 startIcon={<CancelIcon />}
                 onClick={onClose}
                 sx={{
-                  color: "#E74A3B",
-                  borderColor: "#E74A3B",
+                  color: "#E5484D",
+                  borderColor: "#E5484D",
                   "&:hover": {
                     borderColor: "#C0392B",
                     backgroundColor: "rgba(231, 74, 59, 0.04)",
@@ -2413,9 +2413,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
                 startIcon={<CheckCircleIcon />}
                 onClick={handleConfirm}
                 sx={{
-                  backgroundColor: "#41a2e6",
+                  backgroundColor: "#1552F0",
                   "&:hover": {
-                    backgroundColor: "#2196f3",
+                    backgroundColor: "#1552F0",
                   },
                 }}
               >

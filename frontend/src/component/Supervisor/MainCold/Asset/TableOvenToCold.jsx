@@ -48,7 +48,7 @@ const formatTime = (minutes) => {
 };
 
 const getStatusColor = (status) => {
-  if (!status) return '#787878'; // Default gray color
+  if (!status) return '#6B7489'; // Default gray color
 
   if (status === 'QcCheck') {
     return '#008000'; // Green
@@ -60,7 +60,7 @@ const getStatusColor = (status) => {
     return '#FF0000'; // Red
   }
 
-  return '#787878'; // Default gray color
+  return '#6B7489'; // Default gray color
 };
 
 const getItemStatus = (item) => {
@@ -281,7 +281,7 @@ const getTrolleyStatusIcons = (row) => {
 };
 const ViewActionCell = ({ width, onViewClick, onDeleteClick, icon, backgroundColor, status }) => {
   // กำหนดสีของ icon ดวงตาให้เป็นสีเดียวกับ table head (สีฟ้า)
-  const iconColor = "hsl(210, 100%, 60%)";
+  const iconColor = "#1552F0";
   const deleteIconColor = "#dc3545";
 
   return (
@@ -289,12 +289,12 @@ const ViewActionCell = ({ width, onViewClick, onDeleteClick, icon, backgroundCol
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         borderTopRightRadius: "8px",
         borderBottomRightRadius: "8px",
         backgroundColor: backgroundColor
@@ -316,14 +316,14 @@ const ViewActionCell = ({ width, onViewClick, onDeleteClick, icon, backgroundCol
             width: '50%',
             cursor: 'pointer',
             transition: 'background-color 0.2s ease-in-out',
-            borderRight: '1px solid #e0e0e0'
+            borderRight: '1px solid #E3E8F2'
           }}
           onClick={(e) => {
             e.stopPropagation();
             onViewClick(e);
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#007BFF';
+            e.currentTarget.style.backgroundColor = '#1552F0';
             e.currentTarget.querySelector('svg').style.color = '#fff';
           }}
           onMouseLeave={(e) => {
@@ -331,7 +331,7 @@ const ViewActionCell = ({ width, onViewClick, onDeleteClick, icon, backgroundCol
             e.currentTarget.querySelector('svg').style.color = iconColor;
           }}
           onTouchStart={(e) => {
-            e.currentTarget.style.backgroundColor = '#007BFF';
+            e.currentTarget.style.backgroundColor = '#1552F0';
             e.currentTarget.querySelector('svg').style.color = '#fff';
           }}
           onTouchEnd={(e) => {
@@ -392,7 +392,7 @@ const Row = ({
   onDeleteClick
 }) => {
   const { textColor } = getRowStatus(row);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
   const isOpen = openRowId === row.tro_id;
 
   const mainRowData = {
@@ -423,8 +423,8 @@ const Row = ({
               borderLeft: idx === 0 ? `5px solid ${textColor}` : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0",
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -433,7 +433,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 15px',
-              color: "#787878",
+              color: "#6B7489",
               backgroundColor: backgroundColor
             }}
           >
@@ -461,7 +461,7 @@ const Row = ({
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{
               margin: 1,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: "#F5F8FF",
               padding: 2,
               borderRadius: 2,
               boxShadow: '0px 2px 4px rgba(0,0,0,0.1)'
@@ -487,10 +487,10 @@ const Row = ({
                 backgroundColor: 'white',
                 borderRadius: '8px',
                 overflow: 'hidden',
-                border: '1px solid #e0e0e0'
+                border: '1px solid #E3E8F2'
               }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>สถานะเวลา</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Batch</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Material</TableCell>
@@ -510,8 +510,8 @@ const Row = ({
                         <TableRow
                           key={`${material.rmfp_id}-${idx}`}
                           sx={{
-                            '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' },
-                            '&:hover': { backgroundColor: '#f0f7ff' }
+                            '&:nth-of-type(odd)': { backgroundColor: '#F5F8FF' },
+                            '&:hover': { backgroundColor: '#F5F8FF' }
                           }}
                         >
                           <TableCell
@@ -745,7 +745,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -787,9 +787,9 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "hsl(210, 100%, 60%)",
-                    borderTop: "1px solid #e0e0e0",
-                    borderBottom: "1px solid #e0e0e0",
+                    backgroundColor: "#1552F0",
+                    borderTop: "1px solid #E3E8F2",
+                    borderBottom: "1px solid #E3E8F2",
                     borderRight: "1px solid #f2f2f2",
                     borderTopLeftRadius: index === 0 ? "8px" : "0",
                     borderBottomLeftRadius: index === 0 ? "8px" : "0",
@@ -807,12 +807,12 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
                   fontSize: '16px',
                   color: '#ffffff',
                   padding: '10px',
@@ -827,7 +827,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   กำลังโหลดข้อมูล...
                 </TableCell>
               </TableRow>
@@ -847,7 +847,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -859,7 +859,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}
@@ -892,7 +892,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

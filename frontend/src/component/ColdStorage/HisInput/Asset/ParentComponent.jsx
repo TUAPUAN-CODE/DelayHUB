@@ -380,7 +380,7 @@ const ParentComponent = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -394,7 +394,7 @@ const ParentComponent = () => {
               border: '1px solid #cbcbcb', 
               borderRadius: '5px',
               padding: '7px',
-              color: showDateFilter || isDateFiltering ? '#1976d2' : 'inherit',
+              color: showDateFilter || isDateFiltering ? '#1552F0' : 'inherit',
               backgroundColor: showDateFilter || isDateFiltering ? 'rgba(25, 118, 210, 0.08)' : 'inherit'
             }}
             onClick={() => setShowDateFilter(!showDateFilter)}
@@ -422,7 +422,7 @@ const ParentComponent = () => {
             mx: 2, 
             my: 1, 
             p: 2, 
-            border: '1px solid #e0e0e0', 
+            border: '1px solid #E3E8F2', 
             borderRadius: '8px',
             bgcolor: 'background.paper'
           }}

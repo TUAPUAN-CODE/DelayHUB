@@ -211,7 +211,7 @@ const ParentComponent = () => {
               style={{
                 padding: '6px 12px',
                 backgroundColor: showSummaryCard ? '#e9eef6' : '#f1f5f9',
-                color: showSummaryCard ? '#3b82f6' : '#64748b',
+                color: showSummaryCard ? '#1552F0' : '#64748b',
                 border: `1px solid ${showSummaryCard ? '#bfdbfe' : '#e2e8f0'}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -235,7 +235,7 @@ const ParentComponent = () => {
               style={{
                 padding: '6px 12px',
                 backgroundColor: showDelayTimeChart ? '#e9eef6' : '#f1f5f9',
-                color: showDelayTimeChart ? '#3b82f6' : '#64748b',
+                color: showDelayTimeChart ? '#1552F0' : '#64748b',
                 border: `1px solid ${showDelayTimeChart ? '#bfdbfe' : '#e2e8f0'}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -256,7 +256,7 @@ const ParentComponent = () => {
             {isFiltering && (
               <span style={{
                 fontSize: '14px', 
-                color: '#007bff', 
+                color: '#1552F0', 
                 backgroundColor: 'rgba(0, 123, 255, 0.1)', 
                 padding: '4px 10px', 
                 borderRadius: '20px',
@@ -265,7 +265,7 @@ const ParentComponent = () => {
                 fontWeight: 500
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '5px' }}>
-                  <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="#1552F0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 กำลังกรอง
               </span>
@@ -374,7 +374,7 @@ const ParentComponent = () => {
               onClick={filterDataByDateRange}
               style={{
                 padding: '10px 18px',
-                backgroundColor: '#0d6efd',
+                backgroundColor: '#1552F0',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -398,8 +398,8 @@ const ParentComponent = () => {
               style={{
                 padding: '10px 18px',
                 backgroundColor: 'white',
-                color: '#0d6efd', // เปลี่ยนสีข้อความให้เป็นฟ้าเข้ม
-                border: '1px solid #0d6efd', // เปลี่ยนขอบให้เป็นฟ้าเข้ม
+                color: '#1552F0', // เปลี่ยนสีข้อความให้เป็นฟ้าเข้ม
+                border: '1px solid #1552F0', // เปลี่ยนขอบให้เป็นฟ้าเข้ม
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '14px',
@@ -469,7 +469,7 @@ const ParentComponent = () => {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 150px)' }}>
-          <p style={{ color: '#787878', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
+          <p style={{ color: '#6B7489', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
         </div>
       ) : (
         <TableMainSupv

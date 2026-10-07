@@ -185,7 +185,7 @@ const TrolleyReworkModal = ({ open, onClose, onNext, data, rmfp_id, mapping_id, 
 
             {/* แสดงข้อมูลวัตถุดิบที่ได้รับมา */}
             {data && (
-              <Box sx={{ mb: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+              <Box sx={{ mb: 2, p: 1, bgcolor: '#F5F8FF', borderRadius: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   รายละเอียด:
                 </Typography>
@@ -255,7 +255,7 @@ const TrolleyReworkModal = ({ open, onClose, onNext, data, rmfp_id, mapping_id, 
 
             <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1, height: "42px" }}>
               <Button
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 variant="contained"
                 startIcon={<CancelIcon />}
                 onClick={onClose}
@@ -264,7 +264,7 @@ const TrolleyReworkModal = ({ open, onClose, onNext, data, rmfp_id, mapping_id, 
                 ยกเลิก
               </Button>
               <Button
-                style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+                style={{ backgroundColor: "#1552F0", color: "#fff" }}
                 variant="contained"
                 startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
                 onClick={handleSubmit}

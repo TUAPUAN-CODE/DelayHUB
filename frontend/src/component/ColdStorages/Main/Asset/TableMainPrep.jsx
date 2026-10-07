@@ -23,7 +23,7 @@ const Row = ({
 }) => {
     const isOpen = openRowId === row.rmfp_id;
     const { rmfp_id, dest, stay_place, cooked_date, CookedDateTime, oven_to_cold, rm_type_id, mapping_id, sap_re_id, rm_status,  ...displayRow } = row;
-    const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+    const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
 
     return (
         <>
@@ -40,8 +40,8 @@ const Row = ({
                         align="center"
                         style={{
                             width: columnWidths[idx],
-                            borderTop: '1px solid #e0e0e0',
-                            borderBottom: '1px solid #e0e0e0',
+                            borderTop: '1px solid #E3E8F2',
+                            borderBottom: '1px solid #E3E8F2',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             overflow: 'hidden',
@@ -50,8 +50,8 @@ const Row = ({
                             height: '40px',
                             lineHeight: '1.5',
                             padding: '0px 10px',
-                            color: "#787878",
-                            borderLeft: idx === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
+                            color: "#6B7489",
+                            borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
                             borderTopLeftRadius: idx === 0 ? "8px" : "0px",
                             borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
                             backgroundColor: backgroundColor
@@ -67,7 +67,7 @@ const Row = ({
                         e.stopPropagation();
                         handleOpenEditRemark(row);
                     }}
-                    icon={<EditIcon style={{ color: "#2388d1", fontSize: "18px" }} />}
+                    icon={<EditIcon style={{ color: "#1552F0", fontSize: "18px" }} />}
                     backgroundColor={backgroundColor}
                 />
 
@@ -94,8 +94,8 @@ const EditActionCell = ({ onClick, icon, backgroundColor }) => {
         <TableCell
             style={{
                 textAlign: 'center',
-                borderTop: '1px solid #e0e0e0',
-                borderBottom: '1px solid #e0e0e0',
+                borderTop: '1px solid #E3E8F2',
+                borderBottom: '1px solid #E3E8F2',
                 borderLeft: '1px solid #f2f2f2',
                 height: '40px',
                 padding: '0px',
@@ -105,20 +105,20 @@ const EditActionCell = ({ onClick, icon, backgroundColor }) => {
             }}
             onClick={onClick}
             onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2388d1';
+                e.currentTarget.style.backgroundColor = '#1552F0';
                 e.currentTarget.querySelector('svg').style.color = '#fff';
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = backgroundColor;
-                e.currentTarget.querySelector('svg').style.color = '#2388d1';
+                e.currentTarget.querySelector('svg').style.color = '#1552F0';
             }}
             onTouchStart={(e) => {
-                e.currentTarget.style.backgroundColor = '#2388d1';
+                e.currentTarget.style.backgroundColor = '#1552F0';
                 e.currentTarget.querySelector('svg').style.color = '#fff';
             }}
             onTouchEnd={(e) => {
                 e.currentTarget.style.backgroundColor = backgroundColor;
-                e.currentTarget.querySelector('svg').style.color = '#2388d1';
+                e.currentTarget.querySelector('svg').style.color = '#1552F0';
             }}
         >
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -133,10 +133,10 @@ const CompleteActionCell = ({ onClick, icon, backgroundColor }) => {
         <TableCell
             style={{
                 textAlign: 'center',
-                borderTop: '1px solid #e0e0e0',
-                borderBottom: '1px solid #e0e0e0',
+                borderTop: '1px solid #E3E8F2',
+                borderBottom: '1px solid #E3E8F2',
                 borderLeft: '1px solid #f2f2f2',
-                borderRight: '1px solid #e0e0e0',
+                borderRight: '1px solid #E3E8F2',
                 borderTopRightRadius: "8px",
                 borderBottomRightRadius: "8px",
                 height: '40px',
@@ -222,7 +222,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                     }}
                     sx={{
                         "& .MuiOutlinedInput-root": {
-                            height: "40px", fontSize: "14px", borderRadius: "8px", color: "#787878",
+                            height: "40px", fontSize: "14px", borderRadius: "8px", color: "#6B7489",
                         },
                         "& input": { padding: "8px" },
                     }}
@@ -242,29 +242,29 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                 <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
                     <TableHead style={{ marginBottom: "10px" }}>
                         <TableRow sx={{ height: '40px' }}>
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Material</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>HU</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Remark</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>เวลาส่งจากห้องเย็นใหญ่</Box>
                             </TableCell>
 
                             {/* ✅ Header: ปุ่ม Edit */}
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "70px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "70px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ReMark</Box>
                             </TableCell>
 
                             {/* Header: ปุ่ม ลบ */}
-                            <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "70px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "70px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ลบ</Box>
                             </TableCell>
                         </TableRow>
@@ -287,7 +287,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                                     ไม่มีรายการวัตถุดิบในขณะนี้
                                 </TableCell>
                             </TableRow>
@@ -298,7 +298,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
             <TablePagination
                 sx={{
                     "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
-                        fontSize: '10px', color: "#787878", padding: "0px",
+                        fontSize: '10px', color: "#6B7489", padding: "0px",
                     }
                 }}
                 rowsPerPageOptions={[20, 50, 100]}
@@ -329,7 +329,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
     const baseStyle = {
         border: isSelected
             ? `2px solid ${currentColor.selected}`
-            : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+            : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
         padding: 6, borderRadius: 6, cursor: "pointer",
         transition: "all 0.2s ease-in-out",
         backgroundColor: isSelected ? "transparent" : isHovered ? currentColor.hover : currentColor.default,

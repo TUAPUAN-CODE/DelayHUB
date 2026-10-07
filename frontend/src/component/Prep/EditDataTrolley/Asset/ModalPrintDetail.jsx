@@ -462,7 +462,7 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                                 height: "50px",
                                 marginBottom: "20px",
                                 margin: "5px",
-                                backgroundColor: "#2388d1",
+                                backgroundColor: "#1552F0",
                                 '@media print': {
                                     display: 'none',
                                 },
@@ -708,7 +708,7 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                                 borderRadius: "8px",
                                 padding: "10px",
                                 margin: "10px 0",
-                                backgroundColor: "#f9f9f9",
+                                backgroundColor: "#F5F8FF",
                                 '@media print': {
                                     border: "1px solid #000",
                                     borderRadius: "4px",

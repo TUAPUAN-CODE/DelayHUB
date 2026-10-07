@@ -309,7 +309,7 @@ const DetailModal = ({ item, onClose, onSuccess, dataPrinter }) => {
                         </Typography>
 
                         {mixedHistory.length === 0 ? (
-                            <Paper sx={{ p: 3, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+                            <Paper sx={{ p: 3, textAlign: 'center', backgroundColor: '#F5F8FF' }}>
                                 <Typography color="textSecondary">ไม่มีข้อมูลรถเข็น</Typography>
                             </Paper>
                         ) : (
@@ -336,7 +336,7 @@ const DetailModal = ({ item, onClose, onSuccess, dataPrinter }) => {
                                                         backgroundColor: index % 2 === 0 ? "#f9fafc" : "#ffffff",
                                                         '&:hover': {
                                                             cursor: 'pointer',
-                                                            backgroundColor: '#f0f7ff',
+                                                            backgroundColor: '#F5F8FF',
                                                             transition: 'background-color 0.2s'
                                                         }
                                                     }}
@@ -496,8 +496,8 @@ const DetailModal = ({ item, onClose, onSuccess, dataPrinter }) => {
                                 startIcon={<CancelIcon />}
                                 onClick={onClose}
                                 sx={{
-                                    borderColor: "#E74A3B",
-                                    color: "#E74A3B",
+                                    borderColor: "#E5484D",
+                                    color: "#E5484D",
                                     '&:hover': {
                                         backgroundColor: 'rgba(231, 74, 59, 0.04)',
                                         borderColor: '#c6372a',

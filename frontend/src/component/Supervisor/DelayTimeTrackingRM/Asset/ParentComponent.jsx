@@ -188,7 +188,7 @@ const TimelineModal = ({ row, onClose }) => {
         onClick={e => e.stopPropagation()}
       >
         {/* ── header ── */}
-        <div style={{ padding: '22px 28px 18px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, background: '#F9FAFB' }}>
+        <div style={{ padding: '22px 28px 18px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, background: '#F5F8FF' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -197,7 +197,7 @@ const TimelineModal = ({ row, onClose }) => {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {row.mat && <Chip label={`รหัส: ${row.mat}`} bg="#F3F4F6" color="#374151" />}
-                {row.doc_no && <Chip label={row.doc_no} bg="#DBEAFE" color="#1D4ED8" />}
+                {row.doc_no && <Chip label={row.doc_no} bg="#DBEAFE" color="#0F3FC4" />}
                 {row.code && <Chip label={row.code} bg="#E0F2FE" color="#0369A1" />}
                 {row.rmm_line_name && <Chip label={row.rmm_line_name} bg="#EDE9FE" color="#5B21B6" />}
                 {row.batch_before != null && <Chip label={`Tag: ${row.batch_before}`} bg="#FEF3C7" color="#92400E" />}
@@ -210,8 +210,8 @@ const TimelineModal = ({ row, onClose }) => {
           </div>
 
           {totalMins !== null && (
-            <div style={{ marginTop: 14, padding: '10px 18px', background: '#EFF6FF', borderRadius: 10, border: '1px solid #BFDBFE', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#374151' }}>ระยะเวลาทั้งหมด: <strong style={{ color: '#1D4ED8', fontSize: 15 }}>{fmtDuration(totalMins)}</strong></span>
+            <div style={{ marginTop: 14, padding: '10px 18px', background: '#EAF0FF', borderRadius: 10, border: '1px solid #BFDBFE', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#374151' }}>ระยะเวลาทั้งหมด: <strong style={{ color: '#0F3FC4', fontSize: 15 }}>{fmtDuration(totalMins)}</strong></span>
               <span style={{ fontSize: 13, color: '#6B7280' }}>{events.length} events</span>
               <span style={{ fontSize: 13, color: '#6B7280' }}>เริ่ม: <strong style={{ color: '#111827' }}>{fmtDisplay(events[0]?.val)}</strong></span>
               <span style={{ fontSize: 13, color: '#6B7280' }}>สิ้นสุด: <strong style={{ color: '#111827' }}>{fmtDisplay(events[events.length - 1]?.val)}</strong></span>
@@ -323,7 +323,7 @@ const DarkChip = ({ label, c }) => (
 );
 const Dash = () => <span style={{ color: '#E5E7EB' }}>—</span>;
 const ActiveTag = ({ label, onRemove }) => (
-  <div style={{ fontSize: 11, color: '#1D4ED8', background: '#EFF6FF', padding: '3px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+  <div style={{ fontSize: 11, color: '#0F3FC4', background: '#EAF0FF', padding: '3px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
     {label}
     <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#6B7280', padding: 0, lineHeight: 1 }}>✕</button>
   </div>
@@ -332,15 +332,15 @@ const ActiveTag = ({ label, onRemove }) => (
 // ── Shared styles ──────────────────────────────────────────────────────────────
 const labelStyle = { fontSize: 11, color: '#6B7280', marginBottom: 4, display: 'block' };
 const inputStyle = { fontSize: 13, padding: '6px 10px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, background: '#fff', color: '#111827', outline: 'none', boxSizing: 'border-box' };
-const btnPrimary = { fontSize: 13, padding: '0 18px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#3B82F6', color: '#fff', fontWeight: 600 };
+const btnPrimary = { fontSize: 13, padding: '0 18px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#1552F0', color: '#fff', fontWeight: 600 };
 const btnSecondary = { fontSize: 13, padding: '0 14px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, cursor: 'pointer', background: '#fff', color: '#374151' };
 const btnWarn = { fontSize: 13, padding: '0 18px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#F59E0B', color: '#fff', fontWeight: 600 };
 const cellStyle = { padding: '10px 14px', borderBottom: '0.5px solid #F3F4F6', verticalAlign: 'middle' };
-const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
+const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F5F8FF' };
 
 const SortIcon = ({ field, sortField, sortDir }) => {
   if (sortField !== field) return <span style={{ opacity: 0.25, marginLeft: 4, fontSize: 10 }}>↕</span>;
-  return <span style={{ marginLeft: 4, fontSize: 10, color: '#3B82F6' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  return <span style={{ marginLeft: 4, fontSize: 10, color: '#1552F0' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
 };
 
 // ── SearchableSelect ───────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = 'ทั้�
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           userSelect: 'none', boxSizing: 'border-box',
           outline: open ? '2px solid #93C5FD' : 'none',
-          borderColor: open ? '#3B82F6' : '#D1D5DB',
+          borderColor: open ? '#1552F0' : '#D1D5DB',
         }}
       >
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: value ? '#111827' : '#9CA3AF', fontSize: 13 }}>
@@ -439,8 +439,8 @@ const SearchableSelect = ({ value, onChange, options, placeholder = 'ทั้�
               onClick={() => { onChange(''); setOpen(false); }}
               style={{
                 padding: '8px 12px', fontSize: 13, cursor: 'pointer',
-                color: !value ? '#3B82F6' : '#6B7280',
-                background: !value ? '#EFF6FF' : '#fff',
+                color: !value ? '#1552F0' : '#6B7280',
+                background: !value ? '#EAF0FF' : '#fff',
                 fontStyle: 'italic',
               }}
             >
@@ -460,12 +460,12 @@ const SearchableSelect = ({ value, onChange, options, placeholder = 'ทั้�
                     onClick={() => { onChange(v); setOpen(false); }}
                     style={{
                       padding: '8px 12px', fontSize: 13, cursor: 'pointer',
-                      color: sel ? '#1D4ED8' : '#111827',
-                      background: sel ? '#EFF6FF' : '#fff',
+                      color: sel ? '#0F3FC4' : '#111827',
+                      background: sel ? '#EAF0FF' : '#fff',
                       fontWeight: sel ? 600 : 400,
-                      borderLeft: sel ? '3px solid #3B82F6' : '3px solid transparent',
+                      borderLeft: sel ? '3px solid #1552F0' : '3px solid transparent',
                     }}
-                    onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#F9FAFB'; }}
+                    onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#F5F8FF'; }}
                     onMouseLeave={e => { if (!sel) e.currentTarget.style.background = '#fff'; }}
                   >
                     {l}
@@ -489,7 +489,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = 'ทั้�
 
 // ── Spinner ────────────────────────────────────────────────────────────────────
 const Spinner = ({ size = 20, border = 2 }) => (
-  <div style={{ width: size, height: size, border: `${border}px solid #E5E7EB`, borderTop: `${border}px solid #3B82F6`, borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+  <div style={{ width: size, height: size, border: `${border}px solid #E5E7EB`, borderTop: `${border}px solid #1552F0`, borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
 );
 
 // ── EMPTY state ────────────────────────────────────────────────────────────────
@@ -791,7 +791,7 @@ const ProductionLineDelayDashboard = () => {
         {searched && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
             {(filters.sc_pack_date_from || filters.sc_pack_date_to) && (
-              <div style={{ fontSize: 11, color: '#1D4ED8', background: '#EFF6FF', padding: '3px 10px', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: '#0F3FC4', background: '#EAF0FF', padding: '3px 10px', borderRadius: 6 }}>
                 📅 {filters.sc_pack_date_from || '…'} → {filters.sc_pack_date_to || '…'}
               </div>
             )}
@@ -891,10 +891,10 @@ const ProductionLineDelayDashboard = () => {
       {searched && !loading && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 16, animation: 'fadeIn 0.3s ease' }}>
           {[
-            { label: 'รายการทั้งหมด', value: metrics.total.toLocaleString(), color: '#3B82F6', icon: '📋' },
+            { label: 'รายการทั้งหมด', value: metrics.total.toLocaleString(), color: '#1552F0', icon: '📋' },
             { label: 'น้ำหนักรวม (kg)', value: metrics.totalWeight.toLocaleString(undefined, { maximumFractionDigits: 1 }), color: '#10B981', icon: '⚖️' },
           ].map((m, i) => (
-            <div key={i} style={{ background: '#F9FAFB', borderRadius: 10, padding: '12px 16px', border: '0.5px solid #F3F4F6' }}>
+            <div key={i} style={{ background: '#F5F8FF', borderRadius: 10, padding: '12px 16px', border: '0.5px solid #F3F4F6' }}>
               <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{m.icon} {m.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: m.color }}>{m.value}</div>
             </div>
@@ -943,7 +943,7 @@ const ProductionLineDelayDashboard = () => {
                       <span style={{ fontSize: 11, background: '#F3F4F6', color: '#374151', padding: '2px 8px', borderRadius: 20 }}>{row.mat || '-'}</span>
                     </td>
                     <td style={cellStyle}>
-                      {row.doc_no ? <span style={{ fontSize: 11, background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: 20 }}>{row.doc_no}</span> : <Dash />}
+                      {row.doc_no ? <span style={{ fontSize: 11, background: '#EAF0FF', color: '#0F3FC4', padding: '2px 8px', borderRadius: 20 }}>{row.doc_no}</span> : <Dash />}
                     </td>
                     <td style={cellStyle}>
                       {row.code ? <span style={{ fontSize: 11, background: '#F0F9FF', color: '#0369A1', padding: '2px 8px', borderRadius: 20, fontWeight: 500 }}>{row.code}</span> : <Dash />}
@@ -997,9 +997,9 @@ const ProductionLineDelayDashboard = () => {
                       <button
                         onClick={() => setTimelineRow(row)}
                         title="ดู Timeline เวลา"
-                        style={{ width: 34, height: 34, borderRadius: '50%', background: '#EFF6FF', border: '1px solid #BFDBFE', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'all 0.15s', color: '#1D4ED8' }}
+                        style={{ width: 34, height: 34, borderRadius: '50%', background: '#EAF0FF', border: '1px solid #BFDBFE', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'all 0.15s', color: '#0F3FC4' }}
                         onMouseEnter={e => { e.currentTarget.style.background = '#DBEAFE'; e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.3)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#EAF0FF'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                       >
                         ⏱️
                       </button>

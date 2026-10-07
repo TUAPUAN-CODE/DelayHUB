@@ -501,7 +501,7 @@ const ModalSlip2 = ({
                     marginBottom: '16px',
                     // ✅ แสดง visual ว่า read-only
                     '& .MuiInputBase-root': {
-                      backgroundColor: isReadOnlyTime ? '#f5f5f5' : 'inherit',
+                      backgroundColor: isReadOnlyTime ? '#F5F8FF' : 'inherit',
                     }
                   },
                   InputProps: {
@@ -546,7 +546,7 @@ const ModalSlip2 = ({
                   sx: {
                     marginBottom: '16px',
                     '& .MuiInputBase-root': {
-                      backgroundColor: isReadOnlyTime ? '#f5f5f5' : 'inherit',
+                      backgroundColor: isReadOnlyTime ? '#F5F8FF' : 'inherit',
                     }
                   },
                   error: preparedTimeError,
@@ -646,7 +646,7 @@ const ModalSlip2 = ({
         </DialogContent>
         <Box sx={{ padding: "0px 16px 16px 16px", display: "flex", justifyContent: "space-between" }}>
           <Button
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={handleClose}
@@ -655,7 +655,7 @@ const ModalSlip2 = ({
           </Button>
           <Button
             style={{
-              backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#41a2e6",
+              backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#1552F0",
               color: "#fff"
             }}
             variant="contained"

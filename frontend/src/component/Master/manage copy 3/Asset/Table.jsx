@@ -217,7 +217,7 @@ const getItemStatus = (item) => {
   let remainingTimeValue = null;
   let standardTimeValue = null;
   const defaultStatus = {
-    textColor: "#787878",
+    textColor: "#6B7489",
     statusMessage: "-",
     borderColor: "#969696",
     hideDelayTime: true,
@@ -371,13 +371,13 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          border: value ? '2px solid #1552F0' : '1px solid #E3E8F2',
           borderRadius: '12px',
           cursor: 'pointer',
           backgroundColor: '#fff',
           height: '42px',
           fontSize: '14px',
-          color: value ? '#2196F3' : '#999',
+          color: value ? '#1552F0' : '#999',
           transition: 'all 0.3s ease',
           boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
         }}
@@ -389,7 +389,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.3s ease',
-            color: value ? '#2196F3' : '#666'
+            color: value ? '#1552F0' : '#666'
           }}
         />
       </div>
@@ -403,7 +403,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
             left: 0,
             right: 0,
             backgroundColor: '#fff',
-            border: '1px solid #e0e0e0',
+            border: '1px solid #E3E8F2',
             borderRadius: '12px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             zIndex: 1000,
@@ -468,7 +468,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
                     cursor: 'pointer',
                     fontSize: '13px',
                     color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -528,7 +528,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          border: value ? '2px solid #00a6ff' : '1px solid #ddd',
+          border: value ? '2px solid #1552F0' : '1px solid #ddd',
           borderRadius: '10px',
           cursor: 'pointer',
           backgroundColor: '#fff',
@@ -545,7 +545,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.3s ease',
-            color: value ? '#00a6ff' : '#666',
+            color: value ? '#1552F0' : '#666',
             fontSize: '20px'
           }}
         />
@@ -560,7 +560,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
             left: 0,
             right: 0,
             backgroundColor: '#fff',
-            border: '1px solid #e0e0e0',
+            border: '1px solid #E3E8F2',
             borderRadius: '10px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             zIndex: 1000,
@@ -587,7 +587,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
                 boxSizing: 'border-box'
               }}
               onFocus={(e) => {
-                e.target.style.border = '2px solid #00a6ff';
+                e.target.style.border = '2px solid #1552F0';
               }}
               onBlur={(e) => {
                 e.target.style.border = '1px solid #ddd';
@@ -638,7 +638,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
                     cursor: 'pointer',
                     fontSize: '13px',
                     color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -811,9 +811,9 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderLeft: "1px solid #E3F2FD",
-              borderTop: '1px solid #E3F2FD',
-              borderBottom: '1px solid #E3F2FD',
+              borderLeft: "1px solid #EAF0FF",
+              borderTop: '1px solid #EAF0FF',
+              borderBottom: '1px solid #EAF0FF',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -2551,7 +2551,7 @@ const TableMainPrep = ({
       overflow: 'hidden',
       boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
       borderRadius: '16px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+      background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)'
     }}>
       <style>
         {`
@@ -2580,7 +2580,7 @@ const TableMainPrep = ({
 
       {/* Header Section with improved design */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+        background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)',
         padding: '20px 24px',
         borderRadius: '16px 16px 0 0'
       }}>
@@ -2601,7 +2601,7 @@ const TableMainPrep = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon style={{ color: '#2196F3' }} />
+                  <SearchIcon style={{ color: '#1552F0' }} />
                 </InputAdornment>
               ),
               sx: {
@@ -2623,10 +2623,10 @@ const TableMainPrep = ({
                   borderColor: 'transparent',
                 },
                 '&:hover fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: '#1552F0',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: '#1552F0',
                   borderWidth: '2px'
                 },
               },
@@ -2664,7 +2664,7 @@ const TableMainPrep = ({
               onClick={handleOpenPDFPreview}
               sx={{
                 backgroundColor: '#fff',
-                color: '#00a6ff',
+                color: '#1552F0',
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
@@ -2733,7 +2733,7 @@ const TableMainPrep = ({
             label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
             sx={{
               backgroundColor: '#fff',
-              color: '#2196F3',
+              color: '#1552F0',
               fontWeight: '600',
               fontSize: '14px',
               height: '42px',
@@ -2742,7 +2742,7 @@ const TableMainPrep = ({
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               animation: 'pulse 2s infinite',
               '& .MuiChip-icon': {
-                color: '#2196F3'
+                color: '#1552F0'
               }
             }}
           />
@@ -2769,10 +2769,10 @@ const TableMainPrep = ({
             borderRadius: '10px'
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#2196F3',
+            background: '#1552F0',
             borderRadius: '10px',
             '&:hover': {
-              background: '#1976D2'
+              background: '#1552F0'
             }
           }
         }}
@@ -2785,11 +2785,11 @@ const TableMainPrep = ({
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "#2196F3",
-                    borderTop: "1px solid #1976D2",
-                    borderBottom: "1px solid #1976D2",
-                    borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
-                    borderRight: index === displayColumns.length - 1 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "#1552F0",
+                    borderTop: "1px solid #1552F0",
+                    borderBottom: "1px solid #1552F0",
+                    borderLeft: index === 0 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
+                    borderRight: index === displayColumns.length - 1 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
                     fontSize: '14px',
                     color: '#fff',
                     padding: '12px',
@@ -2852,8 +2852,8 @@ const TableMainPrep = ({
 
       <TablePagination
         sx={{
-          borderTop: '1px solid #E3F2FD',
-          backgroundColor: '#F8FBFF',
+          borderTop: '1px solid #EAF0FF',
+          backgroundColor: '#F5F8FF',
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '13px',
             color: "#546E7A",
@@ -2862,13 +2862,13 @@ const TableMainPrep = ({
           },
           "& .MuiTablePagination-select": {
             fontSize: '13px',
-            color: "#2196F3",
+            color: "#1552F0",
             fontWeight: '600'
           },
           "& .MuiTablePagination-actions button": {
-            color: "#2196F3",
+            color: "#1552F0",
             '&:hover': {
-              backgroundColor: '#E3F2FD'
+              backgroundColor: '#EAF0FF'
             }
           }
         }}
@@ -2907,7 +2907,7 @@ const TableMainPrep = ({
 
             {/* Header */}
             <div style={{
-              background: 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+              background: 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
               padding: '5px 5px',
               borderRadius: '16px 16px 0 0',
               display: 'flex',
@@ -2941,14 +2941,14 @@ const TableMainPrep = ({
               flexShrink: 0
             }}>
               {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <div style={{ width: '4px', height: '18px', backgroundColor: '#00a6ff', borderRadius: '2px' }} />
+                <div style={{ width: '4px', height: '18px', backgroundColor: '#1552F0', borderRadius: '2px' }} />
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#333' }}>ข้อมูลเอกสาร</span>
               </div> */}
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {/* Date Input */}
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                    Date <span style={{ color: '#00a6ff' }}>*</span>
+                    Date <span style={{ color: '#1552F0' }}>*</span>
                   </label>
                   <input
                     type="date"
@@ -2966,7 +2966,7 @@ const TableMainPrep = ({
                       color: '#333'
                     }}
                     onFocus={(e) => {
-                      e.target.style.border = '2px solid #00a6ff';
+                      e.target.style.border = '2px solid #1552F0';
                       e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)';
                     }}
                     onBlur={(e) => {
@@ -2980,7 +2980,7 @@ const TableMainPrep = ({
                 {/* Shift Select */}
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                    Shift <span style={{ color: '#00a6ff' }}>*</span>
+                    Shift <span style={{ color: '#1552F0' }}>*</span>
                   </label>
                   <select
                     value={exportShift}
@@ -2998,7 +2998,7 @@ const TableMainPrep = ({
                       cursor: 'pointer'
                     }}
                     onFocus={(e) => {
-                      e.target.style.border = '2px solid #00a6ff';
+                      e.target.style.border = '2px solid #1552F0';
                       e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)';
                     }}
                     onBlur={(e) => {
@@ -3015,7 +3015,7 @@ const TableMainPrep = ({
 
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                    Line <span style={{ color: '#00a6ff' }}>*</span>
+                    Line <span style={{ color: '#1552F0' }}>*</span>
                   </label>
                   <SearchableLineDropdown
                     value={exportLine}
@@ -3047,7 +3047,7 @@ const TableMainPrep = ({
                       color: '#333'
                     }}
                     onFocus={(e) => {
-                      e.target.style.border = '2px solid #00a6ff';
+                      e.target.style.border = '2px solid #1552F0';
                       e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)';
                     }}
                     onBlur={(e) => {
@@ -3079,10 +3079,10 @@ const TableMainPrep = ({
                   <tr>
                     {displayColumns.map((col, i) => (
                       <th key={i} style={{
-                        backgroundColor: '#00a6ff', color: '#fff',
+                        backgroundColor: '#1552F0', color: '#fff',
                         padding: '10px 12px', textAlign: 'center',
                         fontWeight: '600', whiteSpace: 'nowrap',
-                        border: '1px solid #00a6ff',
+                        border: '1px solid #1552F0',
                         position: 'sticky', top: 0, zIndex: 10
                       }}>
                         {headerNames[col] || col}
@@ -3140,7 +3140,7 @@ const TableMainPrep = ({
                                     outline: 'none'
                                   }}
                                   onFocus={(e) => {
-                                    e.target.style.border = '1px solid #00a6ff';
+                                    e.target.style.border = '1px solid #1552F0';
                                     e.target.style.backgroundColor = '#fff';
                                     e.target.style.boxShadow = '0 0 0 2px rgba(244,67,54,0.15)';
                                   }}
@@ -3178,7 +3178,7 @@ const TableMainPrep = ({
               flexShrink: 0
             }}>
               {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <div style={{ width: '4px', height: '18px', backgroundColor: '#00a6ff', borderRadius: '2px' }} />
+                <div style={{ width: '4px', height: '18px', backgroundColor: '#1552F0', borderRadius: '2px' }} />
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#333' }}>ข้อมูลผู้รับผิดชอบ</span>
               </div> */}
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
@@ -3189,7 +3189,7 @@ const TableMainPrep = ({
                 ].map(({ key, label, placeholder, sub, required }) => (
                   <div key={key} style={{ flex: 1, minWidth: '200px' }}>
                     <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                      {label} {required && <span style={{ color: '#00a6ff' }}>*</span>}
+                      {label} {required && <span style={{ color: '#1552F0' }}>*</span>}
                     </label>
                     <input
                       type="text"
@@ -3211,7 +3211,7 @@ const TableMainPrep = ({
                         color: '#333'
                       }}
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid #00a6ff';
+                        e.target.style.border = '2px solid #1552F0';
                         e.target.style.boxShadow = '0 0 0 3px rgba(244,67,54,0.1)';
                       }}
                       onBlur={(e) => {
@@ -3325,8 +3325,8 @@ const TableMainPrep = ({
                   style={{
                     padding: '10px 24px', borderRadius: '10px', border: 'none',
                     background: isSaving
-                      ? 'linear-gradient(135deg, #00a6ff 0%, #E57373 100%)'
-                      : 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+                      ? 'linear-gradient(135deg, #1552F0 0%, #E57373 100%)'
+                      : 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
                     color: '#fff',
                     cursor: isSaving ? 'not-allowed' : 'pointer',
                     fontSize: '14px', fontWeight: '600',
@@ -3385,7 +3385,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

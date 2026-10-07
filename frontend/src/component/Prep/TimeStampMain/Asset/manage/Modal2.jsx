@@ -446,7 +446,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     ...base,
     "& .MuiInputBase-root": {
       backgroundColor: (isReadOnlyTime || isSyncTime)
-        ? "#f5f5f5"
+        ? "#F5F8FF"
         : "inherit",
     },
   });
@@ -682,7 +682,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           />
 
           {/* สถานที่จัดส่ง (QC) */}
-          <Box sx={{ border: "1px solid #e0e0e0", borderRadius: "4px", padding: "12px", backgroundColor: "#f8f9fa", marginTop: "8px", marginBottom: deliveryType === "ส่งห้องเย็นใหญ่" ? "8px" : "16px" }}>
+          <Box sx={{ border: "1px solid #E3E8F2", borderRadius: "4px", padding: "12px", backgroundColor: "#f8f9fa", marginTop: "8px", marginBottom: deliveryType === "ส่งห้องเย็นใหญ่" ? "8px" : "16px" }}>
             <Typography style={{ color: "#333", fontWeight: 500, fontSize: "15px", marginBottom: "4px" }}>
               การตรวจสอบ:
             </Typography>
@@ -694,8 +694,8 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           </Box>
 
           {deliveryType === "ส่งห้องเย็นใหญ่" && (
-            <Box sx={{ border: "1px solid #1565C0", borderRadius: "4px", padding: "12px", backgroundColor: "#e3f2fd", marginBottom: "16px" }}>
-              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#1565C0", marginBottom: "10px" }}>
+            <Box sx={{ border: "1px solid #0F3FC4", borderRadius: "4px", padding: "12px", backgroundColor: "#EAF0FF", marginBottom: "16px" }}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F3FC4", marginBottom: "10px" }}>
                 ข้อมูลเพิ่มเติมสำหรับห้องเย็นใหญ่
               </Typography>
 
@@ -759,11 +759,11 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
         </DialogContent>
 
         <Box sx={{ padding: "0px 16px 16px 16px", display: "flex", justifyContent: "space-between" }}>
-          <Button style={{ backgroundColor: "#E74A3B", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
+          <Button style={{ backgroundColor: "#E5484D", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
             ยกเลิก
           </Button>
           <Button
-            style={{ backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#41a2e6", color: "#fff" }}
+            style={{ backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#1552F0", color: "#fff" }}
             variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNext}
             disabled={!timeValid || preparedTimeError}
           >

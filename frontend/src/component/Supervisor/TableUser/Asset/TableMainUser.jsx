@@ -141,7 +141,7 @@ const TableMainUser = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -205,8 +205,8 @@ const TableMainUser = () => {
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "hsl(210, 100%, 60%)",
-                    border: "1px solid #e0e0e0",
+                    backgroundColor: "#1552F0",
+                    border: "1px solid #E3E8F2",
                     margin: 0,
                     borderRadius:
                       index === 0
@@ -239,9 +239,9 @@ const TableMainUser = () => {
                     sx={{ 
                       cursor: "pointer", 
                       margin: 0,
-                      backgroundColor: index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)",
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : "#EAF0FF",
                       '&:hover': {
-                        backgroundColor: index % 2 === 0 ? '#f5f5f5' : "hsl(210, 100.00%, 88%)",
+                        backgroundColor: index % 2 === 0 ? '#F5F8FF' : "#EAF0FF",
                       } 
                     }}
                   >
@@ -310,7 +310,7 @@ const TableMainUser = () => {
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
             {
               fontSize: "10px",
-              color: "#787878",
+              color: "#6B7489",
               padding: "0px",
             },
         }}

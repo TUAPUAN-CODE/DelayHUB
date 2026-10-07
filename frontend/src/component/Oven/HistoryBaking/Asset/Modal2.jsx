@@ -49,7 +49,7 @@ const Modal2 = ({ open, onClose, onNext, data }) => {
       )}
 
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-    <Typography style={{fontSize:"18px",color:"#787878"}} sx={{ textAlign: 'left' }}>กรุณากรอกข้อมูล</Typography>
+    <Typography style={{fontSize:"18px",color:"#6B7489"}} sx={{ textAlign: 'left' }}>กรุณากรอกข้อมูล</Typography>
 
     </Box>
       {/* ป้ายทะเบียนและข้อมูลในบรรทัดเดียวกัน */}
@@ -102,10 +102,10 @@ const Modal2 = ({ open, onClose, onNext, data }) => {
     </DialogContent>
   
     <Box sx={{ padding: "0px 16px 16px 16px", display: "flex", justifyContent: "space-between" }}>
-      <Button style={{ backgroundColor: "#E74A3B", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={onClose}>
+      <Button style={{ backgroundColor: "#E5484D", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={onClose}>
         ยกเลิก
       </Button>
-      <Button style={{ backgroundColor: "#41a2e6", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNext}>
+      <Button style={{ backgroundColor: "#1552F0", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNext}>
         ยืนยัน
       </Button>
     </Box>

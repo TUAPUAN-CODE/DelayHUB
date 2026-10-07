@@ -446,9 +446,9 @@ const Modal1 = ({
                     flexDirection: "column",
                     gap: 1,
                     padding: 2,
-                    backgroundColor: "#f9f9f9",
+                    backgroundColor: "#F5F8FF",
                     borderRadius: "4px",
-                    border: "1px solid #e0e0e0",
+                    border: "1px solid #E3E8F2",
                   }}
                 >
                   <Typography
@@ -551,7 +551,7 @@ const Modal1 = ({
             }}
           >
             <Button
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               variant="contained"
               startIcon={<CancelIcon />}
               onClick={handleClose}
@@ -560,7 +560,7 @@ const Modal1 = ({
             </Button>
             <Button
               style={{
-                backgroundColor: isFormValid() ? "#41a2e6" : "#e0e0e0",
+                backgroundColor: isFormValid() ? "#1552F0" : "#E3E8F2",
                 color: "#fff",
               }}
               variant="contained"

@@ -61,7 +61,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 //         maxWidth="xs"
 //       >
 //         <DialogContent>
-//           <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+//           <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
 //             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
 //           </Typography>
 //           <Divider sx={{ mb: 2 }} />
@@ -80,7 +80,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 //             <Button
 //               variant="contained"
 //               startIcon={<CancelIcon />}
-//               style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+//               style={{ backgroundColor: "#E5484D", color: "#fff" }}
 //               onClick={onClose}
 //             >
 //               ยกเลิก
@@ -88,7 +88,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 //             <Button
 //               variant="contained"
 //               startIcon={<CheckCircleIcon />}
-//               style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+//               style={{ backgroundColor: "#1552F0", color: "#fff" }}
 //               onClick={() => setConfirm(true)}
 //             >
 //               ยืนยัน
@@ -177,7 +177,7 @@ const ModalSuccess = ({
         maxWidth="xs"
       >
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -203,7 +203,7 @@ const ModalSuccess = ({
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
             >
               ยกเลิก
@@ -211,7 +211,7 @@ const ModalSuccess = ({
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={() => setConfirm(true)}
             >
               ยืนยัน

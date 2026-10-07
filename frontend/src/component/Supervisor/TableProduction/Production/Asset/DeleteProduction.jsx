@@ -80,7 +80,7 @@ const DeleteProduction = ({ isOpen, onClose, onSuccess, Data }) => {
           <Button
             variant="contained"
             startIcon={<CancelIcon />}
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             onClick={handleClose}
           >
             ยกเลิก
@@ -88,7 +88,7 @@ const DeleteProduction = ({ isOpen, onClose, onSuccess, Data }) => {
           <Button
             variant="contained"
             startIcon={<CheckCircleIcon />}
-            style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            style={{ backgroundColor: "#1552F0", color: "#fff" }}
             onClick={handleDelete}
             disabled={loading}
           >

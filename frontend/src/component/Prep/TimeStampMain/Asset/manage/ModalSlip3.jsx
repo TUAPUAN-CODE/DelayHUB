@@ -392,7 +392,7 @@ const ModalSlip3 = ({
           justifyContent="center"
         >
           <Button
-            sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            sx={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={handleClose}
@@ -410,7 +410,7 @@ const ModalSlip3 = ({
             แก้ไข
           </Button>
           <Button
-            sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            sx={{ backgroundColor: "#1552F0", color: "#fff" }}
             variant="contained"
             startIcon={<CheckCircleIcon />}
             onClick={handleConfirm}

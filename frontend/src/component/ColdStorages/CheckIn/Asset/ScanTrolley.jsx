@@ -235,7 +235,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
             {selectedRoomName && (
               <Box sx={{
                 display: "inline-flex", alignItems: "center", gap: 0.75, mt: 1,
-                bgcolor: "#1d4ed8", borderRadius: "8px", px: 1.5, py: 0.5,
+                bgcolor: "#0F3FC4", borderRadius: "8px", px: 1.5, py: 0.5,
               }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#93c5fd" }} />
                 <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>
@@ -355,7 +355,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
                   onClick={handleManualSubmit}
                   disabled={loading || !manualInput.trim()}
                   sx={{ borderRadius: "8px", px: 2, minWidth: "80px",
-                    bgcolor: "#2563eb", "&:hover": { bgcolor: "#1d4ed8" },
+                    bgcolor: "#2563eb", "&:hover": { bgcolor: "#0F3FC4" },
                     "&:disabled": { bgcolor: "#e2e8f0" } }}
                 >
                   ✓

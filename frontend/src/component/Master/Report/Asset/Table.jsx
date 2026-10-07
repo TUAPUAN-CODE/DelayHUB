@@ -343,7 +343,7 @@ const getItemStatus = (item) => {
   let remainingTimeValue = null;
   let standardTimeValue = null;
   const defaultStatus = {
-    textColor: "#787878",
+    textColor: "#6B7489",
     statusMessage: "-",
     borderColor: "#969696",
     hideDelayTime: true,
@@ -546,7 +546,7 @@ const DateTime24Input = ({ value, onChange, isOver, isEdited }) => {
         alignItems: 'center',
         gap: '2px',
         backgroundColor: '#fafafa',
-        border: '1px solid #e0e0e0',
+        border: '1px solid #E3E8F2',
         borderRadius: '6px',
         padding: '2px 4px',
       }}>
@@ -616,22 +616,22 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          padding: '10px 14px', border: value ? '2px solid #1552F0' : '1px solid #E3E8F2',
           borderRadius: '12px', cursor: 'pointer', backgroundColor: '#fff', height: '42px',
-          fontSize: '14px', color: value ? '#2196F3' : '#999', transition: 'all 0.3s ease',
+          fontSize: '14px', color: value ? '#1552F0' : '#999', transition: 'all 0.3s ease',
           boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: value ? '500' : '400' }}>
           {value || placeholder}
         </span>
-        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#2196F3' : '#666' }} />
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#1552F0' : '#666' }} />
       </div>
 
       {isOpen && (
         <div style={{
           position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
-          border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          border: '1px solid #E3E8F2', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           zIndex: 1000, maxHeight: '320px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
           animation: 'slideDown 0.2s ease'
         }}>
@@ -661,7 +661,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
                 <div key={index} onClick={() => handleSelect(option)}
                   style={{
                     padding: '12px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -707,18 +707,18 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', border: value ? '2px solid #00a6ff' : '1px solid #ddd',
+          padding: '10px 14px', border: value ? '2px solid #1552F0' : '1px solid #ddd',
           borderRadius: '10px', cursor: 'pointer', backgroundColor: '#fff',
           fontSize: '14px', color: value ? '#333' : '#999', transition: 'all 0.3s ease', boxSizing: 'border-box'
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '-- เลือก Line --'}</span>
-        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#00a6ff' : '#666', fontSize: '20px' }} />
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#1552F0' : '#666', fontSize: '20px' }} />
       </div>
       {isOpen && (
         <div style={{
           position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
-          border: '1px solid #e0e0e0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          border: '1px solid #E3E8F2', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           zIndex: 1000, maxHeight: '300px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         }}>
           <div style={{ padding: '10px' }}>
@@ -727,7 +727,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+              onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
               onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
             />
           </div>
@@ -747,7 +747,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
                   onClick={() => { onChange(option); setIsOpen(false); setSearchTerm(''); }}
                   style={{
                     padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none', transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
@@ -924,9 +924,9 @@ const Row = ({
               data-isover={isOver ? 'true' : undefined}
               style={{
                 width: columnWidths[idx],
-                borderLeft: "1px solid #E3F2FD",
-                borderTop: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
-                borderBottom: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
+                borderLeft: "1px solid #EAF0FF",
+                borderTop: isOver ? '1px solid #FFCDD2' : '1px solid #EAF0FF',
+                borderBottom: isOver ? '1px solid #FFCDD2' : '1px solid #EAF0FF',
                 whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden',
                 textOverflow: 'ellipsis', fontSize: '14px', height: '48px', lineHeight: '1.5',
                 padding: '0px 12px',
@@ -1777,7 +1777,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
       width: '100%', overflow: 'hidden',
       boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
       borderRadius: '16px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+      background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)'
     }}>
       <style>{`
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -1803,16 +1803,16 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
       `}</style>
 
       {/* Header */}
-      <Box sx={{ background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)', padding: '20px 24px', borderRadius: '16px 16px 0 0' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)', padding: '20px 24px', borderRadius: '16px 16px 0 0' }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2, marginBottom: 2 }}>
           <TextField
             variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหา..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon style={{ color: '#2196F3' }} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><SearchIcon style={{ color: '#1552F0' }} /></InputAdornment>,
               sx: { height: "44px", backgroundColor: '#fff', borderRadius: '12px' }
             }}
-            sx={{ "& .MuiOutlinedInput-root": { height: "44px", fontSize: "14px", borderRadius: "12px", color: "#546E7A", '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: '#2196F3' }, '&.Mui-focused fieldset': { borderColor: '#2196F3', borderWidth: '2px' } }, "& input": { padding: "10px" } }}
+            sx={{ "& .MuiOutlinedInput-root": { height: "44px", fontSize: "14px", borderRadius: "12px", color: "#546E7A", '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: '#1552F0' }, '&.Mui-focused fieldset': { borderColor: '#1552F0', borderWidth: '2px' } }, "& input": { padding: "10px" } }}
           />
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton onClick={exportToExcel}
@@ -1821,7 +1821,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
               <FileDownloadIcon />
             </IconButton>
             <IconButton onClick={handleOpenPDFPreview}
-              sx={{ backgroundColor: '#fff', color: '#00a6ff', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#eeebff', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,166,255,0.25)' } }}
+              sx={{ backgroundColor: '#fff', color: '#1552F0', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#eeebff', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,166,255,0.25)' } }}
               title="Export เป็น PDF">
               <PictureAsPdfIcon />
             </IconButton>
@@ -1841,7 +1841,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
           <Chip
             icon={<FaWeight style={{ fontSize: '16px' }} />}
             label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
-            sx={{ backgroundColor: '#fff', color: '#2196F3', fontWeight: '600', fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite', '& .MuiChip-icon': { color: '#2196F3' } }}
+            sx={{ backgroundColor: '#fff', color: '#1552F0', fontWeight: '600', fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite', '& .MuiChip-icon': { color: '#1552F0' } }}
           />
         </Box>
       </Box>
@@ -1854,7 +1854,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
           '@media (max-width: 1200px)': { overflowX: 'scroll', minWidth: "200px" },
           '&::-webkit-scrollbar': { width: '8px', height: '8px' },
           '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
-          '&::-webkit-scrollbar-thumb': { background: '#2196F3', borderRadius: '10px', '&:hover': { background: '#1976D2' } }
+          '&::-webkit-scrollbar-thumb': { background: '#1552F0', borderRadius: '10px', '&:hover': { background: '#1552F0' } }
         }}
       >
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
@@ -1863,9 +1863,9 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
               {displayColumns.map((header, index) => (
                 <TableCell key={index} align="center"
                   style={{
-                    backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
-                    borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
-                    borderRight: index === displayColumns.length - 1 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "#1552F0", borderTop: "1px solid #1552F0", borderBottom: "1px solid #1552F0",
+                    borderLeft: index === 0 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
+                    borderRight: index === displayColumns.length - 1 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
                     fontSize: '14px', color: '#fff', padding: '12px', width: getColumnWidth(header), fontWeight: '600',
                     borderTopLeftRadius: index === 0 ? '12px' : '0', borderTopRightRadius: index === displayColumns.length - 1 ? '12px' : '0',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
@@ -1908,10 +1908,10 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
 
       <TablePagination
         sx={{
-          borderTop: '1px solid #E3F2FD', backgroundColor: '#F8FBFF',
+          borderTop: '1px solid #EAF0FF', backgroundColor: '#F5F8FF',
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": { fontSize: '13px', color: "#546E7A", padding: "0px", fontWeight: '500' },
-          "& .MuiTablePagination-select": { fontSize: '13px', color: "#2196F3", fontWeight: '600' },
-          "& .MuiTablePagination-actions button": { color: "#2196F3", '&:hover': { backgroundColor: '#E3F2FD' } }
+          "& .MuiTablePagination-select": { fontSize: '13px', color: "#1552F0", fontWeight: '600' },
+          "& .MuiTablePagination-actions button": { color: "#1552F0", '&:hover': { backgroundColor: '#EAF0FF' } }
         }}
         rowsPerPageOptions={[100, 500, 1000]}
         component="div" count={filteredRows.length} rowsPerPage={rowsPerPage} page={page}
@@ -1934,7 +1934,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
 
             {/* Modal Header */}
             <div style={{
-              background: 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+              background: 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
               padding: '14px 20px', borderRadius: '16px 16px 0 0',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
             }}>
@@ -1967,18 +1967,18 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
             <div style={{ padding: '14px 24px', borderBottom: '1px solid #cdeeff', backgroundColor: '#F0F8FF', flexShrink: 0 }}>
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Date <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Date <span style={{ color: '#1552F0' }}>*</span></label>
                   <input type="date" value={exportDate} onChange={(e) => setExportDate(e.target.value)}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Shift <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Shift <span style={{ color: '#1552F0' }}>*</span></label>
                   <select value={exportShift} onChange={(e) => setExportShift(e.target.value)}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                   >
                     <option value="">-- เลือก Shift --</option>
@@ -1987,14 +1987,14 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                   </select>
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Line <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Line <span style={{ color: '#1552F0' }}>*</span></label>
                   <SearchableLineDropdown value={exportLine} onChange={setExportLine} options={lineOptions} />
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Plant</label>
                   <input type="text" value={exportPlant} onChange={(e) => setExportPlant(e.target.value)} placeholder="ระบุ Plant (ถ้ามี)"
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                   />
                 </div>
@@ -2027,7 +2027,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                   <tr>
                     {displayColumns.map((col, i) => (
                       <th key={i} style={{
-                        backgroundColor: '#00a6ff', color: '#fff', padding: '10px 8px',
+                        backgroundColor: '#1552F0', color: '#fff', padding: '10px 8px',
                         textAlign: 'center', fontWeight: '600', whiteSpace: 'nowrap',
                         border: '1px solid #0090e0', position: 'sticky', top: 0, zIndex: 10,
                         fontSize: '12px'
@@ -2181,7 +2181,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                                       backgroundColor: 'transparent', outline: 'none',
                                     }}
                                     onFocus={(e) => {
-                                      e.target.style.border = '1px solid #00a6ff';
+                                      e.target.style.border = '1px solid #1552F0';
                                       e.target.style.backgroundColor = '#fff';
                                       e.target.style.boxShadow = '0 0 0 2px rgba(0,166,255,0.15)';
                                     }}
@@ -2219,13 +2219,13 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                 ].map(({ key, label, placeholder, sub, required }) => (
                   <div key={key} style={{ flex: 1, minWidth: '200px' }}>
                     <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                      {label} {required && <span style={{ color: '#00a6ff' }}>*</span>}
+                      {label} {required && <span style={{ color: '#1552F0' }}>*</span>}
                     </label>
                     <input type="text" value={signatureData[key]}
                       onChange={(e) => { const val = e.target.value; setSignatureData(prev => ({ ...prev, [key]: val })); }}
                       placeholder={placeholder}
                       style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                      onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                      onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                       onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                     />
                     <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>{sub}</div>
@@ -2376,9 +2376,9 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                   style={{
                     padding: '10px 20px',
                     borderRadius: '10px',
-                    border: '2px solid #00a6ff',
+                    border: '2px solid #1552F0',
                     background: '#fff',
-                    color: '#00a6ff',
+                    color: '#1552F0',
                     cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: '600',
@@ -2447,7 +2447,7 @@ const drawCellWithOverFlagMP = (text, rx, ry, w, rowH, opts, isOver) => {
                     border: 'none',
                     background: (isSaving || isSavingEdits)
                       ? 'linear-gradient(135deg, #90CAF9 0%, #5C6BC0 100%)'
-                      : 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+                      : 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
                     color: '#fff',
                     cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',

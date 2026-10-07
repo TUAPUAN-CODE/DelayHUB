@@ -31,7 +31,7 @@ const getDestLabel = (dest) => {
 const getDestColor = (dest) => {
   if (dest === DEST_RECEIVED) return '#2E7D32';
   if (dest === DEST_PENDING)  return '#E65100';
-  return '#787878';
+  return '#6B7489';
 };
 
 const getLatestComeColdDate = (row) => {
@@ -152,20 +152,20 @@ const fmtDT = (val) => {
 const ALL_TIME_FIELDS = [
   { key: 'cooked_date',              label: 'ต้ม/อบเสร็จ',                color: '#5D4037', bg: '#EFEBE9' },
   { key: 'rmit_date',                label: 'เตรียมเสร็จ',                 color: '#37474F', bg: '#ECEFF1' },
-  { key: 'come_cold_date',           label: 'เข้าห้องเย็น PF (1)',         color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date',           label: 'เข้าห้องเย็น PF (1)',         color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date',            label: 'ออกห้องเย็น PF (1)',          color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold','at_pd_storage_purpose','at_pd_histamine'] },
-  { key: 'come_cold_date_two',       label: 'เข้าห้องเย็น PF (2)',         color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date_two',       label: 'เข้าห้องเย็น PF (2)',         color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date_two',        label: 'ออกห้องเย็น PF (2)',          color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold_two','at_pd_storage_purpose_2','at_pd_histamine_2'] },
-  { key: 'come_cold_date_three',     label: 'เข้าห้องเย็น PF (3)',         color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date_three',     label: 'เข้าห้องเย็น PF (3)',         color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date_three',      label: 'ออกห้องเย็น PF (3)',          color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold_three','at_pd_storage_purpose_3','at_pd_histamine_3'] },
   { key: 'rework_date',              label: 'แก้ไข',                       color: '#FF8F00', bg: '#FFF8E1' },
-  { key: 'cs_come_cold_date',        label: 'เข้าห้องเย็นใหญ่ (1)',        color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date',        label: 'เข้าห้องเย็นใหญ่ (1)',        color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date',         label: 'ออกห้องเย็นใหญ่ (1)',         color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_two',    label: 'เข้าห้องเย็นใหญ่ (2)',        color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_two',    label: 'เข้าห้องเย็นใหญ่ (2)',        color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date_two',     label: 'ออกห้องเย็นใหญ่ (2)',         color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_three',  label: 'เข้าห้องเย็นใหญ่ (3)',        color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_three',  label: 'เข้าห้องเย็นใหญ่ (3)',        color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date_three',   label: 'ออกห้องเย็นใหญ่ (3)',         color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_four',   label: 'เข้าห้องเย็นใหญ่ (4)',        color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_four',   label: 'เข้าห้องเย็นใหญ่ (4)',        color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_come_cold_date_four',   label: 'ออกห้องเย็นใหญ่ (4)',         color: '#BF360C', bg: '#FBE9E7' },
   { key: 'withdraw_date',            label: 'ห้องเย็นใหญ่ส่งออก (1)',      color: '#C62828', bg: '#FFEBEE' },
   { key: 'start_defrost_date',       label: 'เริ่มละลาย (1)',              color: '#006064', bg: '#E0F7FA' },
@@ -275,7 +275,7 @@ const getColdStorageDuration = (row) => {
 //    4. รายการ (mapping_id)  5. tro_id  6. batch  7. mat  8. mat_name  9. production  10. weight_RM  11. cs_name
 const tableColumns = [
   { id: 'dest',         name: 'สถานะรถเข็น',    width: '170px', bold: true, render: (val) => getDestLabel(val), getColor: (val) => getDestColor(val) },
-  { id: 'cold_duration',name: 'อยู่ในห้องเย็น', width: '150px', bold: true, render: (_, row) => getColdStorageDuration(row), getColor: () => '#1565C0' },
+  { id: 'cold_duration',name: 'อยู่ในห้องเย็น', width: '150px', bold: true, render: (_, row) => getColdStorageDuration(row), getColor: () => '#0F3FC4' },
   // ← คอลัมน์ที่ 3 จะ render พิเศษใน Row (ไม่ใส่ใน tableColumns เพื่อให้ควบคุมได้ง่าย)
   { id: 'mapping_id',   name: 'รายการ',          width: '80px'  },
   { id: 'tro_id',       name: 'ป้ายทะเบียน',     width: '120px' },
@@ -299,7 +299,7 @@ const Row = ({
   const { color: delayColor, statusMessage, percentage, noDcs } = calculateCSDelayTime(row);
   const hourglassColor  = getHourglassColor(delayColor);
   const borderLeftColor = getBorderLeftColor(delayColor);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : 'hsl(210,100%,93%)';
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
   const isOverdue       = !noDcs && (percentage >= 100 || statusMessage.includes('เลยกำหนด'));
 
   useEffect(() => {
@@ -321,14 +321,14 @@ const Row = ({
   };
 
   // สีตัวอักษรของ DCS cell
-  const dcsTextColor = noDcs ? '#1565C0'
+  const dcsTextColor = noDcs ? '#0F3FC4'
     : delayColor === 'red'    ? '#D32F2F'
     : delayColor === 'orange' ? '#E65100'
     : delayColor === 'green'  ? '#2E7D32'
-    : '#787878';
+    : '#6B7489';
 
   const cellBase = {
-    borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+    borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
     fontSize: '13px', height: '36px', padding: '0px 8px', backgroundColor,
   };
 
@@ -347,7 +347,7 @@ const Row = ({
         </TableCell>
 
         {/* ── คอลัมน์ 2: อยู่ในห้องเย็น ── */}
-        <TableCell align="center" style={{ ...cellBase, width: '150px', borderLeft: '1px solid #f2f2f2', fontWeight: 700, color: '#1565C0' }}>
+        <TableCell align="center" style={{ ...cellBase, width: '150px', borderLeft: '1px solid #f2f2f2', fontWeight: 700, color: '#0F3FC4' }}>
           {getColdStorageDuration(row)}
         </TableCell>
 
@@ -373,12 +373,12 @@ const Row = ({
         </TableCell>
 
         {/* ── คอลัมน์ 4: รายการ (mapping_id) ── */}
-        <TableCell align="center" style={{ ...cellBase, width: '80px', borderLeft: '1px solid #f2f2f2', color: '#787878' }}>
+        <TableCell align="center" style={{ ...cellBase, width: '80px', borderLeft: '1px solid #f2f2f2', color: '#6B7489' }}>
           {row.mapping_id ?? '-'}
         </TableCell>
 
         {/* ── คอลัมน์ 5: tro_id พร้อม hourglass ── */}
-        <TableCell align="center" style={{ ...cellBase, width: '120px', borderLeft: '1px solid #f2f2f2', color: '#787878' }}>
+        <TableCell align="center" style={{ ...cellBase, width: '120px', borderLeft: '1px solid #f2f2f2', color: '#6B7489' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             {!noDcs && <HourglassBottomIcon style={{ color: hourglassColor, fontSize: '16px', transition: 'color 0.3s ease' }} />}
             <span>{row.tro_id || '-'}</span>
@@ -396,46 +396,46 @@ const Row = ({
           { id: 'cold_remark',  width: '150px', value: getLatestAtPdColdRemark(row) },
           { id: 'deposit_date', width: '120px', value: formatDepositDate(getLatestAtPdDepositDate(row)) },
         ].map(col => (
-          <TableCell key={col.id} align="center" style={{ ...cellBase, width: col.width, borderLeft: '1px solid #f2f2f2', color: '#787878' }}>
+          <TableCell key={col.id} align="center" style={{ ...cellBase, width: col.width, borderLeft: '1px solid #f2f2f2', color: '#6B7489' }}>
             {col.value ?? '-'}
           </TableCell>
         ))}
 
         {/* View Details */}
         <TableCell onClick={handleDetailClick} align="center" sx={{
-          borderLeft: '1px solid #e0e0e0', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+          borderLeft: '1px solid #E3E8F2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
           height: '36px', padding: 0, cursor: 'pointer', backgroundColor,
           '&:hover': { backgroundColor: 'rgba(33,150,243,0.15)' },
           '&:hover .vd-icon': { color: '#0D47A1', transform: 'scale(1.2)' },
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#2196F3', p: '8px', transition: 'all 0.2s' }} className="vd-icon">
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#1552F0', p: '8px', transition: 'all 0.2s' }} className="vd-icon">
             <FaEye style={{ fontSize: '18px' }} />
           </Box>
         </TableCell>
 
         {/* Transfer */}
         <TableCell onClick={(e) => { e.stopPropagation(); handleOpenTransferModal?.(row); }} align="center" sx={{
-          borderLeft: '1px solid #e0e0e0',
-          borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+          borderLeft: '1px solid #E3E8F2',
+          borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
           height: '36px', padding: 0, cursor: 'pointer', backgroundColor,
           '&:hover': { backgroundColor: 'rgba(21,101,192,0.12)' },
           '&:hover .trn-icon': { color: '#0D47A1', transform: 'scale(1.2)' },
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#1565C0', p: '8px', transition: 'all 0.2s' }} className="trn-icon">
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#0F3FC4', p: '8px', transition: 'all 0.2s' }} className="trn-icon">
             <FaExchangeAlt style={{ fontSize: '16px' }} />
           </Box>
         </TableCell>
 
         {/* Delete */}
         <TableCell onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal?.(row); }} align="center" sx={{
-          borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0',
-          borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+          borderLeft: '1px solid #E3E8F2', borderRight: '1px solid #E3E8F2',
+          borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
           height: '36px', padding: 0, cursor: 'pointer', backgroundColor,
           borderTopRightRadius: '8px', borderBottomRightRadius: '8px',
           '&:hover': { backgroundColor: 'rgba(231,74,59,0.15)' },
           '&:hover .del-icon': { color: '#C0392B', transform: 'scale(1.2)' },
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#E74A3B', p: '8px', transition: 'all 0.2s' }} className="del-icon">
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#E5484D', p: '8px', transition: 'all 0.2s' }} className="del-icon">
             <FaTrash style={{ fontSize: '18px' }} />
           </Box>
         </TableCell>
@@ -447,16 +447,16 @@ const Row = ({
         <TableCell style={{ padding: 0, border: 'none' }} colSpan={20}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{ m: 1, borderRadius: '10px', overflow: 'hidden', border: '1px solid #BBDEFB', boxShadow: '0 2px 8px rgba(33,150,243,0.1)' }}>
-              <Box sx={{ background: 'linear-gradient(90deg,#1565C0,#1976D2)', p: '10px 16px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ background: 'linear-gradient(90deg,#0F3FC4,#1552F0)', p: '10px 16px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
                   🚛 รายละเอียดรถเข็น {row.tro_id}
                 </Typography>
                 <Box sx={{
                   ml: 'auto', px: 1.5, py: 0.5, borderRadius: '20px',
-                  backgroundColor: noDcs ? '#E3F2FD' : delayColor === 'red' ? '#FFEBEE' : delayColor === 'orange' ? '#FFF3E0' : '#E8F5E9',
-                  border: `1.5px solid ${noDcs ? '#1565C0' : hourglassColor}`,
+                  backgroundColor: noDcs ? '#EAF0FF' : delayColor === 'red' ? '#FFEBEE' : delayColor === 'orange' ? '#FFF3E0' : '#E8F5E9',
+                  border: `1.5px solid ${noDcs ? '#0F3FC4' : hourglassColor}`,
                 }}>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 700, color: noDcs ? '#1565C0' : hourglassColor }}>
+                  <Typography sx={{ fontSize: '12px', fontWeight: 700, color: noDcs ? '#0F3FC4' : hourglassColor }}>
                     {noDcs ? '🌡️ temp <18 องศา' : `⏱ ${statusMessage}`}
                   </Typography>
                 </Box>
@@ -464,16 +464,16 @@ const Row = ({
 
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#E3F2FD' }}>
+                  <TableRow sx={{ bgcolor: '#EAF0FF' }}>
                     {['Batch','Material','รายชื่อวัตถุดิบ','Level EU','น้ำหนัก','จำนวนถาด','สถานะ'].map(h => (
-                      <TableCell key={h} align="center" sx={{ fontSize: '12px', fontWeight: 700, color: '#1565C0', borderRight: '1px solid #BBDEFB', py: '6px' }}>{h}</TableCell>
+                      <TableCell key={h} align="center" sx={{ fontSize: '12px', fontWeight: 700, color: '#0F3FC4', borderRight: '1px solid #BBDEFB', py: '6px' }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow sx={{ bgcolor: '#fff' }}>
                     {[row.batch, row.mat, row.mat_name, row.level_eu, row.weight_RM, row.tray_count].map((v, i) => (
-                      <TableCell key={i} align="center" sx={{ fontSize: '12px', color: '#333', borderRight: '1px solid #E3F2FD', py: '6px' }}>{v || '-'}</TableCell>
+                      <TableCell key={i} align="center" sx={{ fontSize: '12px', color: '#333', borderRight: '1px solid #EAF0FF', py: '6px' }}>{v || '-'}</TableCell>
                     ))}
                     <TableCell align="center" sx={{
                       fontSize: '12px', fontWeight: 600, py: '6px',
@@ -533,7 +533,7 @@ const TransferMappingDialog = ({ open, row, onClose, onSuccess }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: '15px', fontWeight: 700, color: '#1565C0', pb: 0.5 }}>
+      <DialogTitle sx={{ fontSize: '15px', fontWeight: 700, color: '#0F3FC4', pb: 0.5 }}>
         🔄 ย้ายวัตถุดิบไปรถเข็นอื่น
       </DialogTitle>
       <DialogContent>
@@ -545,7 +545,7 @@ const TransferMappingDialog = ({ open, row, onClose, onSuccess }) => {
           <Typography sx={{ fontSize: '12px', color: '#555', mt: 0.5 }}>
             วัตถุดิบ: <strong>{row?.mat_name}</strong>
           </Typography>
-          <Typography sx={{ fontSize: '12px', color: '#1565C0', mt: 0.5 }}>
+          <Typography sx={{ fontSize: '12px', color: '#0F3FC4', mt: 0.5 }}>
             น้ำหนักปัจจุบัน: <strong>{row?.weight_RM} กก.</strong>
           </Typography>
         </Box>
@@ -567,7 +567,7 @@ const TransferMappingDialog = ({ open, row, onClose, onSuccess }) => {
       <DialogActions sx={{ px: 2, pb: 2 }}>
         <Button onClick={onClose} disabled={loading} variant="outlined" color="error" size="small">ยกเลิก</Button>
         <Button onClick={handleSubmit} disabled={loading} variant="contained" size="small"
-          sx={{ backgroundColor: '#1565C0', '&:hover': { backgroundColor: '#0D47A1' } }}>
+          sx={{ backgroundColor: '#0F3FC4', '&:hover': { backgroundColor: '#0D47A1' } }}>
           {loading ? <CircularProgress size={14} color="inherit" /> : 'ยืนยัน'}
         </Button>
       </DialogActions>
@@ -588,7 +588,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   return (
     <div onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{
-        border: isSelected ? `2px solid ${currentColor.selected}` : `1px solid ${isHovered ? currentColor.hover : '#e0e0e0'}`,
+        border: isSelected ? `2px solid ${currentColor.selected}` : `1px solid ${isHovered ? currentColor.hover : '#E3E8F2'}`,
         padding: 6, borderRadius: 6, cursor: 'pointer', transition: 'all 0.2s ease-in-out',
         backgroundColor: isSelected ? 'transparent' : isHovered ? currentColor.hover : currentColor.default,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -650,12 +650,12 @@ const exportToPDF = (rows) => {
   const html = `<html><head><meta charset="utf-8">
     <style>
       body{font-family:'Sarabun',Arial,sans-serif;padding:16px;}
-      h2{color:#1565C0;margin-bottom:4px;font-size:16px;}
+      h2{color:#0F3FC4;margin-bottom:4px;font-size:16px;}
       .meta{font-size:11px;color:#666;margin-bottom:12px;}
       table{border-collapse:collapse;width:100%;}
-      thead tr{background:#1565C0;color:#fff;}
-      thead th{padding:6px 8px;font-size:11px;border:1px solid #1976D2;white-space:nowrap;}
-      tbody tr:nth-child(even){background:#f0f7ff;}
+      thead tr{background:#0F3FC4;color:#fff;}
+      thead th{padding:6px 8px;font-size:11px;border:1px solid #1552F0;white-space:nowrap;}
+      tbody tr:nth-child(even){background:#F5F8FF;}
       @media print{@page{size:A3 landscape;margin:10mm;}}
     </style></head>
     <body>
@@ -752,7 +752,7 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหา..."
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>, sx: { height: '36px' } }}
-          sx={{ flex: 1, minWidth: '180px', '& .MuiOutlinedInput-root': { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#787878' }, '& input': { padding: '6px' } }}
+          sx={{ flex: 1, minWidth: '180px', '& .MuiOutlinedInput-root': { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#6B7489' }, '& input': { padding: '6px' } }}
         />
         <Box sx={{ display: 'flex', gap: 1 }}>
           {['green','yellow','red'].map(color => (
@@ -762,7 +762,7 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         </Box>
         <Button variant="outlined" size="small" startIcon={<FileDownloadIcon />}
           onClick={e => setExportAnchor(e.currentTarget)}
-          sx={{ borderRadius: '8px', borderColor: '#1565C0', color: '#1565C0', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#e3f2fd' } }}>
+          sx={{ borderRadius: '8px', borderColor: '#0F3FC4', color: '#0F3FC4', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#EAF0FF' } }}>
           Export
         </Button>
         <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
@@ -772,12 +772,12 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       </Box>
 
       {/* ── Filter Bar ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, px: 2, pb: '10px', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, px: 2, pb: '10px', borderBottom: '1px solid #E3E8F2' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Typography sx={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>🔃 เรียงตาม:</Typography>
           <button
             onClick={() => { sortField === 'cs_come_cold_date' ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : (setSortField('cs_come_cold_date'), setSortDir('asc')); }}
-            style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField ? '2px solid #1565C0' : '1px solid #ccc', backgroundColor: sortField ? '#E3F2FD' : '#fff', color: sortField ? '#1565C0' : '#555', fontWeight: sortField ? 700 : 400, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField ? '2px solid #0F3FC4' : '1px solid #ccc', backgroundColor: sortField ? '#EAF0FF' : '#fff', color: sortField ? '#0F3FC4' : '#555', fontWeight: sortField ? 700 : 400, display: 'flex', alignItems: 'center', gap: '5px' }}>
             เรียงเวลาเข้าห้องเย็นก่อน-หลัง
             {sortField ? (sortDir === 'asc' ? <FaSortAmountUp style={{ fontSize: '10px' }} /> : <FaSortAmountDown style={{ fontSize: '10px' }} />) : <FaSortAmountUp style={{ fontSize: '10px', opacity: 0.35 }} />}
           </button>
@@ -795,8 +795,8 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               <TableRow sx={{ height: '36px' }}>
                 {HEADER_COLS.map((col, i) => (
                   <TableCell key={col.name} align="center" style={{
-                    backgroundColor: 'hsl(210,100%,60%)',
-                    borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+                    backgroundColor: '#1552F0',
+                    borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
                     borderRight: '1px solid #f2f2f2', padding: '4px', width: col.width,
                     borderTopLeftRadius: i === 0 ? '8px' : 0,
                     borderBottomLeftRadius: i === 0 ? '8px' : 0,
@@ -806,9 +806,9 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 ))}
                 {['ย้าย','รายละเอียด','ลบ'].map((lbl, i, arr) => (
                   <TableCell key={lbl} align="center" style={{
-                    backgroundColor: 'hsl(210,100%,60%)',
-                    borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
-                    borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #e0e0e0',
+                    backgroundColor: '#1552F0',
+                    borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
+                    borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #E3E8F2',
                     padding: '4px', width: '80px',
                     borderTopRightRadius: i === arr.length - 1 ? '8px' : 0,
                     borderBottomRightRadius: i === arr.length - 1 ? '8px' : 0,
@@ -831,14 +831,14 @@ const TableMainprep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                     selectedColor={selectedColor}
                     openRowId={openRowId} setOpenRowId={setOpenRowId} index={i} />
                 ))
-                : <TableRow><TableCell colSpan={HEADER_COLS.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#787878' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
+                : <TableRow><TableCell colSpan={HEADER_COLS.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#6B7489' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>
       </div>
 
       <TablePagination
-        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '12px', color: '#787878', padding: 0 } }}
+        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '12px', color: '#6B7489', padding: 0 } }}
         rowsPerPageOptions={[300, 1000, 5000]} component="div"
         count={filteredRows.length} rowsPerPage={rowsPerPage} page={page}
         onPageChange={(_, p) => setPage(p)}

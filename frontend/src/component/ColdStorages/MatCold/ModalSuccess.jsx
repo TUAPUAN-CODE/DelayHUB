@@ -61,7 +61,7 @@ const ModalSuccess = ({ open, onClose, mat, mat_name, batch, production, rmfp_id
         maxWidth="xs"
       >
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -80,7 +80,7 @@ const ModalSuccess = ({ open, onClose, mat, mat_name, batch, production, rmfp_id
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
             >
               ยกเลิก
@@ -88,7 +88,7 @@ const ModalSuccess = ({ open, onClose, mat, mat_name, batch, production, rmfp_id
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={() => setConfirm(true)}
             >
               ยืนยัน

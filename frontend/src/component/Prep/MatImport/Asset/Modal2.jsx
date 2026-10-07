@@ -542,7 +542,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
 
         <Box sx={{ padding: "0px 16px 16px 16px", display: "flex", justifyContent: "space-between" }}>
           <Button
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={handleClose}
@@ -551,7 +551,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
           </Button>
           <Button
             style={{
-              backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#41a2e6",
+              backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#1552F0",
               color: "#fff"
             }}
             variant="contained"

@@ -73,7 +73,7 @@ const DeleteLineNameModal = ({ open, onClose, onSuccess, selectedItem, itemType 
           justifyContent: "space-between",
           alignItems: "center",
           padding: "20px 24px 16px 24px",
-          borderBottom: "1px solid #e0e0e0",
+          borderBottom: "1px solid #E3E8F2",
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: "bold", color: "#333" }}>
@@ -87,7 +87,7 @@ const DeleteLineNameModal = ({ open, onClose, onSuccess, selectedItem, itemType 
             padding: "4px",
             color: "#666",
             "&:hover": {
-              backgroundColor: "#f5f5f5",
+              backgroundColor: "#F5F8FF",
             },
           }}
         >
@@ -178,7 +178,7 @@ const DeleteLineNameModal = ({ open, onClose, onSuccess, selectedItem, itemType 
         sx={{
           padding: "16px 24px 24px 24px",
           gap: "12px",
-          borderTop: "1px solid #e0e0e0",
+          borderTop: "1px solid #E3E8F2",
         }}
       >
         <Button

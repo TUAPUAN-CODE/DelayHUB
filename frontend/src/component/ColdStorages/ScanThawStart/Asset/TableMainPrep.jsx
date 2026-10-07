@@ -20,27 +20,27 @@ const MAIN_COLS = [
 
 // ทุก timestamp field พร้อม label และ color ตามประเภท
 const ALL_TIME_FIELDS = [
-  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date',            label: 'ไลน์รับเข้า รอบ 1',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date',           label: 'ไลน์ส่งคืน รอบ 1',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date',            label: 'ห้องเย็นรับเข้า รอบ 1',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_two',        label: 'ไลน์รับเข้า รอบ 2',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_two',       label: 'ไลน์ส่งคืน รอบ 2',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_two',        label: 'ห้องเย็นรับเข้า รอบ 2',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_three',      label: 'ไลน์รับเข้า รอบ 3',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_three',     label: 'ไลน์ส่งคืน รอบ 3',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_three',      label: 'ห้องเย็นรับเข้า รอบ 3',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#0F3FC4', bg: '#e8eaf6' },
 ];
 
 // edit(x) + eye + MAIN_COLS + delete(x)
@@ -56,7 +56,7 @@ const TimeSubRow = ({ row }) => {
 
   if (sorted.length === 0) {
     return (
-      <Box sx={{ py: 1.5, px: 2, backgroundColor: '#f8fafc', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ py: 1.5, px: 2, backgroundColor: '#f8fafc', borderBottom: '1px solid #E3E8F2' }}>
         <Typography sx={{ fontSize: '13px', color: '#9e9e9e', fontStyle: 'italic' }}>
           ยังไม่มีข้อมูลเวลา
         </Typography>
@@ -69,7 +69,7 @@ const TimeSubRow = ({ row }) => {
       py: 1.5,
       px: 2,
       backgroundColor: '#f8fafc',
-      borderBottom: '1px solid #e0e0e0',
+      borderBottom: '1px solid #E3E8F2',
       overflowX: 'auto',
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, width: 'max-content' }}>
@@ -131,10 +131,10 @@ const CompleteActionCell = ({ onClick, icon, backgroundColor }) => (
   <TableCell
     style={{
       textAlign: 'center',
-      borderTop: '1px solid #e0e0e0',
-      borderBottom: '1px solid #e0e0e0',
+      borderTop: '1px solid #E3E8F2',
+      borderBottom: '1px solid #E3E8F2',
       borderLeft: '1px solid #f2f2f2',
-      borderRight: '1px solid #e0e0e0',
+      borderRight: '1px solid #E3E8F2',
       borderTopRightRadius: '8px',
       borderBottomRightRadius: '8px',
       height: '40px',
@@ -159,7 +159,7 @@ const CompleteActionCell = ({ onClick, icon, backgroundColor }) => (
 // ─── Row ──────────────────────────────────────────────────────────────────────
 const Row = ({ row, handleOpenSuccess, index }) => {
   const [expanded, setExpanded] = useState(false);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : 'hsl(210, 100.00%, 88%)';
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
 
   return (
     <>
@@ -171,7 +171,7 @@ const Row = ({ row, handleOpenSuccess, index }) => {
         <TableCell
           style={{
             textAlign: 'center',
-            border: '1px solid #e0e0e0',
+            border: '1px solid #E3E8F2',
             borderRight: '1px solid #f2f2f2',
             borderTopLeftRadius: '8px',
             borderBottomLeftRadius: '8px',
@@ -186,7 +186,7 @@ const Row = ({ row, handleOpenSuccess, index }) => {
           <Tooltip title={expanded ? 'ซ่อนข้อมูลเวลา' : 'ดูข้อมูลเวลา'} placement="top">
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               {expanded
-                ? <VisibilityOffIcon style={{ color: '#1565C0', fontSize: '20px' }} />
+                ? <VisibilityOffIcon style={{ color: '#0F3FC4', fontSize: '20px' }} />
                 : <VisibilityIcon style={{ color: '#9e9e9e', fontSize: '20px' }} />
               }
             </div>
@@ -196,13 +196,13 @@ const Row = ({ row, handleOpenSuccess, index }) => {
         {/* Main data cells */}
         {MAIN_COLS.map(({ key }, idx) => (
           <TableCell key={key} align="center" style={{
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             borderLeft: '1px solid #f2f2f2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: '#787878',
+            color: '#6B7489',
             backgroundColor,
             whiteSpace: 'nowrap',
           }}>
@@ -270,7 +270,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
             sx: { height: '40px' },
           }}
           sx={{
-            '& .MuiOutlinedInput-root': { height: '40px', fontSize: '14px', borderRadius: '8px', color: '#787878' },
+            '& .MuiOutlinedInput-root': { height: '40px', fontSize: '14px', borderRadius: '8px', color: '#6B7489' },
             '& input': { padding: '8px' },
           }}
         />
@@ -285,17 +285,17 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '500px', width: '100%' }}>
           <TableHead>
             <TableRow sx={{ height: '40px' }}>
-              <TableCell align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', border: '1px solid #e0e0e0', borderRight: '1px solid #f2f2f2', padding: '5px', width: '50px' }}>
+              <TableCell align="center" style={{ backgroundColor: '#1552F0', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', border: '1px solid #E3E8F2', borderRight: '1px solid #f2f2f2', padding: '5px', width: '50px' }}>
                 <Box style={{ color: '#fff', display: 'flex', justifyContent: 'center' }}>
                   <VisibilityIcon style={{ fontSize: '18px' }} />
                 </Box>
               </TableCell>
               {MAIN_COLS.map(({ key, label }) => (
-                <TableCell key={key} align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderRight: '1px solid #f2f2f2', fontSize: '12px', padding: '5px' }}>
+                <TableCell key={key} align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderRight: '1px solid #f2f2f2', fontSize: '12px', padding: '5px' }}>
                   <Box style={{ fontSize: '16px', color: '#fff' }}>{label}</Box>
                 </TableCell>
               ))}
-              <TableCell align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0', fontSize: '12px', padding: '5px', width: '60px' }}>
+              <TableCell align="center" style={{ backgroundColor: '#1552F0', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderRight: '1px solid #E3E8F2', fontSize: '12px', padding: '5px', width: '60px' }}>
                 <Box style={{ fontSize: '16px', color: '#fff' }}>ลบ</Box>
               </TableCell>
             </TableRow>
@@ -313,7 +313,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))
               : (
                 <TableRow>
-                  <TableCell colSpan={TOTAL_COLS} align="center" sx={{ padding: '20px', fontSize: '16px', color: '#787878' }}>
+                  <TableCell colSpan={TOTAL_COLS} align="center" sx={{ padding: '20px', fontSize: '16px', color: '#6B7489' }}>
                     ไม่มีรายการวัตถุดิบในขณะนี้
                   </TableCell>
                 </TableRow>
@@ -324,7 +324,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       </TableContainer>
 
       <TablePagination
-        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '10px', color: '#787878', padding: '0px' } }}
+        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '10px', color: '#6B7489', padding: '0px' } }}
         rowsPerPageOptions={[20, 50, 100]}
         component="div"
         count={filteredRows.length}
@@ -351,7 +351,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   return (
     <div
       style={{
-        border: isSelected ? `2px solid ${currentColor.selected}` : `1px solid ${isHovered ? currentColor.hover : '#e0e0e0'}`,
+        border: isSelected ? `2px solid ${currentColor.selected}` : `1px solid ${isHovered ? currentColor.hover : '#E3E8F2'}`,
         padding: 6,
         borderRadius: 6,
         cursor: 'pointer',

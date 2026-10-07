@@ -176,7 +176,7 @@ const MainLineType = () => {
                 height: "45px",
                 fontSize: "16px",
                 borderRadius: "8px",
-                color: "#787878",
+                color: "#6B7489",
               },
               "& input": {
                 padding: "10px",
@@ -200,7 +200,7 @@ const MainLineType = () => {
               width: "fit-content",
               whiteSpace: "nowrap",
               fontSize: "16px",
-              color: "#787878",
+              color: "#6B7489",
               backgroundColor: "transparent",
               minWidth: "auto",
               height: "45px",
@@ -248,8 +248,8 @@ const MainLineType = () => {
                     key={index}
                     align="center"
                     sx={{
-                      backgroundColor: "hsl(210, 100%, 60%)",
-                      border: "1px solid #e0e0e0",
+                      backgroundColor: "#1552F0",
+                      border: "1px solid #E3E8F2",
                       margin: 0,
                       padding: "16px",
                       minWidth: index === 0 ? "300px" : "120px",
@@ -293,9 +293,9 @@ const MainLineType = () => {
                     <TableRow
                       key={lineType.id || index}
                       sx={{
-                        backgroundColor: index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)",
+                        backgroundColor: index % 2 === 0 ? '#ffffff' : "#EAF0FF",
                         '&:hover': {
-                          backgroundColor: index % 2 === 0 ? '#f5f5f5' : "hsl(210, 100.00%, 88%)",
+                          backgroundColor: index % 2 === 0 ? '#F5F8FF' : "#EAF0FF",
                         },
                         height: "60px",
                       }}
@@ -407,7 +407,7 @@ const MainLineType = () => {
               "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
                 {
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "8px",
                 },
               margin: 0,

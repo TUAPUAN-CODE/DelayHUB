@@ -45,7 +45,7 @@ const Row = ({
   const isOpen = openRowId === row.rmfp_id;
   //ซ่อนคอลัม
   const { rmfp_id, oven_to_pack, dest, rmfbatch_id,raw_or_cooked, rmfemu_id, sap_re_id, cooked_group, prep_to_cold, rm_type_id, cold, ...displayRow } = row;
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)"; // เปลี่ยนสีจาราง ขาว เทา
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF"; // เปลี่ยนสีจาราง ขาว เทา
   return (
     <>
       <TableRow >
@@ -60,8 +60,8 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -70,8 +70,8 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#787878",
-              borderLeft: idx === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
+              color: "#6B7489",
+              borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0px",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
               backgroundColor: backgroundColor // เปลี่ยนสีจาราง ขาว เทา
@@ -85,7 +85,7 @@ const Row = ({
             e.stopPropagation();
             handleOpenModal(row);
           }}
-          icon={<LiaShoppingCartSolid style={{ color: '#007BFF', fontSize: '25px' }} />}
+          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '25px' }} />}
           backgroundColor={backgroundColor} // Add this
         />
         <CompleteActionCell
@@ -122,8 +122,8 @@ const Row = ({
 //       style={{
 //         width,
 //         textAlign: 'center',
-//         borderTop: '1px solid #e0e0e0',
-//         borderBottom: '1px solid #e0e0e0',
+//         borderTop: '1px solid #E3E8F2',
+//         borderBottom: '1px solid #E3E8F2',
 //         borderLeft: '1px solid #f2f2f2',
 //         height: '40px',
 //         padding: '0px',
@@ -133,20 +133,20 @@ const Row = ({
 //       }}
 //       onClick={onClick}
 //       onMouseEnter={(e) => {
-//         e.currentTarget.style.backgroundColor = '#007BFF';
+//         e.currentTarget.style.backgroundColor = '#1552F0';
 //         e.currentTarget.querySelector('svg').style.color = '#fff';
 //       }}
 //       onMouseLeave={(e) => {
 //         e.currentTarget.style.backgroundColor = backgroundColor;
-//         e.currentTarget.querySelector('svg').style.color = '#007BFF';
+//         e.currentTarget.querySelector('svg').style.color = '#1552F0';
 //       }}
 //       onTouchStart={(e) => {
-//         e.currentTarget.style.backgroundColor = '#007BFF';
+//         e.currentTarget.style.backgroundColor = '#1552F0';
 //         e.currentTarget.querySelector('svg').style.color = '#fff';
 //       }}
 //       onTouchEnd={(e) => {
 //         e.currentTarget.style.backgroundColor = backgroundColor;
-//         e.currentTarget.querySelector('svg').style.color = '#007BFF';
+//         e.currentTarget.querySelector('svg').style.color = '#1552F0';
 //       }}
 //     >
 //       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -162,8 +162,8 @@ const Row = ({
 //       style={{
 //         width,
 //         textAlign: 'center',
-//         borderTop: '1px solid #e0e0e0',
-//         borderBottom: '1px solid #e0e0e0',
+//         borderTop: '1px solid #E3E8F2',
+//         borderBottom: '1px solid #E3E8F2',
 //         borderLeft: '1px solid #f2f2f2',
 //         height: '40px',
 //         padding: '0px',
@@ -202,10 +202,10 @@ const EditActionCell = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
-        borderRight: '1px solid #e0e0e0',
+        borderRight: '1px solid #E3E8F2',
         borderTopRightRadius: "8px",
         borderBottomRightRadius: "8px",
         height: '40px',
@@ -334,7 +334,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 height: '40px',
                 fontSize: '14px',
                 borderRadius: '8px',
-                color: '#787878',
+                color: '#6B7489',
               },
               "& input": {
                 padding: '8px',
@@ -374,33 +374,33 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
 
               {/* เปลี่ยนชื่อคอลัมน์ที่นี่ */}
-                 <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+                 <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch</Box> {/* mat_name */}
               </TableCell>
-               <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+               <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>HU</Box> {/* mat_name */}
               </TableCell>
            
-               <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+               <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Material</Box> {/* mat_name */}
               </TableCell>
            
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>รายชื่อวัตถุดิบ</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>น้ำหนัก</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>เวลาออกจากห้องเย็นใหญ่</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>level Eu</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Remark จากห้องเย็นใหญ่</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: "80px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "80px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ลบข้อมูล</Box>
               </TableCell>
             </TableRow>
@@ -427,7 +427,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -440,7 +440,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}

@@ -92,7 +92,7 @@ const AddModal = ({ open, onClose, onSuccess }) => {
     <Dialog open={open} onClose={submitting ? null : onClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: "16px" } }}>
       <DialogTitle sx={{
-        background: "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
+        background: "linear-gradient(135deg, #1552F0 0%, #1552F0 100%)",
         color: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px",
       }}>
         <Typography sx={{ fontSize: "18px", fontWeight: 600 }}>เพิ่มข้อมูล Supplier</Typography>
@@ -123,7 +123,7 @@ const AddModal = ({ open, onClose, onSuccess }) => {
       <DialogActions sx={{ padding: "16px 24px", backgroundColor: "#fafbff" }}>
         <Button onClick={onClose} disabled={submitting} sx={{ color: "#666" }}>ยกเลิก</Button>
         <Button onClick={handleSubmit} disabled={submitting} variant="contained"
-          sx={{ background: "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)", minWidth: 120 }}
+          sx={{ background: "linear-gradient(135deg, #1552F0 0%, #1552F0 100%)", minWidth: 120 }}
           startIcon={submitting ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : null}>
           {submitting ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
@@ -665,7 +665,7 @@ const MainLineType = () => {
               sx: { height: "45px" },
             }}
             sx={{
-              "& .MuiOutlinedInput-root": { height: "45px", fontSize: "16px", borderRadius: "8px", color: "#787878" },
+              "& .MuiOutlinedInput-root": { height: "45px", fontSize: "16px", borderRadius: "8px", color: "#6B7489" },
               "& input": { padding: "10px" },
             }} />
 
@@ -675,7 +675,7 @@ const MainLineType = () => {
                 border: "1px solid #cbcbcb", padding: "8px 16px", margin: "3px",
                 borderRadius: "8px", cursor: "pointer", display: "inline-flex",
                 alignItems: "center", gap: "8px", whiteSpace: "nowrap",
-                fontSize: "16px", color: "#787878", backgroundColor: "transparent",
+                fontSize: "16px", color: "#6B7489", backgroundColor: "transparent",
                 minWidth: "auto", height: "45px",
                 "&:hover": { backgroundColor: "#16a34a", color: "white", borderColor: "#16a34a",
                   "& .imp-icon": { color: "white !important" } },
@@ -690,7 +690,7 @@ const MainLineType = () => {
               border: "1px solid #cbcbcb", padding: "8px 16px", margin: "3px",
               borderRadius: "8px", cursor: "pointer", display: "inline-flex",
               alignItems: "center", gap: "8px", whiteSpace: "nowrap",
-              fontSize: "16px", color: "#787878", backgroundColor: "transparent",
+              fontSize: "16px", color: "#6B7489", backgroundColor: "transparent",
               minWidth: "auto", height: "45px",
               "&:hover": { backgroundColor: "#22c55e", color: "white", borderColor: "#22c55e",
                 "& .add-icon": { color: "white !important" } },
@@ -709,7 +709,7 @@ const MainLineType = () => {
                 {columns.map((col, i) => (
                   <TableCell key={col.key} align="center"
                     sx={{
-                      backgroundColor: "hsl(210, 100%, 60%)", border: "1px solid #e0e0e0",
+                      backgroundColor: "#1552F0", border: "1px solid #E3E8F2",
                       padding: "16px", minWidth: col.minWidth, width: col.width,
                       borderRadius: i === 0 ? "8px 0 0 8px" : i === columns.length - 1 ? "0 8px 8px 0" : "0",
                       position: "sticky", top: 0, zIndex: 2,
@@ -733,14 +733,14 @@ const MainLineType = () => {
                 filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, idx) => (
                   <TableRow key={row.pkg_dg_supp_id ?? idx}
                     sx={{
-                      backgroundColor: idx % 2 === 0 ? "#fff" : "hsl(210, 100%, 96%)",
-                      "&:hover": { backgroundColor: "hsl(210, 100%, 92%)" },
+                      backgroundColor: idx % 2 === 0 ? "#fff" : "#EAF0FF",
+                      "&:hover": { backgroundColor: "#EAF0FF" },
                       height: "55px",
                     }}>
                     <TableCell align="center" sx={{ fontSize: "14px", padding: "12px", color: "#666" }}>
                       {row.pkg_dg_supp_id}
                     </TableCell>
-                    <TableCell align="center" sx={{ fontSize: "15px", padding: "12px", fontWeight: 600, color: "#1976D2" }}>
+                    <TableCell align="center" sx={{ fontSize: "15px", padding: "12px", fontWeight: 600, color: "#1552F0" }}>
                       {row.batch_prefix}
                     </TableCell>
                     <TableCell align="center" sx={{ fontSize: "14px", padding: "12px" }}>
@@ -782,7 +782,7 @@ const MainLineType = () => {
           <TablePagination
             sx={{
               "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
-                fontSize: "12px", color: "#787878", padding: "8px",
+                fontSize: "12px", color: "#6B7489", padding: "8px",
               },
               padding: "0 15px",
             }}

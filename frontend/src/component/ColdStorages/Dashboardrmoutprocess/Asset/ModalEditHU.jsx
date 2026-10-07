@@ -82,8 +82,8 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle sx={{ pb: 1 }}>
         <Box display="flex" alignItems="center" gap={1}>
-          <SaveIcon sx={{ color: "#1565C0" }} />
-          <Typography variant="h6" sx={{ fontSize: "16px", color: "#1565C0", fontWeight: 700 }}>
+          <SaveIcon sx={{ color: "#0F3FC4" }} />
+          <Typography variant="h6" sx={{ fontSize: "16px", color: "#0F3FC4", fontWeight: 700 }}>
             อัปเดต HU
           </Typography>
         </Box>
@@ -93,7 +93,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
         <Divider sx={{ mb: 2 }} />
 
         {/* Info */}
-        <Stack spacing={1} sx={{ bgcolor: "#f5f5f5", p: 2, borderRadius: 1, mb: 2 }}>
+        <Stack spacing={1} sx={{ bgcolor: "#F5F8FF", p: 2, borderRadius: 1, mb: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="caption" color="text.secondary">Material:</Typography>
             <Typography variant="body2" fontWeight={600}>{data.mat || "-"}</Typography>
@@ -118,7 +118,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
 
         {/* New HU Input */}
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-          New HU <span style={{ color: "#E74A3B" }}>*</span>
+          New HU <span style={{ color: "#E5484D" }}>*</span>
         </Typography>
         <TextField
           fullWidth
@@ -136,7 +136,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
 
         {/* New Weight Input */}
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-          New Weight <span style={{ color: "#E74A3B" }}>*</span>
+          New Weight <span style={{ color: "#E5484D" }}>*</span>
         </Typography>
         <TextField
           fullWidth
@@ -172,7 +172,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
             startIcon={<SaveIcon />}
             onClick={handleSubmit}
             disabled={isSubmitting || !newHu || !newWeight}
-            sx={{ borderRadius: "8px", bgcolor: "#1565C0", "&:hover": { bgcolor: "#0d47a1" } }}
+            sx={{ borderRadius: "8px", bgcolor: "#0F3FC4", "&:hover": { bgcolor: "#0d47a1" } }}
           >
             {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
           </Button>

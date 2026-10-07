@@ -64,7 +64,7 @@ const ModalCSR3 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, dest 
       fullWidth
       maxWidth="lg"
     >
-      <AppBar position="static" sx={{ backgroundColor: '#4e73df' }}>
+      <AppBar position="static" sx={{ backgroundColor: '#1552F0' }}>
         <Toolbar sx={{ minHeight: '50px', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarehouseIcon sx={{ mr: 1 }} />
@@ -79,7 +79,7 @@ const ModalCSR3 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, dest 
       </AppBar>
 
       <DialogContent>
-        <Box sx={{ mb: 3, p: 2, borderRadius: '8px', bgcolor: '#f8f9fc', border: '1px solid #e3e6f0' }}>
+        <Box sx={{ mb: 3, p: 2, borderRadius: '8px', bgcolor: '#F5F8FF', border: '1px solid #e3e6f0' }}>
           <Typography variant="h6" gutterBottom>ข้อมูลการย้ายวัตถุดิบ</Typography>
           <Divider sx={{ mb: 2 }} />
 
@@ -112,11 +112,11 @@ const ModalCSR3 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, dest 
         <ParentComponentCSR3 onSelectOption={handleSlotSelect} />
       </DialogContent>
 
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e3e6f0', bgcolor: '#f8f9fc' }}>
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e3e6f0', bgcolor: '#F5F8FF' }}>
         <Button
           variant="contained"
           startIcon={<CancelIcon />}
-          sx={{ bgcolor: "#E74A3B", color: "#fff", '&:hover': { bgcolor: "#d52a1a" } }}
+          sx={{ bgcolor: "#E5484D", color: "#fff", '&:hover': { bgcolor: "#d52a1a" } }}
           onClick={onClose}
         >
           ยกเลิก

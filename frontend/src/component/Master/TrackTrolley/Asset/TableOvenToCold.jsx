@@ -46,18 +46,18 @@ const getGroupKey = (row, displayLoc) => {
 };
 
 const STATUS_COLORS = {
-  'รถเข็นว่าง (ห้องเย็น)': '#787878',
-  'มีวัตถุดิบ': '#007BFF',
-  'มีวัตถุดิบ (ห้องเย็น)': '#007BFF',
+  'รถเข็นว่าง (ห้องเย็น)': '#6B7489',
+  'มีวัตถุดิบ': '#1552F0',
+  'มีวัตถุดิบ (ห้องเย็น)': '#1552F0',
   'รอบรรจุจัดส่ง': '#ff9800',
 };
 const getStatusColor = (status) => STATUS_COLORS[status] || '#26c200';
 
 const GROUP_COLORS = {
   'รอบรรจุทำรายการรับเข้า': '#d32f2f',
-  'อยู่ในห้องเย็น': '#007BFF',
+  'อยู่ในห้องเย็น': '#1552F0',
   'รถเข็นรอห้องเย็นหรือบรรจุ Check In': '#9c27b0',
-  'ห้องเย็นจองรถเข็นว่างจัดชุด': '#787878',
+  'ห้องเย็นจองรถเข็นว่างจัดชุด': '#6B7489',
   'บรรจุจองรถเข็นว่าง': '#ff9800',
   'อื่นๆ': '#26c200',
 };
@@ -75,7 +75,7 @@ const ColdDatePair = ({ comeDate, outDate, label }) => {
       {label && <Typography fontSize={9} color="#aaa" fontWeight={600}>{label}</Typography>}
       {comeDate && (
         <Box display="flex" alignItems="center" gap={0.3}>
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#007BFF', flexShrink: 0 }} />
+          <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#1552F0', flexShrink: 0 }} />
           <Typography fontSize={10} color="#555">{comeDate}</Typography>
         </Box>
       )}
@@ -114,20 +114,20 @@ const RmmLineDropdown = ({ options, value, onChange }) => {
           onClick={() => setOpen(o => !o)}
           sx={{
             display: 'flex', alignItems: 'center', gap: 0.5,
-            border: value ? '1.5px solid #007BFF' : '1.5px solid #ddd',
+            border: value ? '1.5px solid #1552F0' : '1.5px solid #ddd',
             borderRadius: 1.5, px: 1.2, py: 0.4, cursor: 'pointer',
             backgroundColor: value ? '#e3f0ff' : '#fafafa',
             minWidth: 130, userSelect: 'none',
-            '&:hover': { borderColor: '#007BFF', backgroundColor: '#f0f7ff' },
+            '&:hover': { borderColor: '#1552F0', backgroundColor: '#F5F8FF' },
             transition: 'all .15s',
           }}
         >
-          <Typography fontSize={12} color={value ? '#007BFF' : '#888'} fontWeight={value ? 700 : 400} noWrap sx={{ flex: 1 }}>
+          <Typography fontSize={12} color={value ? '#1552F0' : '#888'} fontWeight={value ? 700 : 400} noWrap sx={{ flex: 1 }}>
             {value || 'Sort by Line'}
           </Typography>
           {value ? (
             <ClearIcon
-              sx={{ fontSize: 14, color: '#007BFF' }}
+              sx={{ fontSize: 14, color: '#1552F0' }}
               onClick={e => { e.stopPropagation(); onChange(null); setSearch(''); }}
             />
           ) : (
@@ -171,7 +171,7 @@ const RmmLineDropdown = ({ options, value, onChange }) => {
                   }}
                 >
                   <ListItemText primary={
-                    <Typography fontSize={12} color={opt === value ? '#007BFF' : '#444'} fontWeight={opt === value ? 700 : 400}>
+                    <Typography fontSize={12} color={opt === value ? '#1552F0' : '#444'} fontWeight={opt === value ? 700 : 400}>
                       {opt}
                     </Typography>
                   } />
@@ -274,7 +274,7 @@ const TrolleyTable = ({ data }) => {
 
   // ── Table row ─────────────────────────────────────────────────────────────
   const TableDataRow = ({ row, index }) => {
-    const bg = index % 2 === 0 ? '#ffffff' : 'hsl(210,100%,96%)';
+    const bg = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
     const cellStyle = {
       borderTop: '1px solid #e8e8e8',
       borderBottom: '1px solid #e8e8e8',
@@ -307,7 +307,7 @@ const TrolleyTable = ({ data }) => {
           <TableCell align="center" style={{ ...cellStyle, width: 110 }}>
             {row.rmm_line_name ? (
               <Chip label={row.rmm_line_name} size="small"
-                style={{ backgroundColor: '#e3f0ff', color: '#007BFF', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
+                style={{ backgroundColor: '#e3f0ff', color: '#1552F0', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
             ) : '-'}
           </TableCell>
           <TableCell align="center" style={{ ...cellStyle, width: 140 }}>{row.cooked_date || '-'}</TableCell>
@@ -346,7 +346,7 @@ const TrolleyTable = ({ data }) => {
   // ── Card ──────────────────────────────────────────────────────────────────
   const TrolleyCard = ({ row }) => (
     <Card elevation={0} sx={{
-      border: `1.5px solid ${GROUP_COLORS[row._group] || '#e0e0e0'}22`,
+      border: `1.5px solid ${GROUP_COLORS[row._group] || '#E3E8F2'}22`,
       borderLeft: `4px solid ${GROUP_COLORS[row._group] || '#26c200'}`,
       borderRadius: 2, mb: 1,
       '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
@@ -359,7 +359,7 @@ const TrolleyTable = ({ data }) => {
               style={{ backgroundColor: getStatusColor(row.trolley_status), color: '#fff', fontWeight: 700, fontSize: 11 }} />
             {row.rmm_line_name && (
               <Chip label={row.rmm_line_name} size="small"
-                style={{ backgroundColor: '#e3f0ff', color: '#007BFF', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
+                style={{ backgroundColor: '#e3f0ff', color: '#1552F0', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
             )}
           </Box>
           <Chip label={row._displayLoc} size="small"
@@ -526,7 +526,7 @@ const TrolleyTable = ({ data }) => {
                       <TableCell key={i} align="center" style={{ padding: '2px 8px', border: 0, backgroundColor: 'transparent' }}>
                         <Box display="flex" justifyContent="center" gap={1}>
                           <Box display="flex" alignItems="center" gap={0.3}>
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#007BFF' }} />
+                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#1552F0' }} />
                             <Typography fontSize={9} color="#aaa">เข้า</Typography>
                           </Box>
                           <Box display="flex" alignItems="center" gap={0.3}>

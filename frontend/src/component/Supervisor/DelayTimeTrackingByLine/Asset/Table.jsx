@@ -120,7 +120,7 @@ const Table = ({ data }) => {
     
     const getColor = (pct) => {
       if (pct >= 80) return '#10b981';
-      if (pct >= 60) return '#3b82f6';
+      if (pct >= 60) return '#1552F0';
       return '#f59e0b';
     };
 
@@ -289,7 +289,7 @@ const Table = ({ data }) => {
                       <YAxis />
                       <RechartsTooltip />
                       <Legend />
-                      <Bar dataKey="stage3" fill="#3b82f6" name="ออกห้องเย็น → บรรจุเสร็จ" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="stage3" fill="#1552F0" name="ออกห้องเย็น → บรรจุเสร็จ" radius={[8, 8, 0, 0]} />
                       <Bar dataKey="stage4" fill="#8b5cf6" name="เตรียมเสร็จ → บรรจุเสร็จ" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -399,9 +399,9 @@ const Table = ({ data }) => {
               <Line 
                 type="monotone" 
                 dataKey="stage3" 
-                stroke="#3b82f6" 
+                stroke="#1552F0" 
                 strokeWidth={3}
-                dot={{ r: 5, fill: '#3b82f6' }}
+                dot={{ r: 5, fill: '#1552F0' }}
                 activeDot={{ r: 7 }}
                 name="ออกห้องเย็น → บรรจุเสร็จ"
               />

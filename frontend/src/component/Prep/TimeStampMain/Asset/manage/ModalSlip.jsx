@@ -245,9 +245,9 @@ const ModalSlip = ({
                     flexDirection: "column",
                     gap: 1,
                     padding: 2,
-                    backgroundColor: "#f9f9f9",
+                    backgroundColor: "#F5F8FF",
                     borderRadius: "8px",
-                    border: "1px solid #e0e0e0",
+                    border: "1px solid #E3E8F2",
                   }}
                 >
                   <Typography
@@ -318,7 +318,7 @@ const ModalSlip = ({
               startIcon={<CancelIcon />}
               onClick={handleClose}
               sx={{
-                backgroundColor: "#E74A3B",
+                backgroundColor: "#E5484D",
                 color: "#fff",
                 height: "42px",
                 px: 3,
@@ -335,12 +335,12 @@ const ModalSlip = ({
               onClick={handleConfirm}
               disabled={!isFormValid()}
               sx={{
-                backgroundColor: isFormValid() ? "#41a2e6" : "#e0e0e0",
+                backgroundColor: isFormValid() ? "#1552F0" : "#E3E8F2",
                 color: "#fff",
                 height: "42px",
                 px: 3,
                 "&:hover": {
-                  backgroundColor: isFormValid() ? "#2c8fcc" : "#e0e0e0",
+                  backgroundColor: isFormValid() ? "#2c8fcc" : "#E3E8F2",
                 },
                 "&.Mui-disabled": {
                   color: "#fff",

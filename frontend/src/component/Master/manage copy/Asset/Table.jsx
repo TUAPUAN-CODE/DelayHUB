@@ -67,13 +67,13 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          border: value ? '2px solid #1552F0' : '1px solid #E3E8F2',
           borderRadius: '12px',
           cursor: 'pointer',
           backgroundColor: '#fff',
           height: '42px',
           fontSize: '14px',
-          color: value ? '#2196F3' : '#999',
+          color: value ? '#1552F0' : '#999',
           transition: 'all 0.3s ease',
           boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
         }}
@@ -85,7 +85,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.3s ease',
-            color: value ? '#2196F3' : '#666'
+            color: value ? '#1552F0' : '#666'
           }}
         />
       </div>
@@ -98,7 +98,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
             left: 0,
             right: 0,
             backgroundColor: '#fff',
-            border: '1px solid #e0e0e0',
+            border: '1px solid #E3E8F2',
             borderRadius: '12px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             zIndex: 1000,
@@ -161,7 +161,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
                     cursor: 'pointer',
                     fontSize: '13px',
                     color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -195,9 +195,9 @@ const ActionCell = ({ width, onClick, icon, backgroundColor, hoverColor, iconCol
     style={{
       width,
       textAlign: 'center',
-      borderTop: '1px solid #E3F2FD',
-      borderBottom: '1px solid #E3F2FD',
-      borderLeft: '1px solid #E3F2FD',
+      borderTop: '1px solid #EAF0FF',
+      borderBottom: '1px solid #EAF0FF',
+      borderLeft: '1px solid #EAF0FF',
       height: '48px',
       padding: '0px',
       cursor: 'pointer',
@@ -277,7 +277,7 @@ const Row = ({
         style={{
           transition: 'all 0.2s ease',
           cursor: 'pointer',
-          backgroundColor: isSelected ? '#E3F2FD' : 'transparent'
+          backgroundColor: isSelected ? '#EAF0FF' : 'transparent'
         }}
         onMouseEnter={(e) => {
           if (!isSelected) {
@@ -299,11 +299,11 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.checkbox,
-            borderLeft: '1px solid #E3F2FD',
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
+            borderLeft: '1px solid #EAF0FF',
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
             padding: '0px',
-            backgroundColor: isSelected ? '#E3F2FD' : backgroundColor,
+            backgroundColor: isSelected ? '#EAF0FF' : backgroundColor,
             transition: 'background-color 0.2s ease'
           }}
           onClick={(e) => e.stopPropagation()}
@@ -313,8 +313,8 @@ const Row = ({
             onChange={() => onSelectRow(row.mapping_id)}
             disabled={isConfirmed}
             sx={{
-              color: '#2196F3',
-              '&.Mui-checked': { color: '#2196F3' }
+              color: '#1552F0',
+              '&.Mui-checked': { color: '#1552F0' }
             }}
           />
         </TableCell>
@@ -326,9 +326,9 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderLeft: '1px solid #E3F2FD',
-              borderTop: '1px solid #E3F2FD',
-              borderBottom: '1px solid #E3F2FD',
+              borderLeft: '1px solid #EAF0FF',
+              borderTop: '1px solid #EAF0FF',
+              borderBottom: '1px solid #EAF0FF',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -338,7 +338,7 @@ const Row = ({
               lineHeight: '1.5',
               padding: '0px 12px',
               color: '#353535',
-              backgroundColor: isSelected ? '#E3F2FD' : backgroundColor,
+              backgroundColor: isSelected ? '#EAF0FF' : backgroundColor,
               transition: 'background-color 0.2s ease'
             }}
             onClick={() => setOpenRowId(openRowId === row.rmfp_id ? null : row.rmfp_id)}
@@ -352,13 +352,13 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.weight,
-            borderLeft: '1px solid #E3F2FD',
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
+            borderLeft: '1px solid #EAF0FF',
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
             fontSize: '14px',
             height: '48px',
             padding: '5px',
-            backgroundColor: isSelected ? '#E3F2FD' : backgroundColor,
+            backgroundColor: isSelected ? '#EAF0FF' : backgroundColor,
             transition: 'background-color 0.2s ease'
           }}
           onClick={(e) => e.stopPropagation()}
@@ -377,7 +377,7 @@ const Row = ({
                 sx: {
                   height: '35px',
                   fontSize: '13px',
-                  backgroundColor: isSelected ? '#fff' : '#f5f5f5'
+                  backgroundColor: isSelected ? '#fff' : '#F5F8FF'
                 }
               }}
               sx={{
@@ -393,10 +393,10 @@ const Row = ({
         <ActionCell
           width={CUSTOM_COLUMN_WIDTHS.cart}
           onClick={(e) => { e.stopPropagation(); handleOpenEditModal(row); }}
-          icon={<LiaShoppingCartSolid style={{ color: '#4aaaec', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#E3F2FD' : backgroundColor}
-          hoverColor="#4aaaec"
-          iconColor="#4aaaec"
+          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '22px' }} />}
+          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
+          hoverColor="#1552F0"
+          iconColor="#1552F0"
         />
 
         {/* Edit */}
@@ -404,7 +404,7 @@ const Row = ({
           width={CUSTOM_COLUMN_WIDTHS.edit}
           onClick={(e) => { e.stopPropagation(); handleOpenEditLineModal(row); }}
           icon={<EditIcon style={{ color: '#ffc107', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#E3F2FD' : backgroundColor}
+          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
           hoverColor="#ffc107"
           iconColor="#ffc107"
         />
@@ -414,7 +414,7 @@ const Row = ({
           width={CUSTOM_COLUMN_WIDTHS.delete}
           onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal(row); }}
           icon={<FaRegCheckCircle style={{ color: '#ff0000', fontSize: '22px' }} />}
-          backgroundColor={isSelected ? '#E3F2FD' : backgroundColor}
+          backgroundColor={isSelected ? '#EAF0FF' : backgroundColor}
           hoverColor="#ff4444"
           iconColor="#ff0000"
         />
@@ -444,7 +444,7 @@ const MultiConfirmDialog = ({
     }}
   >
     <DialogTitle sx={{
-      background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+      background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)',
       color: '#fff',
       fontSize: '18px',
       fontWeight: '600',
@@ -503,7 +503,7 @@ const MultiConfirmDialog = ({
         </LocalizationProvider>
       </Box>
 
-      <Box sx={{ padding: '16px', backgroundColor: '#E3F2FD', borderRadius: '8px', fontSize: '13px', color: '#1976D2' }}>
+      <Box sx={{ padding: '16px', backgroundColor: '#EAF0FF', borderRadius: '8px', fontSize: '13px', color: '#1552F0' }}>
         <strong>หมายเหตุ:</strong> น้ำหนักของแต่ละรายการจะถูกใช้ตามที่ระบุในแต่ละแถว
       </Box>
     </DialogContent>
@@ -514,7 +514,7 @@ const MultiConfirmDialog = ({
         sx={{
           color: '#666', borderRadius: '8px', padding: '8px 20px',
           textTransform: 'none', fontSize: '14px',
-          '&:hover': { backgroundColor: '#f5f5f5' }
+          '&:hover': { backgroundColor: '#F5F8FF' }
         }}
       >
         ยกเลิก
@@ -523,12 +523,12 @@ const MultiConfirmDialog = ({
         onClick={onConfirm}
         variant="contained"
         sx={{
-          background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+          background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)',
           borderRadius: '8px', padding: '8px 24px',
           textTransform: 'none', fontSize: '14px',
           boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
           '&:hover': {
-            background: 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)',
+            background: 'linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)',
             boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)'
           }
         }}
@@ -710,9 +710,9 @@ const TableMainPrep = ({
   };
 
   const headerCellBase = {
-    backgroundColor: '#2196F3',
-    borderTop: '1px solid #1976D2',
-    borderBottom: '1px solid #1976D2',
+    backgroundColor: '#1552F0',
+    borderTop: '1px solid #1552F0',
+    borderBottom: '1px solid #1552F0',
     borderLeft: '1px solid rgba(255,255,255,0.1)',
     borderRight: '1px solid rgba(255,255,255,0.1)',
     fontSize: '14px',
@@ -728,7 +728,7 @@ const TableMainPrep = ({
       overflow: 'hidden',
       boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
       borderRadius: '16px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+      background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)'
     }}>
       <style>{`
         @keyframes slideDown {
@@ -743,7 +743,7 @@ const TableMainPrep = ({
 
       {/* ── Header ── */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+        background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)',
         padding: '20px 24px',
         borderRadius: '16px 16px 0 0'
       }}>
@@ -758,7 +758,7 @@ const TableMainPrep = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon style={{ color: '#2196F3' }} />
+                  <SearchIcon style={{ color: '#1552F0' }} />
                 </InputAdornment>
               ),
               sx: { height: '44px', backgroundColor: '#fff', borderRadius: '12px' }
@@ -767,8 +767,8 @@ const TableMainPrep = ({
               '& .MuiOutlinedInput-root': {
                 height: '44px', fontSize: '14px', borderRadius: '12px', color: '#546E7A',
                 '& fieldset': { borderColor: 'transparent' },
-                '&:hover fieldset': { borderColor: '#2196F3' },
-                '&.Mui-focused fieldset': { borderColor: '#2196F3', borderWidth: '2px' }
+                '&:hover fieldset': { borderColor: '#1552F0' },
+                '&.Mui-focused fieldset': { borderColor: '#1552F0', borderWidth: '2px' }
               },
               '& input': { padding: '10px' }
             }}
@@ -793,10 +793,10 @@ const TableMainPrep = ({
             icon={<FaWeight style={{ fontSize: '16px' }} />}
             label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
             sx={{
-              backgroundColor: '#fff', color: '#2196F3', fontWeight: '600',
+              backgroundColor: '#fff', color: '#1552F0', fontWeight: '600',
               fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite',
-              '& .MuiChip-icon': { color: '#2196F3' }
+              '& .MuiChip-icon': { color: '#1552F0' }
             }}
           />
 
@@ -842,8 +842,8 @@ const TableMainPrep = ({
           '&::-webkit-scrollbar': { width: '8px', height: '8px' },
           '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
           '&::-webkit-scrollbar-thumb': {
-            background: '#2196F3', borderRadius: '10px',
-            '&:hover': { background: '#1976D2' }
+            background: '#1552F0', borderRadius: '10px',
+            '&:hover': { background: '#1552F0' }
           }
         }}
       >
@@ -855,7 +855,7 @@ const TableMainPrep = ({
                 align="center"
                 style={{
                   ...headerCellBase,
-                  borderLeft: '1px solid #1976D2',
+                  borderLeft: '1px solid #1552F0',
                   width: CUSTOM_COLUMN_WIDTHS.checkbox,
                   borderTopLeftRadius: '12px',
                   borderBottomLeftRadius: '12px'
@@ -898,7 +898,7 @@ const TableMainPrep = ({
               {/* Delete */}
               <TableCell align="center" style={{
                 ...headerCellBase,
-                borderRight: '1px solid #1976D2',
+                borderRight: '1px solid #1552F0',
                 borderTopRightRadius: '12px',
                 borderBottomRightRadius: '12px',
                 width: '90px'
@@ -954,15 +954,15 @@ const TableMainPrep = ({
       {/* ── Pagination ── */}
       <TablePagination
         sx={{
-          borderTop: '1px solid #E3F2FD',
-          backgroundColor: '#F8FBFF',
+          borderTop: '1px solid #EAF0FF',
+          backgroundColor: '#F5F8FF',
           '& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar': {
             fontSize: '13px', color: '#546E7A', padding: '0px', fontWeight: '500'
           },
-          '& .MuiTablePagination-select': { fontSize: '13px', color: '#2196F3', fontWeight: '600' },
+          '& .MuiTablePagination-select': { fontSize: '13px', color: '#1552F0', fontWeight: '600' },
           '& .MuiTablePagination-actions button': {
-            color: '#2196F3',
-            '&:hover': { backgroundColor: '#E3F2FD' }
+            color: '#1552F0',
+            '&:hover': { backgroundColor: '#EAF0FF' }
           }
         }}
         rowsPerPageOptions={[100, 500, 1000]}

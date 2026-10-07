@@ -352,7 +352,7 @@ const CameraActivationModal = ({
           </Typography>
 
           {selectedMaterials && selectedMaterials.length > 0 && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f8f9fc", borderRadius: 1 }}>
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#F5F8FF", borderRadius: 1 }}>
               <Typography sx={{ fontWeight: "bold" }}>รายการวัตถุดิบที่เลือก:</Typography>
               {selectedMaterials.map((mat, idx) => (
                 <Typography key={idx}>
@@ -487,7 +487,7 @@ const CameraActivationModal = ({
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={handleClose}
               >
                 ยกเลิก
@@ -496,7 +496,7 @@ const CameraActivationModal = ({
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
                 style={{
-                  backgroundColor: isFormValid ? "#41a2e6" : "#cccccc",
+                  backgroundColor: isFormValid ? "#1552F0" : "#cccccc",
                   color: "#fff",
                 }}
                 onClick={handleConfirm}

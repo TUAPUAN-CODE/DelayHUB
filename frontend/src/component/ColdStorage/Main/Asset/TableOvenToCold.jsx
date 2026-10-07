@@ -57,7 +57,7 @@ const formatTime = (minutes) => {
 
 
 const getStatusColor = (status) => {
-  if (!status) return '#787878'; // Default gray color
+  if (!status) return '#6B7489'; // Default gray color
 
 
   if (status === 'QcCheck') {
@@ -71,7 +71,7 @@ const getStatusColor = (status) => {
   }
 
 
-  return '#787878'; // Default gray color
+  return '#6B7489'; // Default gray color
 };
 
 
@@ -333,7 +333,7 @@ const getPrepToColdStatus = (item) => {
     else {
       console.log("⚠️ ไม่พบค่า standard_prep_to_pack_time");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -363,7 +363,7 @@ const getPrepToColdStatus = (item) => {
     } else {
       console.log("⚠️ ไม่พบค่า standard_prep_to_pack_time");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -419,7 +419,7 @@ const getPrepToColdStatus = (item) => {
       console.log("⏱️ ไม่พบค่า remaining_prep_to_pack_time ใช้ standardTime - timePassed:", timeRemaining);
     } else {
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -467,7 +467,7 @@ const getPrepToColdStatus = (item) => {
       console.log("⏱️ ไม่พบค่า remaining_prep_to_pack_time ใช้ standardTime - timePassed:", timeRemaining);
     } else {
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -525,7 +525,7 @@ const getColdToPackStatus = (item) => {
   if (packCheckinDate == null) {
     console.log("⏹️ ยังไม่เข้าแพ็ค → ข้ามการคำนวณ cold_to_pack");
     return {
-      textColor: "#787878",
+      textColor: "#6B7489",
       statusMessage: "-",
       hideDelayTime: true,
       percentage: 0,
@@ -564,7 +564,7 @@ const getColdToPackStatus = (item) => {
     if (timePassed < 0) {
       console.log("⚠️ เวลา pack เร็วกว่า out cold ผิดปกติ");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -619,7 +619,7 @@ const getColdToPackStatus = (item) => {
     } else {
       console.log("⚠️ ไม่พบ standard_cold_to_pack_time");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -651,7 +651,7 @@ const getColdToPackStatus = (item) => {
     } else {
       console.log("⚠️ ไม่พบ standard_cold_to_pack_time");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -710,7 +710,7 @@ const getColdToPackStatus = (item) => {
       timeRemaining = standardTimeInMinutes - timePassed;
     } else {
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -740,7 +740,7 @@ const getColdToPackStatus = (item) => {
     if (!latestOutColdDate) {
       console.log("⚠️ ไม่พบ out cold date");
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -786,7 +786,7 @@ const getColdToPackStatus = (item) => {
       timeRemaining = standardTimeInMinutes - timePassed;
     } else {
       return {
-        textColor: "#787878",
+        textColor: "#6B7489",
         statusMessage: "-",
         hideDelayTime: true,
         percentage: 0,
@@ -840,7 +840,7 @@ const getColdToPackStatus = (item) => {
 //   if (!packCheckinDate) {
 //     console.log("⚠️ ไม่พบ pack_checkin_date");
 //     return {
-//       textColor: "#787878",
+//       textColor: "#6B7489",
 //       statusMessage: "-",
 //       hideDelayTime: true,
 //       percentage: 0,
@@ -864,7 +864,7 @@ const getColdToPackStatus = (item) => {
 //   if (!latestOutColdDate) {
 //     console.log("⚠️ ไม่พบเวลาออกจากห้องเย็น");
 //     return {
-//       textColor: "#787878",
+//       textColor: "#6B7489",
 //       statusMessage: "-",
 //       hideDelayTime: true,
 //       percentage: 0,
@@ -883,7 +883,7 @@ const getColdToPackStatus = (item) => {
 //   if (timePassed < 0) {
 //     console.log("⚠️ pack_checkin_date เร็วกว่า out_cold_date ผิดปกติ");
 //     return {
-//       textColor: "#787878",
+//       textColor: "#6B7489",
 //       statusMessage: "-",
 //       hideDelayTime: true,
 //       percentage: 0,
@@ -903,7 +903,7 @@ const getColdToPackStatus = (item) => {
 //   } else {
 //     console.log("⚠️ ไม่พบค่า standard_cold_to_pack_time");
 //     return {
-//       textColor: "#787878",
+//       textColor: "#6B7489",
 //       statusMessage: "-",
 //       hideDelayTime: true,
 //       percentage: 0,
@@ -1054,7 +1054,7 @@ const getTrolleyStatusIcons = (row) => {
 
 const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
   // กำหนดสีของ icon ดวงตาให้เป็นสีเดียวกับ table head (สีฟ้า)
-  const iconColor = "hsl(210, 100%, 60%)";
+  const iconColor = "#1552F0";
 
 
   return (
@@ -1062,12 +1062,12 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -1076,7 +1076,7 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
@@ -1084,7 +1084,7 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
         e.currentTarget.querySelector('svg').style.color = iconColor;
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onTouchEnd={(e) => {
@@ -1110,7 +1110,7 @@ const Row = ({
   index
 }) => {
   const { textColor } = getRowStatus(row);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
   const isOpen = openRowId === row.tro_id;
 
 
@@ -1141,7 +1141,7 @@ const Row = ({
         else if (row.rawMaterials.some(rm => rm.rm_status === 'รอกลับมาเตรียม' || rm.rm_status === 'QcCheck รอ MD'))
           color = '#0000FF'; // สีน้ำเงิน
         else if (row.rawMaterials.some(rm => rm.rm_status === 'QcCheck')) color = '#008000'; // สีเขียว
-        else color = '#787878'; // สีเทา (ค่าเริ่มต้น)
+        else color = '#6B7489'; // สีเทา (ค่าเริ่มต้น)
       } else {
         color = getStatusColor(status);
       }
@@ -1171,8 +1171,8 @@ const Row = ({
               borderLeft: idx === 0 ? `5px solid ${textColor}` : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0",
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -1181,7 +1181,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 15px',
-              color: "#787878",
+              color: "#6B7489",
               backgroundColor: backgroundColor
             }}
           >
@@ -1207,7 +1207,7 @@ const Row = ({
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{
               margin: 1,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: "#F5F8FF",
               padding: 2,
               borderRadius: 2,
               boxShadow: '0px 2px 4px rgba(0,0,0,0.1)'
@@ -1234,10 +1234,10 @@ const Row = ({
                 backgroundColor: 'white',
                 borderRadius: '8px',
                 overflow: 'hidden',
-                border: '1px solid #e0e0e0'
+                border: '1px solid #E3E8F2'
               }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>สถานะเวลา</TableCell>
                     {/* <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>สถานะห้องเย็นไปบรรจุ</TableCell> */}
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Batch</TableCell>
@@ -1263,8 +1263,8 @@ const Row = ({
                         <TableRow
                           key={`${material.rmfp_id}-${idx}`}
                           sx={{
-                            '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' },
-                            '&:hover': { backgroundColor: '#f0f7ff' }
+                            '&:nth-of-type(odd)': { backgroundColor: '#F5F8FF' },
+                            '&:hover': { backgroundColor: '#F5F8FF' }
                           }}
                         >
                           {/* สถานะเวลา */}
@@ -1592,7 +1592,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -1634,9 +1634,9 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "hsl(210, 100%, 60%)",
-                    borderTop: "1px solid #e0e0e0",
-                    borderBottom: "1px solid #e0e0e0",
+                    backgroundColor: "#1552F0",
+                    borderTop: "1px solid #E3E8F2",
+                    borderBottom: "1px solid #E3E8F2",
                     borderRight: "1px solid #f2f2f2",
                     borderTopLeftRadius: index === 0 ? "8px" : "0",
                     borderBottomLeftRadius: index === 0 ? "8px" : "0",
@@ -1655,12 +1655,12 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
                   fontSize: '16px',
                   color: '#ffffff',
                   padding: '10px',
@@ -1676,7 +1676,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   กำลังโหลดข้อมูล...
                 </TableCell>
               </TableRow>
@@ -1695,7 +1695,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -1707,7 +1707,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}
@@ -1743,7 +1743,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

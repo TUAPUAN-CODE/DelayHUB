@@ -365,7 +365,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                             <Box sx={{ 
                                 textAlign: 'center', 
                                 py: 4, 
-                                bgcolor: '#f5f5f5', 
+                                bgcolor: '#F5F8FF', 
                                 borderRadius: 2,
                                 border: '1px dashed #bdbdbd' 
                             }}>
@@ -399,7 +399,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                             transition: 'all 0.2s',
                                                             backgroundColor: isSelected ? '#f3f8ff' : index % 2 === 0 ? '#fafafa' : '#ffffff',
                                                             '&:hover': { 
-                                                                backgroundColor: isSelected ? '#e3f2fd' : '#f5f5f5',
+                                                                backgroundColor: isSelected ? '#EAF0FF' : '#F5F8FF',
                                                                 boxShadow: '0 2px 5px rgba(0,0,0,0.08)'
                                                             },
                                                             borderRadius: '8px',
@@ -425,7 +425,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                                 label={index + 1} 
                                                                 size="small" 
                                                                 sx={{ 
-                                                                    bgcolor: isSelected ? '#1976d2' : '#e0e0e0',
+                                                                    bgcolor: isSelected ? '#1552F0' : '#E3E8F2',
                                                                     color: isSelected ? 'white' : '#424242',
                                                                     fontWeight: 500,
                                                                     minWidth: '32px'
@@ -488,7 +488,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                                         gutterBottom 
                                                                         sx={{ 
                                                                             fontWeight: 500, 
-                                                                            color: '#1565c0',
+                                                                            color: '#0F3FC4',
                                                                             mb: 2
                                                                         }}
                                                                     >

@@ -211,15 +211,15 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     >
       <DialogContent>
         <Stack spacing={3} alignItems="center" sx={{ py: 2 }}>
-          <Box sx={{ fontSize: 60, color: isSubmitting ? "#4caf50" : scannedCode.length === 4 ? "#4caf50" : "#2388d1" }}>
+          <Box sx={{ fontSize: 60, color: isSubmitting ? "#4caf50" : scannedCode.length === 4 ? "#4caf50" : "#1552F0" }}>
             <QrCodeScannerIcon sx={{ fontSize: "inherit" }} />
           </Box>
 
-          <Typography variant="h6" align="center" color="#787878">
+          <Typography variant="h6" align="center" color="#6B7489">
             สแกนป้ายทะเบียนรถเข็น
           </Typography>
 
-          <Typography variant="body2" align="center" color="#787878">
+          <Typography variant="body2" align="center" color="#6B7489">
             รถเข็น: <strong>{tro_id || "-"}</strong>
           </Typography>
 
@@ -262,7 +262,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   style={{ width: "100%", display: inputMode === "camera" && isCameraActive ? "block" : "none" }}
                 />
                 {inputMode === "camera" && !isCameraActive && !isScanning && (
-                  <Box sx={{ textAlign: "center", py: 4, backgroundColor: "#f5f5f5", borderRadius: 2 }}>
+                  <Box sx={{ textAlign: "center", py: 4, backgroundColor: "#F5F8FF", borderRadius: 2 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>กล้องปิดอยู่</Typography>
                     <Button variant="outlined" onClick={switchToCameraMode} startIcon={<CameraAltIcon />} size="small">
                       เปิดกล้องใหม่
@@ -270,8 +270,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   </Box>
                 )}
                 {inputMode === "manual" && (
-                  <Box sx={{ textAlign: "center", py: 3, backgroundColor: "#f0f7ff", borderRadius: 2, border: "2px dashed #2388d1" }}>
-                    <KeyboardIcon sx={{ fontSize: 48, color: "#2388d1", mb: 1 }} />
+                  <Box sx={{ textAlign: "center", py: 3, backgroundColor: "#F5F8FF", borderRadius: 2, border: "2px dashed #1552F0" }}>
+                    <KeyboardIcon sx={{ fontSize: 48, color: "#1552F0", mb: 1 }} />
                     <Typography variant="body2" color="text.secondary">โหมดพิมพ์เอง</Typography>
                     <Typography variant="caption" color="#999">
                       พิมพ์เลข 4 หลักท้ายของป้ายทะเบียนรถเข็น
@@ -308,7 +308,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               {[1, 2, 3, 4].map((dot) => (
                 <Box key={dot} sx={{
                   width: 12, height: 12, borderRadius: "50%",
-                  backgroundColor: scannedCode.length >= dot ? "#2388d1" : "#e0e0e0",
+                  backgroundColor: scannedCode.length >= dot ? "#1552F0" : "#E3E8F2",
                   transition: "background-color 0.3s",
                 }} />
               ))}
@@ -330,7 +330,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               onClick={handleClose}
               fullWidth
               disabled={isSubmitting}
-              sx={{ color: "#E74A3B", borderColor: "#E74A3B" }}
+              sx={{ color: "#E5484D", borderColor: "#E5484D" }}
             >
               ยกเลิก
             </Button>
@@ -340,7 +340,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               onClick={handleScanVerify}
               disabled={scannedCode.length !== 4 || isSubmitting}
               fullWidth
-              sx={{ backgroundColor: "#41a2e6" }}
+              sx={{ backgroundColor: "#1552F0" }}
             >
               ยืนยัน
             </Button>

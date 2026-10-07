@@ -239,12 +239,12 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
                         sx={{
                           fontSize: "0.9rem",
                           padding: "5px",
-                          color: "#787878",
+                          color: "#6B7489",
                         }}
                       >
                         {label}
                       </TableCell>
-                      <TableCell sx={{ padding: "0px", color: "#787878" }}>
+                      <TableCell sx={{ padding: "0px", color: "#6B7489" }}>
                         <TextField
                           variant="outlined"
                           name={field}
@@ -275,7 +275,7 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
           <Button
             variant="contained"
             startIcon={<CancelIcon />}
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             onClick={handleClose}
           >
             ยกเลิก
@@ -283,7 +283,7 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
           <Button
             variant="contained"
             startIcon={<CheckCircleIcon />}
-            style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            style={{ backgroundColor: "#1552F0", color: "#fff" }}
             onClick={handleSubmit}
             disabled={loading}
           >

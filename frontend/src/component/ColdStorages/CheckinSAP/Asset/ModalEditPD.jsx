@@ -28,7 +28,7 @@ const ModalAlert = ({ open, onClose }) => (
       <CheckCircleIcon sx={{ fontSize: 52, color: "#4caf50" }} />
       <Typography variant="h6" sx={{ color: "#333" }}>บันทึกข้อมูลเรียบร้อยแล้ว</Typography>
       <Button onClick={onClose}
-        sx={{ bgcolor: "#4aaaec", color: "#fff", px: 4, py: 1.5, borderRadius: 1, "&:hover": { bgcolor: "#2196f3" } }}>
+        sx={{ bgcolor: "#1552F0", color: "#fff", px: 4, py: 1.5, borderRadius: 1, "&:hover": { bgcolor: "#1552F0" } }}>
         ปิด
       </Button>
     </Box>
@@ -99,7 +99,7 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
       >
         <ModalContent>
           {/* Header */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#1565C0" }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#0F3FC4" }}>
             ยืนยันการรับเข้าวัตถุดิบ
           </Typography>
 
@@ -147,7 +147,7 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
               startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
               onClick={handleConfirm}
               disabled={isLoading}
-              sx={{ bgcolor: "#4aaaec", "&:hover": { bgcolor: "#2196f3" } }}
+              sx={{ bgcolor: "#1552F0", "&:hover": { bgcolor: "#1552F0" } }}
             >
               {isLoading ? "กำลังบันทึก..." : "ยืนยัน"}
             </Button>

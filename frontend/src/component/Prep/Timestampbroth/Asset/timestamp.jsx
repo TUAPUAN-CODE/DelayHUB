@@ -527,7 +527,7 @@ const CameraActivationModal = ({
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={handleClose}
               >
                 ยกเลิก
@@ -536,7 +536,7 @@ const CameraActivationModal = ({
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
                 style={{ 
-                  backgroundColor: isFormValid ? "#41a2e6" : "#cccccc",
+                  backgroundColor: isFormValid ? "#1552F0" : "#cccccc",
                   color: "#fff",
                 }}
                 onClick={handleConfirm}

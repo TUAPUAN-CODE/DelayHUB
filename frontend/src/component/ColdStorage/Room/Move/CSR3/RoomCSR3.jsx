@@ -134,7 +134,7 @@ const ParkingLayoutCSR3 = ({ onSlotClick }) => {
           <tr>
             <th className="px-2 py-2 bg-gray-200 text-sm md:text-base" style={{ border: "1px solid #e5e7eb", backgroundColor: "#fff" }}></th>
             {columns.map((col, index) => (
-              <th key={index} className="px-2 py-2 text-sm md:text-base" style={{ border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#787878" }}>
+              <th key={index} className="px-2 py-2 text-sm md:text-base" style={{ border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#6B7489" }}>
                 {col}
               </th>
             ))}
@@ -143,7 +143,7 @@ const ParkingLayoutCSR3 = ({ onSlotClick }) => {
         <tbody>
           {Object.keys(rows).map((rowKey, rowIndex) => (
             <tr key={rowIndex}>
-              <td className="px-2 py-2 text-center text-sm md:text-base" style={{ border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#787878" }}>
+              <td className="px-2 py-2 text-center text-sm md:text-base" style={{ border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#6B7489" }}>
                 {rowKey}
               </td>
               {columns.map((col, colIndex) => {
@@ -166,7 +166,7 @@ const ParkingLayoutCSR3 = ({ onSlotClick }) => {
                           width: "220px",
                           height: "80px",
                           backgroundColor: "#fff",
-                          borderLeft: `6px solid ${isReserved ? "#787878" : isOccupied ? "#80FF75" : "#787878"}`,
+                          borderLeft: `6px solid ${isReserved ? "#6B7489" : isOccupied ? "#80FF75" : "#6B7489"}`,
                           paddingTop: "20px",
                           justifyItems: "left",
                           paddingLeft: "20px",

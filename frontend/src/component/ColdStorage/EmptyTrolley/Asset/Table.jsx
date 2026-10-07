@@ -18,7 +18,7 @@ const Row = ({
   handleOpenConfirmModal,
   index
 }) => {
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
 
   return (
     <>
@@ -32,13 +32,13 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.trolleyId,
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
-            borderLeft: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
+            borderLeft: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             backgroundColor: backgroundColor
@@ -56,12 +56,12 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.csName,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             backgroundColor: backgroundColor
           }}
         >
@@ -74,12 +74,12 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.slotId,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             backgroundColor: backgroundColor
           }}
         >
@@ -92,13 +92,13 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.clear,
             borderLeft: "1px solid #f2f2f2",
-            borderRight: "1px solid #e0e0e0",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderRight: "1px solid #E3E8F2",
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px',
-            color: "#787878",
+            color: "#6B7489",
             borderTopRightRadius: "8px",
             borderBottomRightRadius: "8px",
             backgroundColor: backgroundColor,
@@ -210,7 +210,7 @@ const TableMainPrep = ({ data, handleClearTrolley, handleOpenModal, handleRowCli
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -223,16 +223,16 @@ const TableMainPrep = ({ data, handleClearTrolley, handleOpenModal, handleRowCli
         <Table stickyHeader>
           <TableHead>
             <TableRow sx={{ height: '40px' }}>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #e0e0e0", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.trolleyId }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #E3E8F2", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.trolleyId }}>
                 หมายเลขรถเข็น
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", border: "1px solid #e0e0e0", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.csName }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", border: "1px solid #E3E8F2", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.csName }}>
                 ห้องที่จอด
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", border: "1px solid #e0e0e0", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.slotId }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", border: "1px solid #E3E8F2", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.slotId }}>
                 พื้นที่จอด
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", border: "1px solid #e0e0e0", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.clear }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", border: "1px solid #E3E8F2", fontSize: '16px', color: '#ffffff', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.clear }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span>เคลียร์รถเข็น</span>
                 </div>
@@ -251,7 +251,7 @@ const TableMainPrep = ({ data, handleClearTrolley, handleOpenModal, handleRowCli
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการรถเข็นในขณะนี้
                 </TableCell>
               </TableRow>
@@ -263,7 +263,7 @@ const TableMainPrep = ({ data, handleClearTrolley, handleOpenModal, handleRowCli
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '14px',
-            color: "#787878",
+            color: "#6B7489",
           }
         }}
         rowsPerPageOptions={[20, 50, 100]}

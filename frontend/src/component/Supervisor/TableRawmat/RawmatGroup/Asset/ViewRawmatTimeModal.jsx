@@ -44,7 +44,7 @@ const ViewRawmatTimeModal = ({ isOpen, onClose, data }) => {
     >
       <DialogTitle
         sx={{
-          backgroundColor: "hsl(210, 100%, 60%)",
+          backgroundColor: "#1552F0",
           color: "white",
           display: "flex",
           justifyContent: "space-between",
@@ -71,14 +71,14 @@ const ViewRawmatTimeModal = ({ isOpen, onClose, data }) => {
             รายละเอียดเวลาในแต่ละขั้นตอน
           </Typography>
           
-          <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: "8px", overflow: "hidden" }}>
+          <Paper elevation={0} sx={{ border: "1px solid #E3E8F2", borderRadius: "8px", overflow: "hidden" }}>
             <Table>
               <TableBody>
                 {timeDetails.map((item, index) => (
                   <TableRow 
                     key={index}
                     sx={{ 
-                      backgroundColor: index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 95%)",
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : "#EAF0FF",
                       '&:last-child td, &:last-child th': { border: 0 }
                     }}
                   >
@@ -121,7 +121,7 @@ const ViewRawmatTimeModal = ({ isOpen, onClose, data }) => {
           onClick={onClose}
           variant="contained"
           sx={{
-            backgroundColor: "hsl(210, 100%, 60%)",
+            backgroundColor: "#1552F0",
             "&:hover": { backgroundColor: "hsl(210, 100%, 50%)" },
             borderRadius: "8px",
             textTransform: "none",

@@ -323,7 +323,7 @@ const ParentComponent = () => {
         <button
           onClick={fetchData}
           style={{
-            padding: '10px 24px', backgroundColor: '#2196F3', color: '#fff',
+            padding: '10px 24px', backgroundColor: '#1552F0', color: '#fff',
             border: 'none', borderRadius: '8px', cursor: 'pointer',
             fontSize: '14px', fontWeight: '600'
           }}
@@ -340,7 +340,7 @@ const ParentComponent = () => {
         <div style={{
           display: 'flex', justifyContent: 'center',
           alignItems: 'center', padding: '40px',
-          color: '#2196F3', fontSize: '15px', gap: '10px'
+          color: '#1552F0', fontSize: '15px', gap: '10px'
         }}>
           <span>⏳</span><span>กำลังโหลดข้อมูล...</span>
         </div>

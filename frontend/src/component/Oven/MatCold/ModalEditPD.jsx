@@ -74,7 +74,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -85,7 +85,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
             <Typography color="rgba(0, 0, 0, 0.6)">ผู้อนุมัติ: {editorName}</Typography>
 
             {currentProdDetails && (
-              <Box sx={{ p: 1, bgcolor: "#f5f5f5", mb: 1 }}>
+              <Box sx={{ p: 1, bgcolor: "#F5F8FF", mb: 1 }}>
                 <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                   แผนการผลิตเดิม:
                 </Typography>
@@ -100,7 +100,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
               </Box>
             )}
 
-            <Box sx={{ p: 1, bgcolor: "#e3f2fd", mb: 1 }}>
+            <Box sx={{ p: 1, bgcolor: "#EAF0FF", mb: 1 }}>
               <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                 แผนการผลิตใหม่:
               </Typography>
@@ -121,7 +121,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
             >
               ยกเลิก
@@ -129,7 +129,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleConfirm}
             >
               ยืนยัน
@@ -340,7 +340,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         onClose();
       }} fullWidth maxWidth="md">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาเลือกแผนการผลิต
           </Typography>
 
@@ -367,7 +367,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             </Box>
             
             {currentProdDetails && (
-              <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+              <Box sx={{ p: 2, bgcolor: "#F5F8FF", borderRadius: 1 }}>
                 <Typography color="#333" fontWeight="bold" gutterBottom>
                   แผนการผลิตปัจจุบัน
                 </Typography>
@@ -397,7 +397,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   p: 2,
                   border: '1px solid #eee',
                   borderRadius: 1,
-                  backgroundColor: '#f9f9f9'
+                  backgroundColor: '#F5F8FF'
                 }}
               >
                 <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' } }}>
@@ -461,7 +461,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   p: 2,
                   border: '1px solid #eee',
                   borderRadius: 1,
-                  backgroundColor: '#f9f9f9'
+                  backgroundColor: '#F5F8FF'
                 }}
               >
                 <Typography>
@@ -481,7 +481,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={onClose}
               >
                 ยกเลิก
@@ -489,7 +489,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Button
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
-                style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+                style={{ backgroundColor: "#1552F0", color: "#fff" }}
                 onClick={handleConfirm}
               >
                 ยืนยัน

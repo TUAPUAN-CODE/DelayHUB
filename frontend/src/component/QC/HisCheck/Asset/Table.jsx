@@ -64,7 +64,7 @@ const COLUMN_WIDTHS = {
 const Row = ({ row, index }) => {
   const [open, setOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
   const uniqueKey = `${row.mapping_id}_${row.created_at || index}`;
 
   const handlePrintClick = () => {
@@ -144,12 +144,12 @@ const Row = ({ row, index }) => {
         <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
             <Tooltip title="ดูประวัติเพิ่มเติม">
-              <IconButton aria-label="view history" size="small" onClick={() => setOpen(!open)} color={open ? "primary" : "default"} sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #e0e0e0', backgroundColor: '#ffffff' }}>
+              <IconButton aria-label="view history" size="small" onClick={() => setOpen(!open)} color={open ? "primary" : "default"} sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #E3E8F2', backgroundColor: '#ffffff' }}>
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="พิมพ์ข้อมูล">
-              <IconButton aria-label="print" size="small" onClick={handlePrintClick} sx={{ width: '30px', height: '30px', border: '1px solid #e0e0e0', backgroundColor: '#ffffff' }}>
+              <IconButton aria-label="print" size="small" onClick={handlePrintClick} sx={{ width: '30px', height: '30px', border: '1px solid #E3E8F2', backgroundColor: '#ffffff' }}>
                 <PrintIcon fontSize="small" color="action" />
               </IconButton>
             </Tooltip>
@@ -162,9 +162,9 @@ const Row = ({ row, index }) => {
       <TableRow>
         <TableCell style={{ padding: 0 }} colSpan={9}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: '#f8f9fa', borderRadius: '4px', padding: '16px', border: '1px solid #e0e0e0' }}>
+            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: '#f8f9fa', borderRadius: '4px', padding: '16px', border: '1px solid #E3E8F2' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <FactCheckIcon fontSize="small" sx={{ color: '#1976d2' }} />
+                <FactCheckIcon fontSize="small" sx={{ color: '#1552F0' }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
                   ข้อมูลการตรวจสอบ QC
                 </Typography>
@@ -173,10 +173,10 @@ const Row = ({ row, index }) => {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-                    <Box sx={{ backgroundColor: '#e3f2fd', px: 2, py: 1.5, borderBottom: '1px solid #bbdefb' }}>
+                    <Box sx={{ backgroundColor: '#EAF0FF', px: 2, py: 1.5, borderBottom: '1px solid #bbdefb' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PaletteIcon sx={{ color: '#2196f3' }} />
-                        <Typography variant="subtitle1" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
+                        <PaletteIcon sx={{ color: '#1552F0' }} />
+                        <Typography variant="subtitle1" sx={{ color: '#1552F0', fontWeight: 'bold' }}>
                           Sensory (สี, กลิ่น, เนื้อ)
                         </Typography>
                       </Box>
@@ -197,7 +197,7 @@ const Row = ({ row, index }) => {
                             value={row.sq_remark || '-'}
                             InputProps={{
                               readOnly: true,
-                              sx: { fontSize: '14px', backgroundColor: row?.sq_acceptance === true ? '#fff8e1' : '#f5f5f5' }
+                              sx: { fontSize: '14px', backgroundColor: row?.sq_acceptance === true ? '#fff8e1' : '#F5F8FF' }
                             }}
                             multiline
                             minRows={2}
@@ -245,7 +245,7 @@ const Row = ({ row, index }) => {
                           }
                           InputProps={{
                             readOnly: true,
-                            sx: { fontSize: '14px', backgroundColor: '#f5f5f5' }
+                            sx: { fontSize: '14px', backgroundColor: '#F5F8FF' }
                           }}
                         />
                       </Box>
@@ -262,7 +262,7 @@ const Row = ({ row, index }) => {
                             value={row.md_remark || '-'}
                             InputProps={{
                               readOnly: true,
-                              sx: { fontSize: '14px', backgroundColor: '#f5f5f5' }
+                              sx: { fontSize: '14px', backgroundColor: '#F5F8FF' }
                             }}
                             multiline
                             minRows={2}
@@ -299,7 +299,7 @@ const Row = ({ row, index }) => {
                             value={row.defect_remark || '-'}
                             InputProps={{
                               readOnly: true,
-                              sx: { fontSize: '14px', backgroundColor: row?.defect_acceptance === true ? '#fff8e1' : '#f5f5f5' }
+                              sx: { fontSize: '14px', backgroundColor: row?.defect_acceptance === true ? '#fff8e1' : '#F5F8FF' }
                             }}
                             multiline
                             minRows={2}
@@ -321,13 +321,13 @@ const Row = ({ row, index }) => {
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 2, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon sx={{ color: '#1976d2' }} />
+                  <PersonIcon sx={{ color: '#1552F0' }} />
                   <Typography variant="body2" sx={{ color: '#555' }}>
                     <b>ผู้ดำเนินการ:</b> {row?.receiver_qc ?? '-'}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarTodayIcon sx={{ color: '#1976d2' }} />
+                  <CalendarTodayIcon sx={{ color: '#1552F0' }} />
                   <Typography variant="body2" sx={{ color: '#555' }}>
                     <b>วันเวลาที่ QC ตรวจสอบ:</b> {row?.qc_datetime_formatted ?? '-'}
                   </Typography>
@@ -395,7 +395,7 @@ const QcHisTable = ({
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -415,44 +415,44 @@ const QcHisTable = ({
           overflowY: 'auto',
           marginTop: 0,
           borderRadius: '8px',
-          borderColor: '#e0e0e0',
+          borderColor: '#E3E8F2',
           backgroundColor: backgroundColor
         }}
       >
         <Table stickyHeader style={{ tableLayout: 'fixed' }} sx={{ width: '100%' }}>
           <TableHead>
-            <TableRow sx={{ height: '45px', backgroundColor: '#f5f5f5' }}>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Batch, fontWeight: 'normal' }}>
+            <TableRow sx={{ height: '45px', backgroundColor: '#F5F8FF' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Batch, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Batch</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Material, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Material, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Material</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.รายชื่อวัตถุดิบ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.รายชื่อวัตถุดิบ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>รายชื่อวัตถุดิบ
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>แผนการผลิต
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>หมายเลขรถเข็น
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.สถานที่จัดส่ง, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.สถานที่จัดส่ง, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>สถานที่จัดส่ง</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.น้ำหนัก, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.น้ำหนัก, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>น้ำหนัก (kg)</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.LevelEu, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.LevelEu, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Level Eu</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.เวลาต้มอบเสร็จ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.เวลาต้มอบเสร็จ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>เวลาต้ม/อบเสร็จ</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderBottom: "2px solid #e0e0e0", borderLeft: "1px solid #ffffff", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderLeft: "1px solid #ffffff", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>การจัดการ</Box>
               </TableCell>
             </TableRow>
@@ -466,7 +466,7 @@ const QcHisTable = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ padding: "40px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={9} align="center" sx={{ padding: "40px", fontSize: "16px", color: "#6B7489" }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                     <InventoryIcon sx={{ fontSize: 40, color: '#bdbdbd' }} />
                     <Typography>ไม่มีข้อมูลประวัติการตรวจสอบ</Typography>

@@ -49,16 +49,16 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'รถเข็นว่าง (ห้องเย็น)': return '#787878';
-      case 'มีวัตถุดิบ': return '#007BFF';
+      case 'รถเข็นว่าง (ห้องเย็น)': return '#6B7489';
+      case 'มีวัตถุดิบ': return '#1552F0';
       case 'รอบรรจุจัดส่ง': return '#ff9800'; // Orange color for packing trolleys
       default: return '#26c200';
     }
   };
 
   const Row = ({ row, index }) => {
-    const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
-    const textColor = '#787878';
+    const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
+    const textColor = '#6B7489';
 
     return (
       <>
@@ -69,9 +69,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
-              borderLeft: "1px solid #e0e0e0",
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
+              borderLeft: "1px solid #E3E8F2",
               borderTopLeftRadius: "8px",
               borderBottomLeftRadius: "8px",
               fontSize: '14px',
@@ -88,8 +88,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -113,8 +113,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -129,8 +129,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -146,8 +146,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -163,8 +163,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -179,8 +179,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -196,8 +196,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -213,8 +213,8 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
               fontSize: '14px',
               height: '40px',
@@ -230,10 +230,10 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
           <TableCell
             align="center"
             style={{
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               borderLeft: "1px solid #f2f2f2",
-              borderRight: "1px solid #e0e0e0",
+              borderRight: "1px solid #E3E8F2",
               borderTopRightRadius: "8px",
               borderBottomRightRadius: "8px",
               fontSize: '14px',
@@ -247,7 +247,7 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               onClick={() => handleOpenEditModal(row)}  // แก้จาก handleEdit(row) เป็น handleOpenEditModal(row)
               size="small"
               sx={{
-                color: '#007BFF',
+                color: '#1552F0',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 123, 255, 0.1)',
                 }
@@ -278,7 +278,7 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
         paddingY: 1,
         margin: '5px 5px'
       }}>
-        <Typography variant="h6" sx={{ color: '#787878', fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ color: '#6B7489', fontWeight: 'bold' }}>
           ข้อมูลรถเข็น
         </Typography>
 
@@ -288,12 +288,12 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
             <Chip
               label={`รถเข็นว่าง: ${data?.summary?.totalEmpty || 0}`}
               size="small"
-              style={{ backgroundColor: '#787878', color: 'white' }}
+              style={{ backgroundColor: '#6B7489', color: 'white' }}
             />
             <Chip
               label={`รถเข็นมีวัตถุดิบ: ${data?.summary?.totalOccupied || 0}`}
               size="small"
-              style={{ backgroundColor: '#007BFF', color: 'white' }}
+              style={{ backgroundColor: '#1552F0', color: 'white' }}
             />
             <Chip
               label={`รถเข็นรอจัดส่ง: ${data?.summary?.totalPacking || 0}`}
@@ -330,7 +330,7 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -354,10 +354,10 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopLeftRadius: "8px",
                   borderBottomLeftRadius: "8px",
-                  border: "1px solid #e0e0e0",
+                  border: "1px solid #E3E8F2",
                   fontSize: '12px',
                   padding: '5px',
                   width: "150px"
@@ -369,9 +369,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   borderLeft: "1px solid #f2f2f2",
                   fontSize: '12px',
@@ -385,9 +385,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -399,9 +399,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -413,9 +413,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -428,9 +428,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -442,9 +442,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -456,9 +456,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -472,9 +472,9 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   padding: '5px',
@@ -488,12 +488,12 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
                   fontSize: '12px',
                   padding: '5px',
                   minWidth: "100px"
@@ -516,7 +516,7 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
                 <TableCell
                   colSpan={10}
                   align="center"
-                  sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}
+                  sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}
                 >
                   ไม่มีข้อมูลรถเข็นในขณะนี้
                 </TableCell>
@@ -531,7 +531,7 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}

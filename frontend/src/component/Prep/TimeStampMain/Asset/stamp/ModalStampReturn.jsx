@@ -37,8 +37,8 @@ const ModalAlert = ({ open, onClose }) => (
         บันทึกข้อมูลเรียบร้อยแล้ว
       </Typography>
       <Button onClick={onClose}
-        sx={{ bgcolor: "#4aaaec", color: "#fff", px: 4, py: 1.5, borderRadius: 1,
-          "&:hover": { bgcolor: "#2196f3" } }}>
+        sx={{ bgcolor: "#1552F0", color: "#fff", px: 4, py: 1.5, borderRadius: 1,
+          "&:hover": { bgcolor: "#1552F0" } }}>
         ปิด
       </Button>
     </Box>
@@ -218,7 +218,7 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
               startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
               onClick={handleConfirm}
               disabled={isLoading}
-              sx={{ bgcolor: "#4aaaec", "&:hover": { bgcolor: "#2196f3" } }}
+              sx={{ bgcolor: "#1552F0", "&:hover": { bgcolor: "#1552F0" } }}
             >
               {isLoading ? "กำลังบันทึก..." : "ยืนยัน"}
             </Button>

@@ -180,7 +180,7 @@ const QcCheck = ({
     <>
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: 18, color: "#787878", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: 18, color: "#6B7489", mb: 2 }}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -365,7 +365,7 @@ const QcCheck = ({
               <Stack sx={{ border: "1px solid #e3e3e3", borderRadius: 2, p: 2 }}>
 
                 <Typography fontWeight={500} color="rgba(0, 0, 0, 0.6)">
-                  เตรียมงานให้กะ: <span style={{ color: "#1976d2" }}>{prepare_mor_night}</span>
+                  เตรียมงานให้กะ: <span style={{ color: "#1552F0" }}>{prepare_mor_night}</span>
                 </Typography>
 
               </Stack>
@@ -405,7 +405,7 @@ const QcCheck = ({
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              sx={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={handleClose}
             >
               ยกเลิก
@@ -413,7 +413,7 @@ const QcCheck = ({
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              sx={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleConfirm}
             >
               ยืนยัน
@@ -934,7 +934,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         maxWidth="sm"
       >
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#787878", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
             กรุณาตรวจสอบ
           </Typography>
 
@@ -1279,7 +1279,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   variant={shiftPreparation === "DS" ? "contained" : "outlined"}
                   onClick={() => handleShiftSelection("DS")}
                   sx={{
-                    bgcolor: shiftPreparation === "DS" ? "#41a2e6" : "transparent",
+                    bgcolor: shiftPreparation === "DS" ? "#1552F0" : "transparent",
                     '&:hover': {
                       bgcolor: shiftPreparation === "DS" ? "#3b94d3" : "rgba(65, 162, 230, 0.08)"
                     }
@@ -1291,7 +1291,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   variant={shiftPreparation === "NS" ? "contained" : "outlined"}
                   onClick={() => handleShiftSelection("NS")}
                   sx={{
-                    bgcolor: shiftPreparation === "NS" ? "#41a2e6" : "transparent",
+                    bgcolor: shiftPreparation === "NS" ? "#1552F0" : "transparent",
                     '&:hover': {
                       bgcolor: shiftPreparation === "NS" ? "#3b94d3" : "rgba(65, 162, 230, 0.08)"
                     }
@@ -1377,7 +1377,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                sx={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={() => {
                   resetForm();
                   onClose();
@@ -1388,7 +1388,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Button
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
-                sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+                sx={{ backgroundColor: "#1552F0", color: "#fff" }}
                 onClick={handleConfirm}
               >
                 ยืนยัน

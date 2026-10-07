@@ -14,15 +14,15 @@ const kv = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160p
 const kvLabel = { color: '#9CA3AF' };
 const kvValue = { color: '#111827', fontWeight: 600 };
 const miniTable = { width: '100%', borderCollapse: 'collapse', fontSize: 12 };
-const miniTh = { textAlign: 'left', padding: '6px 8px', background: '#F9FAFB', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB', whiteSpace: 'nowrap' };
+const miniTh = { textAlign: 'left', padding: '6px 8px', background: '#F5F8FF', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB', whiteSpace: 'nowrap' };
 const miniTd = { padding: '6px 8px', borderBottom: '0.5px solid #F3F4F6', whiteSpace: 'nowrap' };
 const badge = (bg, color) => ({ fontSize: 11, background: bg, color, padding: '2px 8px', borderRadius: 20, display: 'inline-block' });
 const btnExport = { fontSize: 12, padding: '6px 14px', border: '0.5px solid #D1D5DB', borderRadius: 8, cursor: 'pointer', background: '#fff', color: '#374151', display: 'inline-flex', alignItems: 'center', gap: 6 };
 const tabBtn = (active) => ({
   fontSize: 12.5, padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 600,
-  border: active ? '1px solid #3B82F6' : '0.5px solid #D1D5DB',
-  background: active ? '#EFF6FF' : '#fff',
-  color: active ? '#1D4ED8' : '#6B7280',
+  border: active ? '1px solid #1552F0' : '0.5px solid #D1D5DB',
+  background: active ? '#EAF0FF' : '#fff',
+  color: active ? '#0F3FC4' : '#6B7280',
 });
 
 // ── Datetime display helper ─────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function MatBatchSection({ data }) {
     if (!decode) return null;
     return Object.entries(decode.digits_by_type).map(([typeCode, rows]) => (
       <div key={typeCode} style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#1D4ED8', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0F3FC4', marginBottom: 4 }}>
           Batch Structure: {typeCode}
         </div>
         <table style={miniTable}>
@@ -108,7 +108,7 @@ function MatBatchSection({ data }) {
                     : r.date_decode
                       ? (
                         r.date_decode.month
-                          ? <span style={badge('#EFF6FF', '#1D4ED8')}>
+                          ? <span style={badge('#EAF0FF', '#0F3FC4')}>
                               เดือน {r.date_decode.month.month_th} ({r.date_decode.month.month_en})
                               {r.date_decode.day_candidates?.length > 0 &&
                                 ` / วันที่ ${r.date_decode.day_candidates.map(d => d.day_number).join(' หรือ ')}`}
@@ -581,7 +581,7 @@ const TracebackModal = ({ row, onClose }) => {
       onClick={onClose}
     >
       <div
-        style={{ background: '#F9FAFB', borderRadius: 20, width: '100%', maxWidth: 1100, maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
+        style={{ background: '#F5F8FF', borderRadius: 20, width: '100%', maxWidth: 1100, maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* header */}

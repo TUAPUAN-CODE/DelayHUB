@@ -44,7 +44,7 @@ const SlotModal = ({ slot, onClose, onConfirm }) => {
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={onClose}
-            sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            sx={{ backgroundColor: "#E5484D", color: "#fff" }}
           >
             ยกเลิก
           </Button>
@@ -53,7 +53,7 @@ const SlotModal = ({ slot, onClose, onConfirm }) => {
             variant="contained"
             startIcon={<CheckCircleIcon />}
             onClick={() => onConfirm(slot)}
-            sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            sx={{ backgroundColor: "#1552F0", color: "#fff" }}
           >
             ยืนยัน
           </Button>

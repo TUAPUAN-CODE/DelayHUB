@@ -1,16 +1,11 @@
 import React, { useState, lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import RFIDSlipPrintService from "./component/ColdStorage/CheckOutWithRFID/Asset/RFIDSlipPrintService.jsx";
 
-// MUI Theme
-const theme = createTheme({
-  typography: {
-    fontFamily: "'Prompt', sans-serif",
-  },
-});
+import theme from "./theme/dochubTheme";
 
 // Lazy-loaded components (ใส่ .jsx ให้ครบ)
 const AppSup = lazy(() => import("./component/Supervisor/AppSup.jsx"));

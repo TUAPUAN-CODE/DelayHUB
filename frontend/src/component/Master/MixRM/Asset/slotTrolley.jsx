@@ -299,7 +299,7 @@ const Slottrolley = ({ onClose }) => {
                     className="bg-white rounded-lg shadow-lg w-[1200px] h-[600px] overflow-hidden flex flex-col"
                 >
                     {/* Header */}
-                    <AppBar position="static" sx={{ backgroundColor: "#4e73df" }}>
+                    <AppBar position="static" sx={{ backgroundColor: "#1552F0" }}>
                         <Toolbar sx={{ minHeight: "50px", px: 2 }}>
                             <Box sx={{ display: "flex", alignItems: "center" }}>
                                 <WarehouseIcon sx={{ mr: 1 }} />
@@ -323,7 +323,7 @@ const Slottrolley = ({ onClose }) => {
                     </AppBar>
 
                     {/* Production Plan Selection */}
-                    <Box sx={{ p: 2, backgroundColor: "#f8f9fc", borderBottom: "1px solid #e3e6f0" }}>
+                    <Box sx={{ p: 2, backgroundColor: "#F5F8FF", borderBottom: "1px solid #e3e6f0" }}>
                         <Autocomplete
                             value={selectedPlan}
                             options={productionPlans}
@@ -384,7 +384,7 @@ const Slottrolley = ({ onClose }) => {
                             display: "flex",
                             justifyContent: "flex-end",
                             gap: 2,
-                            backgroundColor: "#f8f9fc",
+                            backgroundColor: "#F5F8FF",
                             borderTop: "1px solid #e3e6f0",
                         }}
                     >
@@ -395,7 +395,7 @@ const Slottrolley = ({ onClose }) => {
                             onClick={handleMixButtonClick}
                             disabled={isSubmitting || isLoading || basketItems.length === 0 || !selectedPlan}
                             sx={{
-                                backgroundColor: "#4e73df",
+                                backgroundColor: "#1552F0",
                                 '&:hover': { backgroundColor: "#2e59d9" },
                                 borderRadius: 2,
                             }}
@@ -407,8 +407,8 @@ const Slottrolley = ({ onClose }) => {
                             variant="outlined"
                             startIcon={<CancelIcon />}
                             sx={{
-                                color: "#E74A3B",
-                                borderColor: "#E74A3B",
+                                color: "#E5484D",
+                                borderColor: "#E5484D",
                                 "&:hover": {
                                     backgroundColor: "#fde7e9",
                                     borderColor: "#d52a1a"
@@ -430,9 +430,9 @@ const Slottrolley = ({ onClose }) => {
                         aria-describedby="confirmation-dialog-description"
                         maxWidth="md"
                     >
-                        <DialogTitle id="confirmation-dialog-title" sx={{ backgroundColor: "#f8f9fc", borderBottom: "1px solid #e3e6f0" }}>
+                        <DialogTitle id="confirmation-dialog-title" sx={{ backgroundColor: "#F5F8FF", borderBottom: "1px solid #e3e6f0" }}>
                             <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <MixIcon sx={{ mr: 1, color: "#4e73df" }} />
+                                <MixIcon sx={{ mr: 1, color: "#1552F0" }} />
                                 <Typography variant="h6">
                                     ยืนยันการผสมวัตถุดิบ
                                 </Typography>
@@ -461,7 +461,7 @@ const Slottrolley = ({ onClose }) => {
 
                             <TableContainer component={Paper} variant="outlined">
                                 <Table size="small">
-                                    <TableHead sx={{ backgroundColor: "#f8f9fc" }}>
+                                    <TableHead sx={{ backgroundColor: "#F5F8FF" }}>
                                         <TableRow>
                                             <TableCell>ลำดับ</TableCell>
                                             <TableCell>รหัสวัตถุดิบ</TableCell>
@@ -482,7 +482,7 @@ const Slottrolley = ({ onClose }) => {
                                                 <TableCell align="right">{weights[item.mapping_id].toFixed(2)}</TableCell>
                                             </TableRow>
                                         ))}
-                                        <TableRow sx={{ backgroundColor: "#f8f9fc" }}>
+                                        <TableRow sx={{ backgroundColor: "#F5F8FF" }}>
                                             <TableCell colSpan={4} align="right" sx={{ fontWeight: "none" }}>
                                                 น้ำหนักรวม:
                                             </TableCell>
@@ -494,13 +494,13 @@ const Slottrolley = ({ onClose }) => {
                                 </Table>
                             </TableContainer>
                         </DialogContent>
-                        <DialogActions sx={{ p: 2, backgroundColor: "#f8f9fc", borderTop: "1px solid #e3e6f0" }}>
+                        <DialogActions sx={{ p: 2, backgroundColor: "#F5F8FF", borderTop: "1px solid #e3e6f0" }}>
                             <Button
                                 onClick={handleCancelConfirmation}
                                 sx={{
                                     color: "#858796",
                                     "&:hover": {
-                                        backgroundColor: "#f8f9fc"
+                                        backgroundColor: "#F5F8FF"
                                     }
                                 }}
                             >
@@ -510,7 +510,7 @@ const Slottrolley = ({ onClose }) => {
                                 onClick={handleConfirmMix}
                                 variant="contained"
                                 sx={{
-                                    backgroundColor: "#4e73df",
+                                    backgroundColor: "#1552F0",
                                     '&:hover': { backgroundColor: "#2e59d9" },
                                 }}
                             >

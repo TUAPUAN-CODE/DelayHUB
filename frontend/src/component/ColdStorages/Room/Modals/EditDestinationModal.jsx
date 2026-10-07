@@ -79,12 +79,12 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
       }}
     >
       <DialogContent>
-        <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+        <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
           กรุณาตรวจสอบข้อมูลก่อนทำรายการ
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f5f5f5', mb: 2, borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, backgroundColor: '#F5F8FF', mb: 2, borderRadius: 2 }}>
           <Typography variant="subtitle1" gutterBottom>ข้อมูลวัตถุดิบ</Typography>
           <Stack spacing={1} sx={{ pl: 2 }}>
             <Typography color="rgba(0, 0, 0, 0.6)">Material: {material}</Typography>
@@ -98,7 +98,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
             <Paper
               elevation={0}
-              sx={{ p: 1, backgroundColor: '#f0f7ff', flex: 1, borderRadius: 1, textAlign: 'center' }}
+              sx={{ p: 1, backgroundColor: '#F5F8FF', flex: 1, borderRadius: 1, textAlign: 'center' }}
             >
               <Typography variant="body2" color="text.secondary">จาก</Typography>
               <Typography fontWeight="medium">{currentProduction || 'ไม่มีแผนการผลิต'}</Typography>
@@ -136,7 +136,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
           <Button
             variant="contained"
             startIcon={<CancelIcon />}
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             onClick={onClose}
           >
             ยกเลิก
@@ -144,7 +144,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
           <Button
             variant="contained"
             startIcon={<CheckCircleIcon />}
-            style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            style={{ backgroundColor: "#1552F0", color: "#fff" }}
             onClick={handleConfirm}
           >
             ยืนยัน
@@ -362,7 +362,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
 
           <Stack spacing={2}>
             {selectedRow && (
-              <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ p: 2, backgroundColor: '#F5F8FF', borderRadius: 2 }}>
                 <Typography variant="subtitle1" gutterBottom>ข้อมูลวัตถุดิบ</Typography>
                 <Stack spacing={1} sx={{ pl: 2 }}>
                   <Typography color="rgba(0, 0, 0, 0.6)">Material: {selectedRow.mat}</Typography>
@@ -378,7 +378,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
               elevation={0}
               sx={{
                 p: 2,
-                backgroundColor: '#f0f7ff',
+                backgroundColor: '#F5F8FF',
                 borderRadius: 2,
                 border: '1px solid #d0e4f8'
               }}
@@ -431,7 +431,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
                 p: 2,
                 border: '1px solid #e1f5fe',
                 borderRadius: 2,
-                backgroundColor: '#f9f9f9'
+                backgroundColor: '#F5F8FF'
               }}>
                 <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' } }}>
                   <Autocomplete
@@ -467,7 +467,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
             )}
 
             {!editLimitReached && !showDropdowns && selectedPlan && (
-              <Box sx={{ p: 2, border: '1px solid #e1f5fe', borderRadius: 2, backgroundColor: '#f9f9f9' }}>
+              <Box sx={{ p: 2, border: '1px solid #e1f5fe', borderRadius: 2, backgroundColor: '#F5F8FF' }}>
                 <Typography>
                   {selectedPlan.code} ({selectedPlan.doc_no}) - {selectedLine?.line_name || 'ยังไม่ได้เลือกไลน์'}
                 </Typography>
@@ -562,7 +562,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
           <Button
             variant="contained"
             startIcon={<CancelIcon />}
-            style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            style={{ backgroundColor: "#E5484D", color: "#fff" }}
             onClick={onClose}
           >
             ยกเลิก
@@ -572,7 +572,7 @@ const EditProductionModal = ({ open, handleClose, selectedRow, onSuccess }) => {
             variant="contained"
             startIcon={<CheckCircleIcon />}
             style={{
-              backgroundColor: editLimitReached || !selectedPlan || !selectedLine || !approver.trim() ? "#A0A0A0" : "#41a2e6",
+              backgroundColor: editLimitReached || !selectedPlan || !selectedLine || !approver.trim() ? "#A0A0A0" : "#1552F0",
               color: "#fff"
             }}
             onClick={handleConfirm}

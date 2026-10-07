@@ -38,13 +38,13 @@ const Chip = ({ label, bg, color }) => (
   <span style={{ fontSize: 11, background: bg, color, padding: '2px 9px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 500 }}>{label}</span>
 );
 const Dash = () => <span style={{ color: '#D1D5DB' }}>—</span>;
-const th = { padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', background: '#F9FAFB', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' };
+const th = { padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', background: '#F5F8FF', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' };
 const td = { padding: '8px 12px', borderBottom: '0.5px solid #F3F4F6', fontSize: 12.5, color: '#111827', whiteSpace: 'nowrap' };
 const cardBox = { border: '0.5px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', marginBottom: 16 };
 const sectionTitle = { fontSize: 15, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 };
 
 const KpiCard = ({ label, value, color, icon }) => (
-  <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '12px 16px', border: '0.5px solid #F3F4F6' }}>
+  <div style={{ background: '#F5F8FF', borderRadius: 10, padding: '12px 16px', border: '0.5px solid #F3F4F6' }}>
     <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{icon} {label}</div>
     <div style={{ fontSize: 20, fontWeight: 700, color: color || '#111827' }}>{value}</div>
   </div>
@@ -52,7 +52,7 @@ const KpiCard = ({ label, value, color, icon }) => (
 
 const SortIcon = ({ field, sortField, sortDir }) => {
   if (sortField !== field) return <span style={{ opacity: 0.25, marginLeft: 4, fontSize: 10 }}>↕</span>;
-  return <span style={{ marginLeft: 4, fontSize: 10, color: '#3B82F6' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  return <span style={{ marginLeft: 4, fontSize: 10, color: '#1552F0' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
 };
 
 // ── Decoded batch code chip block ───────────────────────────────────────
@@ -67,7 +67,7 @@ const DecodedBlock = ({ decoded }) => {
       ) : (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: batch ? 8 : 0 }}>
-            <Chip label={`ชนิด: ${mat.decoded.material_type}`} bg="#EFF6FF" color="#1D4ED8" />
+            <Chip label={`ชนิด: ${mat.decoded.material_type}`} bg="#EAF0FF" color="#0F3FC4" />
             {Object.entries(mat.decoded).filter(([k]) => k !== 'material_type').map(([k, v]) => (
               <Chip key={k} label={`${k}: ${v}`} bg="#F1F5F9" color="#334155" />
             ))}
@@ -100,7 +100,7 @@ const SummaryTab = ({ data }) => {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 20 }}>
-        <KpiCard icon="📋" label="รายการวัตถุดิบ" value={summary.material_count} color="#3B82F6" />
+        <KpiCard icon="📋" label="รายการวัตถุดิบ" value={summary.material_count} color="#1552F0" />
         <KpiCard icon="⚖️" label="น้ำหนักรวม (kg)" value={fmtNum(summary.total_weight_rm, 1)} color="#10B981" />
         <KpiCard icon="⚠️" label="ดีเลย์รุนแรง (>8ชม.)" value={summary.severe_delay_count} color={summary.severe_delay_count > 0 ? '#DC2626' : '#111827'} />
         <KpiCard icon="⏱" label="ดีเลย์ (2-8ชม.)" value={summary.warn_delay_count} color={summary.warn_delay_count > 0 ? '#D97706' : '#111827'} />
@@ -124,7 +124,7 @@ const SummaryTab = ({ data }) => {
           if (vals.length === 0) return null;
           return (
             <div key={i} style={{ display: 'flex', gap: 14, marginBottom: i === events.length - 1 ? 0 : 12, alignItems: 'center' }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1552F0', flexShrink: 0 }} />
               <div style={{ fontSize: 13, color: '#374151', minWidth: 160 }}>{ev.label}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{fmtDisplay(vals[0])}{vals.length > 1 ? ` → ${fmtDisplay(vals[vals.length - 1])}` : ''}</div>
             </div>
@@ -293,7 +293,7 @@ const TracebackDetailPanel = ({ docNo, code, onClose }) => {
         onClick={e => e.stopPropagation()}
       >
         {/* header */}
-        <div style={{ padding: '18px 26px', borderBottom: '1px solid #E5E7EB', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ padding: '18px 26px', borderBottom: '1px solid #E5E7EB', background: '#F5F8FF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>📄</span> Traceback: {docNo} {code && `(${code})`}
@@ -310,8 +310,8 @@ const TracebackDetailPanel = ({ docNo, code, onClose }) => {
               onClick={() => setTab(t.key)}
               style={{
                 padding: '10px 18px', fontSize: 13, fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer',
-                color: tab === t.key ? '#1D4ED8' : '#6B7280',
-                borderBottom: tab === t.key ? '2px solid #3B82F6' : '2px solid transparent',
+                color: tab === t.key ? '#0F3FC4' : '#6B7280',
+                borderBottom: tab === t.key ? '2px solid #1552F0' : '2px solid transparent',
               }}
             >{t.label}</button>
           ))}
@@ -321,7 +321,7 @@ const TracebackDetailPanel = ({ docNo, code, onClose }) => {
         <div style={{ overflowY: 'auto', padding: '22px 26px', flex: 1, background: '#fff' }}>
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 160, gap: 12 }}>
-              <div style={{ width: 30, height: 30, border: '3px solid #E5E7EB', borderTop: '3px solid #3B82F6', borderRadius: '50%', animation: 'tbSpin 0.7s linear infinite' }} />
+              <div style={{ width: 30, height: 30, border: '3px solid #E5E7EB', borderTop: '3px solid #1552F0', borderRadius: '50%', animation: 'tbSpin 0.7s linear infinite' }} />
               <span style={{ color: '#6B7280', fontSize: 14 }}>กำลังโหลดข้อมูล...</span>
             </div>
           )}

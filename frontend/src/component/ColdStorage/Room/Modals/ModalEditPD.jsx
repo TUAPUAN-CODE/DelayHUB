@@ -176,7 +176,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
         }}
       >
         {/* AppBar Header */}
-        <AppBar position="relative" sx={{ bgcolor: '#4e73df' }}>
+        <AppBar position="relative" sx={{ bgcolor: '#1552F0' }}>
           <Toolbar sx={{ minHeight: '64px', px: 2 }}>
             <InventoryIcon sx={{ mr: 1 }} />
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -234,12 +234,12 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                   p: 2,
                   height: '100%',
                   borderRadius: '10px',
-                  border: '1px solid #e0e0e0'
+                  border: '1px solid #E3E8F2'
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <InfoIcon sx={{ mr: 1, color: '#4e73df' }} />
-                  <Typography variant="h6" sx={{ fontSize: '18px', color: '#4e73df', fontWeight: 600 }}>
+                  <InfoIcon sx={{ mr: 1, color: '#1552F0' }} />
+                  <Typography variant="h6" sx={{ fontSize: '18px', color: '#1552F0', fontWeight: 600 }}>
                     ข้อมูลวัตถุดิบ (รถเข็นต้นทาง)
                   </Typography>
                 </Box>
@@ -386,12 +386,12 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                   p: 2,
                   height: '100%',
                   borderRadius: '10px',
-                  border: '1px solid #e0e0e0'
+                  border: '1px solid #E3E8F2'
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <CategoryIcon sx={{ mr: 1, color: '#4e73df' }} />
-                  <Typography variant="h6" sx={{ fontSize: '18px', color: '#4e73df', fontWeight: 600 }}>
+                  <CategoryIcon sx={{ mr: 1, color: '#1552F0' }} />
+                  <Typography variant="h6" sx={{ fontSize: '18px', color: '#1552F0', fontWeight: 600 }}>
                     เลือกประเภทการย้ายวัตถุดิบ
                   </Typography>
                 </Box>
@@ -404,7 +404,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                   <RadioGroup row name="type" value={TypeColdMove} onChange={handleTypeColdMove}>
                     <FormControlLabel
                       value="ย้ายทั้งรายการ"
-                      control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                      control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                       label={
                         <Tooltip title={`จะย้ายรายการนี้ทั้งหมด ${itemWeight} กก.`} arrow placement="top">
                           <Typography>ทั้งรายการ</Typography>
@@ -414,7 +414,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                     />
                     <FormControlLabel
                       value="ย้ายบางส่วน"
-                      control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                      control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                       label="บางส่วน"
                       sx={{ minWidth: '120px' }}
                     />
@@ -465,7 +465,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                       alignItems: 'center'
                     }}
                   >
-                    <InfoIcon sx={{ color: '#2196f3', mr: 1 }} />
+                    <InfoIcon sx={{ color: '#1552F0', mr: 1 }} />
                     <Typography variant="body2" color="primary">
                       จะย้ายรายการนี้ทั้งหมด {itemWeight} กก.
                     </Typography>
@@ -481,19 +481,19 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                       <RadioGroup row name="coldroom-1" value={ColdMove} onChange={handleColdMove}>
                         <FormControlLabel
                           value="CSR3"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="CSR3"
                           sx={{ minWidth: '100px' }}
                         />
                         <FormControlLabel
                           value="4C"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="4C"
                           sx={{ minWidth: '100px' }}
                         />
                         <FormControlLabel
                           value="Chill 2"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="Chill 2"
                           sx={{ minWidth: '100px' }}
                         />
@@ -503,19 +503,19 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                       <RadioGroup row name="coldroom-2" value={ColdMove} onChange={handleColdMove}>
                         <FormControlLabel
                           value="Chill 4"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="Chill 4"
                           sx={{ minWidth: '100px' }}
                         />
                         <FormControlLabel
                           value="Chill 5"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="Chill 5"
                           sx={{ minWidth: '100px' }}
                         />
                         <FormControlLabel
                           value="Chill 6"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="Chill 6"
                           sx={{ minWidth: '100px' }}
                         />
@@ -525,7 +525,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                       <RadioGroup row name="coldroom-3" value={ColdMove} onChange={handleColdMove}>
                         <FormControlLabel
                           value="Ante"
-                          control={<Radio sx={{ color: '#4e73df', '&.Mui-checked': { color: '#4e73df' } }} />}
+                          control={<Radio sx={{ color: '#1552F0', '&.Mui-checked': { color: '#1552F0' } }} />}
                           label="Ante"
                           sx={{ minWidth: '100px' }}
                         />
@@ -538,14 +538,14 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
           </Grid>
         </DialogContent>
 
-        <Box sx={{ px: 3, py: 2, borderTop: '1px solid #e0e0e0', bgcolor: '#f8f9fc' }}>
+        <Box sx={{ px: 3, py: 2, borderTop: '1px solid #E3E8F2', bgcolor: '#F5F8FF' }}>
           <Grid container spacing={2} justifyContent="flex-end">
             <Grid item>
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
                 sx={{
-                  bgcolor: "#E74A3B",
+                  bgcolor: "#E5484D",
                   color: "#fff",
                   '&:hover': {
                     bgcolor: "#d52a1a",
@@ -564,7 +564,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, slotInfo }) => {
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
                 sx={{
-                  bgcolor: "#41a2e6",
+                  bgcolor: "#1552F0",
                   color: "#fff",
                   '&:hover': {
                     bgcolor: "#2a8dce",

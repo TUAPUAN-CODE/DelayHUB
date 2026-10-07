@@ -276,7 +276,7 @@ const ParentComponent = () => {
         style={{
           display: 'flex', flexWrap: 'wrap', gap: '12px',
           alignItems: 'flex-end', marginBottom: '16px',
-          padding: '12px', border: '1px solid #e0e0e0', borderRadius: '8px',
+          padding: '12px', border: '1px solid #E3E8F2', borderRadius: '8px',
         }}
       >
         {/* สถานะ */}
@@ -351,7 +351,7 @@ const ParentComponent = () => {
         style={{
           display: 'flex', flexWrap: 'wrap', gap: '16px',
           alignItems: 'flex-end', marginBottom: '16px',
-          padding: '12px', border: '1px solid #e0e0e0', borderRadius: '8px',
+          padding: '12px', border: '1px solid #E3E8F2', borderRadius: '8px',
         }}
       >
         <HourDatePicker
@@ -389,7 +389,7 @@ const ParentComponent = () => {
       {/* ── Table ── */}
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 150px)' }}>
-          <p style={{ color: '#787878', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
+          <p style={{ color: '#6B7489', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
         </div>
       ) : (
         <TableMainPrep

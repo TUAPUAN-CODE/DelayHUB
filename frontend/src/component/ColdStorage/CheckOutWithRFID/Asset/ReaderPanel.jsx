@@ -72,7 +72,7 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
         flexDirection: 'column',
         alignItems: 'center',
         padding: 2,
-        border: lastResult ? '2px solid #4aaaec' : '1px solid #e0e0e0',
+        border: lastResult ? '2px solid #1552F0' : '1px solid #E3E8F2',
         backgroundColor: lastResult ? '#eaf5ff' : '#ffffff',
         transition: 'all 0.2s ease-in-out',
         position: 'relative',
@@ -99,8 +99,8 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
         size="small"
         label={config.location_name}
         sx={{
-          backgroundColor: '#e3f2fd',
-          color: '#1565c0',
+          backgroundColor: '#EAF0FF',
+          color: '#0F3FC4',
           fontSize: '11px',
           fontWeight: 'bold',
           height: '22px',
@@ -243,7 +243,7 @@ const PasswordPromptDialog = ({ open, onClose, onVerify, error, hint }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth disableRestoreFocus>
-      <DialogTitle sx={{ fontWeight: 'bold', color: '#4aaaec' }}>
+      <DialogTitle sx={{ fontWeight: 'bold', color: '#1552F0' }}>
         ยืนยันสิทธิ์การตั้งค่า
       </DialogTitle>
       <DialogContent>
@@ -266,7 +266,7 @@ const PasswordPromptDialog = ({ open, onClose, onVerify, error, hint }) => {
         <Button
           onClick={() => handleSubmit()}
           variant="contained"
-          sx={{ backgroundColor: '#4aaaec', '&:hover': { backgroundColor: '#3a8ac0' } }}
+          sx={{ backgroundColor: '#1552F0', '&:hover': { backgroundColor: '#3a8ac0' } }}
         >
           ยืนยัน
         </Button>
@@ -296,7 +296,7 @@ const ReaderFocusView = ({ config, online, lastResult, isPrinting, open, onClose
         <Chip
           label={config?.location_name}
           sx={{
-            backgroundColor: '#4aaaec',
+            backgroundColor: '#1552F0',
             color: '#fff',
             fontSize: '20px',
             fontWeight: 'bold',
@@ -336,7 +336,7 @@ const ReaderFocusView = ({ config, online, lastResult, isPrinting, open, onClose
             </Typography>
           ) : lastResult ? (
             <>
-              <Typography sx={{ fontSize: 46, fontWeight: 'bold', color: '#4aaaec' }}>
+              <Typography sx={{ fontSize: 46, fontWeight: 'bold', color: '#1552F0' }}>
                 🚚 รถเข็น: {lastResult.tro_id}
               </Typography>
               <Typography sx={{ fontSize: 26, color: '#666', marginTop: 1 }}>
@@ -356,7 +356,7 @@ const ReaderFocusView = ({ config, online, lastResult, isPrinting, open, onClose
           onClick={onClose}
           sx={{
             marginTop: 5,
-            backgroundColor: '#4aaaec',
+            backgroundColor: '#1552F0',
             '&:hover': { backgroundColor: '#3a8ac0' },
             fontSize: '20px',
             fontWeight: 'bold',
@@ -441,7 +441,7 @@ const ReaderSettingsModal = ({ open, onClose, config, mode = 'edit', suggestedRe
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth disableRestoreFocus>
-      <DialogTitle sx={{ fontWeight: 'bold', color: '#4aaaec' }}>
+      <DialogTitle sx={{ fontWeight: 'bold', color: '#1552F0' }}>
         {isCreate ? 'เพิ่มเครื่องอ่าน RFID ใหม่' : `ตั้งค่าเครื่องอ่าน RFID — ${config?.location_name}`}
       </DialogTitle>
       {!isCreate && (
@@ -578,7 +578,7 @@ const ReaderSettingsModal = ({ open, onClose, config, mode = 'edit', suggestedRe
               onClick={handleSave}
               variant="contained"
               disabled={saving}
-              sx={{ backgroundColor: '#4aaaec', '&:hover': { backgroundColor: '#3a8ac0' } }}
+              sx={{ backgroundColor: '#1552F0', '&:hover': { backgroundColor: '#3a8ac0' } }}
             >
               {saving ? 'กำลังบันทึก...' : (isCreate ? 'เพิ่มเครื่องอ่าน' : 'บันทึก')}
             </Button>
@@ -657,7 +657,7 @@ const ScanHistoryContent = ({ config }) => {
             onClick={handleBack}
           />
         )}
-        <Typography sx={{ fontWeight: 'bold', color: '#4aaaec' }}>
+        <Typography sx={{ fontWeight: 'bold', color: '#1552F0' }}>
           {view === 'detail'
             ? <>รถเข็น {selectedTroId}</>
             : <>ประวัติการสแกน — {config?.name}</>
@@ -695,11 +695,11 @@ const ScanHistoryContent = ({ config }) => {
                 <TableRow
                   key={s.tro_id}
                   hover
-                  sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#e3f2fd !important' } }}
+                  sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#EAF0FF !important' } }}
                   onClick={() => handleClickTro(s.tro_id)}
                 >
                   <TableCell>{i + 1}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#1552F0' }}>
                     {s.tro_id}
                   </TableCell>
                   <TableCell>{formatTime(s.latest_scan)}</TableCell>
@@ -963,7 +963,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
     <Box sx={{ padding: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h6" sx={{ color: '#4aaaec', fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ color: '#1552F0', fontWeight: 'bold' }}>
           แผงควบคุมเครื่องอ่าน RFID
         </Typography>
 
@@ -994,7 +994,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
             startIcon={<AddIcon />}
             onClick={handleOpenAddReader}
             sx={{
-              backgroundColor: '#4aaaec',
+              backgroundColor: '#1552F0',
               '&:hover': { backgroundColor: '#3a8ac0' },
               fontWeight: 'bold',
               textTransform: 'none',

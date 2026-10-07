@@ -55,7 +55,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, reques
     <>
       <Dialog open={open} onClose={(e, reason) => { if (reason !== 'backdropClick') onClose(); }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>กรุณาตรวจสอบข้อมูลก่อนทำรายการ</Typography>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>กรุณาตรวจสอบข้อมูลก่อนทำรายการ</Typography>
           <Typography variant="h6" style={{ fontSize: "18px", color: "#ff0000ff" }} mb={2}>ยืนยันการส่งวัตถุดิบให้ไลน์ : {from_line_name}</Typography>
           <Divider sx={{ mb: 2 }} />
           <Stack spacing={1}>
@@ -68,8 +68,8 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, reques
           </Stack>
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Button variant="contained" startIcon={<CancelIcon />} style={{ backgroundColor: "#E74A3B", color: "#fff" }} onClick={onClose}>ยกเลิก</Button>
-            <Button variant="contained" startIcon={<CheckCircleIcon />} style={{ backgroundColor: "#41a2e6", color: "#fff" }} onClick={handleConfirm}>ยืนยัน</Button>
+            <Button variant="contained" startIcon={<CancelIcon />} style={{ backgroundColor: "#E5484D", color: "#fff" }} onClick={onClose}>ยกเลิก</Button>
+            <Button variant="contained" startIcon={<CheckCircleIcon />} style={{ backgroundColor: "#1552F0", color: "#fff" }} onClick={handleConfirm}>ยืนยัน</Button>
           </Box>
         </DialogContent>
       </Dialog>
@@ -187,7 +187,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>กรุณาเลือกรถเข็น</Typography>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>กรุณาเลือกรถเข็น</Typography>
           {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
           <Stack spacing={2}>
             <Divider />
@@ -242,7 +242,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               </Button>
               <Button 
                 style={{ 
-                  backgroundColor: isFormValid() ? "#41a2e6" : "#A0A0A0",
+                  backgroundColor: isFormValid() ? "#1552F0" : "#A0A0A0",
                   color: "#fff" 
                 }} 
                 variant="contained" 

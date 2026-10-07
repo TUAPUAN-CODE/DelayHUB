@@ -104,14 +104,14 @@ const ModalAlert = ({ open, onClose }) => {
         <Button
           onClick={onClose}
           sx={{
-            backgroundColor: '#4aaaec',
+            backgroundColor: '#1552F0',
             color: 'white',
             mt: 3,
             paddingX: 4,
             paddingY: 1.5,
             borderRadius: 0,
             '&:hover': {
-              backgroundColor: '#4aaaec',
+              backgroundColor: '#1552F0',
             }
           }}
         >
@@ -312,7 +312,7 @@ const ConfirmProdModal = ({
 
           {/* แสดงรายการวัตถุดิบ Emulsion */}
           {selectedMaterials && selectedMaterials.length > 0 && (
-            <Box sx={{ mt: 2, p: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#f9f9f9' }}>
+            <Box sx={{ mt: 2, p: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#F5F8FF' }}>
               <Typography variant="h6" sx={{ mb: 1 }}>รายการวัตถุดิบ Emulsion:</Typography>
               <Box sx={{ maxHeight: '200px', overflow: 'auto' }}>
                 {selectedMaterials.map((matObj, idx) => (
@@ -786,7 +786,7 @@ const DataReviewSAP = ({ open, onClose, material, batch, emulsionweightTotal, hu
                       p: 2,
                       border: '1px solid #eee',
                       borderRadius: 1,
-                      backgroundColor: '#f9f9f9'
+                      backgroundColor: '#F5F8FF'
                     }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

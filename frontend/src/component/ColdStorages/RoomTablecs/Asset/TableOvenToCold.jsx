@@ -29,8 +29,8 @@ const CARD_DEFS = [
   { key: 'c6', label: 'ละลายวัตถุดิบรอบที่2\nเกิน 4 ชม.',                   color: '#E65100', bg: '#FFF3E0', check: r => r.start_defrost_date_two && r.end_defrost_date_two && diffHours(r.start_defrost_date_two, r.end_defrost_date_two) > 4 },
   { key: 'c7', label: 'ละลายเสร็จ(1)→ส่งออก\nเกิน 4 ชม.',      color: '#7B1FA2', bg: '#F3E5F5', check: r => r.end_defrost_date && r.withdraw_date && diffHours(r.end_defrost_date, r.withdraw_date) > 4 },
   { key: 'c8', label: 'ละลายเสร็จ(2)→ส่งออก\nเกิน 4 ชม.',      color: '#7B1FA2', bg: '#F3E5F5', check: r => r.end_defrost_date_two && r.withdraw_date_two && diffHours(r.end_defrost_date_two, r.withdraw_date_two) > 4 },
-  { key: 'c9', label: 'ห้องเย็น2ส่งออกวัตถุดิบ\nฝ่ายผลิตยังไม่ทำรายการรับเข้า',           color: '#1565C0', bg: '#E3F2FD', check: r => r.withdraw_date && !r.input_pd_date },
-  { key: 'c10',label: 'ห้องเย็น2ส่งออกวัตถุดิบรอบที่(2)\nฝ่ายผลิตยังไม่ทำรายการรับเข้า',           color: '#1565C0', bg: '#E3F2FD', check: r => r.withdraw_date_two && !r.input_pd_date_two },
+  { key: 'c9', label: 'ห้องเย็น2ส่งออกวัตถุดิบ\nฝ่ายผลิตยังไม่ทำรายการรับเข้า',           color: '#0F3FC4', bg: '#EAF0FF', check: r => r.withdraw_date && !r.input_pd_date },
+  { key: 'c10',label: 'ห้องเย็น2ส่งออกวัตถุดิบรอบที่(2)\nฝ่ายผลิตยังไม่ทำรายการรับเข้า',           color: '#0F3FC4', bg: '#EAF0FF', check: r => r.withdraw_date_two && !r.input_pd_date_two },
 ];
 
 // วันที่หลักของแต่ละการ์ด ใช้เป็น x-axis ในกราฟ
@@ -73,7 +73,7 @@ const MultiSelectDropdown = ({ label, options, selected, onChange }) => {
   const toggle = (opt) => onChange(selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt]);
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button onClick={() => setOpen(v => !v)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #bbb', background: selected.length > 0 ? '#e3f2fd' : '#fff', color: selected.length > 0 ? '#1565C0' : '#555', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+      <button onClick={() => setOpen(v => !v)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #bbb', background: selected.length > 0 ? '#EAF0FF' : '#fff', color: selected.length > 0 ? '#0F3FC4' : '#555', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
         <SearchIcon style={{ fontSize: '14px' }} />
         {label}{selected.length > 0 ? ` (${selected.length})` : ''}
         <span style={{ fontSize: '10px' }}>{open ? '▲' : '▼'}</span>
@@ -85,15 +85,15 @@ const MultiSelectDropdown = ({ label, options, selected, onChange }) => {
             {filtered.length === 0 && <div style={{ fontSize: '12px', color: '#999', padding: '4px' }}>ไม่พบรายการ</div>}
             {filtered.map(opt => (
               <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#333' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                onMouseEnter={e => e.currentTarget.style.background = '#F5F8FF'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} style={{ accentColor: '#1565C0' }} />
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} style={{ accentColor: '#0F3FC4' }} />
                 {String(opt)}
               </label>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '6px', paddingTop: '6px', borderTop: '1px solid #eee', marginTop: '4px' }}>
-            <button onClick={() => onChange(options)} style={{ flex: 1, padding: '4px', borderRadius: '6px', border: '1px solid #1565C0', color: '#1565C0', background: '#fff', cursor: 'pointer', fontSize: '11px' }}>เลือกทั้งหมด</button>
+            <button onClick={() => onChange(options)} style={{ flex: 1, padding: '4px', borderRadius: '6px', border: '1px solid #0F3FC4', color: '#0F3FC4', background: '#fff', cursor: 'pointer', fontSize: '11px' }}>เลือกทั้งหมด</button>
             <button onClick={() => { onChange([]); setSearch(''); }} style={{ flex: 1, padding: '4px', borderRadius: '6px', border: '1px solid #ccc', color: '#666', background: '#fff', cursor: 'pointer', fontSize: '11px' }}>ล้าง</button>
           </div>
         </div>
@@ -123,12 +123,12 @@ const getDefrostColor = (row) => {
   if (row.start_defrost_date && !row.end_defrost_date) return '#E65100';
   if (row.end_defrost_date && !row.withdraw_date) return '#7B1FA2';
   if (row.start_defrost_date && row.end_defrost_date && diffHours(row.start_defrost_date, row.end_defrost_date) > 4) return '#C62828';
-  return '#1565C0';
+  return '#0F3FC4';
 };
 
 const RowItem = ({ row, index }) => {
   const borderColor = getDefrostColor(row);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : 'hsl(210,100%,93%)';
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
   return (
     <>
       <TableRow><TableCell style={{ height: '4px', padding: 0, border: 'none' }} /></TableRow>
@@ -137,11 +137,11 @@ const RowItem = ({ row, index }) => {
           <TableCell key={col.id} align="center" style={{
             width: col.width, fontSize: '12px', height: '36px', lineHeight: '1.4',
             padding: '0px 6px', color: '#555', whiteSpace: 'nowrap',
-            borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
             borderLeft: i === 0 ? `5px solid ${borderColor}` : '1px solid #f2f2f2',
             borderTopLeftRadius: i === 0 ? '8px' : 0,
             borderBottomLeftRadius: i === 0 ? '8px' : 0,
-            borderRight: i === TABLE_COLS.length - 1 ? '1px solid #e0e0e0' : undefined,
+            borderRight: i === TABLE_COLS.length - 1 ? '1px solid #E3E8F2' : undefined,
             borderTopRightRadius: i === TABLE_COLS.length - 1 ? '8px' : 0,
             borderBottomRightRadius: i === TABLE_COLS.length - 1 ? '8px' : 0,
             backgroundColor,
@@ -320,7 +320,7 @@ const TableMainPrep = () => {
             </Typography>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3E8F2" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#555' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#555' }} width={32} />
                 <Tooltip
@@ -337,7 +337,7 @@ const TableMainPrep = () => {
         );
       })()}
 
-      <Divider sx={{ borderColor: '#e0e0e0' }} />
+      <Divider sx={{ borderColor: '#E3E8F2' }} />
 
       {/* ── Filter Bar ── */}
       <Box sx={{ px: 2, py: 1, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
@@ -376,7 +376,7 @@ const TableMainPrep = () => {
         />
 
         <Button variant="contained" size="small" onClick={handleSearch} disabled={loading}
-          sx={{ height: '36px', borderRadius: '8px', bgcolor: '#1565C0', '&:hover': { bgcolor: '#0d47a1' }, whiteSpace: 'nowrap' }}>
+          sx={{ height: '36px', borderRadius: '8px', bgcolor: '#0F3FC4', '&:hover': { bgcolor: '#0d47a1' }, whiteSpace: 'nowrap' }}>
           ค้นหา
         </Button>
         <Button variant="outlined" size="small" onClick={handleClearAll}
@@ -386,7 +386,7 @@ const TableMainPrep = () => {
       </Box>
 
       {/* ── Action Bar ── */}
-      <Box sx={{ px: 2, pb: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ px: 2, pb: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, borderBottom: '1px solid #E3E8F2' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Typography sx={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>🔃 เรียงตาม:</Typography>
           {[
@@ -395,7 +395,7 @@ const TableMainPrep = () => {
           ].map(({ field, label }) => (
             <button key={field}
               onClick={() => { sortField === field ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : (setSortField(field), setSortDir('asc')); }}
-              style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField === field ? '2px solid #1565C0' : '1px solid #ccc', backgroundColor: sortField === field ? '#E3F2FD' : '#fff', color: sortField === field ? '#1565C0' : '#555', fontWeight: sortField === field ? 700 : 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField === field ? '2px solid #0F3FC4' : '1px solid #ccc', backgroundColor: sortField === field ? '#EAF0FF' : '#fff', color: sortField === field ? '#0F3FC4' : '#555', fontWeight: sortField === field ? 700 : 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
               {label}
               {sortField === field ? (sortDir === 'asc' ? <FaSortAmountUp style={{ fontSize: '10px' }} /> : <FaSortAmountDown style={{ fontSize: '10px' }} />) : null}
             </button>
@@ -413,7 +413,7 @@ const TableMainPrep = () => {
 
         <Button variant="outlined" size="small" startIcon={<FileDownloadIcon />}
           onClick={e => setExportAnchor(e.currentTarget)}
-          sx={{ borderRadius: '8px', borderColor: '#1565C0', color: '#1565C0', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#e3f2fd' } }}>
+          sx={{ borderRadius: '8px', borderColor: '#0F3FC4', color: '#0F3FC4', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#EAF0FF' } }}>
           Export
         </Button>
         <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
@@ -432,10 +432,10 @@ const TableMainPrep = () => {
                 <TableRow sx={{ height: '36px' }}>
                   {TABLE_COLS.map((col, i) => (
                     <TableCell key={col.id} align="center" style={{
-                      backgroundColor: 'hsl(210,100%,60%)',
-                      borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0',
-                      borderLeft: i === 0 ? '1px solid #e0e0e0' : '1px solid #f2f2f2',
-                      borderRight: i === TABLE_COLS.length - 1 ? '1px solid #e0e0e0' : undefined,
+                      backgroundColor: '#1552F0',
+                      borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2',
+                      borderLeft: i === 0 ? '1px solid #E3E8F2' : '1px solid #f2f2f2',
+                      borderRight: i === TABLE_COLS.length - 1 ? '1px solid #E3E8F2' : undefined,
                       fontSize: '11px', padding: '4px', width: col.width,
                       borderTopLeftRadius: i === 0 ? '8px' : 0,
                       borderBottomLeftRadius: i === 0 ? '8px' : 0,
@@ -452,7 +452,7 @@ const TableMainPrep = () => {
                   ? paged.map((row, i) => <RowItem key={row.sap_re_id ?? i} row={row} index={i} />)
                   : (
                     <TableRow>
-                      <TableCell colSpan={TABLE_COLS.length} align="center" sx={{ py: 4, fontSize: '14px', color: '#787878' }}>
+                      <TableCell colSpan={TABLE_COLS.length} align="center" sx={{ py: 4, fontSize: '14px', color: '#6B7489' }}>
                         ไม่มีรายการ
                       </TableCell>
                     </TableRow>
@@ -465,7 +465,7 @@ const TableMainPrep = () => {
       </div>
 
       <TablePagination
-        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '12px', color: '#787878', padding: 0 } }}
+        sx={{ '& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar': { fontSize: '12px', color: '#6B7489', padding: 0 } }}
         rowsPerPageOptions={[300, 1000, 5000]} component="div"
         count={filteredRows.length} rowsPerPage={rowsPerPage} page={page}
         onPageChange={(_, p) => setPage(p)}

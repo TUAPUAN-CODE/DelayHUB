@@ -118,7 +118,7 @@ const Modal1 = ({ open, onClose, onNext }) => {
     <StyledModal open={open} onClose={handleClose}>
       <ModalContent>
         <CloseButton aria-label="close" onClick={handleClose}><IoClose /></CloseButton>
-        <Typography style={{ fontSize: "18px", color: "#787878" }} sx={{ textAlign: 'left' }}>
+        <Typography style={{ fontSize: "18px", color: "#6B7489" }} sx={{ textAlign: 'left' }}>
           กรุณากรอกข้อมูล
         </Typography>
 
@@ -144,10 +144,10 @@ const Modal1 = ({ open, onClose, onNext }) => {
         <Divider />
 
         <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1, height: "42px" }}>
-          <Button style={{ backgroundColor: "#E74A3B", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
+          <Button style={{ backgroundColor: "#E5484D", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
             ยกเลิก
           </Button>
-          <Button style={{ backgroundColor: "#41a2e6", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNextModal2}>
+          <Button style={{ backgroundColor: "#1552F0", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNextModal2}>
             ยืนยัน
           </Button>
         </Box>

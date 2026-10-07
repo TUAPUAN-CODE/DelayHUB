@@ -225,7 +225,7 @@ const SlotModal = ({ slot, onClose }) => {
         className="bg-white rounded-lg shadow-lg w-[1200px] h-[600px] overflow-hidden"
       >
         {/* Header */}
-        <AppBar position="static" sx={{ backgroundColor: '#4e73df' }}>
+        <AppBar position="static" sx={{ backgroundColor: '#1552F0' }}>
           <Toolbar sx={{ minHeight: '50px', px: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <WarehouseIcon sx={{ mr: 1 }} />
@@ -247,7 +247,7 @@ const SlotModal = ({ slot, onClose }) => {
             justifyContent: 'space-between',
             alignItems: 'center',
             p: 2,
-            backgroundColor: '#f8f9fc',
+            backgroundColor: '#F5F8FF',
             borderBottom: '1px solid #e3e6f0'
           }}
         >
@@ -309,14 +309,14 @@ const SlotModal = ({ slot, onClose }) => {
             display: 'flex', 
             justifyContent: 'flex-end',
             borderTop: '1px solid #e3e6f0',
-            backgroundColor: '#f8f9fc',
+            backgroundColor: '#F5F8FF',
           }}
         >
           <Button
             variant="contained"
             startIcon={<CancelIcon />}
             sx={{ 
-              bgcolor: "#E74A3B", 
+              bgcolor: "#E5484D", 
               color: "#fff",
               '&:hover': {
                 bgcolor: "#d52a1a",

@@ -161,7 +161,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedCsId }) => {
           variant="contained"
           startIcon={<CheckCircleIcon />}
           onClick={handleConfirm}
-          sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+          sx={{ backgroundColor: "#1552F0", color: "#fff" }}
         >
           ตกลง
         </Button>

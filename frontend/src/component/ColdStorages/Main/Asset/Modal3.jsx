@@ -48,46 +48,46 @@ const Modal3 = ({ open, onClose, data, onEdit }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogContent sx={{ color: "#787878", fontSize: "15px" }}>
-        <Typography sx={{ fontSize: "18px", color: "#787878", textAlign: "left" }}>
+      <DialogContent sx={{ color: "#6B7489", fontSize: "15px" }}>
+        <Typography sx={{ fontSize: "18px", color: "#6B7489", textAlign: "left" }}>
           กรุณาตรวจสอบข้อมูลก่อนทำรายการ
         </Typography>
         <Divider sx={{ mt: 2, mb: 2 }} />
 
         <Box mt={0.5}>
-        <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+        <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
   ป้ายทะเบียน : {inputValues.length > 0 ? inputValues[0] : "ไม่มีข้อมูลจาก Modal1"}
 </Typography>
 
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             น้ำหนักวัตถุดิบ/รถเข็น : {input2?.weightPerCart || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             จำนวนถาด : {input2?.numberOfTrays || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             ผู้ดำเนินการ : {input2?.operator || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         {rmfp_id ? (
           <Box mt={0.5}>
-            <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+            <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
               RMFP ID : {rmfp_id}
             </Typography>
           </Box>
         ) : (
           <Box mt={0.5}>
-            <Typography sx={{ fontSize: "15px", color: "#787878" }}>
+            <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
               RMFP ID ไม่พบข้อมูล
             </Typography>
           </Box>
@@ -98,7 +98,7 @@ const Modal3 = ({ open, onClose, data, onEdit }) => {
 
       <Box sx={{ padding: "0px 20px 10px 20px", display: "flex", justifyContent: "space-between", height: "42px" }}>
         <Button
-          sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+          sx={{ backgroundColor: "#E5484D", color: "#fff" }}
           variant="contained"
           startIcon={<CancelIcon />}
           onClick={onClose}
@@ -114,7 +114,7 @@ const Modal3 = ({ open, onClose, data, onEdit }) => {
           แก้ไข
         </Button>
         <Button
-          sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+          sx={{ backgroundColor: "#1552F0", color: "#fff" }}
           variant="contained"
           startIcon={<CheckCircleIcon />}
           onClick={handleConfirm}

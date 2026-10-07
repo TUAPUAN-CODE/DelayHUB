@@ -1,30 +1,22 @@
-const Buttom = ({ title, user }) => {
-    return (
-        <header
-            style={{
-                backgroundColor: "#fff",
-                color: "#686868",
-                borderRadius: "4px",
-                // border: '1px solid #e0e0e0',
-                padding: "8px 15px",
-                fontSize: "9px",
-                display: "flex",
-                alignItems: "center", // Vertically center content
-                justifyContent: "center", // Horizontally center content
-				boxShadow: "0 0px 3px rgba(0, 0, 0, 0.2)",
-            }}
-        >
-            <h6 style={{ 
-                textAlign: "center", 
-                margin: 0, // Remove default h6 margins
-                flex: 1,     // Allow h6 to expand to fill available space if needed
-                whiteSpace: 'nowrap', // Prevent text from wrapping and messing up centering
-                 overflow: 'hidden',   // Handle potential overflow if text is too long
-                 textOverflow: 'ellipsis' // Add ellipsis (...) if text overflows
-             }}>{title}</h6>
-
-        </header>
-    );
+const Buttom = ({ title }) => {
+  return (
+    <footer
+      style={{
+        backgroundColor: "#fff",
+        color: "#6B7489",
+        borderRadius: 14,
+        border: "1px solid #E3E8F2",
+        padding: "8px 15px",
+        fontSize: 11,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+      }}
+    >
+      <h6 style={{ textAlign: "center", margin: 0, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 400 }}>{title}</h6>
+    </footer>
+  );
 };
 
 export default Buttom;

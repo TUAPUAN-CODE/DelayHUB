@@ -103,10 +103,10 @@ const RoomSelector = ({ selectedCsId, onSelect }) => {
                 padding: "9px 10px",
                 borderRadius: "10px",
                 border: isActive
-                  ? "2px solid #3b82f6"
+                  ? "2px solid #1552F0"
                   : "1.5px solid #e2e8f0",
                 background: isActive
-                  ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+                  ? "linear-gradient(135deg, #1552F0 0%, #2563eb 100%)"
                   : "#ffffff",
                 color: isActive ? "#ffffff" : "#374151",
                 fontSize: "12px",
@@ -127,7 +127,7 @@ const RoomSelector = ({ selectedCsId, onSelect }) => {
                     ? "0 6px 16px rgba(59,130,246,0.4)"
                     : "0 3px 10px rgba(0,0,0,0.1)",
                   transform: "translateY(-1px)",
-                  borderColor: isActive ? "#3b82f6" : "#94a3b8",
+                  borderColor: isActive ? "#1552F0" : "#94a3b8",
                 },
               }}
               title={`cs_id: ${room.cs_id} — ${room.cs_name}`}

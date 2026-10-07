@@ -84,7 +84,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         sx={{ "& .MuiDialog-paper": { width: "1400px", height: "610px", padding: "0" } }}
       >
         <DialogContent sx={{ p: "0" }}>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#787878", mb: 2, pt: 2, pl: 3 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2, pt: 2, pl: 3 }}>
             กรุณาตรวจสอบข้อมูลก่อนส่งวัตถุดิบ
           </Typography>
 
@@ -97,7 +97,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              sx={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
             >
               ยกเลิก
@@ -107,7 +107,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Button
               variant="contained"
               startIcon={<SendIcon />}
-              sx={{ backgroundColor: "#4e73df", color: "#fff" }}
+              sx={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleSendMaterial}
             >
               ส่งวัตถุดิบ
@@ -117,7 +117,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Button
               variant="contained"
               startIcon={<DeleteIcon />}
-              sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              sx={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleConfirm}
             >
               ลบวัตถุดิบทั้งหมด

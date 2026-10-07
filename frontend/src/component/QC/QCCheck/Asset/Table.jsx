@@ -51,7 +51,7 @@ const Row = ({
   setOpenRowId,
   index
 }) => {
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)"; // เปลี่ยนสีจาราง ขาว เทา
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF"; // เปลี่ยนสีจาราง ขาว เทา
   const isOpen = openRowId === row.rmfp_id;
   //ซ่อนคอลัม
   const {
@@ -99,8 +99,8 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderTop: "1px solid #e0e0e0",
-              borderBottom: "1px solid #e0e0e0",
+              borderTop: "1px solid #E3E8F2",
+              borderBottom: "1px solid #E3E8F2",
               whiteSpace: "normal",
               wordWrap: "break-word",
               overflow: "hidden",
@@ -109,8 +109,8 @@ const Row = ({
               height: "40px",
               lineHeight: "1.5",
               padding: "0px 10px",
-              color: "#787878",
-              borderLeft: idx === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
+              color: "#6B7489",
+              borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0px",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
               backgroundColor: backgroundColor // เปลี่ยนสีจาราง ขาว เทา
@@ -149,10 +149,10 @@ const QcCheck = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: "center",
-        borderTop: "1px solid #e0e0e0",
-        borderBottom: "1px solid #e0e0e0",
+        borderTop: "1px solid #E3E8F2",
+        borderBottom: "1px solid #E3E8F2",
         borderLeft: "1px solid #f2f2f2",
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         borderTopRightRadius: "8px",
         borderBottomRightRadius: "8px",
         height: "40px",
@@ -292,7 +292,7 @@ const TableMainPrep = ({
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -333,12 +333,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopLeftRadius: "8px",
                   borderBottomLeftRadius: "8px",
-                  border: "1px solid #e0e0e0",
+                  border: "1px solid #E3E8F2",
                   fontSize: '12px',
-                  color: '#787878',
+                  color: '#6B7489',
                   padding: '5px',
                   width: "200px"
                 }}
@@ -348,12 +348,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopLeftRadius: "8px",
                   borderBottomLeftRadius: "8px",
-                  border: "1px solid #e0e0e0",
+                  border: "1px solid #E3E8F2",
                   fontSize: '12px',
-                  color: '#787878',
+                  color: '#6B7489',
                   padding: '5px',
                   width: "200px"
                 }}
@@ -363,12 +363,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "120px",
                 }}
@@ -378,12 +378,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "120px",
                 }}
@@ -393,12 +393,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "400px",
                 }}
@@ -408,12 +408,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "90px",
                 }}
@@ -424,12 +424,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "90px",
                 }}
@@ -439,12 +439,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "80px",
                 }}
@@ -454,12 +454,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "80px",
                 }}
@@ -470,12 +470,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "90px",
                 }}
@@ -485,12 +485,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "120px",
                 }}
@@ -500,12 +500,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "120px",
                 }}
@@ -515,12 +515,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "120px",
                 }}
@@ -530,12 +530,12 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   width: "160px",
                 }}
@@ -547,13 +547,13 @@ const TableMainPrep = ({
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderLeft: "0px solid ",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
                   fontSize: "12px",
-                  color: "#787878",
+                  color: "#6B7489",
                   padding: "5px",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
@@ -588,7 +588,7 @@ const TableMainPrep = ({
                 <TableCell
                   colSpan={columns.length + 11}
                   align="center"
-                  sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}
+                  sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}
                 >
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
@@ -602,7 +602,7 @@ const TableMainPrep = ({
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
           {
             fontSize: "10px",
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           },
         }}
@@ -634,7 +634,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

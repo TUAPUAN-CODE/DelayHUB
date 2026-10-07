@@ -227,7 +227,7 @@ const SuccessPrinter = ({ open, onClose, data }) => {
             console.log(`เวลา mix time: ${formattedTime} = ${standardTime} - ${mixTimeStr}`);
 
             return (
-                <Box sx={{ mt: 2, p: 1, border: '1px dashed #ccc', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                <Box sx={{ mt: 2, p: 1, border: '1px dashed #ccc', borderRadius: '4px', backgroundColor: '#F5F8FF' }}>
                     <Typography sx={{
                         fontSize: '20px',
                         fontWeight: 'none',
@@ -549,7 +549,7 @@ const SuccessPrinter = ({ open, onClose, data }) => {
                         p: 1,
                         border: '1px dashed #ccc',
                         borderRadius: '4px',
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: '#F5F8FF',
                         '@media print': {
                             mt: 0.5,
                             p: 0.5,
@@ -819,7 +819,7 @@ const SuccessPrinter = ({ open, onClose, data }) => {
                             flex: 1,
                             maxWidth: "250px",
                             height: "50px",
-                            backgroundColor: "#2388d1",
+                            backgroundColor: "#1552F0",
                             fontSize: "16px",
                         }}
                     >
@@ -910,8 +910,8 @@ const SuccessPrinter = ({ open, onClose, data }) => {
                                                         fontSize: '22px',
                                                         fontWeight: 'none',
                                                         mb: 1,
-                                                        color: '#1976d2',
-                                                        borderBottom: '1px dashed #1976d2',
+                                                        color: '#1552F0',
+                                                        borderBottom: '1px dashed #1552F0',
                                                         pb: 0.5,
                                                         '@media print': {
                                                             fontSize: '14px',

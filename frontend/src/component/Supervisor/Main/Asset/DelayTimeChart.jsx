@@ -314,7 +314,7 @@ const SimpleLineChart = ({ data }) => {
     green: "#80FF75",
     yellow: "#FFF398",
     red: "#FF8175",
-    total: "#3B82F6"
+    total: "#1552F0"
   };
   
   // Create and update chart when data changes
@@ -484,7 +484,7 @@ const SimpleLineChart = ({ data }) => {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '15px',
-        borderBottom: '1px solid #f5f5f5',
+        borderBottom: '1px solid #F5F8FF',
         paddingBottom: '10px'
       }}>
         <h3 style={{ 
@@ -561,7 +561,7 @@ const SimpleLineChart = ({ data }) => {
             }}
             style={{
               padding: '4px 8px',
-              backgroundColor: historyHours === hours ? '#3b82f6' : '#e5e7eb',
+              backgroundColor: historyHours === hours ? '#1552F0' : '#e5e7eb',
               color: historyHours === hours ? 'white' : '#4b5563',
               border: 'none',
               borderRadius: '4px',
@@ -651,7 +651,7 @@ const SimpleLineChart = ({ data }) => {
         border: '1px solid #e5e7eb', 
         borderRadius: '8px', 
         padding: '20px', 
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#F5F8FF',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -664,7 +664,7 @@ const SimpleLineChart = ({ data }) => {
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
             borderRadius: '4px',
             fontSize: '11px',
-            color: '#3b82f6',
+            color: '#1552F0',
             zIndex: 10
           }}>
             กำลังโหลดข้อมูล...

@@ -310,12 +310,12 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
           <Divider sx={{ mt: 1, mb: 1 }} />
 
           <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1, height: "42px" }}>
-            <Button style={{ backgroundColor: "#E74A3B", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
+            <Button style={{ backgroundColor: "#E5484D", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
               ยกเลิก
             </Button>
             <Button
               style={{
-                backgroundColor: isFormValid() ? "#41a2e6" : "#e0e0e0",
+                backgroundColor: isFormValid() ? "#1552F0" : "#E3E8F2",
                 color: "#fff"
               }}
               variant="contained"

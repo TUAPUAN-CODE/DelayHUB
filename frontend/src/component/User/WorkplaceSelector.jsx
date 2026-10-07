@@ -12,43 +12,12 @@ import {
   InputLabel,
   useMediaQuery,
   ThemeProvider,
-  createTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
+import dochubTheme from "../../theme/dochubTheme";
 // Theme ป้องกันการเบลอ
-const sharpTheme = createTheme({
-  typography: {
-    fontFamily: [
-      "Prompt",
-      "Sarabun",
-      "-apple-system",
-      "BlinkMacSystemFont",
-      "Segoe UI",
-      "Roboto",
-      "Oxygen",
-      "Ubuntu",
-      "Helvetica Neue",
-      "sans-serif",
-    ].join(","),
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        "html, body": {
-          textRendering: "optimizeLegibility",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-        },
-        "*": {
-          textRendering: "geometricPrecision !important",
-          fontFeatureSettings: '"kern" 1',
-          fontKerning: "normal",
-        },
-      },
-    },
-  },
-});
+const sharpTheme = dochubTheme;
 
 const WorkplaceSelector = () => {
   const navigate = useNavigate();
@@ -137,7 +106,7 @@ const WorkplaceSelector = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#1770b8",
+          background: "linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)",
           overflow: "hidden",
         }}
       >
@@ -251,7 +220,7 @@ const WorkplaceSelector = () => {
               </Button>
 
               {selectedWorkplace && (
-                <Box sx={{ mt: 3, p: 2, backgroundColor: "#f5f5f5", borderRadius: 2 }}>
+                <Box sx={{ mt: 3, p: 2, backgroundColor: "#F5F8FF", borderRadius: 2 }}>
                   <Typography variant="body2" sx={{ textAlign: "center", color: "#666" }}>
                     คุณเลือก: <strong>{workplaces.find(wp => wp.wp_id === selectedWorkplace)?.name}</strong>
                   </Typography>

@@ -226,7 +226,7 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
           style={{ color: "#585858" }}
         >
           {/* Header */}
-          <AppBar position="static" sx={{ backgroundColor: "#4e73df" }}>
+          <AppBar position="static" sx={{ backgroundColor: "#1552F0" }}>
             <Toolbar sx={{ minHeight: "50px", px: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <WarehouseIcon sx={{ mr: 1 }} />
@@ -273,7 +273,7 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ backgroundColor: "#f8f9fc" }}>
+                <TableHead sx={{ backgroundColor: "#F5F8FF" }}>
                   <TableRow>
                     <TableCell align="center">ลำดับ</TableCell>
                     <TableCell>รหัสวัตถุดิบ</TableCell>
@@ -338,7 +338,7 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
               sx={{
                 mt: 2,
                 p: 2,
-                backgroundColor: "#f8f9fc",
+                backgroundColor: "#F5F8FF",
                 borderRadius: 1,
                 display: "flex",
                 justifyContent: "space-between",

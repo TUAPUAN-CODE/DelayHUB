@@ -204,7 +204,7 @@ const ParentComponent = () => {
             selectsStart
             startDate={startDate}
             endDate={endDate}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec] focus:ring-opacity-50 px-3 py-2 border"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0] focus:ring-opacity-50 px-3 py-2 border"
             dateFormat="yyyy-MM-dd"
             isClearable
             placeholderText="Select start date"
@@ -219,7 +219,7 @@ const ParentComponent = () => {
             startDate={startDate}
             endDate={endDate}
             minDate={startDate}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec] focus:ring-opacity-50 px-3 py-2 border"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0] focus:ring-opacity-50 px-3 py-2 border"
             dateFormat="yyyy-MM-dd"
             isClearable
             placeholderText="Select end date"
@@ -228,7 +228,7 @@ const ParentComponent = () => {
         <div className="flex gap-3">
           <button
             onClick={handleDateFilter}
-            className="px-4 py-2 bg-[#4aaaec] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#4aaaec] focus:ring-opacity-50 transition-colors"
+            className="px-4 py-2 bg-[#1552F0] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#1552F0] focus:ring-opacity-50 transition-colors"
           >
             ยืนยัน
           </button>
@@ -255,7 +255,7 @@ const ParentComponent = () => {
       <div className="p-4 space-y-6">
         {renderFilterSection()}
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4aaaec]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1552F0]"></div>
         </div>
       </div>
     );
@@ -318,7 +318,7 @@ const ParentComponent = () => {
             id="group-select"
             value={selectedGroup}
             onChange={(e) => setSelectedGroup(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec] focus:ring-opacity-50 px-3 py-2 border"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0] focus:ring-opacity-50 px-3 py-2 border"
           >
             {Object.keys(tableData).map(group => (
               <option key={group} value={group}>{group}</option>
@@ -328,7 +328,7 @@ const ParentComponent = () => {
         
         <button
           onClick={exportToExcel}
-          className="px-4 py-2 bg-[#008000] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#4aaaec] focus:ring-opacity-50 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#008000] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#1552F0] focus:ring-opacity-50 transition-colors flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

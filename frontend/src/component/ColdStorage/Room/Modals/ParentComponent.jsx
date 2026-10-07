@@ -300,8 +300,8 @@ const handleMoveSuccess = () => {
       >
         {/* Title with Icon */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <StorageIcon sx={{ mr: 1, color: '#4e73df' }} />
-          <Typography variant="h6" sx={{ color: '#4e73df', fontWeight: 600 }}>
+          <StorageIcon sx={{ mr: 1, color: '#1552F0' }} />
+          <Typography variant="h6" sx={{ color: '#1552F0', fontWeight: 600 }}>
             รายการวัตถุดิบ
           </Typography>
         </Box>
@@ -327,7 +327,7 @@ const handleMoveSuccess = () => {
             startIcon={<AddShoppingCartIcon />}
             onClick={handleOpenRawMatModal}
             sx={{
-              backgroundColor: '#4e73df',
+              backgroundColor: '#1552F0',
               '&:hover': { backgroundColor: '#3a5bbf' },
               minWidth: '180px'
             }}

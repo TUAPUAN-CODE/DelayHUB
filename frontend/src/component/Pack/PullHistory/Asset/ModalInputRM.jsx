@@ -85,14 +85,14 @@ const ModalAlert = ({ open, onClose }) => {
         <Button
           onClick={onClose}
           sx={{
-            backgroundColor: '#4aaaec',
+            backgroundColor: '#1552F0',
             color: 'white',
             mt: 3,
             paddingX: 4,
             paddingY: 1.5,
             borderRadius: 0,
             '&:hover': {
-              backgroundColor: '#4aaaec',
+              backgroundColor: '#1552F0',
             }
           }}
         >
@@ -1043,7 +1043,7 @@ const setCurrentTime = (setter) => {
                   <Button
                     variant="contained"
                     startIcon={<CancelIcon />}
-                    style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                    style={{ backgroundColor: "#E5484D", color: "#fff" }}
                     onClick={handleClose}
                   >
                     ยกเลิก
@@ -1052,7 +1052,7 @@ const setCurrentTime = (setter) => {
                     variant="contained"
                     startIcon={<CheckCircleIcon />}
                     style={{
-                      backgroundColor: isFormValidScan ? "#41a2e6" : "#cccccc",
+                      backgroundColor: isFormValidScan ? "#1552F0" : "#cccccc",
                       color: "#fff",
                     }}
                     onClick={handleManualConfirmScan}
@@ -1182,7 +1182,7 @@ const setCurrentTime = (setter) => {
                           p: 2,
                           border: '1px solid #eee',
                           borderRadius: 1,
-                          backgroundColor: '#f9f9f9'
+                          backgroundColor: '#F5F8FF'
                         }}
                       >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

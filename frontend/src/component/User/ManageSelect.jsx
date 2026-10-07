@@ -11,45 +11,14 @@ import {
   CssBaseline,
   useMediaQuery,
   ThemeProvider,
-  createTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
+import dochubTheme from "../../theme/dochubTheme";
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Theme ป้องกันการเบลอ
-const sharpTheme = createTheme({
-  typography: {
-    fontFamily: [
-      "Prompt",
-      "Sarabun",
-      "-apple-system",
-      "BlinkMacSystemFont",
-      "Segoe UI",
-      "Roboto",
-      "Oxygen",
-      "Ubuntu",
-      "Helvetica Neue",
-      "sans-serif",
-    ].join(","),
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        "html, body": {
-          textRendering: "optimizeLegibility",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-        },
-        "*": {
-          textRendering: "geometricPrecision !important",
-          fontFeatureSettings: '"kern" 1',
-          fontKerning: "normal",
-        },
-      },
-    },
-  },
-});
+const sharpTheme = dochubTheme;
 
 const PreparationSelectWP = () => {
   const navigate = useNavigate();
@@ -111,7 +80,7 @@ const PreparationSelectWP = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#1770b8",
+          background: "linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)",
           overflow: "hidden",
         }}
       >

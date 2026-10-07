@@ -152,7 +152,7 @@ const TableList = ({
   const renderBasketSection = () => {
     if (basketItems.length === 0) {
       return (
-        <Box sx={{ mb: 4, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+        <Box sx={{ mb: 4, p: 2, backgroundColor: '#F5F8FF', borderRadius: 1 }}>
           <Typography variant="body1">
             ยังไม่มีวัตถุดิบในตะกร้า
           </Typography>
@@ -164,7 +164,7 @@ const TableList = ({
       <TableContainer component={Paper} sx={{ mb: 4 }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
               <TableCell sx={{ textAlign: 'center' }}>ชื่อวัตถุดิบ</TableCell>
               <TableCell sx={{ textAlign: 'center' }}>เวลาเตรียมเสร็จ</TableCell>
               <TableCell sx={{ textAlign: 'center' }}>Batch</TableCell>
@@ -236,7 +236,7 @@ const TableList = ({
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
               <TableCell>
                 <FormControlLabel
                   control={

@@ -378,7 +378,7 @@ const SearchDropdown = ({ value, onChange, options, placeholder = 'ทั้ง�
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       {label && <div style={labelStyle}>{label}</div>}
-      <button onClick={() => { setOpen(o => !o); setQuery(''); }} style={{ ...inputStyle, cursor: 'pointer', minWidth: 160, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderColor: isActive ? '#3B82F6' : '#D1D5DB', background: isActive ? '#EFF6FF' : '#fff', color: isActive ? '#1D4ED8' : '#6B7280', fontWeight: isActive ? 600 : 400 }}>
+      <button onClick={() => { setOpen(o => !o); setQuery(''); }} style={{ ...inputStyle, cursor: 'pointer', minWidth: 160, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderColor: isActive ? '#1552F0' : '#D1D5DB', background: isActive ? '#EAF0FF' : '#fff', color: isActive ? '#0F3FC4' : '#6B7280', fontWeight: isActive ? 600 : 400 }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{value || placeholder}</span>
         <span style={{ fontSize: 10, opacity: 0.6, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </button>
@@ -393,8 +393,8 @@ const SearchDropdown = ({ value, onChange, options, placeholder = 'ทั้ง�
           </div>
           <div style={{ maxHeight: 220, overflowY: 'auto' }}>
             <div onClick={() => { onChange(''); setOpen(false); setQuery(''); }}
-              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: !value ? '#EFF6FF' : 'transparent', color: !value ? '#1D4ED8' : '#374151', fontWeight: !value ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}
-              onMouseEnter={e => { if (value) e.currentTarget.style.background = '#F9FAFB'; }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: !value ? '#EAF0FF' : 'transparent', color: !value ? '#0F3FC4' : '#374151', fontWeight: !value ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}
+              onMouseEnter={e => { if (value) e.currentTarget.style.background = '#F5F8FF'; }}
               onMouseLeave={e => { if (value) e.currentTarget.style.background = 'transparent'; }}>
               <span style={{ fontSize: 11, opacity: 0.5 }}>✕</span> ทั้งหมด
             </div>
@@ -402,8 +402,8 @@ const SearchDropdown = ({ value, onChange, options, placeholder = 'ทั้ง�
               ? <div style={{ padding: '10px 12px', fontSize: 12, color: '#9CA3AF', textAlign: 'center' }}>ไม่พบ "{query}"</div>
               : filtered.map(o => (
                 <div key={o} onClick={() => { onChange(o); setOpen(false); setQuery(''); }}
-                  style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: value === o ? '#EFF6FF' : 'transparent', color: value === o ? '#1D4ED8' : '#374151', fontWeight: value === o ? 600 : 400 }}
-                  onMouseEnter={e => { if (value !== o) e.currentTarget.style.background = '#F9FAFB'; }}
+                  style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: value === o ? '#EAF0FF' : 'transparent', color: value === o ? '#0F3FC4' : '#374151', fontWeight: value === o ? 600 : 400 }}
+                  onMouseEnter={e => { if (value !== o) e.currentTarget.style.background = '#F5F8FF'; }}
                   onMouseLeave={e => { if (value !== o) e.currentTarget.style.background = 'transparent'; }}>
                   {highlightMatch(o, query)}
                 </div>
@@ -434,7 +434,7 @@ const MultiSelectDropdown = ({ value, onChange, options, placeholder = 'ทั�
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       {label && <div style={labelStyle}>{label}</div>}
-      <button onClick={() => { setOpen(o => !o); setQuery(''); }} style={{ ...inputStyle, cursor: 'pointer', minWidth: 200, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderColor: isActive ? '#3B82F6' : '#D1D5DB', background: isActive ? '#EFF6FF' : '#fff', color: isActive ? '#1D4ED8' : '#6B7280', fontWeight: isActive ? 600 : 400 }}>
+      <button onClick={() => { setOpen(o => !o); setQuery(''); }} style={{ ...inputStyle, cursor: 'pointer', minWidth: 200, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderColor: isActive ? '#1552F0' : '#D1D5DB', background: isActive ? '#EAF0FF' : '#fff', color: isActive ? '#0F3FC4' : '#6B7280', fontWeight: isActive ? 600 : 400 }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
           {value.length === 0 ? placeholder : `เลือก ${value.length} รายการ`}
         </span>
@@ -450,7 +450,7 @@ const MultiSelectDropdown = ({ value, onChange, options, placeholder = 'ทั�
             </div>
           </div>
           <div style={{ padding: '5px 10px', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button onClick={() => onChange(filtered)} style={{ fontSize: 11, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>เลือกทั้งหมด ({filtered.length})</button>
+            <button onClick={() => onChange(filtered)} style={{ fontSize: 11, color: '#1552F0', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>เลือกทั้งหมด ({filtered.length})</button>
             {value.length > 0 && (
               <button onClick={() => onChange([])} style={{ fontSize: 11, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>ล้าง ({value.length})</button>
             )}
@@ -461,13 +461,13 @@ const MultiSelectDropdown = ({ value, onChange, options, placeholder = 'ทั�
               : filtered.map(o => {
                 const checked = value.includes(o);
                 return (
-                  <div key={o} onClick={() => toggle(o)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 13, background: checked ? '#EFF6FF' : 'transparent', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onMouseEnter={e => { if (!checked) e.currentTarget.style.background = '#F9FAFB'; }}
+                  <div key={o} onClick={() => toggle(o)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 13, background: checked ? '#EAF0FF' : 'transparent', display: 'flex', alignItems: 'center', gap: 8 }}
+                    onMouseEnter={e => { if (!checked) e.currentTarget.style.background = '#F5F8FF'; }}
                     onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}>
-                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? '#3B82F6' : '#D1D5DB'}`, background: checked ? '#3B82F6' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? '#1552F0' : '#D1D5DB'}`, background: checked ? '#1552F0' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                     </div>
-                    <span style={{ color: checked ? '#1D4ED8' : '#374151', fontWeight: checked ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: checked ? '#0F3FC4' : '#374151', fontWeight: checked ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {highlightMatch(o, query)}
                     </span>
                   </div>
@@ -531,12 +531,12 @@ const BatchDetailRows = ({ rows, colSpan }) => {
       <td colSpan={colSpan} style={{ padding: 0, background: '#F8FAFF', borderBottom: '2px solid #DBEAFE' }}>
         <div style={{ padding: '12px 20px 16px 48px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#1D4ED8' }}>📦 {rows.length} batch</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#0F3FC4' }}>📦 {rows.length} batch</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
               <thead>
-                <tr style={{ background: '#EFF6FF' }}>
+                <tr style={{ background: '#EAF0FF' }}>
                   {[
                     { label: '#', sub: null }, { label: 'เลขเอกสาร', sub: null }, { label: 'Code', sub: null },
                     { label: 'ไลน์', sub: null }, { label: 'MAT', sub: null }, { label: 'MAT 2x', sub: null },
@@ -567,7 +567,7 @@ const BatchDetailRows = ({ rows, colSpan }) => {
                       <td style={dtCell}>{i + 1}</td>
                       <td style={dtCell}>{row.doc_no ? <span style={{ fontSize: 11, background: '#F3F4F6', color: '#374151', padding: '2px 7px', borderRadius: 20 }}>{row.doc_no}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
                       <td style={dtCell}>{row.code ? <span style={{ fontSize: 11, background: '#F0F9FF', color: '#0369A1', padding: '2px 7px', borderRadius: 20, fontWeight: 500 }}>{row.code}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
-                      <td style={dtCell}>{row.rmm_line_name ? <span style={{ fontSize: 11, background: '#EFF6FF', color: '#1D4ED8', padding: '2px 7px', borderRadius: 20 }}>{row.rmm_line_name}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
+                      <td style={dtCell}>{row.rmm_line_name ? <span style={{ fontSize: 11, background: '#EAF0FF', color: '#0F3FC4', padding: '2px 7px', borderRadius: 20 }}>{row.rmm_line_name}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
                       <td style={dtCell}>{row.mat ? <span style={{ fontSize: 11, background: '#F3F4F6', color: '#374151', padding: '2px 7px', borderRadius: 20 }}>{row.mat}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
                       <td style={dtCell}>{row.mat_2x ? <span style={{ fontSize: 11, background: '#FFF7ED', color: '#9A3412', padding: '2px 7px', borderRadius: 20 }}>{row.mat_2x}</span> : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
                       <td style={{ ...dtCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.weight_RM != null ? row.weight_RM.toLocaleString() : <span style={{ color: '#D1D5DB' }}>-</span>}</td>
@@ -634,7 +634,7 @@ const DbsCell = ({ value, standard, isDelay }) => {
   );
 };
 
-const dtCell = { padding: '8px 12px', borderBottom: '0.5px solid #EFF6FF', verticalAlign: 'middle', whiteSpace: 'nowrap' };
+const dtCell = { padding: '8px 12px', borderBottom: '0.5px solid #EAF0FF', verticalAlign: 'middle', whiteSpace: 'nowrap' };
 
 const MultiValueCell = ({ value, searchTerm }) => {
   if (!value) return <td style={cellStyle}><span style={{ color: '#9CA3AF' }}>-</span></td>;
@@ -654,15 +654,15 @@ const MultiValueCell = ({ value, searchTerm }) => {
 
 const SortIcon = ({ field, sortField, sortDir }) => {
   if (sortField !== field) return <span style={{ opacity: 0.3, marginLeft: 4, fontSize: 10 }}>↕</span>;
-  return <span style={{ marginLeft: 4, fontSize: 10, color: '#3B82F6' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  return <span style={{ marginLeft: 4, fontSize: 10, color: '#1552F0' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
 };
 
 const cellStyle = { padding: '10px 14px', borderBottom: '0.5px solid #F3F4F6', verticalAlign: 'middle' };
-const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F9FAFB' };
+const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: '#F5F8FF' };
 const P_OPTIONS = Array.from({ length: 99 }, (_, i) => i + 1);
 
 const DBS_WEIGHT_DEFS = [
-  { key: 'dbs1', label: 'DBS1 Status', title: 'Delay ช่วงที่ 1', sub: 'เตรียมเสร็จ → เข้าห้องเย็น', color: '#3B82F6', bg: '#EFF6FF' },
+  { key: 'dbs1', label: 'DBS1 Status', title: 'Delay ช่วงที่ 1', sub: 'เตรียมเสร็จ → เข้าห้องเย็น', color: '#1552F0', bg: '#EAF0FF' },
   { key: 'dbs2', label: 'DBS2 Status', title: 'Delay ช่วงที่ 2', sub: 'เข้าห้องเย็น → ออกห้องเย็น', color: '#8B5CF6', bg: '#F5F3FF' },
   { key: 'dbs3', label: 'DBS3 Status', title: 'Delay ช่วงที่ 3', sub: 'ออกห้องเย็น → บรรจุเสร็จ', color: '#F59E0B', bg: '#FFFBEB' },
   { key: 'dbs4', label: 'DBS4 Status', title: 'Delay ช่วงที่ 4', sub: 'เตรียมเสร็จ → บรรจุเสร็จ', color: '#10B981', bg: '#ECFDF5' },
@@ -968,7 +968,7 @@ const ProductionLineDelayDashboard = () => {
               <div>
                 <div style={labelStyle}>Percentile (P)</div>
                 <select value={percentile} onChange={e => setPercentile(Number(e.target.value))}
-                  style={{ ...inputStyle, borderColor: '#3B82F6', color: '#1D4ED8', fontWeight: 600, minWidth: 90 }}>
+                  style={{ ...inputStyle, borderColor: '#1552F0', color: '#0F3FC4', fontWeight: 600, minWidth: 90 }}>
                   {P_OPTIONS.map(p => <option key={p} value={p}>P{p}</option>)}
                 </select>
               </div>
@@ -1037,28 +1037,28 @@ const ProductionLineDelayDashboard = () => {
         {hasFetched && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
             {(startDate || endDate) && (
-              <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6 }}>
+              <div style={{ fontSize: 12, color: '#0F3FC4', background: '#EAF0FF', padding: '4px 10px', borderRadius: 6 }}>
                 📅 {startDate ? `ตั้งแต่ ${startDate}` : ''}{endDate ? ` ถึง ${endDate}` : ''}
               </div>
             )}
             {filterMatNames.length > 0 && (
-              <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12, color: '#0F3FC4', background: '#EAF0FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400, flexWrap: 'wrap' }}>
                 🧪 วัตถุดิบ:&nbsp;
                 {filterMatNames.slice(0, 3).map(n => <strong key={n} style={{ marginRight: 4 }}>{n}</strong>)}
                 {filterMatNames.length > 3 && <span style={{ color: '#6B7280' }}>+{filterMatNames.length - 3} อื่น</span>}
-                <button onClick={() => setFilterMatNames([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#1D4ED8', padding: 0, marginLeft: 2 }}>✕</button>
+                <button onClick={() => setFilterMatNames([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#0F3FC4', padding: 0, marginLeft: 2 }}>✕</button>
               </div>
             )}
             {filterLine && (
-              <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 12, color: '#0F3FC4', background: '#EAF0FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 📍 ไลน์: <strong>{filterLine}</strong>
-                <button onClick={() => setFilterLine('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#1D4ED8', padding: 0 }}>✕</button>
+                <button onClick={() => setFilterLine('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#0F3FC4', padding: 0 }}>✕</button>
               </div>
             )}
             {filterDoc && (
-              <div style={{ fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 12, color: '#0F3FC4', background: '#EAF0FF', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 📄 เอกสาร: <strong>{filterDoc}</strong>
-                <button onClick={() => setFilterDoc('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#1D4ED8', padding: 0 }}>✕</button>
+                <button onClick={() => setFilterDoc('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#0F3FC4', padding: 0 }}>✕</button>
               </div>
             )}
             {filterCode && (
@@ -1087,7 +1087,7 @@ const ProductionLineDelayDashboard = () => {
             )}
             <div style={{ fontSize: 12, color: '#6D28D9', background: '#EDE9FE', padding: '4px 10px', borderRadius: 6 }}>📊 P{percentile}</div>
             {activeFilters && (
-              <div style={{ fontSize: 12, color: '#6B7280', background: '#F9FAFB', padding: '4px 10px', borderRadius: 6, border: '0.5px solid #E5E7EB' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', background: '#F5F8FF', padding: '4px 10px', borderRadius: 6, border: '0.5px solid #E5E7EB' }}>
                 คำนวณจาก <strong>{filteredRaw.length}</strong> batch (จาก {rawData.length})
               </div>
             )}
@@ -1107,7 +1107,7 @@ const ProductionLineDelayDashboard = () => {
       {/* ─── loading spinner ─── */}
       {loading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column', gap: 12 }}>
-          <div style={{ width: 36, height: 36, border: '3px solid #E5E7EB', borderTop: '3px solid #3B82F6', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+          <div style={{ width: 36, height: 36, border: '3px solid #E5E7EB', borderTop: '3px solid #1552F0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
           <div style={{ fontSize: 13, color: '#6B7280' }}>กำลังโหลดข้อมูล {startDate} ถึง {endDate}...</div>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
@@ -1119,11 +1119,11 @@ const ProductionLineDelayDashboard = () => {
           {/* ── metric cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 16 }}>
             {[
-              { label: 'batch ทั้งหมด', value: metrics.total, sub: `${metrics.groups} กลุ่ม`, color: '#3B82F6' },
+              { label: 'batch ทั้งหมด', value: metrics.total, sub: `${metrics.groups} กลุ่ม`, color: '#1552F0' },
               { label: `กลุ่มที่ P${percentile} > มาตรฐาน`, value: metrics.delayCount, sub: `จาก ${metrics.groups} กลุ่ม`, color: '#EF4444' },
               { label: 'กลุ่มที่ปกติ', value: metrics.groups - metrics.delayCount, sub: 'ทุก DBS ≤ มาตรฐาน', color: '#22C55E' },
             ].map((m, i) => (
-              <div key={i} style={{ background: '#F9FAFB', borderRadius: 8, padding: '12px 14px' }}>
+              <div key={i} style={{ background: '#F5F8FF', borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{m.label}</div>
                 <div style={{ fontSize: 22, fontWeight: 600, color: m.color }}>{m.value}</div>
                 <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{m.sub}</div>
@@ -1138,7 +1138,7 @@ const ProductionLineDelayDashboard = () => {
               const isActive = selectedDbs === d.key;
               return (
                 <div key={d.key} onClick={() => setSelectedDbs(prev => prev === d.key ? null : d.key)} style={{
-                  background: isActive ? d.bg : '#F9FAFB', border: `1.5px solid ${isActive ? d.color : '#E5E7EB'}`,
+                  background: isActive ? d.bg : '#F5F8FF', border: `1.5px solid ${isActive ? d.color : '#E5E7EB'}`,
                   borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'all 0.18s',
                   boxShadow: isActive ? `0 2px 12px ${d.color}33` : 'none',
                 }}>
@@ -1191,7 +1191,7 @@ const ProductionLineDelayDashboard = () => {
                   <button key={d.key} onClick={() => setSelectedDbs(d.key)} style={{
                     padding: '7px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                     border: selectedDbs === d.key ? `1.5px solid ${d.color}` : '1px solid #E5E7EB',
-                    background: selectedDbs === d.key ? `${d.color}18` : '#F9FAFB',
+                    background: selectedDbs === d.key ? `${d.color}18` : '#F5F8FF',
                     color: selectedDbs === d.key ? d.color : '#6B7280', transition: 'all 0.18s',
                   }}>
                     <div style={{ fontSize: 12, fontWeight: selectedDbs === d.key ? 600 : 400 }}>{d.title}</div>
@@ -1277,12 +1277,12 @@ const ProductionLineDelayDashboard = () => {
                     return (
                       <React.Fragment key={r.name}>
                         <tr
-                          style={{ background: isExpanded ? '#EFF6FF' : (i % 2 === 0 ? '#fff' : '#FAFAFA'), cursor: 'pointer' }}
+                          style={{ background: isExpanded ? '#EAF0FF' : (i % 2 === 0 ? '#fff' : '#FAFAFA'), cursor: 'pointer' }}
                           onClick={() => toggleExpand(r.name)}
                           onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F0F9FF'; }}
                           onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#FAFAFA'; }}>
                           <td style={{ ...cellStyle, textAlign: 'center', width: 40 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: isExpanded ? '#DBEAFE' : '#F3F4F6', color: isExpanded ? '#1D4ED8' : '#6B7280', fontSize: 11, fontWeight: 700, transition: 'all 0.15s' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: isExpanded ? '#DBEAFE' : '#F3F4F6', color: isExpanded ? '#0F3FC4' : '#6B7280', fontSize: 11, fontWeight: 700, transition: 'all 0.15s' }}>
                               {isExpanded ? '▼' : '▶'}
                             </span>
                           </td>
@@ -1341,7 +1341,7 @@ function highlightMatch(text, query) {
 
 const labelStyle = { fontSize: 11, color: '#6B7280', marginBottom: 4 };
 const inputStyle = { fontSize: 13, padding: '6px 10px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, background: '#fff', color: '#111827', outline: 'none' };
-const btnPrimary = { fontSize: 13, padding: '0 16px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#3B82F6', color: '#fff', fontWeight: 500 };
+const btnPrimary = { fontSize: 13, padding: '0 16px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: '#1552F0', color: '#fff', fontWeight: 500 };
 const btnSecondary = { fontSize: 13, padding: '0 16px', height: 34, border: '0.5px solid #D1D5DB', borderRadius: 8, cursor: 'pointer', background: '#fff', color: '#374151' };
 
 export default ProductionLineDelayDashboard;

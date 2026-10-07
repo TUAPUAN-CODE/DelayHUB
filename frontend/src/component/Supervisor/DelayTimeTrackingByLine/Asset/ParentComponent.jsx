@@ -350,7 +350,7 @@ const ProductionLineDelayDashboard = () => {
           <div className="flex gap-3">
             <button
               onClick={handleDateFilter}
-              className="px-4 py-2 bg-[#4aaaec] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#4aaaec] focus:ring-opacity-50 transition-colors"
+              className="px-4 py-2 bg-[#1552F0] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#1552F0] focus:ring-opacity-50 transition-colors"
             >
               ยืนยัน
             </button>
@@ -380,7 +380,7 @@ const ProductionLineDelayDashboard = () => {
             <button
               type="button"
               onClick={() => setIsRmTypeOpen(!isRmTypeOpen)}
-              className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4aaaec]"
+              className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1552F0]"
             >
               <span className="truncate">
                 {selectedRmType === "all" ? "ทั้งหมด (All)" : selectedRmType}
@@ -396,7 +396,7 @@ const ProductionLineDelayDashboard = () => {
                     placeholder="ค้นหาประเภทวัตถุดิบ..."
                     value={rmTypeSearch}
                     onChange={(e) => setRmTypeSearch(e.target.value)}
-                    className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec]"
+                    className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0]"
                   />
                 </div>
                 <ul className="max-h-60 overflow-auto text-sm">
@@ -437,7 +437,7 @@ const ProductionLineDelayDashboard = () => {
           <button
             type="button"
             onClick={() => setIsMatNameOpen(!isMatNameOpen)}
-            className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4aaaec]"
+            className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1552F0]"
           >
             <span className="truncate">
               {selectedMatName === "all" ? "ทั้งหมด (All)" : selectedMatName}
@@ -453,7 +453,7 @@ const ProductionLineDelayDashboard = () => {
                   placeholder="ค้นหาวัตถุดิบ..."
                   value={matNameSearch}
                   onChange={(e) => setMatNameSearch(e.target.value)}
-                  className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec]"
+                  className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0]"
                 />
               </div>
               <ul className="max-h-60 overflow-auto text-sm">
@@ -757,7 +757,7 @@ const ProductionLineDelayDashboard = () => {
       <div className="p-4 space-y-6">
         {renderFilterSection()}
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4aaaec]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1552F0]"></div>
         </div>
       </div>
     );

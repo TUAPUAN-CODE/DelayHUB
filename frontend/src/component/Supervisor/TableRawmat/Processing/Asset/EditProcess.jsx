@@ -87,7 +87,7 @@ const EditProcess = ({ isOpen, onClose, onSuccess, processData }) => {
             variant="contained"
             startIcon={<CancelIcon />}
             sx={{
-              bgcolor: "#E74A3B",
+              bgcolor: "#E5484D",
               color: "#fff",
               "&:hover": { bgcolor: "#c0392b" },
             }}
@@ -99,9 +99,9 @@ const EditProcess = ({ isOpen, onClose, onSuccess, processData }) => {
             variant="contained"
             startIcon={<CheckCircleIcon />}
             sx={{
-              bgcolor: "#41a2e6",
+              bgcolor: "#1552F0",
               color: "#fff",
-              "&:hover": { bgcolor: "#3498db" },
+              "&:hover": { bgcolor: "#1552F0" },
             }}
             onClick={handleSubmit}
             disabled={loading}

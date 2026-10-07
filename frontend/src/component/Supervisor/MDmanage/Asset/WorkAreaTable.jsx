@@ -28,8 +28,8 @@ import { PiMapPinAreaFill } from "react-icons/pi";
 
 
 // กำหนดสีฟ้าที่ใช้ทั้งระบบ
-const BLUE_COLOR = "hsl(210, 100%, 60%)";
-const LIGHT_BLUE_COLOR = "hsl(210, 100%, 95%)";
+const BLUE_COLOR = "#1552F0";
+const LIGHT_BLUE_COLOR = "#EAF0FF";
 
 const WorkAreaTable = ({ 
   filteredData, 

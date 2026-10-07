@@ -70,7 +70,7 @@ const ModalEditRemark = ({ open, onClose, data, onSuccess }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
-                color: '#2388d1',
+                color: '#1552F0',
                 fontWeight: 'bold',
                 borderBottom: '1px solid #eee',
                 pb: 2
@@ -81,7 +81,7 @@ const ModalEditRemark = ({ open, onClose, data, onSuccess }) => {
             <DialogContent sx={{ pt: 3 }}>
                 {/* ข้อมูลรายการ */}
                 <Box sx={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: '#F5F8FF',
                     padding: '12px',
                     borderRadius: '8px',
                     mb: 2,
@@ -148,7 +148,7 @@ const ModalEditRemark = ({ open, onClose, data, onSuccess }) => {
                     disabled={isLoading}
                     variant="contained"
                     sx={{
-                        backgroundColor: '#2388d1',
+                        backgroundColor: '#1552F0',
                         borderRadius: '8px',
                         width: '120px',
                         height: '40px',

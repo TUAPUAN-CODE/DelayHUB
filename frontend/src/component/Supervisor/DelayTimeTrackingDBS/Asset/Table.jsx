@@ -39,7 +39,7 @@ const Table = ({ data }) => {
   };
 
   const delayColors = {
-    DCS: '#3b82f6',
+    DCS: '#1552F0',
     DBS1: '#10b981',
     DBS2: '#f59e0b',
     DBS3: '#ef4444'
@@ -170,7 +170,7 @@ const Table = ({ data }) => {
       {/* Trend Line Chart */}
       {trendData.length > 0 && (
         <div className="px-6 pb-6">
-          <h3 className="text-lg font-semibold mb-4 text-[#4aaaec] border-b pb-2 pl-2">
+          <h3 className="text-lg font-semibold mb-4 text-[#1552F0] border-b pb-2 pl-2">
             Delay Distribution Trends
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -237,7 +237,7 @@ const Table = ({ data }) => {
 
       {/* Main Summary Table */}
       <div className="mb-8 px-6 pt-6">
-        <h3 className="text-lg font-semibold mb-4 text-[#4aaaec] border-b pb-2 pl-2">
+        <h3 className="text-lg font-semibold mb-4 text-[#1552F0] border-b pb-2 pl-2">
           ประเภทวัตถุดิบ: <span className="text-gray-700">{data.metadata.groupName}</span>
         </h3>
         <div className="overflow-x-auto">
@@ -261,13 +261,13 @@ const Table = ({ data }) => {
 
       {/* Delay Distribution Table */}
       <div className="mt-8 px-6 pb-6">
-        <h3 className="text-lg font-semibold mb-4 text-[#4aaaec] border-b pb-2 pl-2">
+        <h3 className="text-lg font-semibold mb-4 text-[#1552F0] border-b pb-2 pl-2">
           Delay Time Distribution (hours)
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-200">
             <thead>
-              <tr className="bg-[#4aaaec] text-white">
+              <tr className="bg-[#1552F0] text-white">
                 {data.delayDistribution.headers.map((header, index) => (
                   <th key={index} className="border border-gray-200 px-6 py-3">
                     {header}
@@ -358,7 +358,7 @@ const Table = ({ data }) => {
       {selectedBar && (
         <div className="mt-8 px-6 pb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-[#4aaaec] border-b pb-2 pl-2">
+            <h3 className="text-lg font-semibold text-[#1552F0] border-b pb-2 pl-2">
               รายละเอียด - {data.delayDistribution.data[selectedBar.rowIndex][0]} ชั่วโมง
             </h3>
             <button
@@ -413,13 +413,13 @@ const Table = ({ data }) => {
       <div className="mt-6 mx-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
           <div>
-            <span className="font-medium text-[#4aaaec]">Group:</span> {data.metadata.groupName}
+            <span className="font-medium text-[#1552F0]">Group:</span> {data.metadata.groupName}
           </div>
           <div>
-            <span className="font-medium text-[#4aaaec]">Type:</span> {data.metadata.rmType}
+            <span className="font-medium text-[#1552F0]">Type:</span> {data.metadata.rmType}
           </div>
           <div>
-            <span className="font-medium text-[#4aaaec]">Sample Size:</span> {data.metadata.sampleSize}
+            <span className="font-medium text-[#1552F0]">Sample Size:</span> {data.metadata.sampleSize}
           </div>
         </div>
       </div>

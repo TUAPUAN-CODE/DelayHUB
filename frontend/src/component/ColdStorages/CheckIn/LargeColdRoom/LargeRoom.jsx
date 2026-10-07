@@ -228,7 +228,7 @@ useEffect(() => {
           <TableRow>
             <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50] }}></TableCell>
             {columns.map((col, index) => (
-              <TableCell key={index} align="center" sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50], color: '#787878' }}>
+              <TableCell key={index} align="center" sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[50], color: '#6B7489' }}>
                 {col}
               </TableCell>
             ))}
@@ -237,7 +237,7 @@ useEffect(() => {
         <TableBody>
           {Object.keys(rows).sort().map((rowKey, rowIndex) => (
             <TableRow key={rowIndex}>
-              <TableCell align="center" sx={{ fontWeight: 'bold', color: '#787878' }}>
+              <TableCell align="center" sx={{ fontWeight: 'bold', color: '#6B7489' }}>
                 {rowKey}
               </TableCell>
               {columns.map((col, colIndex) => {

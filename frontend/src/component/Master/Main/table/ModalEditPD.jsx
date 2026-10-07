@@ -78,7 +78,7 @@ const QcCheck = ({ open, onClose, material, materialName,cold, rm_cold_status,rm
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -103,7 +103,7 @@ const QcCheck = ({ open, onClose, material, materialName,cold, rm_cold_status,rm
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={handleClose}
             >
               ยกเลิก
@@ -111,7 +111,7 @@ const QcCheck = ({ open, onClose, material, materialName,cold, rm_cold_status,rm
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleConfirm}
             >
               ยืนยัน
@@ -251,7 +251,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาระบุข้อมูลในการส่งออก
           </Typography>
 
@@ -322,7 +322,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={onClose}
               >
                 ยกเลิก
@@ -330,7 +330,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               <Button
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
-                style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+                style={{ backgroundColor: "#1552F0", color: "#fff" }}
                 onClick={handleConfirm}
               >
                 ยืนยัน

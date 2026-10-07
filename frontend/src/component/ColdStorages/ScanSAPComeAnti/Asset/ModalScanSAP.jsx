@@ -321,7 +321,7 @@ const CameraActivationModal = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", gap: 2, p: 2, bgcolor: "#f5f5f5" }}>
+    <Box sx={{ display: "flex", height: "100vh", gap: 2, p: 2, bgcolor: "#F5F8FF" }}>
       <Paper sx={{ flex: "0 0 400px", p: 3, overflow: "auto", boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }}>
         <Typography variant="h6" sx={{ mb: 2, color: "#545454" }}>สแกน QR Code เพื่อบันทึกเวลาเริ่มละลาย</Typography>
 

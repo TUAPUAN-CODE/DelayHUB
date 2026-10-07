@@ -5,8 +5,8 @@
 const SUFFIX = ['', '_two', '_three', '_four'];
 const KINDS = [
   { id: 'withdraw_date', label: 'จ่ายออกห้องเย็น', color: '#e65100', bg: '#fff3e0' },
-  { id: 'start_defrost_date', label: 'เริ่มละลาย', color: '#0277bd', bg: '#e3f2fd' },
-  { id: 'end_defrost_date', label: 'ละลายเสร็จ', color: '#0277bd', bg: '#e3f2fd' },
+  { id: 'start_defrost_date', label: 'เริ่มละลาย', color: '#0277bd', bg: '#EAF0FF' },
+  { id: 'end_defrost_date', label: 'ละลายเสร็จ', color: '#0277bd', bg: '#EAF0FF' },
   { id: 'input_pd_date', label: 'ไลน์ผลิตรับเข้า', color: '#2e7d32', bg: '#e8f5e9' },
   { id: 'output_pd_date', label: 'ไลน์ผลิตส่งคืน', color: '#558b2f', bg: '#f1f8e9' },
   { id: 'input_cd_date', label: 'เข้าห้องเย็น', color: '#6a1b9a', bg: '#f3e5f5' },

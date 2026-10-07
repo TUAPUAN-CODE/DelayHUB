@@ -4,7 +4,7 @@ import Header from "../../Layout/Header";
 
 const CheckStatusPage = () => {
 	return (
-		<div style={{ backgroundColor: "#f9f9f9" }} className="flex-1 overflow-auto relative z-10">
+		<div style={{ backgroundColor: "#F5F8FF" }} className="flex-1 overflow-auto relative z-10">
 
 			<Header title={"ตารางตรวจสอบสถานะวัตถุดิบ"}   />
 

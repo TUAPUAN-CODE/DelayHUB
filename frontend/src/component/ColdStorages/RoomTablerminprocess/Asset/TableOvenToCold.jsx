@@ -79,20 +79,20 @@ const fmtDT = (val) => { if (!val) return '-'; try { return new Date(val).toLoca
 const ALL_TIME_FIELDS = [
   { key: 'cooked_date',              label: 'ต้ม/อบเสร็จ',                            color: '#5D4037', bg: '#EFEBE9' },
   { key: 'rmit_date',                label: 'เตรียมเสร็จ',                             color: '#37474F', bg: '#ECEFF1' },
-  { key: 'come_cold_date',           label: 'เข้าห้องเย็น PF (1)',                    color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date',           label: 'เข้าห้องเย็น PF (1)',                    color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date',            label: 'ออกห้องเย็น PF (1)',                     color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold', 'at_pd_storage_purpose', 'at_pd_histamine'] },
-  { key: 'come_cold_date_two',       label: 'เข้าห้องเย็น PF (2)',                    color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date_two',       label: 'เข้าห้องเย็น PF (2)',                    color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date_two',        label: 'ออกห้องเย็น PF (2)',                     color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold_two', 'at_pd_storage_purpose_2', 'at_pd_histamine_2'] },
-  { key: 'come_cold_date_three',     label: 'เข้าห้องเย็น PF (3)',                    color: '#0277BD', bg: '#E3F2FD' },
+  { key: 'come_cold_date_three',     label: 'เข้าห้องเย็น PF (3)',                    color: '#0277BD', bg: '#EAF0FF' },
   { key: 'out_cold_date_three',      label: 'ออกห้องเย็น PF (3)',                     color: '#E65100', bg: '#FFF3E0', extra: ['receiver_out_cold_three', 'at_pd_storage_purpose_3', 'at_pd_histamine_3'] },
   { key: 'rework_date',              label: 'แก้ไข',                                   color: '#FF8F00', bg: '#FFF8E1' },
-  { key: 'cs_come_cold_date',        label: 'เข้าห้องเย็นใหญ่ (1)',                   color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date',        label: 'เข้าห้องเย็นใหญ่ (1)',                   color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date',         label: 'ออกห้องเย็นใหญ่ (1)',                    color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_two',    label: 'เข้าห้องเย็นใหญ่ (2)',                   color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_two',    label: 'เข้าห้องเย็นใหญ่ (2)',                   color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date_two',     label: 'ออกห้องเย็นใหญ่ (2)',                    color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_three',  label: 'เข้าห้องเย็นใหญ่ (3)',                   color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_three',  label: 'เข้าห้องเย็นใหญ่ (3)',                   color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date_three',   label: 'ออกห้องเย็นใหญ่ (3)',                    color: '#BF360C', bg: '#FBE9E7' },
-  { key: 'cs_come_cold_date_four',   label: 'เข้าห้องเย็นใหญ่ (4)',                   color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'cs_come_cold_date_four',   label: 'เข้าห้องเย็นใหญ่ (4)',                   color: '#0F3FC4', bg: '#EAF0FF' },
   { key: 'cs_out_cold_date_four',    label: 'ออกห้องเย็นใหญ่ (4)',                    color: '#BF360C', bg: '#FBE9E7' },
   { key: 'withdraw_date',            label: 'ห้องเย็นใหญ่ส่งออก (1)',                 color: '#C62828', bg: '#FFEBEE' },
   { key: 'start_defrost_date',       label: 'เริ่มละลาย (1)',                          color: '#006064', bg: '#E0F7FA' },
@@ -186,7 +186,7 @@ const Row = ({ row, tableColumns, handleOpenModal, handleRowClick, handleOpenEdi
   if (!row) return null;
   const isQcChecked = row.rm_status === 'QcCheck' && row.qccheck_cold !== null;
   const { borderColor, statusMessage, percentage } = getRowStatus(row);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : 'hsl(210,100%,93%)';
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
   const isOverdue = percentage >= 100 || statusMessage.includes('เลยกำหนด');
 
   useEffect(() => {
@@ -195,24 +195,24 @@ const Row = ({ row, tableColumns, handleOpenModal, handleRowClick, handleOpenEdi
 
   const isOpen = openRowId === row.mapping_id;
   const handleDetailClick = (e) => { e.stopPropagation(); setOpenRowId(isOpen ? null : row.mapping_id); if (typeof handleRowClick === 'function') handleRowClick(row.mapping_id); else if (typeof handleOpenModal === 'function') handleOpenModal(row); };
-  const subHeaderBg = '#1565C0', subHeaderColor = '#fff', subCellEnterBg = '#E3F2FD', subCellExitBg = '#FFF8E1', subCellEnterColor = '#0D47A1', subCellExitColor = '#E65100';
+  const subHeaderBg = '#0F3FC4', subHeaderColor = '#fff', subCellEnterBg = '#EAF0FF', subCellExitBg = '#FFF8E1', subCellEnterColor = '#0D47A1', subCellExitColor = '#E65100';
 
   return (
     <>
       <TableRow><TableCell style={{ height: '4px', padding: 0, border: 'none' }} /></TableRow>
       <TableRow>
         {tableColumns.map((col, i) => (
-          <TableCell key={col.id} align="center" style={{ width: col.width, borderLeft: i === 0 ? `5px solid ${borderColor}` : '1px solid #f2f2f2', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0, whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px', height: '36px', lineHeight: '1.4', padding: '0px 8px', color: col.getColor ? col.getColor(row[col.id]) : '#787878', backgroundColor }}>
+          <TableCell key={col.id} align="center" style={{ width: col.width, borderLeft: i === 0 ? `5px solid ${borderColor}` : '1px solid #f2f2f2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0, whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px', height: '36px', lineHeight: '1.4', padding: '0px 8px', color: col.getColor ? col.getColor(row[col.id]) : '#6B7489', backgroundColor }}>
             {row[col.id] ?? '-'}
           </TableCell>
         ))}
         {/* View Details */}
-        <TableCell onClick={handleDetailClick} align="center" sx={{ borderLeft: '1px solid #e0e0e0', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, '&:hover': { backgroundColor: 'rgba(33,150,243,0.15)' }, '&:hover .vd-icon': { color: '#0D47A1', transform: 'scale(1.2)' } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#2196F3', p: '8px', transition: 'all 0.2s' }} className="vd-icon"><FaEye style={{ fontSize: '18px' }} /></Box>
+        <TableCell onClick={handleDetailClick} align="center" sx={{ borderLeft: '1px solid #E3E8F2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, '&:hover': { backgroundColor: 'rgba(33,150,243,0.15)' }, '&:hover .vd-icon': { color: '#0D47A1', transform: 'scale(1.2)' } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#1552F0', p: '8px', transition: 'all 0.2s' }} className="vd-icon"><FaEye style={{ fontSize: '18px' }} /></Box>
         </TableCell>
         {/* Delete */}
-        <TableCell onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal?.(row); }} align="center" sx={{ borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, borderTopRightRadius: '8px', borderBottomRightRadius: '8px', '&:hover': { backgroundColor: 'rgba(231,74,59,0.15)' }, '&:hover .del-icon': { color: '#C0392B', transform: 'scale(1.2)' } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#E74A3B', p: '8px', transition: 'all 0.2s' }} className="del-icon"><FaTrash style={{ fontSize: '18px' }} /></Box>
+        <TableCell onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal?.(row); }} align="center" sx={{ borderLeft: '1px solid #E3E8F2', borderRight: '1px solid #E3E8F2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, borderTopRightRadius: '8px', borderBottomRightRadius: '8px', '&:hover': { backgroundColor: 'rgba(231,74,59,0.15)' }, '&:hover .del-icon': { color: '#C0392B', transform: 'scale(1.2)' } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#E5484D', p: '8px', transition: 'all 0.2s' }} className="del-icon"><FaTrash style={{ fontSize: '18px' }} /></Box>
         </TableCell>
       </TableRow>
       <TableRow><TableCell style={{ height: '4px', padding: 0, border: 'none' }} /></TableRow>
@@ -222,23 +222,23 @@ const Row = ({ row, tableColumns, handleOpenModal, handleRowClick, handleOpenEdi
         <TableCell style={{ padding: 0, border: 'none' }} colSpan={tableColumns.length + 2}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{ m: 1, borderRadius: '10px', overflow: 'hidden', border: '1px solid #BBDEFB', boxShadow: '0 2px 8px rgba(33,150,243,0.1)' }}>
-              <Box sx={{ background: 'linear-gradient(90deg,#1565C0,#1976D2)', p: '10px 16px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ background: 'linear-gradient(90deg,#0F3FC4,#1552F0)', p: '10px 16px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>🚛 รายละเอียดรถเข็น {row.tro_id}</Typography>
               </Box>
 
               {/* Info */}
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#E3F2FD' }}>
+                  <TableRow sx={{ bgcolor: '#EAF0FF' }}>
                     {['Batch','Material','รายชื่อวัตถุดิบ','Level EU','น้ำหนัก','จำนวนถาด','สถานะ'].map(h => (
-                      <TableCell key={h} align="center" sx={{ fontSize: '12px', fontWeight: 700, color: '#1565C0', borderRight: '1px solid #BBDEFB', py: '6px' }}>{h}</TableCell>
+                      <TableCell key={h} align="center" sx={{ fontSize: '12px', fontWeight: 700, color: '#0F3FC4', borderRight: '1px solid #BBDEFB', py: '6px' }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow sx={{ bgcolor: '#fff' }}>
                     {[row.batch, row.mat, row.mat_name, row.level_eu, row.weight_RM, row.tray_count].map((v, i) => (
-                      <TableCell key={i} align="center" sx={{ fontSize: '12px', color: '#333', borderRight: '1px solid #E3F2FD', py: '6px' }}>{v || '-'}</TableCell>
+                      <TableCell key={i} align="center" sx={{ fontSize: '12px', color: '#333', borderRight: '1px solid #EAF0FF', py: '6px' }}>{v || '-'}</TableCell>
                     ))}
                     <TableCell align="center" sx={{ fontSize: '12px', fontWeight: 600, py: '6px', color: ['รอกลับมาเตรียม','QcCheck รอ MD'].includes(row.rm_status) ? '#00bcd4' : row.rm_status === 'เหลือจากไลน์ผลิต' ? '#ff9800' : row.rm_status === 'QcCheck' ? '#4caf50' : row.rm_status === 'รอแก้ไข' ? '#f44336' : '#333' }}>{row.rm_status}</TableCell>
                   </TableRow>
@@ -246,7 +246,7 @@ const Row = ({ row, tableColumns, handleOpenModal, handleRowClick, handleOpenEdi
               </Table>
 
               {/* ✅ CS Extra Info — receiver, section leader, storage purpose, histamine */}
-              {/* <Box sx={{ p: '8px 12px', bgcolor: '#F8FBFF', display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              {/* <Box sx={{ p: '8px 12px', bgcolor: '#F5F8FF', display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                 {[
                   { label: '👤 หัวหน้าส่วนงานห้องเย็นผลิต', value: row.receiver_out_cold },
                   { label: '👷 หัวหน้าส่วนงานห้องเย็นห้องเย็น', value: row.rd_section_colds },
@@ -351,12 +351,12 @@ const exportToPDF = (rows) => {
     <html><head><meta charset="utf-8">
     <style>
       body { font-family: 'Sarabun', Arial, sans-serif; padding: 16px; }
-      h2 { color: #1565C0; margin-bottom: 4px; font-size: 16px; }
+      h2 { color: #0F3FC4; margin-bottom: 4px; font-size: 16px; }
       .meta { font-size: 11px; color: #666; margin-bottom: 12px; }
       table { border-collapse: collapse; width: 100%; }
-      thead tr { background: #1565C0; color: #fff; }
-      thead th { padding: 6px 8px; font-size: 11px; border: 1px solid #1976D2; white-space: nowrap; }
-      tbody tr:nth-child(even) { background: #f0f7ff; }
+      thead tr { background: #0F3FC4; color: #fff; }
+      thead th { padding: 6px 8px; font-size: 11px; border: 1px solid #1552F0; white-space: nowrap; }
+      tbody tr:nth-child(even) { background: #F5F8FF; }
       @media print { @page { size: A3 landscape; margin: 10mm; } }
     </style></head>
     <body>
@@ -413,7 +413,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหา..."
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>, sx: { height: '36px' } }}
-          sx={{ flex: 1, minWidth: '180px', "& .MuiOutlinedInput-root": { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#787878' }, "& input": { padding: '6px' } }}
+          sx={{ flex: 1, minWidth: '180px', "& .MuiOutlinedInput-root": { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#6B7489' }, "& input": { padding: '6px' } }}
         />
 
         {/* ✅ Export Button */}
@@ -421,7 +421,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           variant="outlined" size="small"
           startIcon={<FileDownloadIcon />}
           onClick={(e) => setExportAnchor(e.currentTarget)}
-          sx={{ borderRadius: '8px', borderColor: '#1565C0', color: '#1565C0', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#e3f2fd' } }}
+          sx={{ borderRadius: '8px', borderColor: '#0F3FC4', color: '#0F3FC4', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#EAF0FF' } }}
         >
           Export
         </Button>
@@ -436,11 +436,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       </Box>
 
       {/* ── Filter Bar ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, px: 2, pb: '10px', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, px: 2, pb: '10px', borderBottom: '1px solid #E3E8F2' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Typography sx={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>🔃 เรียงตาม:</Typography>
           <button onClick={() => { sortField === 'cs_come_cold_date' ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : (setSortField('cs_come_cold_date'), setSortDir('asc')); }}
-            style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField ? '2px solid #1565C0' : '1px solid #ccc', backgroundColor: sortField ? '#E3F2FD' : '#fff', color: sortField ? '#1565C0' : '#555', fontWeight: sortField ? 700 : 400, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            style={{ padding: '3px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap', border: sortField ? '2px solid #0F3FC4' : '1px solid #ccc', backgroundColor: sortField ? '#EAF0FF' : '#fff', color: sortField ? '#0F3FC4' : '#555', fontWeight: sortField ? 700 : 400, display: 'flex', alignItems: 'center', gap: '5px' }}>
             เรียงเวลาเข้าห้องเย็นก่อน-หลัง
             {sortField ? (sortDir === 'asc' ? <FaSortAmountUp style={{ fontSize: '10px' }} /> : <FaSortAmountDown style={{ fontSize: '10px' }} />) : <FaSortAmountUp style={{ fontSize: '10px', opacity: 0.35 }} />}
           </button>
@@ -456,12 +456,12 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
             <TableHead>
               <TableRow sx={{ height: '36px' }}>
                 {tableColumns.map((col, i) => (
-                  <TableCell key={col.id} align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderRight: '1px solid #f2f2f2', fontSize: '12px', color: '#787878', padding: '4px', width: col.width, borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0 }}>
+                  <TableCell key={col.id} align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderRight: '1px solid #f2f2f2', fontSize: '12px', color: '#6B7489', padding: '4px', width: col.width, borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0 }}>
                     <Box style={{ fontSize: '12px', color: '#ffffff' }}>{col.name}</Box>
                   </TableCell>
                 ))}
                 {['รายละเอียด','ลบ'].map((lbl, i, arr) => (
-                  <TableCell key={lbl} align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #e0e0e0', fontSize: '12px', padding: '4px', width: '80px', borderTopRightRadius: i === arr.length - 1 ? '8px' : 0, borderBottomRightRadius: i === arr.length - 1 ? '8px' : 0 }}>
+                  <TableCell key={lbl} align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #E3E8F2', fontSize: '12px', padding: '4px', width: '80px', borderTopRightRadius: i === arr.length - 1 ? '8px' : 0, borderBottomRightRadius: i === arr.length - 1 ? '8px' : 0 }}>
                     <Box style={{ fontSize: '12px', color: '#ffffff' }}>{lbl}</Box>
                   </TableCell>
                 ))}
@@ -472,14 +472,14 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 ? filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, i) => (
                   <Row key={i} row={row} tableColumns={tableColumns} handleOpenModal={handleOpenModal} handleRowClick={handleRowClick} handleOpenEditModal={handleOpenEditModal} handleOpenDeleteModal={handleOpenDeleteModal} handleOpenQualityCheckModal={handleOpenQualityCheckModal} handleOpenSuccess={handleOpenSuccess} selectedColor={selectedColor} openRowId={openRowId} setOpenRowId={setOpenRowId} index={i} />
                 ))
-                : <TableRow><TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#787878' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
+                : <TableRow><TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#6B7489' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>
       </div>
 
       <TablePagination
-        sx={{ "& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar": { fontSize: '12px', color: '#787878', padding: 0 } }}
+        sx={{ "& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar": { fontSize: '12px', color: '#6B7489', padding: 0 } }}
         rowsPerPageOptions={[300, 1000, 5000]} component="div" count={filteredRows.length}
         rowsPerPage={rowsPerPage} page={page}
         onPageChange={(_, p) => setPage(p)}

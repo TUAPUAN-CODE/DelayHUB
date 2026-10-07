@@ -67,66 +67,61 @@ const Header = ({ title }) => {
     // }
   }, []);
 
+  const initial = (user?.name || "").trim().charAt(0).toUpperCase() || "?";
   return (
     <header
+      className="header-container"
       style={{
         backgroundColor: "#fff",
-        color: "#686868",
-        marginTop: "10px",
-        borderRadius: "4px",
-        height: "40px",
-        boxShadow: "0 0px 3px rgba(0, 0, 0, 0.2)",
+        color: "#1B2333",
+        marginTop: 10,
+        borderRadius: 14,
+        minHeight: 52,
+        border: "1px solid #E3E8F2",
+        boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.07)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "6px 14px",
       }}
     >
-      <div
-        style={{ alignItems: "center", marginTop: "4px" }}
-        className="mx-auto sm:px-6 lg:px-5 flex items-center justify-between"
+      {/* Title */}
+      <h6
+        className="header-title"
+        style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: ".1px", display: "flex", alignItems: "center", gap: 10 }}
       >
-        {/* Title */}
-        <h6 className="header-title">{title}</h6>
+        <span style={{ width: 4, height: 20, borderRadius: 4, background: "#1552F0", display: "inline-block" }} />
+        {title}
+      </h6>
 
-        {/* User Card */}
+      {/* User Card */}
+      <div
+        className="user-card"
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px", borderRadius: 12, background: "#F5F8FF", fontSize: 11, color: "#6B7489" }}
+      >
         <div
           style={{
-            backgroundColor: "#fff",
-            padding: "4px 10px",
-            color: "#787878",
-            fontSize: "10px",
-            marginTop: "1px",
-            width: "fit-content", // ขยายตามข้อความ
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4D7BF5, #1552F0)",
             display: "flex",
             alignItems: "center",
-            borderRadius: "8px",
+            justifyContent: "center",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: 14,
+            flexShrink: 0,
           }}
-          className="user-card"
         >
-          {/* Icon หรือ Profile Picture */}
-          <div
-            style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "50%",
-              backgroundColor: "#787878",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              marginRight: "10px",
-              flexShrink: 0, // ป้องกันการบีบขนาดของไอคอน
-            }}
-          >
-            {user?.name?.charAt(0).toUpperCase()}
-          </div>
-          {/* User Details */}
-          <div style={{ whiteSpace: "nowrap" }}>
-            <p style={{ margin: "0", fontWeight: "bold" }}>
-              {user?.name || "ไม่พบรายชื่อ"}
-            </p>
-            <p style={{ margin: "0" }}>
-              {position || "ตำแหน่งไม่พบ"} | {workplace || "จุดทำงานไม่พบ"}{" "}
-              {rawmatType || ""}
-            </p>
-          </div>
+          {initial}
+        </div>
+        <div style={{ whiteSpace: "nowrap", lineHeight: 1.3 }}>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: "#1B2333" }}>{user?.name || "ไม่พบรายชื่อ"}</p>
+          <p style={{ margin: 0 }}>
+            {position || "ตำแหน่งไม่พบ"} | {workplace || "จุดทำงานไม่พบ"} {rawmatType || ""}
+          </p>
         </div>
       </div>
     </header>

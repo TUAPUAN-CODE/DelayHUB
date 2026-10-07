@@ -160,7 +160,7 @@ const Parent = () => {
           variant="contained"
           onClick={printBrothSlip}
           style={{
-            backgroundColor: "#fff", color: "#787878",
+            backgroundColor: "#fff", color: "#6B7489",
             padding: "10px 24px", display: "flex", justifyContent: "space-between",
             alignItems: "center", borderLeft: "8px solid #e65100",
             width: "220px", boxShadow: "0 1px 4px rgba(0,0,0,.12)"
@@ -168,7 +168,7 @@ const Parent = () => {
         >
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "#e65100", fontSize: "13px", fontWeight: 600 }}>พิมพ์สลิป</div>
-            <div style={{ color: "#787878", fontSize: "12px" }}>น้ำอบไก่</div>
+            <div style={{ color: "#6B7489", fontSize: "12px" }}>น้ำอบไก่</div>
           </div>
           <PrintIcon style={{ color: "#e65100", fontSize: "32px", marginLeft: "16px" }} />
         </Button> */}
@@ -179,7 +179,7 @@ const Parent = () => {
           onClick={handleStart}
           disabled={loadingStart}
           style={{
-            backgroundColor: "#fff", color: "#787878",
+            backgroundColor: "#fff", color: "#6B7489",
             padding: "10px 24px", display: "flex", justifyContent: "space-between",
             alignItems: "center", borderLeft: "8px solid #2e7d32",
             width: "220px", boxShadow: "0 1px 4px rgba(0,0,0,.12)"
@@ -189,7 +189,7 @@ const Parent = () => {
             <div style={{ color: "#2e7d32", fontSize: "13px", fontWeight: 600 }}>
               {loadingStart ? "กำลังบันทึก..." : "Timestamp เก็บ"}
             </div>
-            <div style={{ color: "#787878", fontSize: "12px" }}>บันทึกเวลา Start</div>
+            <div style={{ color: "#6B7489", fontSize: "12px" }}>บันทึกเวลา Start</div>
           </div>
           <AcUnitIcon style={{ color: "#2e7d32", fontSize: "32px", marginLeft: "16px" }} />
         </Button>
@@ -202,7 +202,7 @@ const Parent = () => {
             <TableRow>
               {["#", "เวลาเก็บ", "เวลาทำเย็น", "Delay", "ทำเย็น", "Print"].map((h, i) => (
                 <TableCell key={i} align="center"
-                  sx={{ bgcolor: "#1565C0", color: "#fff", fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>
+                  sx={{ bgcolor: "#0F3FC4", color: "#fff", fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>
                   {h}
                 </TableCell>
               ))}
@@ -217,12 +217,12 @@ const Parent = () => {
               </TableRow>
             ) : rows.map((row, idx) => (
               <TableRow key={row.time_stamp_ck}
-                sx={{ bgcolor: idx % 2 === 0 ? "#fff" : "#f0f7ff", "&:hover": { bgcolor: "#e3f2fd" } }}>
+                sx={{ bgcolor: idx % 2 === 0 ? "#fff" : "#F5F8FF", "&:hover": { bgcolor: "#EAF0FF" } }}>
                 <TableCell align="center" sx={{ fontSize: "13px", color: "#555" }}>{idx + 1}</TableCell>
                 <TableCell align="center" sx={{ fontSize: "13px", color: "#2e7d32", fontWeight: 600 }}>
                   {row.start_datetime ?? "-"}
                 </TableCell>
-                <TableCell align="center" sx={{ fontSize: "13px", color: "#1565C0", fontWeight: 600 }}>
+                <TableCell align="center" sx={{ fontSize: "13px", color: "#0F3FC4", fontWeight: 600 }}>
                   {row.cooling_datetime ?? (
                     <Chip label="รอ" size="small" sx={{ bgcolor: "#fff3e0", color: "#e65100", fontSize: "11px" }} />
                   )}
@@ -237,7 +237,7 @@ const Parent = () => {
                         size="small"
                         onClick={() => handleCooling(row.time_stamp_ck)}
                         disabled={loadingCooling === row.time_stamp_ck}
-                        sx={{ color: "#1565C0", "&:hover": { bgcolor: "#e3f2fd" } }}
+                        sx={{ color: "#0F3FC4", "&:hover": { bgcolor: "#EAF0FF" } }}
                       >
                         <AcUnitIcon fontSize="small" />
                       </IconButton>

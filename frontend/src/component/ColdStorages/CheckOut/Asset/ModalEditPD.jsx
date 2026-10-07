@@ -333,7 +333,7 @@ const QcCheck = ({ open, onClose, material_code, materialName, ptc_time, standar
         }}
       >
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -342,11 +342,11 @@ const QcCheck = ({ open, onClose, material_code, materialName, ptc_time, standar
             รายการวัตถุดิบในรถเข็น: {tro_id}
           </Typography>
 
-          <Box sx={{ mb: 2, maxHeight: 300, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px', p: 2 }}>
+          <Box sx={{ mb: 2, maxHeight: 300, overflow: 'auto', border: '1px solid #E3E8F2', borderRadius: '4px', p: 2 }}>
             {materials && materials.length > 0 ? (
               materials.map((item, index) => (
                 <Box key={index} sx={{ mb: 3, pb: 2, borderBottom: index < materials.length - 1 ? '1px dashed #ccc' : 'none' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#2388d1' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#1552F0' }}>
                     วัตถุดิบที่ {index + 1}
                   </Typography>
                   <Stack spacing={1}>
@@ -565,7 +565,7 @@ const QcCheck = ({ open, onClose, material_code, materialName, ptc_time, standar
                 height: "50px",
                 marginBottom: "20px",
                 margin: "5px",
-                backgroundColor: "#2388d1",
+                backgroundColor: "#1552F0",
                 '@media print': {
                   display: 'none',
                 },
@@ -887,7 +887,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
         onClose();
       }} fullWidth maxWidth="md">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาระบุข้อมูลในการส่งออก
           </Typography>
 
@@ -939,7 +939,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               <Button
                 variant="contained"
                 startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+                style={{ backgroundColor: "#E5484D", color: "#fff" }}
                 onClick={onClose}
               >
                 ยกเลิก
@@ -947,7 +947,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
               <Button
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
-                style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+                style={{ backgroundColor: "#1552F0", color: "#fff" }}
                 onClick={handleConfirm}
               >
                 ยืนยัน

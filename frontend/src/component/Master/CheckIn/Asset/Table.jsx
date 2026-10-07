@@ -514,7 +514,7 @@ const Row = ({
   const totalTrays = calculateTotalTrays();
   const totalWeight = calculateTotalWeight();
   // คำนวณสถานะของรถเข็น (สี, ข้อความเวลา)
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
 
   // Get the latest cold room entry date
   const latestComeColdDate = getLatestComeColdDate(row);
@@ -584,12 +584,12 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.trolleyId,
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             backgroundColor: backgroundColor
@@ -611,12 +611,12 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.production,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             backgroundColor: backgroundColor
           }}
         >
@@ -629,12 +629,12 @@ const Row = ({
           style={{
             width: '120px',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             backgroundColor: backgroundColor,
           }}
         >
@@ -647,12 +647,12 @@ const Row = ({
           style={{
             width: '120px',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
             backgroundColor: backgroundColor,
           }}
         >
@@ -666,7 +666,7 @@ const Row = ({
             e.stopPropagation(); // Prevent triggering the row's onClick
             setOpenDetailRowId(isDetailOpen ? null : row.tro_id);
           }}
-          icon={<FaEye style={{ color: '#4aaaec', fontSize: '22px' }} />}
+          icon={<FaEye style={{ color: '#1552F0', fontSize: '22px' }} />}
           backgroundColor={backgroundColor}
         />
 
@@ -691,7 +691,7 @@ const Row = ({
               materials: materialsWithDelayTime // Send materials with Delay Time
             });
           }}
-          icon={<RiArrowUpBoxLine style={{ color: '#4aaaec', fontSize: '22px' }} />}
+          icon={<RiArrowUpBoxLine style={{ color: '#1552F0', fontSize: '22px' }} />}
           backgroundColor={backgroundColor}
           isLastCell={true}
         />
@@ -726,7 +726,7 @@ const MaterialDetails = ({ materials, isOpen, row }) => {
       <TableCell colSpan={5} style={{ padding: '0px' }}>
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
           <Box sx={{ margin: 2 }}>
-            <Typography variant="h6" gutterBottom component="div" sx={{ fontSize: '16px', fontWeight: 'bold', color: '#4aaaec' }}>
+            <Typography variant="h6" gutterBottom component="div" sx={{ fontSize: '16px', fontWeight: 'bold', color: '#1552F0' }}>
               รายการวัตถุดิบในรถเข็น
             </Typography>
             <Table size="small">
@@ -787,10 +787,10 @@ const ActionButton = ({ width, onClick, icon, backgroundColor, isLastCell = fals
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
-        borderRight: isLastCell ? "1px solid #e0e0e0" : "0px solid",
+        borderRight: isLastCell ? "1px solid #E3E8F2" : "0px solid",
         borderTopRightRadius: isLastCell ? "8px" : "0px",
         borderBottomRightRadius: isLastCell ? "8px" : "0px",
         height: '40px',
@@ -801,20 +801,20 @@ const ActionButton = ({ width, onClick, icon, backgroundColor, isLastCell = fals
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#4aaaec';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = backgroundColor;
-        e.currentTarget.querySelector('svg').style.color = '#4aaaec';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.backgroundColor = '#4aaaec';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onTouchEnd={(e) => {
         e.currentTarget.style.backgroundColor = backgroundColor;
-        e.currentTarget.querySelector('svg').style.color = '#4aaaec';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -1109,7 +1109,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -1133,13 +1133,13 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
             <TableRow sx={{ height: '40px' }}>
               {/* Table header - ID Badge */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
+                backgroundColor: "#1552F0",
                 borderTopLeftRadius: '8px',
                 borderBottomLeftRadius: '8px',
-                borderTop: "1px solid #e0e0e0",
+                borderTop: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
-                borderBottom: "1px solid #e0e0e0",
-                borderLeft: "1px solid #e0e0e0",
+                borderBottom: "1px solid #E3E8F2",
+                borderLeft: "1px solid #E3E8F2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.trolleyId
               }}>
@@ -1148,9 +1148,9 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
               {/* Table header - Production Plan */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
-                borderTop: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.production
@@ -1160,9 +1160,9 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
               {/* Table header - Total Weight */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
-                borderTop: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: '120px'
@@ -1172,9 +1172,9 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
               {/* Table header - Total Trays */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
-                borderTop: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: '120px'
@@ -1184,9 +1184,9 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
               {/* Table header - View Details */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
-                borderTop: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.view
@@ -1196,10 +1196,10 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
               {/* Table header - Export */}
               <TableCell align="center" style={{
-                backgroundColor: "hsl(210, 100%, 60%)",
-                borderTop: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
-                borderRight: "1px solid #e0e0e0",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
+                borderRight: "1px solid #E3E8F2",
                 borderTopRightRadius: '8px',
                 borderBottomRightRadius: '8px',
                 padding: '5px',
@@ -1233,7 +1233,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={5} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการรถเข็นในขณะนี้
                 </TableCell>
               </TableRow>
@@ -1245,7 +1245,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}
@@ -1278,7 +1278,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

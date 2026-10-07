@@ -108,7 +108,7 @@ const ModalDelete = ({ open, onClose, data, onSuccess, dataPrinter }) => {
         maxWidth="xs"
       >
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนยืนยันการบรรจุสำเร็จ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -144,7 +144,7 @@ const ModalDelete = ({ open, onClose, data, onSuccess, dataPrinter }) => {
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              sx={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
             >
               ยกเลิก
@@ -152,7 +152,7 @@ const ModalDelete = ({ open, onClose, data, onSuccess, dataPrinter }) => {
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              sx={{ backgroundColor: selectedDateTime ? "#41a2e6" : "#b0bec5", color: "#fff" }}
+              sx={{ backgroundColor: selectedDateTime ? "#1552F0" : "#b0bec5", color: "#fff" }}
               disabled={!selectedDateTime}
               onClick={() => setConfirm(true)}
             >

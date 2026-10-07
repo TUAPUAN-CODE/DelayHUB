@@ -98,7 +98,7 @@ const PrintSlipController = ({ open, onClose, data, initialSlipType }) => {
                 flex: 1,
                 maxWidth: "250px",
                 height: "50px",
-                backgroundColor: "#2388d1",
+                backgroundColor: "#1552F0",
                 fontSize: "16px",
               }}
             >

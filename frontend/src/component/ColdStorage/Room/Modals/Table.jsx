@@ -315,7 +315,7 @@ const Row = ({
         sx={{
           cursor: 'pointer',
           '&:hover': {
-            backgroundColor: '#f5f5f5',
+            backgroundColor: '#F5F8FF',
           }
         }}
       >
@@ -323,11 +323,11 @@ const Row = ({
           style={{
             width: '50px',
             textAlign: 'center',
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             height: '40px',
             padding: '0px 0px',
-            borderRight: "0px solid #e0e0e0",
+            borderRight: "0px solid #E3E8F2",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             borderLeft: `5px solid ${borderColor}`,
@@ -358,8 +358,8 @@ const Row = ({
           align="center"
           style={{
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -368,7 +368,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
           }}
         >
           {batch}
@@ -379,8 +379,8 @@ const Row = ({
           align="center"
           style={{
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -389,7 +389,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
           }}
         >
           {matName}
@@ -400,8 +400,8 @@ const Row = ({
           align="center"
           style={{
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -410,7 +410,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "#787878",
+            color: "#6B7489",
           }}
         >
           {mat}
@@ -451,23 +451,23 @@ const Row = ({
       <TableRow>
         <TableCell style={{ padding: 0, border: 'none', }} colSpan={6}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'hidden', borderTop: '1px solid #ececec', borderLeft: '1px solid #ececec', borderBottom: "1px solid #ececec", borderRight: '1px solid #ececec', maxWidth: '100%', }}>
+            <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'hidden', borderTop: '1px solid #E8EDF6', borderLeft: '1px solid #E8EDF6', borderBottom: "1px solid #E8EDF6", borderRight: '1px solid #E8EDF6', maxWidth: '100%', }}>
               <Table size="small" aria-label="purchases" sx={{ width: '100%', }}>
                 <TableHead >
-                  <TableRow style={{ backgroundColor: "#F9F9F9" }}>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "100px" }}>แผนการผลิต</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "100px" }}>จำนวนถาด</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "100px" }}>น้ำหนักวัตถุดิบ</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", width: "200px" }}>
+                  <TableRow style={{ backgroundColor: "#F5F8FF" }}>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "100px" }}>แผนการผลิต</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "100px" }}>จำนวนถาด</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "100px" }}>น้ำหนักวัตถุดิบ</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "200px" }}>
                       เวลาต้ม/อบเสร็จ
                     </TableCell>
                     <TableCell
                       sx={{
                         fontSize: "13px",
                         textAlign: 'center',
-                        borderRight: '1px solid #ececec',
+                        borderRight: '1px solid #E8EDF6',
                         verticalAlign: 'middle',
-                        color: "#787878",
+                        color: "#6B7489",
                         width: "200px"
                       }}
                     >
@@ -478,21 +478,21 @@ const Row = ({
                       )}
                     </TableCell>
 
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", width: "200px" }}>เวลาเข้าห้องเย็น</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "200px" }}>เวลาเข้าห้องเย็น</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow>
-                    <TableCell sx={{ border: 'none', borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878" }}>{row.production || '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878" }}>{row.tray_count || row.ntray || '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878" }}>{row.weight_RM || '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878" }}>
+                    <TableCell sx={{ border: 'none', borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489" }}>{row.production || '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489" }}>{row.tray_count || row.ntray || '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489" }}>{row.weight_RM || '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>
                       {row.CookedDateTime || '-'}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878" }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>
                       {isMixed ? (row.mixed_date || '-') : (row.RawmatTransForm || '-')}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', verticalAlign: 'middle', color: "#787878" }}>{formatThaiDateTime(getLatestComeColdDate(row))}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489" }}>{formatThaiDateTime(getLatestComeColdDate(row))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -510,8 +510,8 @@ const CartActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -520,20 +520,20 @@ const CartActionCell = ({ width, onClick, icon }) => {
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = '';
-        e.currentTarget.querySelector('svg').style.color = '#007BFF';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onTouchEnd={(e) => {
         e.currentTarget.style.backgroundColor = '';
-        e.currentTarget.querySelector('svg').style.color = '#007BFF';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -549,8 +549,8 @@ const CompleteActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -588,8 +588,8 @@ const EditActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -627,12 +627,12 @@ const Move = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -842,26 +842,26 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
           <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '800px', width: '1110px' }}>
             <TableHead style={{ marginBottom: "10px" }}>
               <TableRow sx={{ height: '40px' }}>
-                <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', borderLeft: "1px solid #e0e0e0", padding: '5px', width: '100px' }}>
+                <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', borderLeft: "1px solid #E3E8F2", padding: '5px', width: '100px' }}>
                   <Box style={{ fontSize: '12px' }}>DelayTime</Box>
                 </TableCell>
 
-                <TableCell align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: '100px' }}>
+                <TableCell align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: '100px' }}>
                   <Box style={{ fontSize: '12px' }}>Batch</Box>
                 </TableCell>
 
-                <TableCell align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: '150px' }}>
+                <TableCell align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: '150px' }}>
                   <Box style={{ fontSize: '12px' }}>รายชื่อวัตถุดิบ</Box>
                 </TableCell>
 
-                <TableCell align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: '150px' }}>
+                <TableCell align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: '150px' }}>
                   <Box style={{ fontSize: '12px' }}>MAT</Box>
                 </TableCell>
 
-                <TableCell align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: '120px' }}>
+                <TableCell align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: '120px' }}>
                   <Box style={{ fontSize: '12px' }}>ย้ายวัตถุดิบ</Box>
                 </TableCell>
-                <TableCell align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', borderTopRightRadius: "8px", borderBottomRightRadius: "8px", width: '120px' }}>
+                <TableCell align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', borderTopRightRadius: "8px", borderBottomRightRadius: "8px", width: '120px' }}>
                   <Box style={{ fontSize: '12px' }}>แก้ไขแผนการผลิต</Box>
                 </TableCell>
               </TableRow>
@@ -885,7 +885,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                  <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                     ไม่มีรายการวัตถุดิบในขณะนี้
                   </TableCell>
                 </TableRow>
@@ -927,12 +927,12 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = '';
-        e.currentTarget.querySelector("svg").style.color = selectedColor === color ? '#787878' : colors[color].default;
+        e.currentTarget.querySelector("svg").style.color = selectedColor === color ? '#6B7489' : colors[color].default;
       }}
     >
       <FaRegCircle
         style={{
-          color: selectedColor === color ? '#787878' : colors[color].default,
+          color: selectedColor === color ? '#6B7489' : colors[color].default,
           fontSize: "24px",
           transition: "color 0.2s ease-in-out",
         }}

@@ -243,7 +243,7 @@ const Row = ({
   if (!row) return null;
 
   const { borderColor, statusMessage, hideDelayTime, percentage } = getRowStatus(row);
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)"; // เปลี่ยนสีตาราง ขาว เทา
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF"; // เปลี่ยนสีตาราง ขาว เทา
   const isOverdue = percentage >= 100 || statusMessage.includes("เลยกำหนด");
   const isOpen = openRowId === row.mapping_id;
 
@@ -281,11 +281,11 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.delayTime,
             textAlign: 'center',
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             height: '40px',
             padding: '0px 0px',
-            borderRight: "0px solid #e0e0e0",
+            borderRight: "0px solid #E3E8F2",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             borderLeft: `5px solid ${borderColor}`,
@@ -321,8 +321,8 @@ const Row = ({
             style={{
               width: column.width,
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -331,7 +331,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#787878",
+              color: "#6B7489",
               backgroundColor: backgroundColor
             }}
           >
@@ -353,9 +353,9 @@ const Row = ({
         <TableCell
           style={{
             borderLeft: "1px solid #f2f2f2",
-            borderRight: "1px solid #e0e0e0",
-            borderTop: '1px solid #e0e0e0',
-            borderBottom: '1px solid #e0e0e0',
+            borderRight: "1px solid #E3E8F2",
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px',
@@ -369,7 +369,7 @@ const Row = ({
             onClick={handleDetailClick}
             size="small"
             sx={{
-              color: isOpen ? '#1976d2' : '#2196f3', // สีฟ้าเข้มเมื่อเปิด, สีฟ้าอ่อนเมื่อปิด
+              color: isOpen ? '#1552F0' : '#1552F0', // สีฟ้าเข้มเมื่อเปิด, สีฟ้าอ่อนเมื่อปิด
               '&:hover': {
                 color: '#0d47a1', // สีฟ้าเข้มเมื่อโฮเวอร์
                 transform: 'scale(1.2)'
@@ -390,48 +390,48 @@ const Row = ({
       <TableRow>
         <TableCell style={{ padding: 0, border: 'none', }} colSpan={tableColumns.length + 2}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'hidden', borderTop: '1px solid #ececec', borderLeft: '1px solid #ececec', borderBottom: "1px solid #ececec", borderRight: '1px solid #ececec', maxWidth: '100%', }}>
+            <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'hidden', borderTop: '1px solid #E8EDF6', borderLeft: '1px solid #E8EDF6', borderBottom: "1px solid #E8EDF6", borderRight: '1px solid #E8EDF6', maxWidth: '100%', }}>
               <Table size="small" aria-label="purchases" sx={{ width: '100%', }}>
                 <TableHead>
-                  <TableRow style={{ backgroundColor: "#F9F9F9" }}>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาเบิกห้องเย็นใหญ่</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาต้มอบเสร็จ</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น1</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น1</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น2</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น2</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น3</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น3</TableCell>
-                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #ececec', textAlign: 'center', verticalAlign: 'middle', color: "#787878", width: "50px", padding: '6px 0px' }}>เวลาแก้ไข</TableCell>
+                  <TableRow style={{ backgroundColor: "#F5F8FF" }}>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาเบิกห้องเย็นใหญ่</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาต้มอบเสร็จ</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น1</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น1</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น2</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น2</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาเข้าห้องเย็น3</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาออกห้องเย็น3</TableCell>
+                    <TableCell sx={{ fontSize: "13px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", width: "50px", padding: '6px 0px' }}>เวลาแก้ไข</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow key={row.rm_tro_id}>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.withdraw_date ? new Date(row.withdraw_date).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.rmit_date ? new Date(row.rmit_date).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.come_cold_date ? new Date(row.come_cold_date).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.out_cold_date ? new Date(row.out_cold_date).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.come_cold_date_two ? new Date(row.come_cold_date_two).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.out_cold_date_two ? new Date(row.out_cold_date_two).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.come_cold_date_three ? new Date(row.come_cold_date_three).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.out_cold_date_three ? new Date(row.out_cold_date_three).toLocaleString() : "-"}
                     </TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #ececec', verticalAlign: 'middle', color: "#787878", padding: '6px 0px' }}>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '6px 0px' }}>
                       {row.rework_date ? new Date(row.rework_date).toLocaleString() : "-"}
                     </TableCell>
                   </TableRow>
@@ -538,7 +538,7 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -581,13 +581,13 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopLeftRadius: "8px",
                   borderBottomLeftRadius: "8px",
-                  borderLeft: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
+                  borderLeft: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
                   fontSize: '12px',
                   padding: '5px',
                   width: CUSTOM_COLUMN_WIDTHS.delayTime,
@@ -608,10 +608,10 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               {/* แสดงคอลัมน์จาก tableColumns */}
               {tableColumns.map((column) => (
                 <TableCell key={column.id} align="center" style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  // borderRight: "1px solid #e0e0e0",
+                  backgroundColor: "#1552F0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  // borderRight: "1px solid #E3E8F2",
                   fontSize: '12px',
                   padding: '5px',
                   borderLeft: "1px solid #f2f2f2",
@@ -622,7 +622,7 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))}
 
               {/* คอลัมน์ดูข้อมูล */}
-              <TableCell align="center" style={{ backgroundColor: "hsl(210, 100%, 60%)", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.viewDetails }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderLeft: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: CUSTOM_COLUMN_WIDTHS.viewDetails }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ดูข้อมูล</Box>
               </TableCell>
             </TableRow>
@@ -647,7 +647,7 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -659,7 +659,7 @@ const TableMainSupv = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}
@@ -690,7 +690,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",

@@ -64,11 +64,11 @@ const ForgotPassword = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        minWidth: "100vh",
+        
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#1770b8",
+        background: "linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)",
         backgroundImage: "url('/')",
       }}
     >

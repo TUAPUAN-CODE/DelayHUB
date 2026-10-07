@@ -36,7 +36,7 @@ const ViewProdInfoModal = ({ isOpen, onClose, data }) => {
     >
       <DialogTitle
         sx={{
-          backgroundColor: "hsl(210, 100%, 60%)",
+          backgroundColor: "#1552F0",
           color: "white",
           display: "flex",
           justifyContent: "space-between",
@@ -64,12 +64,12 @@ const ViewProdInfoModal = ({ isOpen, onClose, data }) => {
               รายการแผนการผลิตทั้งหมด ({data.prod_info.length} รายการ)
             </Typography>
             
-            <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: "8px" }}>
+            <Paper elevation={0} sx={{ border: "1px solid #E3E8F2", borderRadius: "8px" }}>
               <List disablePadding>
                 {data.prod_info.map(({ prod_id, details }, idx) => (
                   <React.Fragment key={idx}>
                     {idx > 0 && <Divider />}
-                    <Box sx={{ padding: "12px 16px", backgroundColor: idx % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 95%)" }}>
+                    <Box sx={{ padding: "12px 16px", backgroundColor: idx % 2 === 0 ? '#ffffff' : "#EAF0FF" }}>
                       {details.map((detail, subIdx) => (
                         <ListItem key={subIdx} sx={{ padding: "8px 0" }}>
                           <ListItemText
@@ -106,7 +106,7 @@ const ViewProdInfoModal = ({ isOpen, onClose, data }) => {
           onClick={onClose}
           variant="contained"
           sx={{
-            backgroundColor: "hsl(210, 100%, 60%)",
+            backgroundColor: "#1552F0",
             "&:hover": { backgroundColor: "hsl(210, 100%, 50%)" },
             borderRadius: "8px",
             textTransform: "none",

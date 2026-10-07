@@ -282,7 +282,7 @@ const ModalSuccess = ({ open, onClose, tro_id, tableData, onSuccess, delayTime, 
         maxWidth="md"
       >
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#787878" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             รายการวัตถุดิบและประเภทการส่ง
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -381,7 +381,7 @@ const ModalSuccess = ({ open, onClose, tro_id, tableData, onSuccess, delayTime, 
             <Button
               variant="contained"
               startIcon={<CancelIcon />}
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               onClick={onClose}
               disabled={isLoading}
             >
@@ -391,7 +391,7 @@ const ModalSuccess = ({ open, onClose, tro_id, tableData, onSuccess, delayTime, 
             <Button
               variant="contained"
               startIcon={<CheckCircleIcon />}
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               onClick={handleDispatchAction}
               disabled={!selectedAction || isLoading}
             >
@@ -409,7 +409,7 @@ const ModalSuccess = ({ open, onClose, tro_id, tableData, onSuccess, delayTime, 
           <Button
             variant="contained"
             startIcon={<PrintIcon />}
-            style={{ backgroundColor: "#2388d1", color: "#fff" }}
+            style={{ backgroundColor: "#1552F0", color: "#fff" }}
             onClick={handlePrintButtonClick}
           >
             พิมพ์

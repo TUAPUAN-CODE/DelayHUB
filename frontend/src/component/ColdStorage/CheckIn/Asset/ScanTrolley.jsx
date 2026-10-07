@@ -236,7 +236,7 @@ const ScanTrolley = ({ open, onClose, onNext, selectedOption, selectedSlot }) =>
 
           <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1, height: "42px" }}>
             <Button
-              style={{ backgroundColor: "#E74A3B", color: "#fff" }}
+              style={{ backgroundColor: "#E5484D", color: "#fff" }}
               variant="contained"
               startIcon={<CancelIcon />}
               onClick={handleClose}
@@ -244,7 +244,7 @@ const ScanTrolley = ({ open, onClose, onNext, selectedOption, selectedSlot }) =>
               ยกเลิก
             </Button>
             <Button
-              style={{ backgroundColor: "#41a2e6", color: "#fff" }}
+              style={{ backgroundColor: "#1552F0", color: "#fff" }}
               variant="contained"
               startIcon={<CheckCircleIcon />}
               onClick={handleNextModal2}

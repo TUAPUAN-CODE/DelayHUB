@@ -372,7 +372,7 @@ const formatThaiDateTimePrint = (utcDateTimeStr) => {
             sx={{
               width: "48%",
               height: "40px",
-              backgroundColor: "#2388d1",
+              backgroundColor: "#1552F0",
               '&:hover': {
                 backgroundColor: "#1a76b5",
               }
@@ -479,7 +479,7 @@ const formatThaiDateTimePrint = (utcDateTimeStr) => {
             mb: 0.5,
           }}>
             <Typography variant="subtitle1" sx={{
-              color: "#2388d1",
+              color: "#1552F0",
               fontSize: fontSizes.sectionMaterial.screen,
               mb: 0.5,
               fontWeight: "normal",
@@ -671,7 +671,7 @@ const MaterialItem = ({
         {/* Cold Storage History */}
         <Typography variant="subtitle2" sx={{
           fontSize: fontSizes.materialTitle.screen,
-          color: "#2388d1",
+          color: "#1552F0",
           mb: 0.5,
           mt: 1.5,
           fontWeight: "normal",

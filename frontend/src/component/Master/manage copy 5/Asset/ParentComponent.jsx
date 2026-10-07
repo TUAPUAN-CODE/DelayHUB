@@ -45,7 +45,7 @@ const TabBar = ({ activeTab, onChange }) => {
       display: 'flex',
       gap: '4px',
       padding: '12px 24px 0',
-      background: 'linear-gradient(135deg, #1565C0 0%, #00a6ff 100%)',
+      background: 'linear-gradient(135deg, #0F3FC4 0%, #1552F0 100%)',
     }}>
       {tabs.map(tab => {
         const active = activeTab === tab.key;
@@ -65,7 +65,7 @@ const TabBar = ({ activeTab, onChange }) => {
               fontWeight: active ? '700' : '500',
               fontFamily: "'Noto Sans Thai', 'Sarabun', sans-serif",
               background: active ? '#fff' : 'rgba(255,255,255,0.15)',
-              color: active ? '#1565C0' : 'rgba(255,255,255,0.9)',
+              color: active ? '#0F3FC4' : 'rgba(255,255,255,0.9)',
               transition: 'all 0.2s ease',
               boxShadow: active ? '0 -2px 8px rgba(0,0,0,0.08)' : 'none',
               borderBottom: active ? '2px solid #fff' : 'none',
@@ -219,7 +219,7 @@ const ParentComponent = () => {
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2 style={{ color: '#ef5350' }}>Error Loading Data</h2>
         <p>{error}</p>
-        <button onClick={fetchData} style={{ padding: '10px 24px', borderRadius: '10px', background: '#1976D2', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '15px' }}>
+        <button onClick={fetchData} style={{ padding: '10px 24px', borderRadius: '10px', background: '#1552F0', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '15px' }}>
           Retry
         </button>
       </div>
@@ -236,8 +236,8 @@ const ParentComponent = () => {
       {activeTab === 'table' ? (
         <div>
           {loading && (
-            <div style={{ padding: '8px 24px', background: '#E3F2FD', color: '#1565C0', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', border: '2px solid #BBDEFB', borderTop: '2px solid #1976D2', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ padding: '8px 24px', background: '#EAF0FF', color: '#0F3FC4', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', border: '2px solid #BBDEFB', borderTop: '2px solid #1552F0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               กำลังโหลดข้อมูล...
             </div>
           )}

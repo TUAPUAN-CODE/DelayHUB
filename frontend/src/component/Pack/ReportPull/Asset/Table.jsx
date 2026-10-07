@@ -167,12 +167,12 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
   }, []);
   return (
     <div ref={ref} style={{ position: 'relative', minWidth: '180px' }}>
-      <div onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', border: value ? '2px solid #2196F3' : '1px solid #e0e0e0', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#fff', height: '40px', fontSize: '13px', color: value ? '#2196F3' : '#999', transition: 'all 0.2s', boxShadow: isOpen ? '0 4px 12px rgba(33,150,243,0.15)' : 'none' }}>
+      <div onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', border: value ? '2px solid #1552F0' : '1px solid #E3E8F2', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#fff', height: '40px', fontSize: '13px', color: value ? '#1552F0' : '#999', transition: 'all 0.2s', boxShadow: isOpen ? '0 4px 12px rgba(33,150,243,0.15)' : 'none' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: value ? '500' : '400' }}>{value || placeholder}</span>
-        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '18px', color: value ? '#2196F3' : '#666' }} />
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '18px', color: value ? '#1552F0' : '#666' }} />
       </div>
       {isOpen && (
-        <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, backgroundColor: '#fff', border: '1px solid #e0e0e0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 1000, maxHeight: '280px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, backgroundColor: '#fff', border: '1px solid #E3E8F2', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 1000, maxHeight: '280px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '8px' }}>
             <TextField fullWidth size="small" placeholder="ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onClick={(e) => e.stopPropagation()}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon style={{ fontSize: '16px', color: '#999' }} /></InputAdornment>, sx: { height: '34px', fontSize: '12px', borderRadius: '8px' } }}
@@ -188,7 +188,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
             )}
             {filtered.length > 0 ? filtered.map((opt, i) => (
               <div key={i} onClick={() => { onChange(opt); setIsOpen(false); setSearchTerm(''); }}
-                style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '12px', color: '#333', backgroundColor: value === opt ? '#E3F2FD' : 'transparent', borderBottom: i < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', transition: 'background 0.15s' }}
+                style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '12px', color: '#333', backgroundColor: value === opt ? '#EAF0FF' : 'transparent', borderBottom: i < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', transition: 'background 0.15s' }}
                 onMouseEnter={e => { if (value !== opt) e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
                 onMouseLeave={e => { if (value !== opt) e.currentTarget.style.backgroundColor = 'transparent'; }}
               >{opt}</div>
@@ -228,20 +228,20 @@ const DetailRow = ({ mappingIds, open }) => {
     <TableRow>
       <TableCell colSpan={11} style={{ padding: 0, borderBottom: 'none' }}>
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{ margin: '0 16px 12px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #E3F2FD', boxShadow: '0 2px 8px rgba(33,150,243,0.08)' }}>
+          <Box sx={{ margin: '0 16px 12px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #EAF0FF', boxShadow: '0 2px 8px rgba(33,150,243,0.08)' }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   {cols.map(c => (
-                    <TableCell key={c.key} align="center" sx={{ backgroundColor: '#E3F2FD', color: '#1565C0', fontWeight: '600', fontSize: '11px', padding: '8px 10px', whiteSpace: 'nowrap', borderBottom: '1px solid #BBDEFB' }}>{c.label}</TableCell>
+                    <TableCell key={c.key} align="center" sx={{ backgroundColor: '#EAF0FF', color: '#0F3FC4', fontWeight: '600', fontSize: '11px', padding: '8px 10px', whiteSpace: 'nowrap', borderBottom: '1px solid #BBDEFB' }}>{c.label}</TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {mappingIds && mappingIds.length > 0 ? mappingIds.map((row, i) => (
-                  <TableRow key={i} sx={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F8FBFF' }}>
+                  <TableRow key={i} sx={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F5F8FF' }}>
                     {cols.map(c => (
-                      <TableCell key={c.key} align="center" sx={{ fontSize: '12px', color: '#424242', padding: '7px 10px', whiteSpace: 'nowrap', borderBottom: '1px solid #F0F7FF' }}>
+                      <TableCell key={c.key} align="center" sx={{ fontSize: '12px', color: '#424242', padding: '7px 10px', whiteSpace: 'nowrap', borderBottom: '1px solid #F5F8FF' }}>
                         {formatVal(row[c.key])}
                       </TableCell>
                     ))}
@@ -266,36 +266,36 @@ const MainRow = ({ record, index, onExportPDF }) => {
     try { return new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }); }
     catch { return d; }
   };
-  const bgColor = index % 2 === 0 ? '#ffffff' : '#F8FBFF';
+  const bgColor = index % 2 === 0 ? '#ffffff' : '#F5F8FF';
 
   return (
     <>
       <TableRow sx={{ cursor: 'pointer', '&:hover td': { backgroundColor: '#EFF7FF !important' }, transition: 'all 0.15s' }}>
-        <TableCell align="center" sx={{ padding: '8px', backgroundColor: bgColor, borderLeft: '1px solid #E3F2FD', borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', width: '48px' }}>
-          <IconButton size="small" onClick={() => setOpen(!open)} sx={{ color: '#2196F3', backgroundColor: open ? '#E3F2FD' : 'transparent', '&:hover': { backgroundColor: '#BBDEFB' }, width: '28px', height: '28px' }}>
+        <TableCell align="center" sx={{ padding: '8px', backgroundColor: bgColor, borderLeft: '1px solid #EAF0FF', borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', width: '48px' }}>
+          <IconButton size="small" onClick={() => setOpen(!open)} sx={{ color: '#1552F0', backgroundColor: open ? '#EAF0FF' : 'transparent', '&:hover': { backgroundColor: '#BBDEFB' }, width: '28px', height: '28px' }}>
             {open ? <KeyboardArrowUpIcon sx={{ fontSize: '18px' }} /> : <KeyboardArrowDownIcon sx={{ fontSize: '18px' }} />}
           </IconButton>
         </TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '13px', color: '#78909C', width: '50px' }}>{index + 1}</TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '13px', whiteSpace: 'nowrap' }}>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '13px', color: '#78909C', width: '50px' }}>{index + 1}</TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '13px', whiteSpace: 'nowrap' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <CalendarTodayIcon sx={{ fontSize: '14px', color: '#90A4AE' }} />
             <span style={{ color: '#37474F', fontWeight: '500' }}>{formatDate(record.date)}</span>
           </Box>
         </TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD' }}><ShiftBadge shift={record.shift} /></TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '13px', color: '#37474F', fontWeight: '500' }}>{record.line || '-'}</TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '13px', color: '#546E7A' }}>{record.plant || '-'}</TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '12px' }}>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF' }}><ShiftBadge shift={record.shift} /></TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '13px', color: '#37474F', fontWeight: '500' }}>{record.line || '-'}</TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '13px', color: '#546E7A' }}>{record.plant || '-'}</TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '12px' }}>
           {record.recorded_by ? <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><PersonIcon sx={{ fontSize: '13px', color: '#42A5F5' }} /><span style={{ color: '#37474F' }}>{record.recorded_by}</span></Box> : '-'}
         </TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '12px', color: '#546E7A' }}>{record.reviewed_by || '-'}</TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', fontSize: '12px', color: '#546E7A' }}>{record.qc_manager || '-'}</TableCell>
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD' }}>
-          <Chip label={`${record.mapping_ids?.length || 0} รายการ`} size="small" sx={{ backgroundColor: '#E3F2FD', color: '#1565C0', fontWeight: '600', fontSize: '11px', height: '22px' }} />
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '12px', color: '#546E7A' }}>{record.reviewed_by || '-'}</TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', fontSize: '12px', color: '#546E7A' }}>{record.qc_manager || '-'}</TableCell>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF' }}>
+          <Chip label={`${record.mapping_ids?.length || 0} รายการ`} size="small" sx={{ backgroundColor: '#EAF0FF', color: '#0F3FC4', fontWeight: '600', fontSize: '11px', height: '22px' }} />
         </TableCell>
         {/* ── Actions: Export PDF ── */}
-        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #E3F2FD', borderBottom: '1px solid #E3F2FD', borderRight: '1px solid #E3F2FD' }}>
+        <TableCell align="center" sx={{ padding: '8px 12px', backgroundColor: bgColor, borderTop: '1px solid #EAF0FF', borderBottom: '1px solid #EAF0FF', borderRight: '1px solid #EAF0FF' }}>
           <Box sx={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
             <Tooltip title="Export PDF">
               <IconButton size="small" onClick={() => onExportPDF(record)}
@@ -1000,14 +1000,14 @@ const PDFRecordsHistory = () => {
   ];
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden', boxShadow: '0 4px 20px rgba(33,150,243,0.1)', borderRadius: '16px', background: 'linear-gradient(135deg, #fff 0%, #F8FBFF 100%)' }}>
+    <Paper sx={{ width: '100%', overflow: 'hidden', boxShadow: '0 4px 20px rgba(33,150,243,0.1)', borderRadius: '16px', background: 'linear-gradient(135deg, #fff 0%, #F5F8FF 100%)' }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Header */}
-      <Box sx={{ background: 'linear-gradient(135deg, #2196F3 0%, #1565C0 100%)', padding: '18px 22px', borderRadius: '16px 16px 0 0' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)', padding: '18px 22px', borderRadius: '16px 16px 0 0' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <PictureAsPdfIcon sx={{ color: '#fff', fontSize: '26px' }} />
           <div>
@@ -1021,14 +1021,14 @@ const PDFRecordsHistory = () => {
         </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
           <TextField variant="outlined" size="small" placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#2196F3', fontSize: '18px' }} /></InputAdornment>, sx: { backgroundColor: '#fff', borderRadius: '10px', height: '40px', fontSize: '13px', '& fieldset': { borderColor: 'transparent' } } }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#1552F0', fontSize: '18px' }} /></InputAdornment>, sx: { backgroundColor: '#fff', borderRadius: '10px', height: '40px', fontSize: '13px', '& fieldset': { borderColor: 'transparent' } } }}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' }, minWidth: '200px' }}
           />
           <FilterListIcon sx={{ color: '#fff', fontSize: '18px' }} />
           <SearchableDropdown options={['DS', 'NS']} value={filterShift} onChange={setFilterShift} placeholder="เลือก Shift" />
           <SearchableDropdown options={uniqueLines} value={filterLine} onChange={setFilterLine} placeholder="เลือก Line" />
           <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #e0e0e0', fontSize: '13px', backgroundColor: '#fff', color: filterDate ? '#2196F3' : '#999', outline: 'none', height: '40px', cursor: 'pointer' }}
+            style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #E3E8F2', fontSize: '13px', backgroundColor: '#fff', color: filterDate ? '#1552F0' : '#999', outline: 'none', height: '40px', cursor: 'pointer' }}
           />
           {(filterShift || filterLine || filterDate || searchTerm) && (
             <IconButton onClick={() => { setFilterShift(''); setFilterLine(''); setFilterDate(''); setSearchTerm(''); }}
@@ -1045,13 +1045,13 @@ const PDFRecordsHistory = () => {
         </Box>
       )}
 
-      <TableContainer sx={{ maxHeight: 'calc(72vh)', overflowY: 'auto', padding: '0 16px', '&::-webkit-scrollbar': { width: '6px', height: '6px' }, '&::-webkit-scrollbar-thumb': { background: '#2196F3', borderRadius: '8px' }, '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '8px' } }}>
+      <TableContainer sx={{ maxHeight: 'calc(72vh)', overflowY: 'auto', padding: '0 16px', '&::-webkit-scrollbar': { width: '6px', height: '6px' }, '&::-webkit-scrollbar-thumb': { background: '#1552F0', borderRadius: '8px' }, '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '8px' } }}>
         <Table stickyHeader size="small" sx={{ minWidth: '900px' }}>
           <TableHead>
             <TableRow>
               {headers.map((h, i) => (
                 <TableCell key={i} align="center"
-                  sx={{ backgroundColor: '#2196F3', color: '#fff', fontWeight: '600', fontSize: '13px', padding: '11px 12px', whiteSpace: 'nowrap', width: h.width, borderLeft: i === 0 ? '1px solid #1976D2' : '1px solid rgba(255,255,255,0.1)', borderRight: i === headers.length - 1 ? '1px solid #1976D2' : 'none' }}>
+                  sx={{ backgroundColor: '#1552F0', color: '#fff', fontWeight: '600', fontSize: '13px', padding: '11px 12px', whiteSpace: 'nowrap', width: h.width, borderLeft: i === 0 ? '1px solid #1552F0' : '1px solid rgba(255,255,255,0.1)', borderRight: i === headers.length - 1 ? '1px solid #1552F0' : 'none' }}>
                   {h.label}
                 </TableCell>
               ))}
@@ -1062,7 +1062,7 @@ const PDFRecordsHistory = () => {
               <TableRow>
                 <TableCell colSpan={headers.length} align="center" sx={{ padding: '60px', color: '#90A4AE' }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                    <div style={{ width: '36px', height: '36px', border: '3px solid #BBDEFB', borderTop: '3px solid #2196F3', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ width: '36px', height: '36px', border: '3px solid #BBDEFB', borderTop: '3px solid #1552F0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     <span style={{ fontSize: '14px' }}>กำลังโหลดข้อมูล...</span>
                   </Box>
                 </TableCell>
@@ -1086,7 +1086,7 @@ const PDFRecordsHistory = () => {
       </TableContainer>
 
       <TablePagination
-        sx={{ borderTop: '1px solid #E3F2FD', backgroundColor: '#F8FBFF', '& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': { fontSize: '12px', color: '#546E7A' }, '& .MuiTablePagination-select': { fontSize: '12px', color: '#2196F3', fontWeight: '600' }, '& .MuiTablePagination-actions button': { color: '#2196F3' } }}
+        sx={{ borderTop: '1px solid #EAF0FF', backgroundColor: '#F5F8FF', '& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': { fontSize: '12px', color: '#546E7A' }, '& .MuiTablePagination-select': { fontSize: '12px', color: '#1552F0', fontWeight: '600' }, '& .MuiTablePagination-actions button': { color: '#1552F0' } }}
         rowsPerPageOptions={[10, 25, 50, 100]} component="div" count={filteredRecords.length} rowsPerPage={rowsPerPage} page={page}
         onPageChange={(_, newPage) => setPage(newPage)}
         onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}

@@ -113,7 +113,7 @@ const Modal3 = ({ open, onClose, data, onEdit, CookedDateTime, }) => {
         }}
           direction="row" spacing={10} justifyContent="center">
           <Button
-            sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            sx={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={onClose}
@@ -129,7 +129,7 @@ const Modal3 = ({ open, onClose, data, onEdit, CookedDateTime, }) => {
             แก้ไข
           </Button>
           <Button
-            sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            sx={{ backgroundColor: "#1552F0", color: "#fff" }}
             variant="contained"
             startIcon={<CheckCircleIcon />}
             onClick={handleConfirm}

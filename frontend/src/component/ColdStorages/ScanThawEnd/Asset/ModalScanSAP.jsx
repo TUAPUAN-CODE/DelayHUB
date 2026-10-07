@@ -53,27 +53,27 @@ const parseWeight = (raw) => {
 };
 
 const ALL_TIME_FIELDS = [
-  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date',            label: 'ไลน์รับเข้า รอบ 1',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date',           label: 'ไลน์ส่งคืน รอบ 1',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date',            label: 'ห้องเย็นรับเข้า รอบ 1',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_two',        label: 'ไลน์รับเข้า รอบ 2',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_two',       label: 'ไลน์ส่งคืน รอบ 2',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_two',        label: 'ห้องเย็นรับเข้า รอบ 2',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_three',      label: 'ไลน์รับเข้า รอบ 3',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_three',     label: 'ไลน์ส่งคืน รอบ 3',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_three',      label: 'ห้องเย็นรับเข้า รอบ 3',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#0F3FC4', bg: '#e8eaf6' },
 ];
 
 const TimeSubRow = ({ row, colSpan }) => {
@@ -87,7 +87,7 @@ const TimeSubRow = ({ row, colSpan }) => {
   return (
     <TableRow>
       <TableCell colSpan={colSpan} sx={{ p: 0, border: 0 }}>
-        <Box sx={{ px: 2, py: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
+        <Box sx={{ px: 2, py: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #E3E8F2' }}>
           <Typography sx={{ fontSize: '11px', color: '#888', mb: 1, fontWeight: 600, letterSpacing: '0.5px' }}>
             TIMELINE
           </Typography>
@@ -149,7 +149,7 @@ const DataRow = ({ row, index }) => {
               }}
             >
               {expanded
-                ? <VisibilityOffIcon sx={{ color: '#1565C0', fontSize: '20px' }} />
+                ? <VisibilityOffIcon sx={{ color: '#0F3FC4', fontSize: '20px' }} />
                 : <VisibilityIcon sx={{ color: '#9e9e9e', fontSize: '20px' }} />}
             </Box>
           </Tooltip>

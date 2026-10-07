@@ -126,7 +126,7 @@ const ParentComponent = () => {
       flexDirection: 'column'
     }}>
       {/* แถบเลือกช่วงวันที่ */}
-      <Box sx={{ padding: '16px', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ padding: '16px', borderBottom: '1px solid #E3E8F2' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <TextField
             label="วันที่เริ่มต้น"
@@ -153,7 +153,7 @@ const ParentComponent = () => {
             ค้นหา
           </Button>
           {!loading && (
-            <Typography variant="body2" sx={{ color: '#787878' }}>
+            <Typography variant="body2" sx={{ color: '#6B7489' }}>
               พบ {qcHistoryData.length.toLocaleString()} รายการ
             </Typography>
           )}

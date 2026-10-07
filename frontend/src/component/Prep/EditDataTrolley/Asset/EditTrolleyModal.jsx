@@ -36,7 +36,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
             }}
         >
             <DialogTitle sx={{
-                backgroundColor: 'hsl(210, 100%, 60%)',
+                backgroundColor: '#1552F0',
                 color: 'white',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -63,7 +63,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                 <Grid container spacing={3} sx={{ marginTop: '4px' }}>
                     {/* หมายเลขรถเข็น */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             หมายเลขรถเข็น
                         </Typography>
                         <TextField
@@ -82,7 +82,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* สถานะรถเข็น */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             สถานะรถเข็น
                         </Typography>
                         <TextField
@@ -108,7 +108,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* Batch */}
                     <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             Batch
                         </Typography>
                         <TextField
@@ -127,7 +127,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* Material */}
                     <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             Material
                         </Typography>
                         <TextField
@@ -146,7 +146,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* รายชื่อวัตถุดิบ */}
                     <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             รายชื่อวัตถุดิบ
                         </Typography>
                         <TextField
@@ -165,7 +165,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* แผนการผลิต */}
                     <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             แผนการผลิต
                         </Typography>
                         <TextField
@@ -185,7 +185,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* เวลาอบเสร็จ/ต้มเสร็จ */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             เวลาอบเสร็จ/ต้มเสร็จ
                         </Typography>
                         <TextField
@@ -207,7 +207,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* เวลาเตรียมเสร็จ */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             เวลาเตรียมเสร็จ
                         </Typography>
                         <TextField
@@ -229,7 +229,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* สถานที่รถเข็น */}
                     {/* <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#787878', fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             สถานที่รถเข็น
                         </Typography>
                         <TextField
@@ -253,17 +253,17 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
             <DialogActions sx={{
                 padding: '16px 24px',
                 backgroundColor: '#f8f9fa',
-                borderTop: '1px solid #e0e0e0'
+                borderTop: '1px solid #E3E8F2'
             }}>
                 <Button
                     onClick={onClose}
                     sx={{
-                        color: '#787878',
+                        color: '#6B7489',
                         textTransform: 'none',
                         fontSize: '16px',
                         padding: '8px 24px',
                         '&:hover': {
-                            backgroundColor: '#e0e0e0'
+                            backgroundColor: '#E3E8F2'
                         }
                     }}
                 >
@@ -273,13 +273,13 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                     onClick={onSave}
                     variant="contained"
                     sx={{
-                        backgroundColor: '#007BFF',
+                        backgroundColor: '#1552F0',
                         textTransform: 'none',
                         fontSize: '16px',
                         padding: '8px 24px',
                         borderRadius: '8px',
                         '&:hover': {
-                            backgroundColor: '#0056b3'
+                            backgroundColor: '#0F3FC4'
                         }
                     }}
                 >

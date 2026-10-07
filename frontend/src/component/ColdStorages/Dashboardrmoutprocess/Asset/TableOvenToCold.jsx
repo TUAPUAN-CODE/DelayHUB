@@ -18,27 +18,27 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
 const ALL_TIME_FIELDS_CS = [
-  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#e3f2fd' },
-  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'start_defrost_date',       label: 'เริ่มละลาย',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date',         label: 'ละลายเสร็จ',                color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_two',   label: 'เริ่มละลาย (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_two',     label: 'ละลายเสร็จ (รอบ 2)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_three', label: 'เริ่มละลาย (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_three',   label: 'ละลายเสร็จ (รอบ 3)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'start_defrost_date_four',  label: 'เริ่มละลาย (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'end_defrost_date_four',    label: 'ละลายเสร็จ (รอบ 4)',        color: '#0277bd', bg: '#EAF0FF' },
+  { key: 'withdraw_date',            label: 'ส่งออกห้องเย็น',             color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date',            label: 'ไลน์รับเข้า รอบ 1',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date',           label: 'ไลน์ส่งคืน รอบ 1',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date',            label: 'ห้องเย็นรับเข้า รอบ 1',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_two',        label: 'ส่งออกห้องเย็น รอบ 2',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_two',        label: 'ไลน์รับเข้า รอบ 2',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_two',       label: 'ไลน์ส่งคืน รอบ 2',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_two',        label: 'ห้องเย็นรับเข้า รอบ 2',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_three',      label: 'ส่งออกห้องเย็น รอบ 3',      color: '#0F3FC4', bg: '#e8eaf6' },
   { key: 'input_pd_date_three',      label: 'ไลน์รับเข้า รอบ 3',         color: '#2e7d32', bg: '#e8f5e9' },
   { key: 'output_pd_date_three',     label: 'ไลน์ส่งคืน รอบ 3',          color: '#e65100', bg: '#fff3e0' },
   { key: 'input_cd_date_three',      label: 'ห้องเย็นรับเข้า รอบ 3',     color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#1565C0', bg: '#e8eaf6' },
+  { key: 'withdraw_date_four',       label: 'ส่งออกห้องเย็น รอบ 4',      color: '#0F3FC4', bg: '#e8eaf6' },
 ];
 
 const ROUND_EXTRA = {
@@ -55,7 +55,7 @@ const TimelineSubRow = ({ row, colSpan }) => {
 
   if (sorted.length === 0) return (
     <TableRow>
-      <TableCell colSpan={colSpan} sx={{ p: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0', textAlign: 'center' }}>
+      <TableCell colSpan={colSpan} sx={{ p: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #E3E8F2', textAlign: 'center' }}>
         <Typography sx={{ fontSize: '12px', color: '#aaa' }}>ไม่มีข้อมูล Timeline</Typography>
       </TableCell>
     </TableRow>
@@ -64,7 +64,7 @@ const TimelineSubRow = ({ row, colSpan }) => {
   return (
     <TableRow>
       <TableCell colSpan={colSpan} sx={{ p: 0, border: 0 }}>
-        <Box sx={{ px: 2, py: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
+        <Box sx={{ px: 2, py: 1.5, bgcolor: '#f8f9fa', borderBottom: '1px solid #E3E8F2' }}>
           <Typography sx={{ fontSize: '11px', color: '#888', mb: 1, fontWeight: 600, letterSpacing: '0.5px' }}>
             TIMELINE
           </Typography>
@@ -95,7 +95,7 @@ const TimelineSubRow = ({ row, colSpan }) => {
                       {f.value}
                     </Typography>
                     {purpose && (
-                      <Typography sx={{ fontSize: '10px', color: '#6a1b9a', mt: 0.5, pt: 0.5, borderTop: '1px solid #e0e0e0' }}>
+                      <Typography sx={{ fontSize: '10px', color: '#6a1b9a', mt: 0.5, pt: 0.5, borderTop: '1px solid #E3E8F2' }}>
                         📦 {purpose}
                       </Typography>
                     )}
@@ -105,7 +105,7 @@ const TimelineSubRow = ({ row, colSpan }) => {
                       </Typography>
                     )}
                     {remark && (
-                      <Typography sx={{ fontSize: '10px', color: '#555', mt: 0.25, pt: 0.5, borderTop: '1px solid #e0e0e0', fontStyle: 'italic' }}>
+                      <Typography sx={{ fontSize: '10px', color: '#555', mt: 0.25, pt: 0.5, borderTop: '1px solid #E3E8F2', fontStyle: 'italic' }}>
                         📝 {remark}
                       </Typography>
                     )}
@@ -126,7 +126,7 @@ const TimelineSubRow = ({ row, colSpan }) => {
 // ─── Row ──────────────────────────────────────────────────────────────────────
 const Row = ({ row, tableColumns, index, handleOpenDeleteModal }) => {
   if (!row) return null;
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : 'hsl(210,100%,93%)';
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : '#EAF0FF';
   const [expandedTimeline, setExpandedTimeline] = useState(false);
 
   return (
@@ -134,22 +134,22 @@ const Row = ({ row, tableColumns, index, handleOpenDeleteModal }) => {
       <TableRow><TableCell style={{ height: '4px', padding: 0, border: 'none' }} /></TableRow>
       <TableRow>
         {tableColumns.map((col, i) => (
-          <TableCell key={col.id} align="center" style={{ width: col.width, borderLeft: i === 0 ? '5px solid #9e9e9e' : '1px solid #f2f2f2', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0, whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px', height: '36px', lineHeight: '1.4', padding: '0px 8px', color: col.getColor ? col.getColor(row[col.id]) : '#787878', backgroundColor }}>
+          <TableCell key={col.id} align="center" style={{ width: col.width, borderLeft: i === 0 ? '5px solid #9e9e9e' : '1px solid #f2f2f2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0, whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px', height: '36px', lineHeight: '1.4', padding: '0px 8px', color: col.getColor ? col.getColor(row[col.id]) : '#6B7489', backgroundColor }}>
             {row[col.id] ?? '-'}
           </TableCell>
         ))}
         {/* Timeline Eye */}
-        <TableCell onClick={() => setExpandedTimeline(prev => !prev)} align="center" sx={{ borderLeft: '1px solid #e0e0e0', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, '&:hover': { backgroundColor: 'rgba(33,150,243,0.15)' } }}>
+        <TableCell onClick={() => setExpandedTimeline(prev => !prev)} align="center" sx={{ borderLeft: '1px solid #E3E8F2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, '&:hover': { backgroundColor: 'rgba(33,150,243,0.15)' } }}>
           <Tooltip title={expandedTimeline ? 'ซ่อน Timeline' : 'ดู Timeline'} placement="left">
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', p: '8px' }}>
               {expandedTimeline
-                ? <VisibilityOffIcon sx={{ color: '#1565C0', fontSize: '18px' }} />
+                ? <VisibilityOffIcon sx={{ color: '#0F3FC4', fontSize: '18px' }} />
                 : <VisibilityIcon sx={{ color: '#9e9e9e', fontSize: '18px' }} />}
             </Box>
           </Tooltip>
         </TableCell>
         {/* Edit HU */}
-        <TableCell onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal?.(row); }} align="center" sx={{ borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, borderTopRightRadius: '8px', borderBottomRightRadius: '8px', '&:hover': { backgroundColor: 'rgba(255,152,0,0.15)' }, '&:hover .edit-hu-icon': { color: '#E65100', transform: 'scale(1.2)' } }}>
+        <TableCell onClick={(e) => { e.stopPropagation(); handleOpenDeleteModal?.(row); }} align="center" sx={{ borderLeft: '1px solid #E3E8F2', borderRight: '1px solid #E3E8F2', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', height: '36px', padding: 0, cursor: 'pointer', backgroundColor, borderTopRightRadius: '8px', borderBottomRightRadius: '8px', '&:hover': { backgroundColor: 'rgba(255,152,0,0.15)' }, '&:hover .edit-hu-icon': { color: '#E65100', transform: 'scale(1.2)' } }}>
           <Tooltip title="เปลี่ยน HU">
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#FF9800', p: '8px', transition: 'all 0.2s' }} className="edit-hu-icon">
               <FaEdit style={{ fontSize: '16px' }} />
@@ -178,7 +178,7 @@ const tableColumns = [
   { id: 'remark',          name: 'Remark',           width: '130px' },
   { id: 'storage_purpose', name: 'วัตถุประสงค์',      width: '140px' },
   { id: 'histamine',       name: 'Histamine',        width: '110px',
-    getColor: (v) => v != null ? '#2e7d32' : '#787878'
+    getColor: (v) => v != null ? '#2e7d32' : '#6B7489'
   },
 ];
 
@@ -239,12 +239,12 @@ const exportToPDF = (rows) => {
     <html><head><meta charset="utf-8">
     <style>
       body { font-family: 'Sarabun', Arial, sans-serif; padding: 16px; }
-      h2 { color: #1565C0; margin-bottom: 4px; font-size: 16px; }
+      h2 { color: #0F3FC4; margin-bottom: 4px; font-size: 16px; }
       .meta { font-size: 11px; color: #666; margin-bottom: 12px; }
       table { border-collapse: collapse; width: 100%; }
-      thead tr { background: #1565C0; color: #fff; }
-      thead th { padding: 6px 8px; font-size: 11px; border: 1px solid #1976D2; white-space: nowrap; }
-      tbody tr:nth-child(even) { background: #f0f7ff; }
+      thead tr { background: #0F3FC4; color: #fff; }
+      thead th { padding: 6px 8px; font-size: 11px; border: 1px solid #1552F0; white-space: nowrap; }
+      tbody tr:nth-child(even) { background: #F5F8FF; }
       @media print { @page { size: A3 landscape; margin: 10mm; } }
     </style></head>
     <body>
@@ -290,7 +290,7 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
           variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหา..."
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>, sx: { height: '36px' } }}
-          sx={{ flex: 1, minWidth: '180px', "& .MuiOutlinedInput-root": { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#787878' }, "& input": { padding: '6px' } }}
+          sx={{ flex: 1, minWidth: '180px', "& .MuiOutlinedInput-root": { height: '36px', fontSize: '13px', borderRadius: '8px', color: '#6B7489' }, "& input": { padding: '6px' } }}
         />
 
         {/* ✅ Export Button */}
@@ -298,7 +298,7 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
           variant="outlined" size="small"
           startIcon={<FileDownloadIcon />}
           onClick={(e) => setExportAnchor(e.currentTarget)}
-          sx={{ borderRadius: '8px', borderColor: '#1565C0', color: '#1565C0', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#e3f2fd' } }}
+          sx={{ borderRadius: '8px', borderColor: '#0F3FC4', color: '#0F3FC4', whiteSpace: 'nowrap', '&:hover': { borderColor: '#0d47a1', bgcolor: '#EAF0FF' } }}
         >
           Export
         </Button>
@@ -313,7 +313,7 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
       </Box>
 
       {/* ── Count ── */}
-      <Box sx={{ px: 2, pb: '8px', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ px: 2, pb: '8px', borderBottom: '1px solid #E3E8F2' }}>
         <Typography sx={{ fontSize: '11px', color: '#494848' }}>แสดง {filteredRows.length} รายการ</Typography>
       </Box>
 
@@ -324,14 +324,14 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
             <TableHead>
               <TableRow sx={{ height: '36px' }}>
                 {tableColumns.map((col, i) => (
-                  <TableCell key={col.id} align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderRight: '1px solid #f2f2f2', fontSize: '12px', color: '#787878', padding: '4px', width: col.width, borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0 }}>
+                  <TableCell key={col.id} align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderRight: '1px solid #f2f2f2', fontSize: '12px', color: '#6B7489', padding: '4px', width: col.width, borderTopLeftRadius: i === 0 ? '8px' : 0, borderBottomLeftRadius: i === 0 ? '8px' : 0 }}>
                     <Box style={{ fontSize: '12px', color: '#ffffff' }}>{col.name}</Box>
                   </TableCell>
                 ))}
-                <TableCell align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #f2f2f2', fontSize: '12px', padding: '4px', width: '60px' }}>
+                <TableCell align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #f2f2f2', fontSize: '12px', padding: '4px', width: '60px' }}>
                   <Box style={{ fontSize: '12px', color: '#ffffff' }}>Timeline</Box>
                 </TableCell>
-                <TableCell align="center" style={{ backgroundColor: 'hsl(210,100%,60%)', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #e0e0e0', fontSize: '12px', padding: '4px', width: '60px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>
+                <TableCell align="center" style={{ backgroundColor: '#1552F0', borderTop: '1px solid #E3E8F2', borderBottom: '1px solid #E3E8F2', borderLeft: '1px solid #f2f2f2', borderRight: '1px solid #E3E8F2', fontSize: '12px', padding: '4px', width: '60px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>
                   <Box style={{ fontSize: '12px', color: '#ffffff' }}>เปลี่ยน HU</Box>
                 </TableCell>
               </TableRow>
@@ -341,14 +341,14 @@ const TableMainPrep = ({ data, handleOpenDeleteModal }) => {
                 ? filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, i) => (
                   <Row key={i} row={row} tableColumns={tableColumns} index={i} handleOpenDeleteModal={handleOpenDeleteModal} />
                 ))
-                : <TableRow><TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#787878' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
+                : <TableRow><TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: '20px', fontSize: '14px', color: '#6B7489' }}>ไม่มีรายการวัตถุดิบในขณะนี้</TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>
       </div>
 
       <TablePagination
-        sx={{ "& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar": { fontSize: '12px', color: '#787878', padding: 0 } }}
+        sx={{ "& .MuiTablePagination-selectLabel,.MuiTablePagination-displayedRows,.MuiTablePagination-toolbar": { fontSize: '12px', color: '#6B7489', padding: 0 } }}
         rowsPerPageOptions={[300, 1000, 5000]} component="div" count={filteredRows.length}
         rowsPerPage={rowsPerPage} page={page}
         onPageChange={(_, p) => setPage(p)}

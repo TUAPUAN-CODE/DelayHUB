@@ -399,7 +399,7 @@ const getItemStatus = (item) => {
   let remainingTimeValue = null;
   let standardTimeValue = null;
   const defaultStatus = {
-    textColor: "#787878",
+    textColor: "#6B7489",
     statusMessage: "-",
     borderColor: "#969696",
     hideDelayTime: true,
@@ -598,7 +598,7 @@ const DateTime24Input = ({ value, onChange, isOver, isEdited }) => {
         alignItems: 'center',
         gap: '2px',
         backgroundColor: '#fafafa',
-        border: '1px solid #e0e0e0',
+        border: '1px solid #E3E8F2',
         borderRadius: '6px',
         padding: '2px 4px',
       }}>
@@ -668,22 +668,22 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          padding: '10px 14px', border: value ? '2px solid #1552F0' : '1px solid #E3E8F2',
           borderRadius: '12px', cursor: 'pointer', backgroundColor: '#fff', height: '42px',
-          fontSize: '14px', color: value ? '#2196F3' : '#999', transition: 'all 0.3s ease',
+          fontSize: '14px', color: value ? '#1552F0' : '#999', transition: 'all 0.3s ease',
           boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: value ? '500' : '400' }}>
           {value || placeholder}
         </span>
-        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#2196F3' : '#666' }} />
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#1552F0' : '#666' }} />
       </div>
 
       {isOpen && (
         <div style={{
           position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
-          border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          border: '1px solid #E3E8F2', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           zIndex: 1000, maxHeight: '320px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
           animation: 'slideDown 0.2s ease'
         }}>
@@ -713,7 +713,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
                 <div key={index} onClick={() => handleSelect(option)}
                   style={{
                     padding: '12px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -759,18 +759,18 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', border: value ? '2px solid #00a6ff' : '1px solid #ddd',
+          padding: '10px 14px', border: value ? '2px solid #1552F0' : '1px solid #ddd',
           borderRadius: '10px', cursor: 'pointer', backgroundColor: '#fff',
           fontSize: '14px', color: value ? '#333' : '#999', transition: 'all 0.3s ease', boxSizing: 'border-box'
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '-- เลือก Line --'}</span>
-        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#00a6ff' : '#666', fontSize: '20px' }} />
+        <KeyboardArrowDownIcon style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: value ? '#1552F0' : '#666', fontSize: '20px' }} />
       </div>
       {isOpen && (
         <div style={{
           position: 'absolute', top: '48px', left: 0, right: 0, backgroundColor: '#fff',
-          border: '1px solid #e0e0e0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          border: '1px solid #E3E8F2', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           zIndex: 1000, maxHeight: '300px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         }}>
           <div style={{ padding: '10px' }}>
@@ -779,7 +779,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+              onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
               onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
             />
           </div>
@@ -799,7 +799,7 @@ const SearchableLineDropdown = ({ value, onChange, options }) => {
                   onClick={() => { onChange(option); setIsOpen(false); setSearchTerm(''); }}
                   style={{
                     padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none', transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
@@ -851,7 +851,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth
       PaperProps={{ sx: { borderRadius: '16px', maxHeight: '90vh' } }}>
       <DialogTitle sx={{
-        background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+        background: 'linear-gradient(135deg, #0F3FC4 0%, #1552F0 100%)',
         color: '#fff', fontSize: '18px', fontWeight: '600', padding: '20px 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
       }}>
@@ -867,12 +867,12 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
 
         {/* ── PrintMasterSlip Section ── */}
         <Box>
-          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#1565C0', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#0F3FC4', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             📦 ข้อมูลบรรจุภัณฑ์ (PrintMasterSlip)
           </Box>
           {slipLoading && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#666', fontSize: '13px' }}>
-              <CircularProgress size={16} sx={{ color: '#1976D2' }} /> กำลังโหลด...
+              <CircularProgress size={16} sx={{ color: '#1552F0' }} /> กำลังโหลด...
             </Box>
           )}
           {!slipLoading && slipError && (
@@ -882,7 +882,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, p: 2, backgroundColor: '#F3F8FF', borderRadius: '10px', fontSize: '13px' }}>
               {slipFields.map(({ label, value }) => (
                 <Box key={label} sx={{ display: 'flex', gap: 0.5 }}>
-                  <span style={{ color: '#1565C0', fontWeight: '600' }}>{label}:</span>
+                  <span style={{ color: '#0F3FC4', fontWeight: '600' }}>{label}:</span>
                   <span style={{ color: '#333' }}>{value ?? '-'}</span>
                 </Box>
               ))}
@@ -895,13 +895,13 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
 
         {/* ── WC Ingredient Section ── */}
         <Box>
-          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#1565C0', mb: 1.5 }}>
+          <Box sx={{ fontSize: '14px', fontWeight: '700', color: '#0F3FC4', mb: 1.5 }}>
             🧪 ข้อมูล Ingredient จาก WC Database
           </Box>
 
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, gap: 2 }}>
-            <CircularProgress size={32} sx={{ color: '#1976D2' }} />
+            <CircularProgress size={32} sx={{ color: '#1552F0' }} />
             <span style={{ color: '#666', fontSize: '14px' }}>กำลังโหลดข้อมูล...</span>
           </Box>
         )}
@@ -923,7 +923,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
             {/* WO Info */}
             <Box sx={{
               display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3,
-              p: 2, backgroundColor: '#E3F2FD', borderRadius: '10px', fontSize: '13px'
+              p: 2, backgroundColor: '#EAF0FF', borderRadius: '10px', fontSize: '13px'
             }}>
               {[
                 { label: 'WO No', value: woInfo.WONo },
@@ -935,7 +935,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
                 { label: 'State', value: woInfo.state },
               ].map(({ label, value }) => (
                 <Box key={label} sx={{ display: 'flex', gap: 1 }}>
-                  <span style={{ color: '#1565C0', fontWeight: '600' }}>{label}:</span>
+                  <span style={{ color: '#0F3FC4', fontWeight: '600' }}>{label}:</span>
                   <span style={{ color: '#333' }}>{value ?? '-'}</span>
                 </Box>
               ))}
@@ -945,7 +945,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
             <Box sx={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#1976D2', color: '#fff' }}>
+                  <tr style={{ backgroundColor: '#1552F0', color: '#fff' }}>
                     {[
                       '#', 'WO No', 'Basket', 'Material Code', 'Material Name', 'Short Name',
                       'Ingredient Batch', 'Std Wt', 'Min Wt', 'Max Wt', 'Net Wt',
@@ -954,7 +954,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
                       <th key={i} style={{
                         padding: '10px 12px', textAlign: i > 5 ? 'right' : 'left',
                         fontWeight: '600', whiteSpace: 'nowrap',
-                        borderBottom: '2px solid #1565C0'
+                        borderBottom: '2px solid #0F3FC4'
                       }}>{h}</th>
                     ))}
                   </tr>
@@ -962,20 +962,20 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
                 <tbody>
                   {data.map((row, idx) => (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#F5F9FF' }}>
-                                            <td style={{ padding: '9px 12px', color: '#999', borderBottom: '1px solid #E3F2FD' }}>{idx + 1}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', fontWeight: '600', color: '#1565C0' }}>{row.WONo ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', fontWeight: '600', color: '#1565C0' }}>{row.BasketNumber ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap' }}>{row.MaterialCode ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD' }}>{row.MaterialName ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', color: '#555' }}>{row.MaterialShortName ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD' }}>{row.IngredientBatchNo ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right' }}>{row.StdWt != null ? Number(row.StdWt).toFixed(3) : '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', color: '#1976D2' }}>{row.MinWt != null ? Number(row.MinWt).toFixed(3) : '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', color: '#1976D2' }}>{row.MaxWt != null ? Number(row.MaxWt).toFixed(3) : '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right', fontWeight: '600' }}>{row.NetWt != null ? Number(row.NetWt).toFixed(3) : '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', textAlign: 'right' }}>{row.Percentage != null ? `${Number(row.Percentage).toFixed(2)}%` : '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingTime ?? '-'}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #E3F2FD', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingEndTime ?? '-'}</td>
+                                            <td style={{ padding: '9px 12px', color: '#999', borderBottom: '1px solid #EAF0FF' }}>{idx + 1}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', fontWeight: '600', color: '#0F3FC4' }}>{row.WONo ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', fontWeight: '600', color: '#0F3FC4' }}>{row.BasketNumber ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', whiteSpace: 'nowrap' }}>{row.MaterialCode ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF' }}>{row.MaterialName ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', color: '#555' }}>{row.MaterialShortName ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF' }}>{row.IngredientBatchNo ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', textAlign: 'right' }}>{row.StdWt != null ? Number(row.StdWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', textAlign: 'right', color: '#1552F0' }}>{row.MinWt != null ? Number(row.MinWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', textAlign: 'right', color: '#1552F0' }}>{row.MaxWt != null ? Number(row.MaxWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', textAlign: 'right', fontWeight: '600' }}>{row.NetWt != null ? Number(row.NetWt).toFixed(3) : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', textAlign: 'right' }}>{row.Percentage != null ? `${Number(row.Percentage).toFixed(2)}%` : '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingTime ?? '-'}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: '1px solid #EAF0FF', whiteSpace: 'nowrap', color: '#555' }}>{row.MixingEndTime ?? '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -992,7 +992,7 @@ const IngredientModal = ({ open, onClose, idIgd, idIgdNo, data, loading, error, 
 
       <DialogActions sx={{ padding: '12px 24px' }}>
         <Button onClick={onClose}
-          sx={{ borderRadius: '8px', textTransform: 'none', color: '#666', '&:hover': { backgroundColor: '#f5f5f5' } }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', color: '#666', '&:hover': { backgroundColor: '#F5F8FF' } }}>
           ปิด
         </Button>
       </DialogActions>
@@ -1137,9 +1137,9 @@ const Row = ({
               data-isover={isOver ? 'true' : undefined}
               style={{
                 width: columnWidths[idx],
-                borderLeft: "1px solid #E3F2FD",
-                borderTop: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
-                borderBottom: isOver ? '1px solid #FFCDD2' : '1px solid #E3F2FD',
+                borderLeft: "1px solid #EAF0FF",
+                borderTop: isOver ? '1px solid #FFCDD2' : '1px solid #EAF0FF',
+                borderBottom: isOver ? '1px solid #FFCDD2' : '1px solid #EAF0FF',
                 whiteSpace: isRemark ? 'normal' : 'normal',
                 wordWrap: 'break-word',
                 overflow: 'hidden',
@@ -1176,23 +1176,23 @@ const Row = ({
           onClick={(e) => { e.stopPropagation(); handleOpenIngredientModal?.(row); }}
           style={{
             width: '100px',
-            borderLeft: '1px solid #E3F2FD',
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
-            borderRight: '1px solid #E3F2FD',
+            borderLeft: '1px solid #EAF0FF',
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
+            borderRight: '1px solid #EAF0FF',
             height: '48px',
             padding: '0px 8px',
             backgroundColor,
             cursor: 'pointer',
             transition: 'background-color 0.2s ease'
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#E3F2FD'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#EAF0FF'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = backgroundColor; }}
         >
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
             padding: '4px 8px', borderRadius: '6px',
-            backgroundColor: row.id_igd ? '#1976D2' : '#B0BEC5',
+            backgroundColor: row.id_igd ? '#1552F0' : '#B0BEC5',
             color: '#fff',
             fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap'
           }}>
@@ -2178,7 +2178,7 @@ const TableMainPrep = ({
       width: '100%', overflow: 'hidden',
       boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
       borderRadius: '16px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+      background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)'
     }}>
       <style>{`
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -2192,16 +2192,16 @@ const TableMainPrep = ({
       `}</style>
 
       {/* Header */}
-      <Box sx={{ background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)', padding: '20px 24px', borderRadius: '16px 16px 0 0' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)', padding: '20px 24px', borderRadius: '16px 16px 0 0' }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2, marginBottom: 2 }}>
           <TextField
             variant="outlined" fullWidth placeholder="พิมพ์เพื่อค้นหาในข้อมูลที่โหลดแล้ว..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon style={{ color: '#2196F3' }} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><SearchIcon style={{ color: '#1552F0' }} /></InputAdornment>,
               sx: { height: "44px", backgroundColor: '#fff', borderRadius: '12px' }
             }}
-            sx={{ "& .MuiOutlinedInput-root": { height: "44px", fontSize: "14px", borderRadius: "12px", color: "#546E7A", '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: '#2196F3' }, '&.Mui-focused fieldset': { borderColor: '#2196F3', borderWidth: '2px' } }, "& input": { padding: "10px" } }}
+            sx={{ "& .MuiOutlinedInput-root": { height: "44px", fontSize: "14px", borderRadius: "12px", color: "#546E7A", '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: '#1552F0' }, '&.Mui-focused fieldset': { borderColor: '#1552F0', borderWidth: '2px' } }, "& input": { padding: "10px" } }}
           />
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton onClick={exportToExcel}
@@ -2210,7 +2210,7 @@ const TableMainPrep = ({
               <FileDownloadIcon />
             </IconButton>
             <IconButton onClick={handleOpenPDFPreview}
-              sx={{ backgroundColor: '#fff', color: '#00a6ff', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#eeebff', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,166,255,0.25)' } }}
+              sx={{ backgroundColor: '#fff', color: '#1552F0', width: '44px', height: '44px', borderRadius: '12px', transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#eeebff', transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,166,255,0.25)' } }}
               title="Export เป็น PDF">
               <PictureAsPdfIcon />
             </IconButton>
@@ -2312,7 +2312,7 @@ const TableMainPrep = ({
           <Chip
             icon={<FaWeight style={{ fontSize: '16px' }} />}
             label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
-            sx={{ backgroundColor: '#fff', color: '#2196F3', fontWeight: '600', fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite', '& .MuiChip-icon': { color: '#2196F3' } }}
+            sx={{ backgroundColor: '#fff', color: '#1552F0', fontWeight: '600', fontSize: '14px', height: '42px', borderRadius: '12px', padding: '0 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', animation: 'pulse 2s infinite', '& .MuiChip-icon': { color: '#1552F0' } }}
           />
         </Box>
 
@@ -2344,7 +2344,7 @@ const TableMainPrep = ({
           '@media (max-width: 1200px)': { overflowX: 'scroll', minWidth: "200px" },
           '&::-webkit-scrollbar': { width: '8px', height: '8px' },
           '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
-          '&::-webkit-scrollbar-thumb': { background: '#2196F3', borderRadius: '10px', '&:hover': { background: '#1976D2' } }
+          '&::-webkit-scrollbar-thumb': { background: '#1552F0', borderRadius: '10px', '&:hover': { background: '#1552F0' } }
         }}
       >
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
@@ -2353,8 +2353,8 @@ const TableMainPrep = ({
               {displayColumns.map((header, index) => (
                 <TableCell key={index} align="center"
                   style={{
-                    backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
-                    borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "#1552F0", borderTop: "1px solid #1552F0", borderBottom: "1px solid #1552F0",
+                    borderLeft: index === 0 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
                     borderRight: "1px solid rgba(255,255,255,0.1)",
                     fontSize: '14px', color: '#fff', padding: '12px', width: getColumnWidth(header), fontWeight: '600',
                     borderTopLeftRadius: index === 0 ? '12px' : '0',
@@ -2369,8 +2369,8 @@ const TableMainPrep = ({
                 </TableCell>
               ))}
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3", borderTop: "1px solid #1976D2", borderBottom: "1px solid #1976D2",
-                borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid #1976D2",
+                backgroundColor: "#1552F0", borderTop: "1px solid #1552F0", borderBottom: "1px solid #1552F0",
+                borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid #1552F0",
                 fontSize: '14px', color: '#fff', padding: '12px', width: '100px', fontWeight: '600',
                 borderTopRightRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}>
@@ -2400,7 +2400,7 @@ const TableMainPrep = ({
                     {!hasFetched ? (
                       <>
                         <SearchIcon sx={{ fontSize: '64px', color: '#BBDEFB' }} />
-                        <span style={{ fontSize: '18px', fontWeight: '600', color: '#1976D2' }}>
+                        <span style={{ fontSize: '18px', fontWeight: '600', color: '#1552F0' }}>
                           เลือกตัวกรองและกดปุ่ม "ค้นหา" เพื่อแสดงข้อมูล
                         </span>
                         <span style={{ fontSize: '13px', color: '#90A4AE', maxWidth: '500px', lineHeight: '1.6' }}>
@@ -2412,7 +2412,7 @@ const TableMainPrep = ({
                         <div style={{
                           width: '40px', height: '40px',
                           border: '3px solid #BBDEFB',
-                          borderTop: '3px solid #2196F3',
+                          borderTop: '3px solid #1552F0',
                           borderRadius: '50%',
                           animation: 'spin 0.8s linear infinite',
                         }} />
@@ -2434,10 +2434,10 @@ const TableMainPrep = ({
 
       <TablePagination
         sx={{
-          borderTop: '1px solid #E3F2FD', backgroundColor: '#F8FBFF',
+          borderTop: '1px solid #EAF0FF', backgroundColor: '#F5F8FF',
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": { fontSize: '13px', color: "#546E7A", padding: "0px", fontWeight: '500' },
-          "& .MuiTablePagination-select": { fontSize: '13px', color: "#2196F3", fontWeight: '600' },
-          "& .MuiTablePagination-actions button": { color: "#2196F3", '&:hover': { backgroundColor: '#E3F2FD' } }
+          "& .MuiTablePagination-select": { fontSize: '13px', color: "#1552F0", fontWeight: '600' },
+          "& .MuiTablePagination-actions button": { color: "#1552F0", '&:hover': { backgroundColor: '#EAF0FF' } }
         }}
         rowsPerPageOptions={[100, 500, 1000]}
         component="div" count={filteredRows.length} rowsPerPage={rowsPerPage} page={page}
@@ -2460,7 +2460,7 @@ const TableMainPrep = ({
 
             {/* Modal Header */}
             <div style={{
-              background: 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+              background: 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
               padding: '14px 20px', borderRadius: '16px 16px 0 0',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
             }}>
@@ -2493,18 +2493,18 @@ const TableMainPrep = ({
             <div style={{ padding: '14px 24px', borderBottom: '1px solid #cdeeff', backgroundColor: '#F0F8FF', flexShrink: 0 }}>
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Date <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Date <span style={{ color: '#1552F0' }}>*</span></label>
                   <input type="date" value={exportDate} onChange={(e) => setExportDate(e.target.value)}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; e.target.style.boxShadow = '0 0 0 3px rgba(0,166,255,0.1)'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Shift <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Shift <span style={{ color: '#1552F0' }}>*</span></label>
                   <select value={exportShift} onChange={(e) => setExportShift(e.target.value)}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                   >
                     <option value="">-- เลือก Shift --</option>
@@ -2513,14 +2513,14 @@ const TableMainPrep = ({
                   </select>
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Line <span style={{ color: '#00a6ff' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Line <span style={{ color: '#1552F0' }}>*</span></label>
                   <SearchableLineDropdown value={exportLine} onChange={setExportLine} options={lineOptions} />
                 </div>
                 <div style={{ flex: 1, minWidth: '180px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>Plant</label>
                   <input type="text" value={exportPlant} onChange={(e) => setExportPlant(e.target.value)} placeholder="ระบุ Plant (ถ้ามี)"
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                    onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                    onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                     onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                   />
                 </div>
@@ -2542,7 +2542,7 @@ const TableMainPrep = ({
                   <tr>
                     {displayColumns.map((col, i) => (
                       <th key={i} style={{
-                        backgroundColor: '#00a6ff', color: '#fff', padding: '10px 8px',
+                        backgroundColor: '#1552F0', color: '#fff', padding: '10px 8px',
                         textAlign: 'center', fontWeight: '600', whiteSpace: 'nowrap',
                         border: '1px solid #0090e0', position: 'sticky', top: 0, zIndex: 10,
                         fontSize: '12px'
@@ -2696,7 +2696,7 @@ const TableMainPrep = ({
                                       backgroundColor: 'transparent', outline: 'none',
                                     }}
                                     onFocus={(e) => {
-                                      e.target.style.border = '1px solid #00a6ff';
+                                      e.target.style.border = '1px solid #1552F0';
                                       e.target.style.backgroundColor = '#fff';
                                       e.target.style.boxShadow = '0 0 0 2px rgba(0,166,255,0.15)';
                                     }}
@@ -2734,13 +2734,13 @@ const TableMainPrep = ({
                 ].map(({ key, label, placeholder, sub, required }) => (
                   <div key={key} style={{ flex: 1, minWidth: '200px' }}>
                     <label style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>
-                      {label} {required && <span style={{ color: '#00a6ff' }}>*</span>}
+                      {label} {required && <span style={{ color: '#1552F0' }}>*</span>}
                     </label>
                     <input type="text" value={signatureData[key]}
                       onChange={(e) => { const val = e.target.value; setSignatureData(prev => ({ ...prev, [key]: val })); }}
                       placeholder={placeholder}
                       style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', color: '#333' }}
-                      onFocus={(e) => { e.target.style.border = '2px solid #00a6ff'; }}
+                      onFocus={(e) => { e.target.style.border = '2px solid #1552F0'; }}
                       onBlur={(e) => { e.target.style.border = '1px solid #ddd'; }}
                     />
                     <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>{sub}</div>
@@ -2860,7 +2860,7 @@ const TableMainPrep = ({
                     padding: '10px 24px', borderRadius: '10px', border: 'none',
                     background: (isSaving || isSavingEdits)
                       ? 'linear-gradient(135deg, #90CAF9 0%, #5C6BC0 100%)'
-                      : 'linear-gradient(135deg, #00a6ff 0%, #0b0082 100%)',
+                      : 'linear-gradient(135deg, #1552F0 0%, #0b0082 100%)',
                     color: '#fff',
                     cursor: (isSaving || isSavingEdits) ? 'not-allowed' : 'pointer',
                     fontSize: '14px', fontWeight: '600',

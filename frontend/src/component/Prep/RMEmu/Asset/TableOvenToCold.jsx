@@ -20,19 +20,19 @@ const CUSTOM_COLUMN_WIDTHS = {
 
 const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
   // กำหนดสีของ icon ดวงตาให้เป็นสีเดียวกับ table head (สีฟ้า)
-  const iconColor = "hsl(210, 100%, 60%)";
+  const iconColor = "#1552F0";
 
   return (
     <TableCell
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -41,7 +41,7 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
@@ -49,7 +49,7 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
         e.currentTarget.querySelector('svg').style.color = iconColor;
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onTouchEnd={(e) => {
@@ -70,7 +70,7 @@ const Row = ({
   setOpenRowId,
   index
 }) => {
-  const backgroundColor = index % 2 === 0 ? '#ffffff' : "hsl(210, 100.00%, 88%)";
+  const backgroundColor = index % 2 === 0 ? '#ffffff' : "#EAF0FF";
   const isOpen = openRowId === row.rmfp_id;
 
   const mainRowData = {
@@ -96,9 +96,9 @@ const Row = ({
               width: Object.values(CUSTOM_COLUMN_WIDTHS)[idx],
               borderTopLeftRadius: idx === 0 ? "8px" : "0",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0",
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
-              borderLeft: idx === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
+              borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -107,7 +107,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 15px',
-              color: "#787878",
+              color: "#6B7489",
               backgroundColor: backgroundColor
             }}
           >
@@ -131,7 +131,7 @@ const Row = ({
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{
               margin: 1,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: "#F5F8FF",
               padding: 2,
               borderRadius: 2,
               boxShadow: '0px 2px 4px rgba(0,0,0,0.1)'
@@ -157,10 +157,10 @@ const Row = ({
                 backgroundColor: 'white',
                 borderRadius: '8px',
                 overflow: 'hidden',
-                border: '1px solid #e0e0e0'
+                border: '1px solid #E3E8F2'
               }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Batch</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Material</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>รายชื่อวัตถุดิบ</TableCell>
@@ -174,8 +174,8 @@ const Row = ({
                       <TableRow
                         key={`${emulsionItem.emu_id}-${idx}`}
                         sx={{
-                          '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' },
-                          '&:hover': { backgroundColor: '#f0f7ff' }
+                          '&:nth-of-type(odd)': { backgroundColor: '#F5F8FF' },
+                          '&:hover': { backgroundColor: '#F5F8FF' }
                         }}
                       >
                         <TableCell align="center">{emulsionItem.Batch_Emulsion || '-'}</TableCell>
@@ -201,7 +201,7 @@ const Row = ({
                       <TableCell colSpan={6} align="center" sx={{ 
                         padding: "20px", 
                         fontSize: "14px", 
-                        color: "#787878",
+                        color: "#6B7489",
                         fontStyle: 'italic'
                       }}>
                         ไม่มีข้อมูล Emulsion
@@ -316,7 +316,7 @@ const TableRMForProd = ({ data }) => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -349,11 +349,11 @@ const TableRMForProd = ({ data }) => {
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "hsl(210, 100%, 60%)",
-                    borderTop: "1px solid #e0e0e0",
-                    borderBottom: "1px solid #e0e0e0",
+                    backgroundColor: "#1552F0",
+                    borderTop: "1px solid #E3E8F2",
+                    borderBottom: "1px solid #E3E8F2",
                     borderRight: "1px solid #f2f2f2",
-                    borderLeft: index === 0 ? "1px solid #e0e0e0" : "1px solid #f2f2f2",
+                    borderLeft: index === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
                     borderTopLeftRadius: index === 0 ? "8px" : "0",
                     borderBottomLeftRadius: index === 0 ? "8px" : "0",
                     fontSize: '16px',
@@ -370,12 +370,12 @@ const TableRMForProd = ({ data }) => {
               <TableCell
                 align="center"
                 style={{
-                  backgroundColor: "hsl(210, 100%, 60%)",
+                  backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #e0e0e0",
-                  borderBottom: "1px solid #e0e0e0",
-                  borderRight: "1px solid #e0e0e0",
+                  borderTop: "1px solid #E3E8F2",
+                  borderBottom: "1px solid #E3E8F2",
+                  borderRight: "1px solid #E3E8F2",
                   fontSize: '16px',
                   color: '#ffffff',
                   padding: '10px',
@@ -390,7 +390,7 @@ const TableRMForProd = ({ data }) => {
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={7} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   กำลังโหลดข้อมูล...
                 </TableCell>
               </TableRow>
@@ -406,7 +406,7 @@ const TableRMForProd = ({ data }) => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                <TableCell colSpan={7} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการข้อมูลในขณะนี้
                 </TableCell>
               </TableRow>
@@ -419,7 +419,7 @@ const TableRMForProd = ({ data }) => {
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}

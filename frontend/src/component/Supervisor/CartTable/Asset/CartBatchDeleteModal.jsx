@@ -247,7 +247,7 @@ const CartBatchDeleteModal = ({ open, onClose, onSuccess }) => {
                         borderColor: "#ddd",
                         "&:hover": {
                             borderColor: "#bbb",
-                            backgroundColor: "#f5f5f5",
+                            backgroundColor: "#F5F8FF",
                         },
                     }}
                     variant="outlined"

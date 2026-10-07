@@ -152,9 +152,9 @@ const CartEditModal = ({ open, onClose, onSuccess, cartData }) => {
             {cartData && (
               <Box sx={{ 
                 p: 2, 
-                backgroundColor: "#f5f5f5", 
+                backgroundColor: "#F5F8FF", 
                 borderRadius: "8px",
-                border: "1px solid #e0e0e0"
+                border: "1px solid #E3E8F2"
               }}>
                 <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
                   ข้อมูลเดิม:

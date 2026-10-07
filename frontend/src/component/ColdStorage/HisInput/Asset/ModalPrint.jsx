@@ -281,7 +281,7 @@ const ModalPrint = ({ open, onClose, rowData }) => {
             sx={{
               width: "48%",
               height: "40px",
-              backgroundColor: "#2388d1",
+              backgroundColor: "#1552F0",
               '&:hover': {
                 backgroundColor: "#1a76b5",
               }
@@ -381,7 +381,7 @@ const ModalPrint = ({ open, onClose, rowData }) => {
         <Box sx={{
           width: "100%",
           mb: 1.5,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: '#F5F8FF',
           borderRadius: '4px',
           padding: "6px 4px",
           '@media print': {
@@ -390,7 +390,7 @@ const ModalPrint = ({ open, onClose, rowData }) => {
           },
         }}>
           <Typography variant="subtitle1" sx={{
-            color: "#2388d1",
+            color: "#1552F0",
             fontSize: fontSizes.section.screen,
             mb: 0.5,
             fontWeight: "normal",
@@ -432,7 +432,7 @@ const ModalPrint = ({ open, onClose, rowData }) => {
           mb: 0.5,
         }}>
           <Typography variant="subtitle1" sx={{
-            color: "#2388d1",
+            color: "#1552F0",
             fontSize: fontSizes.sectionMaterial.screen,
             mb: 0.5,
             fontWeight: "normal",
@@ -783,7 +783,7 @@ const MaterialItem = ({
           <>
             <Typography variant="subtitle2" sx={{
               fontSize: fontSizes.materialTitle.screen,
-              color: "#2388d1",
+              color: "#1552F0",
               mb: 0,
               fontWeight: "normal",
               '@media print': {
@@ -1009,7 +1009,7 @@ const MaterialItem = ({
                 mb: 1.5,
                 mt: 1,
                 py: 0.5,
-                backgroundColor: deadlineInfo.isExpired ? '#fff3f3' : '#f9f9f9',
+                backgroundColor: deadlineInfo.isExpired ? '#fff3f3' : '#F5F8FF',
                 borderRadius: '4px',
                 border: `1px dashed ${deadlineInfo.isExpired ? '#ff6b6b' : '#ccc'}`,
                 padding: '8px',
@@ -1024,7 +1024,7 @@ const MaterialItem = ({
                   sx={{
                     fontSize: fontSizes.label.screen,
                     fontWeight: "bold",
-                    color: deadlineInfo.isExpired ? '#ff4444' : '#2388d1',
+                    color: deadlineInfo.isExpired ? '#ff4444' : '#1552F0',
                     mb: 0.5,
                     '@media print': {
                       fontSize: fontSizes.label.print,

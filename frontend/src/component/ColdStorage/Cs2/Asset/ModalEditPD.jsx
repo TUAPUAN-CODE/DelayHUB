@@ -173,7 +173,7 @@ const QcCheck = ({
       <Dialog open={open} onClose={(_, r) => { if (r !== 'backdropClick') onClose(); }}
         fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#787878", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -188,10 +188,10 @@ const QcCheck = ({
             รายการวัตถุดิบในรถเข็น: {tro_id}
           </Typography>
 
-          <Box sx={{ mb: 2, maxHeight: 350, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px', p: 2 }}>
+          <Box sx={{ mb: 2, maxHeight: 350, overflow: 'auto', border: '1px solid #E3E8F2', borderRadius: '4px', p: 2 }}>
             {materials?.length > 0 ? materials.map((item, i) => (
               <Box key={i} sx={{ mb: 3, pb: 2, borderBottom: i < materials.length - 1 ? '1px dashed #ccc' : 'none' }}>
-                <Typography sx={{ fontWeight: 'bold', mb: 1, color: '#2388d1', fontSize: '14px' }}>
+                <Typography sx={{ fontWeight: 'bold', mb: 1, color: '#1552F0', fontSize: '14px' }}>
                   วัตถุดิบที่ {i + 1}
                 </Typography>
                 <Stack spacing={0.5}>
@@ -253,7 +253,7 @@ const QcCheck = ({
               ยกเลิก
             </Button>
             <Button variant="contained" onClick={handleConfirm} disabled={isSubmitting}
-              sx={{ width: "45%", height: "50px", backgroundColor: "#2388d1" }}>
+              sx={{ width: "45%", height: "50px", backgroundColor: "#1552F0" }}>
               {isSubmitting ? "กำลังบันทึก..." : "ยืนยัน"}
             </Button>
           </Box>
@@ -369,7 +369,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
       <Dialog open={open} onClose={(_, r) => { if (r !== 'backdropClick') onClose(); }}
         fullWidth maxWidth="md">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#787878", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
             กรุณากรอกข้อมูล
           </Typography>
 
@@ -393,7 +393,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                       'หมายเหตุแก้ไข','ประวัติแก้ไข'
                     ].map(h => (
                       <TableCell key={h} sx={{ fontSize: '11px', fontWeight: 600,
-                        whiteSpace: 'nowrap', backgroundColor: '#f5f5f5' }}>{h}</TableCell>
+                        whiteSpace: 'nowrap', backgroundColor: '#F5F8FF' }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -444,7 +444,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
                     {[
-                      { value: 'ฝากเก็บเพื่อรอผลิต', color: '#1976d2' },
+                      { value: 'ฝากเก็บเพื่อรอผลิต', color: '#1552F0' },
                       { value: 'ฟรีสเพื่อจัดเก็บ', color: '#7b1fa2' },
                       { value: 'ส่งคืน', color: '#c62828' },
                     ].map(({ value, color }) => {
@@ -476,7 +476,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                           borderRadius: '8px', p: 1.5
                         }}>
                           <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1565C0' }}>
+                            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0F3FC4' }}>
                               วัตถุดิบที่ {i + 1}
                             </Typography>
                             <Typography sx={{ fontSize: '12px', color: '#555' }}>
@@ -551,11 +551,11 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Divider />
             <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}>
               <Button variant="contained" startIcon={<CancelIcon />}
-                style={{ backgroundColor: "#E74A3B", color: "#fff" }} onClick={onClose}>
+                style={{ backgroundColor: "#E5484D", color: "#fff" }} onClick={onClose}>
                 ยกเลิก
               </Button>
               <Button variant="contained" startIcon={<CheckCircleIcon />}
-                style={{ backgroundColor: "#41a2e6", color: "#fff" }} onClick={handleConfirm}>
+                style={{ backgroundColor: "#1552F0", color: "#fff" }} onClick={handleConfirm}>
                 ยืนยัน
               </Button>
             </Box>

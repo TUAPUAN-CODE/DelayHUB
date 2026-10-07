@@ -65,13 +65,13 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          border: value ? '2px solid #2196F3' : '1px solid #e0e0e0',
+          border: value ? '2px solid #1552F0' : '1px solid #E3E8F2',
           borderRadius: '12px',
           cursor: 'pointer',
           backgroundColor: '#fff',
           height: '42px',
           fontSize: '14px',
-          color: value ? '#2196F3' : '#999',
+          color: value ? '#1552F0' : '#999',
           transition: 'all 0.3s ease',
           boxShadow: isOpen ? '0 4px 12px rgba(33, 150, 243, 0.15)' : 'none'
         }}
@@ -83,7 +83,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.3s ease',
-            color: value ? '#2196F3' : '#666'
+            color: value ? '#1552F0' : '#666'
           }}
         />
       </div>
@@ -96,7 +96,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
             left: 0,
             right: 0,
             backgroundColor: '#fff',
-            border: '1px solid #e0e0e0',
+            border: '1px solid #E3E8F2',
             borderRadius: '12px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             zIndex: 1000,
@@ -159,7 +159,7 @@ const SearchableDropdown = ({ label, options, value, onChange, placeholder }) =>
                     cursor: 'pointer',
                     fontSize: '13px',
                     color: '#333',
-                    backgroundColor: value === option ? '#E3F2FD' : 'transparent',
+                    backgroundColor: value === option ? '#EAF0FF' : 'transparent',
                     borderBottom: index < filteredOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
                     transition: 'all 0.2s ease'
                   }}
@@ -299,9 +299,9 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderLeft: "1px solid #E3F2FD",
-              borderTop: '1px solid #E3F2FD',
-              borderBottom: '1px solid #E3F2FD',
+              borderLeft: "1px solid #EAF0FF",
+              borderTop: '1px solid #EAF0FF',
+              borderBottom: '1px solid #EAF0FF',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -323,9 +323,9 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.group,
-            borderLeft: "1px solid #E3F2FD",
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
+            borderLeft: "1px solid #EAF0FF",
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
             fontSize: '14px',
             height: '48px',
             padding: '5px',
@@ -369,9 +369,9 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.weight,
-            borderLeft: "1px solid #E3F2FD",
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
+            borderLeft: "1px solid #EAF0FF",
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
             fontSize: '14px',
             height: '48px',
             padding: '5px',
@@ -415,9 +415,9 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.prepDateTime,
-            borderLeft: "1px solid #E3F2FD",
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
+            borderLeft: "1px solid #EAF0FF",
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
             fontSize: '14px',
             height: '48px',
             padding: '5px',
@@ -473,9 +473,9 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.confirm,
             textAlign: 'center',
-            borderTop: '1px solid #E3F2FD',
-            borderBottom: '1px solid #E3F2FD',
-            borderLeft: '1px solid #E3F2FD',
+            borderTop: '1px solid #EAF0FF',
+            borderBottom: '1px solid #EAF0FF',
+            borderLeft: '1px solid #EAF0FF',
             height: '48px',
             padding: '0px',
             backgroundColor: backgroundColor,
@@ -507,7 +507,7 @@ const Row = ({
             e.stopPropagation();
             handleOpenEditModal(row);
           }}
-          icon={<LiaShoppingCartSolid style={{ color: '#4aaaec', fontSize: '22px' }} />}
+          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '22px' }} />}
           backgroundColor={backgroundColor}
         />
         <PackEdit
@@ -542,9 +542,9 @@ const Packsend = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3F2FD',
-        borderBottom: '1px solid #E3F2FD',
-        borderLeft: '1px solid #E3F2FD',
+        borderTop: '1px solid #EAF0FF',
+        borderBottom: '1px solid #EAF0FF',
+        borderLeft: '1px solid #EAF0FF',
         height: '48px',
         padding: '0px',
         cursor: 'pointer',
@@ -574,9 +574,9 @@ const PackSC = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3F2FD',
-        borderBottom: '1px solid #E3F2FD',
-        borderLeft: '1px solid #E3F2FD',
+        borderTop: '1px solid #EAF0FF',
+        borderBottom: '1px solid #EAF0FF',
+        borderLeft: '1px solid #EAF0FF',
         height: '48px',
         padding: '0px',
         cursor: 'pointer',
@@ -585,12 +585,12 @@ const PackSC = ({ width, onClick, icon, backgroundColor }) => {
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#4aaaec';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = backgroundColor;
-        e.currentTarget.querySelector('svg').style.color = '#4aaaec';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -606,9 +606,9 @@ const PackEdit = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3F2FD',
-        borderBottom: '1px solid #E3F2FD',
-        borderLeft: '1px solid #E3F2FD',
+        borderTop: '1px solid #EAF0FF',
+        borderBottom: '1px solid #EAF0FF',
+        borderLeft: '1px solid #EAF0FF',
         height: '48px',
         padding: '0px',
         cursor: 'pointer',
@@ -732,7 +732,7 @@ const TableMainPrep = ({
       overflow: 'hidden',
       boxShadow: '0px 4px 20px rgba(33, 150, 243, 0.1)',
       borderRadius: '16px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)'
+      background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)'
     }}>
       <style>
         {`
@@ -760,7 +760,7 @@ const TableMainPrep = ({
 
       {/* Header Section */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+        background: 'linear-gradient(135deg, #1552F0 0%, #1552F0 100%)',
         padding: '20px 24px',
         borderRadius: '16px 16px 0 0'
       }}>
@@ -781,7 +781,7 @@ const TableMainPrep = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon style={{ color: '#2196F3' }} />
+                  <SearchIcon style={{ color: '#1552F0' }} />
                 </InputAdornment>
               ),
               sx: {
@@ -803,10 +803,10 @@ const TableMainPrep = ({
                   borderColor: 'transparent',
                 },
                 '&:hover fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: '#1552F0',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: '#1552F0',
                   borderWidth: '2px'
                 },
               },
@@ -841,7 +841,7 @@ const TableMainPrep = ({
               label={`น้ำหนักรวม: ${totalWeight.toFixed(2)} กก.`}
               sx={{
                 backgroundColor: '#fff',
-                color: '#2196F3',
+                color: '#1552F0',
                 fontWeight: '600',
                 fontSize: '14px',
                 height: '42px',
@@ -850,7 +850,7 @@ const TableMainPrep = ({
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                 animation: 'pulse 2s infinite',
                 '& .MuiChip-icon': {
-                  color: '#2196F3'
+                  color: '#1552F0'
                 }
               }}
             />
@@ -860,7 +860,7 @@ const TableMainPrep = ({
               onClick={() => handleOpenModalInputRM({})}
               sx={{
                 backgroundColor: '#fff',
-                color: '#2196F3',
+                color: '#1552F0',
                 width: 'auto',           
                 height: '42px',
                 px: 2,                   
@@ -869,7 +869,7 @@ const TableMainPrep = ({
                 display: 'flex',
                 gap: 1,                  
                 '&:hover': {
-                  backgroundColor: '#E3F2FD'
+                  backgroundColor: '#EAF0FF'
                 }
               }}
             >
@@ -902,10 +902,10 @@ const TableMainPrep = ({
             borderRadius: '10px'
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#2196F3',
+            background: '#1552F0',
             borderRadius: '10px',
             '&:hover': {
-              background: '#1976D2'
+              background: '#1552F0'
             }
           }
         }}
@@ -918,10 +918,10 @@ const TableMainPrep = ({
                   key={index}
                   align="center"
                   style={{
-                    backgroundColor: "#2196F3",
-                    borderTop: "1px solid #1976D2",
-                    borderBottom: "1px solid #1976D2",
-                    borderLeft: index === 0 ? "1px solid #1976D2" : "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "#1552F0",
+                    borderTop: "1px solid #1552F0",
+                    borderBottom: "1px solid #1552F0",
+                    borderLeft: index === 0 ? "1px solid #1552F0" : "1px solid rgba(255,255,255,0.1)",
                     borderRight: "1px solid rgba(255,255,255,0.1)",
                     fontSize: '14px',
                     color: '#fff',
@@ -940,9 +940,9 @@ const TableMainPrep = ({
               ))}
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -955,9 +955,9 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -970,9 +970,9 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -985,9 +985,9 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -1000,9 +1000,9 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -1015,9 +1015,9 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
                 borderRight: "1px solid rgba(255,255,255,0.1)",
                 fontSize: '14px',
                 color: '#fff',
@@ -1030,10 +1030,10 @@ const TableMainPrep = ({
               </TableCell>
 
               <TableCell align="center" style={{
-                backgroundColor: "#2196F3",
-                borderTop: "1px solid #1976D2",
-                borderBottom: "1px solid #1976D2",
-                borderRight: "1px solid #1976D2",
+                backgroundColor: "#1552F0",
+                borderTop: "1px solid #1552F0",
+                borderBottom: "1px solid #1552F0",
+                borderRight: "1px solid #1552F0",
                 fontSize: '14px',
                 color: '#fff',
                 padding: '12px',
@@ -1089,8 +1089,8 @@ const TableMainPrep = ({
 
       <TablePagination
         sx={{
-          borderTop: '1px solid #E3F2FD',
-          backgroundColor: '#F8FBFF',
+          borderTop: '1px solid #EAF0FF',
+          backgroundColor: '#F5F8FF',
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '13px',
             color: "#546E7A",
@@ -1099,13 +1099,13 @@ const TableMainPrep = ({
           },
           "& .MuiTablePagination-select": {
             fontSize: '13px',
-            color: "#2196F3",
+            color: "#1552F0",
             fontWeight: '600'
           },
           "& .MuiTablePagination-actions button": {
-            color: "#2196F3",
+            color: "#1552F0",
             '&:hover': {
-              backgroundColor: '#E3F2FD'
+              backgroundColor: '#EAF0FF'
             }
           }
         }}

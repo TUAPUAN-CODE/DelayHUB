@@ -135,7 +135,7 @@ const ScanCheckinPage = () => {
       <Paper elevation={2} sx={{ borderRadius: "12px", overflow: "hidden" }}>
 
         {/* Header */}
-        <Box sx={{ bgcolor: "#1565C0", px: 3, py: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ bgcolor: "#0F3FC4", px: 3, py: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
           <QrCodeScannerIcon sx={{ color: "#fff", fontSize: 28 }} />
           <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "16px" }}>
             Scan รับเข้าวัตถุดิบ (QR / Barcode)
@@ -153,7 +153,7 @@ const ScanCheckinPage = () => {
             >
               <Box>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-                  {result.mat   && <Chip label={`Mat: ${result.mat}`}   size="small" sx={{ fontSize: "11px", bgcolor: "#e3f2fd", color: "#1565C0" }} />}
+                  {result.mat   && <Chip label={`Mat: ${result.mat}`}   size="small" sx={{ fontSize: "11px", bgcolor: "#EAF0FF", color: "#0F3FC4" }} />}
                   {result.batch && <Chip label={`Batch: ${result.batch}`} size="small" sx={{ fontSize: "11px", bgcolor: "#f3e5f5", color: "#6a1b9a" }} />}
                   {result.hu    && <Chip label={`HU: ${result.hu}`}     size="small" sx={{ fontSize: "11px", bgcolor: "#e8f5e9", color: "#2e7d32" }} />}
                 </Box>
@@ -205,7 +205,7 @@ const ScanCheckinPage = () => {
                 variant="outlined"
                 startIcon={<CameraAltIcon />}
                 onClick={startCamera}
-                sx={{ borderRadius: "8px", borderColor: "#1565C0", color: "#1565C0", px: 3 }}
+                sx={{ borderRadius: "8px", borderColor: "#0F3FC4", color: "#0F3FC4", px: 3 }}
               >
                 เปิดกล้อง Scan QR
               </Button>

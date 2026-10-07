@@ -615,7 +615,7 @@ const ParentComponent = () => {
           <div className="flex gap-3">
             <button
               onClick={handleDateFilter}
-              className="px-4 py-2 bg-[#4aaaec] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#4aaaec] focus:ring-opacity-50 transition-colors"
+              className="px-4 py-2 bg-[#1552F0] text-white rounded-md hover:bg-[#3a92d4] focus:outline-none focus:ring-2 focus:ring-[#1552F0] focus:ring-opacity-50 transition-colors"
             >
               ยืนยัน
             </button>
@@ -645,7 +645,7 @@ const ParentComponent = () => {
             <button
               type="button"
               onClick={() => setIsRmTypeOpen(!isRmTypeOpen)}
-              className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4aaaec]"
+              className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1552F0]"
             >
               <span className="truncate">
                 {selectedRmType === "all" ? "ทั้งหมด (All)" : selectedRmType}
@@ -660,7 +660,7 @@ const ParentComponent = () => {
                     placeholder="ค้นหาประเภทวัตถุดิบ..."
                     value={rmTypeSearch}
                     onChange={(e) => setRmTypeSearch(e.target.value)}
-                    className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec]"
+                    className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0]"
                   />
                 </div>
                 <ul className="max-h-60 overflow-auto text-sm">
@@ -695,7 +695,7 @@ const ParentComponent = () => {
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4aaaec]"
+            className="w-full flex justify-between items-center rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1552F0]"
           >
             <span className="truncate">
               {selectedMatName === "all" ? "ทั้งหมด (All)" : selectedMatName}
@@ -710,7 +710,7 @@ const ParentComponent = () => {
                   placeholder="ค้นหาวัตถุดิบ..."
                   value={matNameSearch}
                   onChange={(e) => setMatNameSearch(e.target.value)}
-                  className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#4aaaec] focus:ring focus:ring-[#4aaaec]"
+                  className="w-full rounded-md border-gray-300 px-2 py-1 text-sm focus:border-[#1552F0] focus:ring focus:ring-[#1552F0]"
                 />
               </div>
               <ul className="max-h-60 overflow-auto text-sm">
@@ -835,7 +835,7 @@ const ParentComponent = () => {
       <div className="p-4 space-y-6">
         {renderFilterSection()}
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4aaaec]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1552F0]"></div>
         </div>
       </div>
     );
@@ -942,7 +942,7 @@ const ParentComponent = () => {
               <Bar
                 dataKey="dcs_delay"
                 stackId="dcs"
-                fill="#3b82f6"
+                fill="#1552F0"
                 name="Delay ช่วงที่ 2 (เข้าห้องเย็น-ออกห้องเย็น)"
                 radius={[4, 4, 0, 0]}
                 barSize={40}

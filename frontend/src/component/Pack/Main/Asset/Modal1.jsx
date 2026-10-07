@@ -183,10 +183,10 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
           <Divider sx={{ mt: 1, mb: 1 }} />
 
           <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1, height: "42px" }}>
-            <Button style={{ backgroundColor: "#E74A3B", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
+            <Button style={{ backgroundColor: "#E5484D", color: "#fff" }} variant="contained" startIcon={<CancelIcon />} onClick={handleClose}>
               ยกเลิก
             </Button>
-            <Button style={{ backgroundColor: "#41a2e6", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNextModal2}>
+            <Button style={{ backgroundColor: "#1552F0", color: "#fff" }} variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNextModal2}>
               ยืนยัน
             </Button>
           </Box>

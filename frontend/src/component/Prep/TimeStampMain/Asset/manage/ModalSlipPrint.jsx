@@ -160,8 +160,8 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
               width: "250px",
               height: "50px",
               margin: "5px",
-              backgroundColor: "#2388d1",
-              '&:hover': { backgroundColor: "#1976d2" }
+              backgroundColor: "#1552F0",
+              '&:hover': { backgroundColor: "#1552F0" }
             }}
           >
             กดที่นี่เพื่อ พิมพ์

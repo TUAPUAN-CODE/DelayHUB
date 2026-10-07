@@ -237,7 +237,7 @@ finally {
 
         <Stack sx={{ p: "20px" }} direction="row" spacing={10} justifyContent="center">
           <Button
-            sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            sx={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={handleClose}
@@ -255,7 +255,7 @@ finally {
             แก้ไข
           </Button>
           <Button
-            sx={{ backgroundColor: "#41a2e6", color: "#fff" }}
+            sx={{ backgroundColor: "#1552F0", color: "#fff" }}
             variant="contained"
             startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
             onClick={handleConfirm}

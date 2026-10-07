@@ -44,7 +44,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
           variant="contained"
           style={{
             backgroundColor: "#fff",
-            color: "#787878",
+            color: "#6B7489",
             padding: "6px 40px",
             fontSize: "20px",
             display: 'flex',
@@ -58,7 +58,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
         >
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "#41cc4f", fontSize: "20px" }}> วัตถุดิบตรง </div>
-            <div style={{ color: "#787878", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบพร้อมใช้งาน </div>
+            <div style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบพร้อมใช้งาน </div>
           </div>
           <LuPackageCheck size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#41cc4f" }} />
         </Button>
@@ -67,30 +67,30 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
           variant="contained"
           style={{
             backgroundColor: "#fff",
-            color: "#787878",
+            color: "#6B7489",
             padding: "6px 40px",
             fontSize: "20px",
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: "center",
-            borderLeft: "6px solid #41a2e6",
+            borderLeft: "6px solid #1552F0",
             width: "100%",
             height: "40",
             marginTop: "2px"
           }}
         >
           <div style={{ textAlign: "left" }}>
-            <div style={{ color: "#41a2e6", fontSize: "20px" }}> วัตถุดิบรับฝาก </div>
-            <div style={{ color: "#787878", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบฝากชั่วคราว </div>
+            <div style={{ color: "#1552F0", fontSize: "20px" }}> วัตถุดิบรับฝาก </div>
+            <div style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบฝากชั่วคราว </div>
           </div>
-          <TfiShoppingCartFull size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#41a2e6" }} />
+          <TfiShoppingCartFull size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#1552F0" }} />
         </Button>
           <Button
           onClick={() => onSelectOption("เหลือจากไลน์ผลิต",slot)}
           variant="contained"
           style={{
             backgroundColor: "#fff",
-            color: "#787878",
+            color: "#6B7489",
             padding: "6px 40px",
             fontSize: "20px",
             display: 'flex',
@@ -104,7 +104,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
         >
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "#f0cb4d", fontSize: "20px" }}> เหลือจากไลน์ผลิต </div>
-            <div style={{ color: "#787878", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบที่เหลือจากบรรจุ </div>
+            <div style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบที่เหลือจากบรรจุ </div>
           </div>
           <GiCannedFish size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#f0cb4d" }} />
         </Button>
@@ -113,7 +113,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
           variant="contained"
           style={{
             backgroundColor: "#fff",
-            color: "#787878",
+            color: "#6B7489",
             padding: "6px 40px",
             fontSize: "20px",
             display: 'flex',
@@ -127,7 +127,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
         >
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "#ff4444",  fontSize: "20px" }}>รอแก้ไข </div>
-            <div style={{ color: "#787878", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบรอแก้ไข </div>
+            <div style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบรอแก้ไข </div>
           </div>
           <GiFriedFish size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#ff4444" }} />
         </Button>
@@ -136,7 +136,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
           variant="contained"
           style={{
             backgroundColor: "#fff",
-            color: "#787878",
+            color: "#6B7489",
             padding: "6px 40px",
             fontSize: "20px",
             display: 'flex',
@@ -150,7 +150,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
         >
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "#686868",  fontSize: "20px" }}>รถเข็นว่าง </div>
-            <div style={{ color: "#787878", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบภายในห้องเย็น </div>
+            <div style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "12px" }} > สำหรับวัตถุดิบภายในห้องเย็น </div>
           </div>
           <IoBarcodeSharp size={40} style={{ marginLeft: "50px", minWidth: "30px", color: "#686868" }} />
         </Button>
@@ -162,7 +162,7 @@ const SlotModal = ({ slot, onClose, onSelectOption }) => {
 
         <Stack>
           <Button
-            sx={{ backgroundColor: "#E74A3B", color: "#fff" }}
+            sx={{ backgroundColor: "#E5484D", color: "#fff" }}
             variant="contained"
             startIcon={<CancelIcon />}
             onClick={onClose}

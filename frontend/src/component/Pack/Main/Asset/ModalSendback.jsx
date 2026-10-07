@@ -60,9 +60,9 @@ const ModalSendback = ({ open, onClose, tro_id, onSuccess }) => {
         }
       }}
     >
-      <DialogTitle id="alert-dialog-title" sx={{ textAlign: 'center', color: '#4aaaec' }}>
+      <DialogTitle id="alert-dialog-title" sx={{ textAlign: 'center', color: '#1552F0' }}>
         <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
-          <ReplyIcon sx={{ fontSize: 40, color: '#4aaaec', mr: 1 }} />
+          <ReplyIcon sx={{ fontSize: 40, color: '#1552F0', mr: 1 }} />
         </Box>
         <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
           ส่งกลับห้องเย็น
@@ -70,7 +70,7 @@ const ModalSendback = ({ open, onClose, tro_id, onSuccess }) => {
       </DialogTitle>
 
       <DialogContent>
-        <DialogContentText id="alert-dialog-description" sx={{ textAlign: 'center', color: '#787878' }}>
+        <DialogContentText id="alert-dialog-description" sx={{ textAlign: 'center', color: '#6B7489' }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
             คุณต้องการส่งรถเข็น #{tro_id} กลับห้องเย็นใช่หรือไม่?
           </Typography>
@@ -84,8 +84,8 @@ const ModalSendback = ({ open, onClose, tro_id, onSuccess }) => {
           sx={{
             borderRadius: '8px',
             px: 3,
-            borderColor: '#4aaaec',
-            color: '#4aaaec',
+            borderColor: '#1552F0',
+            color: '#1552F0',
             '&:hover': {
               borderColor: '#3d96d2',
               backgroundColor: 'rgba(74, 170, 236, 0.04)'
@@ -101,7 +101,7 @@ const ModalSendback = ({ open, onClose, tro_id, onSuccess }) => {
           sx={{
             borderRadius: '8px',
             px: 3, 
-            backgroundColor: '#4aaaec',
+            backgroundColor: '#1552F0',
             '&:hover': {
               backgroundColor: '#3d96d2'
             }

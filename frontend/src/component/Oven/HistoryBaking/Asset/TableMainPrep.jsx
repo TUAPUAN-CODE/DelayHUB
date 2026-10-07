@@ -86,11 +86,11 @@ const Row = ({
         <TableCell style={{
           width: CUSTOM_COLUMN_WIDTHS.delayTime,
           textAlign: 'center',
-          borderTop: '1px solid #e0e0e0',
-          borderBottom: '1px solid #e0e0e0',
+          borderTop: '1px solid #E3E8F2',
+          borderBottom: '1px solid #E3E8F2',
           height: '40px',
           padding: '0px 5px',
-          borderRight: "0px solid #e0e0e0",
+          borderRight: "0px solid #E3E8F2",
           borderTopLeftRadius: "8px",
           borderBottomLeftRadius: "8px",
           borderLeft: `5px solid ${borderColor}`,
@@ -113,8 +113,8 @@ const Row = ({
             style={{
               width: columnWidths[idx],
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid #e0e0e0',
-              borderBottom: '1px solid #e0e0e0',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -123,7 +123,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#787878",
+              color: "#6B7489",
             }}
           >
             {value || '-'}
@@ -135,7 +135,7 @@ const Row = ({
             e.stopPropagation();
             handleOpenModal(row);
           }}
-          icon={<LiaShoppingCartSolid style={{ color: '#007BFF', fontSize: '25px' }} />}
+          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '25px' }} />}
         />
         <CompleteActionCell
           width={CUSTOM_COLUMN_WIDTHS.complete}
@@ -170,8 +170,8 @@ const CartActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -180,20 +180,20 @@ const CartActionCell = ({ width, onClick, icon }) => {
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = '';
-        e.currentTarget.querySelector('svg').style.color = '#007BFF';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.backgroundColor = '#007BFF';
+        e.currentTarget.style.backgroundColor = '#1552F0';
         e.currentTarget.querySelector('svg').style.color = '#fff';
       }}
       onTouchEnd={(e) => {
         e.currentTarget.style.backgroundColor = '';
-        e.currentTarget.querySelector('svg').style.color = '#007BFF';
+        e.currentTarget.querySelector('svg').style.color = '#1552F0';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -209,8 +209,8 @@ const CompleteActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -248,12 +248,12 @@ const EditActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #e0e0e0",
+        borderRight: "1px solid #E3E8F2",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -343,7 +343,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#787878",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -365,21 +365,21 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
           <TableHead style={{ marginBottom: "10px" }}>
             <TableRow sx={{ height: '40px' }}>
-              <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', borderLeft: "1px solid #e0e0e0", padding: '5px', width: CUSTOM_COLUMN_WIDTHS.delayTime }}>
+              <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', borderLeft: "1px solid #E3E8F2", padding: '5px', width: CUSTOM_COLUMN_WIDTHS.delayTime }}>
                 <Box style={{ fontSize: '12px' }}>DelayTime</Box>
               </TableCell>
               {columns.map((key, index) => (
-                <TableCell key={index} align="center" style={{ borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px', width: columnWidths[index] }}>
+                <TableCell key={index} align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: columnWidths[index] }}>
                   <Box style={{ fontSize: '12px' }}>{key}</Box>
                 </TableCell>
               ))}
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.cart, borderLeft: "0px solid ", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.cart, borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>รถเข็น</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.complete, borderLeft: "0px solid ", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#787878', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.complete, borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>เสร็จสิ้น</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.edit, borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #e0e0e0", borderBottom: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: '12px', color: '#787878', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.edit, borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>แก้ไข</Box>
               </TableCell>
             </TableRow>
@@ -402,7 +402,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                        ))
                      ) : (
                        <TableRow>
-                         <TableCell colSpan={columns.length + 4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#787878" }}>
+                         <TableCell colSpan={columns.length + 4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                            ไม่มีรายการวัตถุดิบในขณะนี้ 
                          </TableCell>
                        </TableRow>
@@ -414,7 +414,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#787878",
+            color: "#6B7489",
             padding: "0px",
           }
         }}
@@ -446,7 +446,7 @@ const FilterButton = ({ color, selectedColor, onClick }) => {
   const baseStyle = {
     border: isSelected
       ? `2px solid ${currentColor.selected}`
-      : `1px solid ${isHovered ? currentColor.hover : "#e0e0e0"}`,
+      : `1px solid ${isHovered ? currentColor.hover : "#E3E8F2"}`,
     padding: 6,
     borderRadius: 6,
     cursor: "pointer",
