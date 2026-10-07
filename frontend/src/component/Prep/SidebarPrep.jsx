@@ -1,345 +1,184 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, CheckCircle, AlertCircle, X } from "lucide-react";
-import { GoHomeFill } from "react-icons/go";
-import { LuScanBarcode } from "react-icons/lu";
-import { PiFishSimple } from "react-icons/pi";
-import { PiFishLight } from "react-icons/pi";
-import { VscHistory } from "react-icons/vsc";
-import { TbLogout2 } from "react-icons/tb";
-import { PiFishFill } from "react-icons/pi";
-import { FaPeopleCarry } from 'react-icons/fa';
-import axios from "axios";
-axios.defaults.withCredentials = true;
+import { Menu, X, Clock, Soup, RotateCcw, ScanLine, Blend, Layers, ListChecks, LogOut, ChevronsLeft, ChevronsRight } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const PRIMARY = "#1552F0";
+const PAGE_BG = "#f4f7fe";
+const COLLAPSE_KEY = "prepSidebarCollapsed";
+const SCROLL_KEY = "sidebarScrollPosition";
 
-const Toast = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
+const readStorage = (key, fallback = null) => {
+  try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+};
+const writeStorage = (key, value) => {
+  try { localStorage.setItem(key, value); } catch { /* private mode: the sidebar still works */ }
+};
+const readRmTypeIds = () => {
+  try { return JSON.parse(readStorage("rm_type_id", "[]")) || []; } catch { return []; }
+};
 
-  const bgColor = type === "success" ? "bg-green-100" : type === "info" ? "bg-blue-100" : "bg-red-100";
-  const textColor = type === "success" ? "text-green-800" : type === "info" ? "text-blue-800" : "text-red-800";
-  const borderColor = type === "success" ? "border-green-400" : type === "info" ? "border-blue-400" : "border-red-400";
-  const IconComponent = type === "success" ? CheckCircle : AlertCircle;
-
+/**
+ * One menu entry. The active entry is a white pill that melts into the page (inverted corners above and below, the same look as DocHUB).
+ */
+const NavItem = ({ item, active, collapsed, onNavigate }) => {
+  const Icon = item.icon;
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-md ${bgColor} ${textColor} ${borderColor} border px-4 py-3 rounded shadow-md flex items-center`}>
-      <IconComponent size={20} className="mr-2" />
-      <div className="flex-grow">{message}</div>
-      <button onClick={onClose} className="ml-4">
-        <X size={16} />
-      </button>
-    </div>
+    <li className="relative pl-3">
+      <Link
+        to={item.href}
+        onClick={onNavigate}
+        title={collapsed ? item.name : undefined}
+        aria-current={active ? "page" : undefined}
+        className="relative flex items-center gap-3 h-11 pl-3 pr-4 rounded-l-full text-sm transition-colors whitespace-nowrap"
+        style={{
+          background: active ? "#fff" : "transparent",
+          color: active ? PRIMARY : "rgba(255,255,255,.92)",
+          fontWeight: active ? 600 : 400,
+        }}
+      >
+        {active && (
+          <>
+            <span className="absolute right-0 -top-4 w-4 h-4 pointer-events-none" style={{ background: `radial-gradient(circle at 0 0, transparent 16px, #fff 16.5px)` }} />
+            <span className="absolute right-0 -bottom-4 w-4 h-4 pointer-events-none" style={{ background: `radial-gradient(circle at 0 100%, transparent 16px, #fff 16.5px)` }} />
+          </>
+        )}
+        <Icon size={20} className="shrink-0" />
+        {!collapsed && <span className="truncate">{item.name}</span>}
+      </Link>
+    </li>
   );
 };
 
-const useRawMatFetcher = () => {
-  const isFetchingRef = useRef(false);
-
-  const allLineIds = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41, 42, 44, 45, 46, 47, 48, 49, 50,
-    51, 52, 53, 54, 55
-  ];
-
-  const fetchAllData = async (onSuccess, onError) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
-    try {
-      const CONCURRENT_LIMIT = 5;
-      const results = [];
-
-      for (let i = 0; i < allLineIds.length; i += CONCURRENT_LIMIT) {
-        const chunk = allLineIds.slice(i, i + CONCURRENT_LIMIT);
-        const chunkPromises = chunk.map((lineId) =>
-          axios
-            .get(`${API_URL}/api/auto-fetch/pack/main/fetchRawMat/${lineId}`)
-            .then((res) => (res.data.success ? res.data.data : []))
-            .catch(() => [])
-        );
-        const chunkResults = await Promise.all(chunkPromises);
-        results.push(...chunkResults.flat());
-        await new Promise((r) => setTimeout(r, 200));
-      }
-
-      if (onSuccess) onSuccess(results.length);
-    } catch (error) {
-      if (onError) onError(error);
-    } finally {
-      isFetchingRef.current = false;
-    }
-  };
-
-  return { fetchAllData };
-};
-
-const MenuItem = ({
-  item,
-  isSidebarOpen,
-  active,
-  hovered,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
-}) => {
-  return (
-    <div
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onClick={onClick}
-      className="relative flex flex-col cursor-pointer"
-    >
-      <div
-        style={{
-          background: active || hovered
-            ? "#f9f9f9"
-            : "linear-gradient(to right, #4aaaec 0%, #2288d1 100%)",
-        }}
-      >
-        <div
-          style={{
-            height: "10px",
-            borderBottomRightRadius: "20px",
-            background: "linear-gradient(to right, #4aaaec 0%, #2288d1 100%)",
-          }}
-        />
-      </div>
-
-      <div
-        className="flex items-center p-3 text-xs font-normal"
-        style={{
-          backgroundColor: active || hovered ? "#fff" : "transparent",
-          color: active || hovered ? "#4aaaec" : "#fff",
-        }}
-      >
-        {item.icon && <item.icon size={18} style={{ width: "36px" }} />}
-        {isSidebarOpen && <span className="ml-2 whitespace-nowrap">{item.name}</span>}
-      </div>
-
-      <div
-        style={{
-          background: active || hovered
-            ? "#f9f9f9"
-            : "linear-gradient(to right, #4aaaec 0%, #2288d1 100%)",
-        }}
-      >
-        <div
-          style={{
-            height: "10px",
-            borderTopRightRadius: "20px",
-            background: "linear-gradient(to right, #4aaaec 0%, #2288d1 100%)",
-          }}
-        />
-      </div>
-    </div>
-  );
-};
-
-const Sidebar = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+const SidebarPrep = () => {
   const location = useLocation();
-  const activeItem = location.pathname;
-  const [hoveredItem, setHoveredItem] = useState(null);
-  const [clickedItem, setClickedItem] = useState(localStorage.getItem("clickedItem") || null);
-  const [expandedMenus, setExpandedMenus] = useState({});
-  const { fetchAllData } = useRawMatFetcher();
-  const sidebarRef = useRef(null);
-  const lastScrollPosition = useRef(0);
-  const [toast, setToast] = useState(null);
+  const [collapsed, setCollapsed] = useState(() => readStorage(COLLAPSE_KEY) === "1");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const navRef = useRef(null);
 
-  const showToast = (message, type) => setToast({ message, type });
-  const hideToast = () => setToast(null);
+  // "Scan SAP" is hidden for the rm types that do not use it (998, 999)
+  const showScanSAP = !readRmTypeIds().some((id) => Number(id) === 998 || Number(id) === 999);
+
+  const sections = useMemo(() => [
+    {
+      title: "Time Stamp",
+      items: [
+        { name: "Time Stamp วัตถุดิบ", icon: Clock, href: "/prep", exact: true },
+        { name: "Time Stamp น้ำต้มไก่", icon: Soup, href: "/prep/timestamp" },
+        { name: "วัตถุดิบรอแก้ไข / กลับมาเตรียม", icon: RotateCcw, href: "/prep/MatRework/MatReworkPage" },
+        ...(showScanSAP ? [{ name: "Scan SAP", icon: ScanLine, href: "/prep/ScanSAP/ScanSAPPage" }] : []),
+      ],
+    },
+    {
+      title: "ผสมวัตถุดิบ",
+      items: [
+        { name: "ผสมวัตถุดิบ", icon: Blend, href: "/prep/Emulsions" },
+        { name: "ผสม Batch", icon: Layers, href: "/prep/BatchMIX" },
+        { name: "ผสมเตรียม", icon: Layers, href: "/prep/IncludeRawmat" },
+        { name: "ผสมวัตถุดิบ loaf สุก", icon: Layers, href: "/prep/IncludeRawmatPageotherplant" },
+        { name: "รายการผสมวัตถุดิบ", icon: ListChecks, href: "/prep/RM_EMU" },
+      ],
+    },
+  ], [showScanSAP]);
+
+  // Only the longest matching href is active ("/prep" must not light up on every "/prep/..." page)
+  const activeHref = useMemo(() => {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const all = sections.flatMap((s) => s.items);
+    const hits = all.filter((i) => (i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`)));
+    return hits.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+  }, [location.pathname, sections]);
+
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    const savedScrollPosition = localStorage.getItem("sidebarScrollPosition");
-    if (savedScrollPosition && sidebarRef.current) {
-      sidebarRef.current.scrollTop = parseInt(savedScrollPosition, 10);
-      lastScrollPosition.current = parseInt(savedScrollPosition, 10);
-    }
+    const saved = parseInt(readStorage(SCROLL_KEY, "0"), 10);
+    if (navRef.current && Number.isFinite(saved)) navRef.current.scrollTop = saved;
   }, []);
 
-  const handleScroll = (e) => {
-    const scrollPosition = e.target.scrollTop;
-    lastScrollPosition.current = scrollPosition;
-    localStorage.setItem("sidebarScrollPosition", scrollPosition.toString());
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setDrawerOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => { writeStorage(COLLAPSE_KEY, prev ? "0" : "1"); return !prev; });
   };
 
-  const handleRefresh = () => {
-    showToast("กำลังรีเฟรชข้อมูลรถเข็น...", "info");
-    fetchAllData(
-      (count) => showToast(`รีเฟรชข้อมูลสำเร็จ!`, "success"),
-      (error) => showToast(`รีเฟรชข้อมูลล้มเหลว: ${error.message}`, "error")
-    );
-  };
+  const panel = (isCollapsed, isDrawer) => (
+    <div className="h-full flex flex-col text-white" style={{ background: PRIMARY, fontFamily: "Prompt, sans-serif" }}>
+      <div className={`flex items-center h-16 px-4 shrink-0 ${isCollapsed ? "justify-center" : "justify-between"}`}>
+        {!isCollapsed && (
+          <div className="leading-tight">
+            <div className="text-lg font-bold tracking-wide">DelayHUB</div>
+            <div className="text-[11px] text-white/70">จุดเตรียมวัตถุดิบ</div>
+          </div>
+        )}
+        {isDrawer ? (
+          <button type="button" onClick={() => setDrawerOpen(false)} aria-label="ปิดเมนู" className="p-2 rounded-lg hover:bg-white/15"><X size={20} /></button>
+        ) : (
+          <button type="button" onClick={toggleCollapsed} aria-label={isCollapsed ? "ขยายเมนู" : "ย่อเมนู"} title={isCollapsed ? "ขยายเมนู" : "ย่อเมนู"} className="p-2 rounded-lg hover:bg-white/15">
+            {isCollapsed ? <ChevronsRight size={20} /> : <ChevronsLeft size={20} />}
+          </button>
+        )}
+      </div>
 
-  const pos_id = localStorage.getItem("pos_id");
-  const allowedPositions = ["3", "4", "5", "6"];
-  const showWorkplaceSelector = allowedPositions.includes(pos_id);
+      <nav
+        ref={isDrawer ? undefined : navRef}
+        onScroll={isDrawer ? undefined : (e) => writeStorage(SCROLL_KEY, String(Math.round(e.currentTarget.scrollTop)))}
+        className="flex-1 overflow-y-auto py-4 prep-sidebar-nav"
+      >
+        {sections.map((section) => (
+          <div key={section.title} className="mb-5">
+            {!isCollapsed && <div className="px-6 mb-2 text-[11px] uppercase tracking-wider text-white/60">{section.title}</div>}
+            <ul className="space-y-2">
+              {section.items.map((item) => (
+                <NavItem key={item.href} item={item} active={activeHref === item.href} collapsed={isCollapsed} onNavigate={() => setDrawerOpen(false)} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
 
-  // ✅ ตรวจสอบ rm_type_id จาก localStorage
-  // ซ่อน "Scan SAP" เมื่อ rm_type_id มีค่า 2 หรือ 3 อยู่ใน array
-  const rmTypeIds = JSON.parse(localStorage.getItem("rm_type_id") || "[]");
-  const showScanSAP = !rmTypeIds.some((id) => id === 998 || id === 999);
-
-  const SIDEBAR_ITEMS = [
-    { name: "หน้าหลัก", icon: GoHomeFill, href: "/prep" },
-    { name: "หน้าห้องเย็น", icon: PiFishFill, href: "/prep/ColdCheck" },
-    { name: "Time Stamp น้ำต้มไก่", icon: PiFishFill, href: "/prep/timestamp" },
-  
-    { name: "1) บันทึกเวลารับวัตถุดิบ", href: "/prep/managepreps" },
-    { name: "2) บันทึกเวลาต้มอบเสร็จ", href: "/prep/manageprep" },
-    { name: "3) บันทึกเวลาส่งคืนวัตถุดิบ",  href: "/prep/pd/checkout" },
-   
-   
-    // ✅ แสดงเฉพาะเมื่อ rm_type_id ไม่มีค่า 2 หรือ 3
-    ...(showScanSAP
-      ? [{ name: "Scan SAP", icon: LuScanBarcode, href: "/prep/ScanSAP/ScanSAPPage" }]
-      : []),
-
-    { name: "ผสมวัตถุดิบ", icon: PiFishSimple, href: "/prep/Emulsions" },
-    { name: "ผสม Batch", icon: PiFishSimple, href: "/prep/BatchMIX" },
-    { name: "ผสมเตรียม", icon: PiFishSimple, href: "/prep/IncludeRawmat" },
-    { name: "จัดการวัตถุดิบ", icon: PiFishSimple, href: "/prep/MatManage/MatManagePage" },
-    { name: "วัตถุดิบรอแก้ไข", icon: PiFishLight, href: "/prep/MatRework/MatReworkPage" },
-    { name: "กลับมาเตรียม", icon: PiFishFill, href: "/prep/MatImport/MatImportPage" },
-    { name: "ผสมวัตถุดิบ loaf สุก", icon: PiFishFill, href: "/prep/IncludeRawmatPageotherplant" },
-    { name: "รายการผสมวัตถุดิบ", icon: PiFishFill, href: "/prep/RM_EMU" },
-    { name: "รายการ", icon: PiFishFill, href: "/prep/RMInclude" },
-    { name: "ตรวจสอบ HU", icon: PiFishFill, href: "/prep/TraceBack_HU" },
-    { name: "ประวัติ", icon: PiFishFill, href: "/prep/history" },
-    { name: "ออกจากระบบ", icon: TbLogout2, href: "/logout" },
-  ];
-
-  const handleClick = (href, itemName) => {
-    const clickedMenuItem = SIDEBAR_ITEMS.find((item) => item.name === itemName);
-
-    if (clickedMenuItem?.type === "action" && clickedMenuItem?.action) {
-      clickedMenuItem.action();
-      return;
-    }
-
-    setClickedItem(href);
-    localStorage.setItem("clickedItem", href);
-    setExpandedMenus({});
-
-    if (clickedMenuItem?.submenu) {
-      setExpandedMenus((prev) => ({ ...prev, [itemName]: !prev[itemName] }));
-    }
-  };
-
-  const toggleSubmenu = (name) => {
-    setExpandedMenus((prev) => {
-      const newExpandedMenus = { ...prev };
-      Object.keys(newExpandedMenus).forEach((key) => {
-        if (key !== name) newExpandedMenus[key] = false;
-      });
-      newExpandedMenus[name] = !newExpandedMenus[name];
-      return newExpandedMenus;
-    });
-  };
+      <div className="shrink-0 py-3 border-t border-white/15">
+        <ul>
+          <NavItem item={{ name: "ออกจากระบบ", icon: LogOut, href: "/logout" }} active={false} collapsed={isCollapsed} onNavigate={() => setDrawerOpen(false)} />
+        </ul>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+      <style>{`.prep-sidebar-nav::-webkit-scrollbar{display:none}.prep-sidebar-nav{-ms-overflow-style:none;scrollbar-width:none}`}</style>
 
-      <div
-        className={`relative z-10 flex-shrink-0 ${isSidebarOpen ? "w-35" : "w-16"}`}
-        style={{
-          transition: "width 0.2s ease-in-out",
-          backgroundColor: "#fff",
-          width: isSidebarOpen ? "159px" : "60px",
-          height: "100vh",
-        }}
+      {/* phone / tablet: top button + drawer */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        aria-label="เปิดเมนู"
+        className="lg:hidden fixed top-3 left-3 z-40 p-2 rounded-xl text-white shadow-lg"
+        style={{ background: PRIMARY }}
       >
-        <style>
-          {`
-            .sidebar-nav::-webkit-scrollbar { display: none; }
-            .sidebar-nav { -ms-overflow-style: none; scrollbar-width: none; }
-          `}
-        </style>
-        <div
-          className="h-full flex flex-col"
-          style={{
-            background: "linear-gradient(to right, #4aaaec 0%, #2288d1 100%)",
-            color: "#fff",
-          }}
-        >
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 rounded-full text-white transition-colors max-w-fit sticky top-0 z-20"
-            style={{
-              color: "#E0F2FE",
-              borderRadius: "8px",
-              marginLeft: "17px",
-              marginTop: "20px",
-            }}
-          >
-            <Menu size={20} />
-          </button>
-
-          <nav
-            ref={sidebarRef}
-            onScroll={handleScroll}
-            className="mt-4 flex-grow overflow-y-auto sidebar-nav"
-            style={{ maxHeight: "calc(100vh - 60px)" }}
-          >
-            {SIDEBAR_ITEMS.map((item) => (
-              <div key={item.name}>
-                <Link to={item.href !== "#" ? item.href : "#"}>
-                  <MenuItem
-                    item={item}
-                    isSidebarOpen={isSidebarOpen}
-                    active={activeItem === item.href || clickedItem === item.href}
-                    hovered={hoveredItem === item.name}
-                    onClick={(e) => {
-                      if (item.submenu) {
-                        e.preventDefault();
-                        toggleSubmenu(item.name);
-                      } else {
-                        handleClick(item.href, item.name);
-                      }
-                    }}
-                    onMouseEnter={() => setHoveredItem(item.name)}
-                    onMouseLeave={() => setHoveredItem(null)}
-                  />
-                </Link>
-
-                {item.submenu && expandedMenus[item.name] && (
-                  <div className={`flex flex-col ${isSidebarOpen ? "ml-0" : "items-center"}`}>
-                    {item.submenu.map((subitem) => (
-                      <Link key={subitem.href} to={subitem.href}>
-                        <MenuItem
-                          item={{
-                            ...subitem,
-                            icon: isSidebarOpen ? subitem.icon : item.icon,
-                          }}
-                          isSidebarOpen={isSidebarOpen}
-                          active={activeItem === subitem.href || clickedItem === subitem.href}
-                          hovered={hoveredItem === subitem.name}
-                          onClick={() => handleClick(subitem.href, item.name)}
-                          onMouseEnter={() => setHoveredItem(subitem.name)}
-                          onMouseLeave={() => setHoveredItem(null)}
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
+        <Menu size={22} />
+      </button>
+      {drawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="เมนู">
+          <div className="w-64 max-w-[80vw] h-full shadow-2xl">{panel(false, true)}</div>
+          <button type="button" aria-label="ปิดเมนู" className="flex-1 bg-black/40" onClick={() => setDrawerOpen(false)} />
         </div>
-      </div>
+      )}
+
+      {/* desktop: fixed side bar, 72px when collapsed / 256px when open */}
+      <aside
+        className="hidden lg:block relative z-10 shrink-0 h-screen"
+        style={{ width: collapsed ? 72 : 256, transition: "width .2s ease-in-out", background: PRIMARY, boxShadow: `inset -1px 0 0 ${PAGE_BG}` }}
+      >
+        {panel(collapsed, false)}
+      </aside>
     </>
   );
 };
 
-export default Sidebar;
+export default SidebarPrep;
