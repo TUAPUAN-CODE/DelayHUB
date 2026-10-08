@@ -74,7 +74,8 @@ const buildMappingQuery = () => `
       FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
       FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
-      b.batch_after,
+      -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch
+      COALESCE(NULLIF(b.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_after,
       sl.slot_id,
       cs.cs_id,
       cs.cs_name,
@@ -106,8 +107,8 @@ const buildMappingQuery = () => `
       ORDER BY hh.hist_id DESC
   ) h
   WHERE
-      -- rows deleted by the clear / QC-delete buttons keep a marker in stay_place / dest ("...ลบจาก...") — not shown
-      ISNULL(rmm.dest, N'') NOT LIKE N'%ลบจาก%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบจาก%'
+      -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
+      ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
       AND (
           -- still open (not packed / not finished): always shown, however old — these are the rows that get forgotten
           (@include_open = 1 AND ISNULL(rmm.dest, N'') <> N'บรรจุเสร็จ' AND ISNULL(rmm.rm_status, N'') <> N'สำเร็จ')
