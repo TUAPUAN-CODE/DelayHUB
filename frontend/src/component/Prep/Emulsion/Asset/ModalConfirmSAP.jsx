@@ -378,12 +378,6 @@ const DataReviewSAP = ({ open, onClose, material, batch, emulsionweightTotal, hu
 
   // อัปเดตข้อมูล emulsion เมื่อ props เปลี่ยน
   useEffect(() => {
-    console.log("DataReviewSAP received props:", {
-      material,
-      batch,
-      emulsionweightTotal,
-      selectedMaterials
-    });
 
     setCurrentEmulsionWeight(emulsionweightTotal || "");
     setCurrentSelectedMaterials(selectedMaterials || []);

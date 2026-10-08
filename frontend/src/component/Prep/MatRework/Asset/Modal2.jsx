@@ -53,7 +53,6 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
   const [otherCorrectionMethod, setOtherCorrectionMethod] = useState('');
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
 
-  console.log("modal 2 data :", data)
 
   const correctionMethodLabels = {
     blanching: "ลวก",

@@ -347,7 +347,7 @@ const ParentComponent = ({ role }) => {
             primaryBatch={scan.mat} secondaryBatch={scan.batch} hu={scan.hu}
             setPrimaryBatch={(v) => setScan((s) => ({ ...s, mat: v }))} setSecondaryBatch={(v) => setScan((s) => ({ ...s, batch: v }))} setHu={(v) => setScan((s) => ({ ...s, hu: v }))}
           />
-          <DataReviewSAP open={scan.review} onClose={() => { setScan((s) => ({ ...s, review: false })); load(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />
+          {scan.review && <DataReviewSAP open onClose={() => { setScan((s) => ({ ...s, review: false })); load(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />}
           <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />
           <EmulsionFlows ref={mixRefs.emu} onDone={load} />
           <BatchFlows ref={mixRefs.batch} onDone={load} />
