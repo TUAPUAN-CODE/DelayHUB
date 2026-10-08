@@ -322,6 +322,6 @@ export const getDbs = (row, now = null) => {
   return texts.map((text, i) => {
     const minutes = mins[i] ?? parseTimeToMinutes(text);
     const skip = (i === 1 || i === 2) && special; // special groups have no DBS2/DBS3 standard
-    return { text, minutes, std: std[i], over: !skip && std[i] !== null && minutes !== null && minutes > std[i] };
+    return { text, minutes, std: skip ? null : std[i], over: !skip && std[i] !== null && minutes !== null && minutes > std[i] };
   });
 };

@@ -42,16 +42,28 @@ export const STATUS_COLUMN = {
   ) : null),
 };
 
+const stdLabel = (min) => {
+  const h = Math.floor(min / 60); const m = Math.round(min % 60);
+  return `${h ? `${h} h` : ""}${h && m ? " " : ""}${m ? `${m} m` : ""}` || "0";
+};
+/** actual time (coloured: red when over the standard) / standard time of the raw material group */
 const DbsCell = ({ d }) => {
-  if (!d || d.text === "-") return <span style={{ color: "#B0BAC9" }}>-</span>;
+  const hasActual = d && d.text && d.text !== "-";
+  const hasStd = d && d.std !== null && d.std !== undefined;
+  if (!hasActual && !hasStd) return <span style={{ color: "#B0BAC9" }}>-</span>;
   return (
-    <Tooltip title={d.std !== null && d.std !== undefined ? `มาตรฐาน ${Math.floor(d.std / 60)} ชม. ${Math.round(d.std % 60)} นาที` : "ไม่มีมาตรฐาน"} arrow>
-      <span style={{ fontWeight: 700, color: d.over ? "#B91C1C" : "#047857", background: d.over ? "#FEE2E2" : "#ECFDF5", borderRadius: 6, padding: "1px 6px", whiteSpace: "nowrap" }}>{d.text}</span>
+    <Tooltip title={hasStd ? `เวลาจริง ${hasActual ? d.text : "-"} · มาตรฐาน ${stdLabel(d.std)}` : "ไม่มีเวลามาตรฐาน"} arrow>
+      <span style={{ whiteSpace: "nowrap" }}>
+        {hasActual
+          ? <span style={{ fontWeight: 700, color: d.over ? "#B91C1C" : "#047857", background: d.over ? "#FEE2E2" : "#ECFDF5", borderRadius: 6, padding: "1px 6px" }}>{d.text}</span>
+          : <span style={{ color: "#B0BAC9" }}>-</span>}
+        {hasStd && <span style={{ color: "#6B7489", fontSize: 11.5 }}> / {stdLabel(d.std)}</span>}
+      </span>
     </Tooltip>
   );
 };
 const dbs = (i, key, label) => ({
-  key, label, group: "dbs", kind: "data", type: "dbs", width: 125,
+  key, label, group: "dbs", kind: "data", type: "dbs", width: 160,
   text: (r) => { const d = r.__dbs?.[i]; return d && d.text !== "-" ? d.text : ""; },
   sortValue: (r) => { const d = r.__dbs?.[i]; return d && d.text !== "-" ? d.minutes : null; },
   render: (r) => <DbsCell d={r.__dbs?.[i]} />,
@@ -140,7 +152,7 @@ export const COLUMNS = [
   t("start_defrost_date_four", "เริ่มละลาย 4", "sap"),
   t("end_defrost_date_four", "ละลายเสร็จ 4", "sap"),
   // บรรจุ
-  t("sc_pack_date", "ยืนยันบรรจุ", "pack"),
+  t("sc_pack_date", "บรรจุเสร็จสิ้น", "pack"),
   x("remark_dalay", "หมายเหตุ Delay", "pack", 160),
   // DBS
   dbs(0, "DBS1", "DBS1 เตรียม→ห้องเย็น"),

@@ -168,16 +168,50 @@ const parsePrefsKey = (src) => {
 };
 const isMissingTable = (err) => err && (err.number === 208 || /Invalid object name/i.test(err.message || ""));
 
+// The settings table is created here the first time it is needed (same DDL as migrations/create_SheetUserPrefs.sql, only when it does not exist yet),
+// so a settings save does not depend on somebody running the SQL by hand. If the database login may not create tables, the old behaviour stays (503 PREFS_TABLE_MISSING).
+let prefsTableChecked = false;
+const ensurePrefsTable = async (pool) => {
+  if (prefsTableChecked) return;
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.SheetUserPrefs', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SheetUserPrefs (
+            user_id     INT            NOT NULL,
+            sheet_key   NVARCHAR(50)   NOT NULL,
+            config      NVARCHAR(MAX)  NOT NULL,
+            updated_at  DATETIME       NOT NULL CONSTRAINT DF_SheetUserPrefs_updated DEFAULT (GETDATE()),
+            CONSTRAINT PK_SheetUserPrefs PRIMARY KEY (user_id, sheet_key)
+        );
+    END
+  `);
+  prefsTableChecked = true;
+  console.log("✅ [Sheet] ตรวจ/สร้างตาราง SheetUserPrefs เรียบร้อย");
+};
+/** run a query on SheetUserPrefs; when the table is missing try to create it once and run it again */
+const withPrefsTable = async (pool, run) => {
+  try {
+    return await run();
+  } catch (err) {
+    if (!isMissingTable(err)) throw err;
+    try { await ensurePrefsTable(pool); } catch (createErr) {
+      console.error("❌ [Sheet] สร้างตาราง SheetUserPrefs ไม่สำเร็จ (สิทธิ์ไม่พอ? ให้ DBA รัน migrations/create_SheetUserPrefs.sql):", createErr.message);
+      throw err;
+    }
+    return run();
+  }
+};
+
 router.get("/sheet/prefs", async (req, res) => {
   const key = parsePrefsKey(req.query);
   if (!key) return res.status(400).json({ success: false, error: "ต้องระบุ user_id และ sheet_key ให้ถูกต้อง" });
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-    const result = await pool.request()
+    const result = await withPrefsTable(pool, () => pool.request()
       .input("user_id", sql.Int, key.userId)
       .input("sheet_key", sql.NVarChar(50), key.sheetKey)
-      .query("SELECT config FROM SheetUserPrefs WHERE user_id = @user_id AND sheet_key = @sheet_key");
+      .query("SELECT config FROM SheetUserPrefs WHERE user_id = @user_id AND sheet_key = @sheet_key"));
     res.json({ success: true, config: result.recordset[0]?.config ?? null });
   } catch (err) {
     if (isMissingTable(err)) {
@@ -202,7 +236,7 @@ router.put("/sheet/prefs", async (req, res) => {
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-    await pool.request()
+    await withPrefsTable(pool, () => pool.request()
       .input("user_id", sql.Int, key.userId)
       .input("sheet_key", sql.NVarChar(50), key.sheetKey)
       .input("config", sql.NVarChar(sql.MAX), config)
@@ -211,7 +245,7 @@ router.put("/sheet/prefs", async (req, res) => {
         WHERE user_id = @user_id AND sheet_key = @sheet_key;
         IF @@ROWCOUNT = 0
           INSERT INTO SheetUserPrefs (user_id, sheet_key, config) VALUES (@user_id, @sheet_key, @config);
-      `);
+      `));
     res.json({ success: true, message: "บันทึกการตั้งค่าสำเร็จ" });
   } catch (err) {
     if (isMissingTable(err)) {
