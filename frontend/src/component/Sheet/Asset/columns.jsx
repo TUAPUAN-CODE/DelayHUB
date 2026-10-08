@@ -35,10 +35,10 @@ const tool = (key, label, width, roles) => ({
 });
 
 export const STATUS_COLUMN = {
-  key: "status", label: "สถานะ", group: "tool", kind: "data", type: "text", frozen: true, width: 210,
+  key: "status", label: "สถานะ", group: "tool", kind: "data", type: "text", frozen: true, width: 150,
   text: (r) => r.__status?.label || "",
   render: (r) => (r.__status ? (
-    <span style={{ background: r.__status.bg, color: r.__status.color, borderRadius: 999, padding: "2px 9px", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap" }}>{r.__status.label}</span>
+    <span title={r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{r.__status.label}</span>
   ) : null),
 };
 

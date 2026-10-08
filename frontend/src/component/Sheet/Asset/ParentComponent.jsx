@@ -21,6 +21,7 @@ import TrolleyFlows from "../../ColdStorage/RoomTableSupervisor/Asset/flow/Troll
 import CheckoutFlow from "../../ColdStorage/RoomTableSupervisor/Asset/flow/CheckoutFlow";
 import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
+import GatherSelected from "./cold/GatherSelected";
 import ReworkFlows from "./prep/ReworkFlows";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
 import ModalStampBoil from "../../Prep/TimeStampMain/Asset/stamp/ModalStampBoil";
@@ -91,6 +92,7 @@ const ParentComponent = ({ role }) => {
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
   const [plans, setPlans] = useState([]);
+  const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
@@ -256,6 +258,25 @@ const ParentComponent = ({ role }) => {
     });
     return out;
   }, [rows, selected, role]);
+  // Cold room (v1: cs_id < 10, v2: cs_id >= 10): tick several materials that are in the room, then "จัดชุด" into one trolley of the room
+  const inMyRoom = (r) => r.__kind === "map" && r.cs_id && r.tro_id && (role === "cs1" ? r.cs_id < 10 : r.cs_id >= 10);
+  const gatherRows = useMemo(() => (role === "cs1" || role === "cs2" ? rows.filter((r) => selected.has(r.__key) && inMyRoom(r) && Number(r.weight_RM) > 0) : []), [rows, selected, role]);
+  const coldTrolleys = useMemo(() => {
+    if (role !== "cs1" && role !== "cs2") return [];
+    const m = new Map();
+    data.mappings.forEach((r) => { if (r.cs_id && r.tro_id && (role === "cs1" ? r.cs_id < 10 : r.cs_id >= 10) && !m.has(r.tro_id)) m.set(r.tro_id, { tro_id: r.tro_id, slot_id: r.slot_id, cs_name: r.cs_name }); });
+    return [...m.values()].sort((a, b) => String(a.tro_id).localeCompare(String(b.tro_id)));
+  }, [data.mappings, role]);
+  const gatherBar = (role === "cs1" || role === "cs2") && (
+    <>
+      <Typography variant="body2" sx={{ fontWeight: 700 }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
+      <Tooltip title={gatherRows.length ? "" : "ติ๊กวัตถุดิบที่สถานะ \"อยู่ในห้องเย็น\" ในตารางก่อน"} arrow>
+        <span>
+          <Button size="small" variant="contained" color="secondary" disabled={!gatherRows.length} onClick={() => setGatherOpen(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>จัดชุด ({gatherRows.length})</Button>
+        </span>
+      </Tooltip>
+    </>
+  );
   const mixBar = role === "prep" && (
     <>
       <Typography variant="body2" sx={{ fontWeight: 700 }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
@@ -286,6 +307,7 @@ const ParentComponent = ({ role }) => {
       )))}
       {activeRow && <Button size="small" onClick={() => setActiveKey(null)}>ยกเลิกการเลือก</Button>}
       {mixBar}
+      {gatherBar}
     </Paper>
   );
 
@@ -338,7 +360,7 @@ const ParentComponent = ({ role }) => {
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
         toolbarExtra={toolbarExtra}
-        selectable={role === "pack" || role === "prep"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : r.__stage === "ready" && !r.sc_pack_date)}
+        selectable={role === "pack" || role === "prep" || role === "cs1" || role === "cs2"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : role === "cs1" || role === "cs2" ? inMyRoom(r) && Number(r.weight_RM) > 0 : r.__stage === "ready" && !r.sc_pack_date)}
       />
 
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
@@ -370,6 +392,7 @@ const ParentComponent = ({ role }) => {
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="info" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>
       </Snackbar>
+      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); load(); }} />
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={load} />
       <CheckoutFlow ref={checkoutRef} onDone={load} />
       <LargeFlows ref={largeRef} onDone={load} />

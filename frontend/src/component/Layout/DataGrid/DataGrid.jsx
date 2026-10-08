@@ -6,6 +6,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import TableViewIcon from "@mui/icons-material/TableView";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
@@ -16,7 +20,7 @@ import { cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridU
 const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#2E7D32", yellow: "#B26A00", red: "#C62828" };
-const GRID = "1px solid #000";
+const GRID = "2px solid #263238";
 // opaque hover colours: the theme's translucent hover colour would let the scrolled cells show through the frozen columns
 const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9" };
 const CHECK_W = 44;
@@ -293,7 +297,11 @@ const DataGrid = ({
                         ...(sticky ? { position: "sticky", left, zIndex: 6, width: c.width, minWidth: c.width, maxWidth: c.width } : { minWidth: c.width }),
                       }}
                     >
-                      {c.label}{s ? (s.dir === "asc" ? " ↑" : " ↓") : ""}{filters[c.key] ? " ▼" : ""}
+                      <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                        {c.label}
+                        {c.kind !== "tool" && (s ? (s.dir === "asc" ? <ArrowUpwardIcon sx={{ fontSize: 15 }} /> : <ArrowDownwardIcon sx={{ fontSize: 15 }} />) : <UnfoldMoreIcon sx={{ fontSize: 15, opacity: 0.7 }} />)}
+                        {filters[c.key] && <FilterAltIcon sx={{ fontSize: 15 }} />}
+                      </Box>
                     </TableCell>
                   );
                 })}
