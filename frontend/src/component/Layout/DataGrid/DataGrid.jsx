@@ -7,7 +7,7 @@ import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import TableViewIcon from "@mui/icons-material/TableView";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import ColumnFilterBar from "./ColumnFilterBar";
+import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
 import useGridPrefs from "./useGridPrefs";
 import { exportExcel, exportPdf } from "./exportGrid";
@@ -77,6 +77,7 @@ const DataGrid = ({
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({}); // { colKey: [values] } — not saved (a saved filter would silently hide new rows)
+  const [menuKey, setMenuKey] = useState(null); // column whose sort / filter modal is open (opened by clicking its header)
   const [colorOnly, setColorOnly] = useState(null); // show only the rows of this colour
   // no page buttons: rows are added while the table is scrolled down (setPage(0) = back to the first block after a search / sort / filter)
   const [limit, setLimit] = useState(pageSize);
@@ -158,7 +159,6 @@ const DataGrid = ({
   }, [cols, groups]);
   const frozenCount = cols.filter((c) => c.frozen).length;
 
-  const dropdownCols = useMemo(() => visibleCols.filter((c) => c.kind !== "tool"), [visibleCols]);
   const rowsFor = useCallback((key) => searched.filter((r) => passFilters(r, key)), [searched, passFilters]);
 
   const setSort = useCallback((key, dir) => {
@@ -241,8 +241,6 @@ const DataGrid = ({
 
       {!fill && colorChips}
 
-      <ColumnFilterBar columns={dropdownCols} sorts={prefs.sorts} filters={filters} rowsFor={rowsFor} onSort={setSort} onFilter={setFilter} />
-
       {(!fill || activeFilters > 0 || prefs.sorts.length > 0) && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
         {!fill && <Typography variant="caption" color="text.secondary">
           {activeFilters || sorted.length !== rows.length ? `แสดง ${sorted.length} จาก ${rows.length} แถว` : `${rows.length} แถว`}{caption ? ` · ${caption}` : ""}
@@ -287,12 +285,15 @@ const DataGrid = ({
                   return (
                     <TableCell
                       key={c.key} align={c.align || "left"} className={c.lastFrozen ? "frozen-edge" : undefined}
+                      onClick={c.kind !== "tool" ? () => setMenuKey(c.key) : undefined}
+                      title={c.kind !== "tool" ? "คลิกเพื่อเรียงลำดับ / ค้นหา / กรองคอลัมน์นี้" : undefined}
                       sx={{
-                        ...HEAD, background: "#1552F0", top: HEAD_H,
+                        ...HEAD, background: filters[c.key] ? "#C2410C" : s ? "#0F3FC4" : "#1552F0", top: HEAD_H, cursor: c.kind !== "tool" ? "pointer" : undefined,
+                        "&:hover": c.kind !== "tool" ? { filter: "brightness(1.15)" } : undefined,
                         ...(sticky ? { position: "sticky", left, zIndex: 6, width: c.width, minWidth: c.width, maxWidth: c.width } : { minWidth: c.width }),
                       }}
                     >
-                      {c.label}{s ? (s.dir === "asc" ? " ↑" : " ↓") : ""}
+                      {c.label}{s ? (s.dir === "asc" ? " ↑" : " ↓") : ""}{filters[c.key] ? " ▼" : ""}
                     </TableCell>
                   );
                 })}
@@ -317,6 +318,13 @@ const DataGrid = ({
           </Table>
         </TableContainer>
       </Paper>
+
+      {menuKey && colByKey[menuKey] && (
+        <ColumnMenu
+          col={colByKey[menuKey]} rows={rowsFor(menuKey)} sort={prefs.sorts.find((x) => x.key === menuKey)?.dir || null} selected={filters[menuKey] || null}
+          onSort={(dir) => setSort(menuKey, dir)} onFilter={(values) => setFilter(menuKey, values)} onClose={() => setMenuKey(null)}
+        />
+      )}
 
       <ColumnChooser
         open={chooserOpen} onClose={() => setChooserOpen(false)} columns={columns} groups={groups} visible={prefs.visible} onChange={prefs.setVisible} onReset={prefs.reset}
