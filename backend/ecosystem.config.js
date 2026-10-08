@@ -190,8 +190,8 @@ module.exports = {
     {
       name: 'print-agent',
       script: './server.js',
-      cwd: 'I:/print-agent (4)/print-agent',
-      cwd: 'I:/I-Tail-PFCM/print-agent/print-agent',
+      // โฟลเดอร์ print-agent ของโปรเจกต์นี้ (อยู่ข้าง backend) — ห้ามชี้ path ที่ไม่มีอยู่จริง ไม่งั้น PM2 จะถอยกลับมารัน server.js ของ backend ซ้ำ
+      cwd: require('path').join(__dirname, '..', 'print-agent', 'print-agent'),
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -199,8 +199,8 @@ module.exports = {
       restart_delay: 3000,
       max_memory_restart: '512M',
 
-      out_file: 'I:/I-Tail-PFCM/print-agent/print-agent/pm2-out.log',
-      error_file: 'I:/I-Tail-PFCM/print-agent/print-agent/pm2-error.log',
+      out_file: './logs/print-agent-out.log',
+      error_file: './logs/print-agent-error.log',
 
       env: {
         NODE_ENV: 'production'
