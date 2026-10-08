@@ -12,6 +12,7 @@
  *   DELAY_ALERT_GREEN_PCT       green while the remaining time is above this %   (default 50)
  *   DELAY_ALERT_YELLOW_PCT      yellow while the remaining time is above this %  (default 0; at or below = red)
  *   DELAY_ALERT_SUMMARY_MIN     minutes between the summaries (default 60; 0 = no summary)
+ *   DELAY_ALERT_IMMEDIATE_MIN   at most one "just got worse" message per this many minutes; rows that get worse in between wait and go in the next one (default 30; 0 = no limit)
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
  *   DELAY_ALERT_INTERVAL_SEC    how often to check (default 60)
  *   DELAY_ALERT_LINK            optional link printed at the end of the message (e.g. the Master Sheet address)
@@ -30,6 +31,7 @@ const cfg = () => ({
   dbs: process.env.DELAY_ALERT_DBS ? Math.min(Math.max(parseInt(process.env.DELAY_ALERT_DBS, 10) || 4, 1), 4) - 1 : "stage",
   greenPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_GREEN_PCT)) ? parseFloat(process.env.DELAY_ALERT_GREEN_PCT) : 50,
   yellowPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_YELLOW_PCT)) ? parseFloat(process.env.DELAY_ALERT_YELLOW_PCT) : 0,
+  immediateMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_IMMEDIATE_MIN)) ? parseFloat(process.env.DELAY_ALERT_IMMEDIATE_MIN) : 30) * 60000,
   summaryMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN)) ? parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN) : 60) * 60000,
   intervalMs: Math.max(15, parseInt(process.env.DELAY_ALERT_INTERVAL_SEC, 10) || 60) * 1000,
   link: process.env.DELAY_ALERT_LINK || "",
@@ -70,25 +72,23 @@ const line = (r, hit, c) => {
   return `• ${bits.join(" | ")}\n   DBS${hit.dbsNo} ${hit.d.text} / มาตรฐาน ${fmtStd(hit.d.std)} (เหลือ ${hit.remaining < 0 ? 0 : left}%) · รายการ ${r.mapping_id}`;
 };
 
-const MAX_ROWS_PER_COLOUR = 30;
-/** text messages (<= 4500 chars each, LINE allows 5 per push). title = first line; rows are red first, the worst (least remaining time) first */
+const MAX_CHARS = 4500;   // one LINE text message; every message object of a push counts against the monthly quota, so we always send ONE
+/** one text message: red first, the worst (least remaining time) first; what does not fit is counted ("…และอีก N รายการ") */
 const buildMessages = (items, c, title = "⚠️ แจ้งเตือน Delay วัตถุดิบ") => {
   const by = (lv) => items.filter((i) => i.level === lv).sort((a, b) => a.hit.remaining - b.hit.remaining);
-  const groups = { red: by("red"), yellow: by("yellow") };
-  const blocks = [];
+  const footer = c.link ? `\nดูตาราง: ${c.link}` : "";
+  let text = title; let left = 0;
   ["red", "yellow"].forEach((lv) => {
-    if (!groups[lv].length) return;
-    blocks.push(`${LABEL[lv]} (${groups[lv].length} รายการ)`);
-    groups[lv].slice(0, MAX_ROWS_PER_COLOUR).forEach((i) => blocks.push(line(i.row, i.hit, c)));
-    if (groups[lv].length > MAX_ROWS_PER_COLOUR) blocks.push(`   …และอีก ${groups[lv].length - MAX_ROWS_PER_COLOUR} รายการ (ดูทั้งหมดในตารางรวมวัตถุดิบ)`);
+    const list = by(lv);
+    if (!list.length) return;
+    text += `\n${LABEL[lv]} (${list.length} รายการ)`;
+    list.forEach((i) => {
+      const add = `\n${line(i.row, i.hit, c)}`;
+      if (text.length + add.length + footer.length + 60 > MAX_CHARS) left += 1; else text += add;
+    });
   });
-  if (c.link) blocks.push(`ดูตาราง: ${c.link}`);
-  const msgs = []; let cur = title;
-  blocks.forEach((b) => {
-    if ((cur + "\n" + b).length > 4500) { msgs.push(cur); cur = b; } else cur += "\n" + b;
-  });
-  msgs.push(cur);
-  return msgs.slice(0, 5).map((text) => ({ type: "text", text }));
+  if (left) text += `\n…และอีก ${left} รายการ (ดูทั้งหมดในตารางรวมวัตถุดิบ)`;
+  return [{ type: "text", text: text + footer }];
 };
 
 const push = async (messages, c) => {
@@ -126,7 +126,13 @@ const runOnce = async (now = Date.now()) => {
   }
 
   const summaryDue = c.summaryMs > 0 && now - (prev?.summaryAt || 0) >= c.summaryMs;   // no summaryAt yet = due now (first run)
-  const toSend = summaryDue ? coloured : worse;
+  const immediateDue = c.immediateMs <= 0 || now - (prev?.immediateAt || 0) >= c.immediateMs;
+  let toSend = summaryDue ? coloured : worse;
+  if (!summaryDue && worse.length && !immediateDue) {
+    // too soon after the last immediate message: keep the old colour of these rows in the state, so they are reported by the next message
+    worse.forEach((w) => { const id = w.row.mapping_id; if (prev?.levels?.[id] === undefined) delete next[id]; else next[id] = prev.levels[id]; });
+    toSend = [];
+  }
   let sent = 0;
   if (toSend.length) {
     if (!c.token || !c.group) {
@@ -140,14 +146,14 @@ const runOnce = async (now = Date.now()) => {
     sent = toSend.length;
     console.log(`✅ [delayAlert] ส่ง${summaryDue ? "สรุป" : "แจ้งเตือน"} ${sent} รายการ`);
   }
-  writeState(c.stateFile, { levels: next, summaryAt: summaryDue ? now : (prev?.summaryAt || 0) });
+  writeState(c.stateFile, { levels: next, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), immediateAt: sent > 0 ? now : (prev?.immediateAt || 0) });
   return { sent, summary: summaryDue && sent > 0 };
 };
 
 const start = () => {
   const c = cfg();
   if (!c.token || !c.group) console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID ใน .env — ตัวตรวจจับทำงานแต่จะยังไม่ส่ง LINE");
-  console.log(`🔌 [delayAlert] เริ่มทำงาน: ตรวจทุก ${c.intervalMs / 1000} วินาที ใช้ ${c.dbs === "stage" ? "DBS ตามขั้นตอนของแถว" : `DBS${c.dbs + 1}`} · สรุปทุก ${c.summaryMs / 60000} นาที (เขียว >${c.greenPct}% · เหลือง >${c.yellowPct}%)`);
+  console.log(`🔌 [delayAlert] เริ่มทำงาน: ตรวจทุก ${c.intervalMs / 1000} วินาที ใช้ ${c.dbs === "stage" ? "DBS ตามขั้นตอนของแถว" : `DBS${c.dbs + 1}`} · สรุปทุก ${c.summaryMs / 60000} นาที · แจ้งทันทีไม่ถี่กว่า ${c.immediateMs / 60000} นาที (เขียว >${c.greenPct}% · เหลือง >${c.yellowPct}%)`);
   let busy = false;
   const tick = async () => {
     if (busy) return;
