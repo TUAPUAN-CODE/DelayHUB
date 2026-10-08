@@ -57,7 +57,8 @@ export const statusOf = (r) => {
   if (String(r.dest || "").startsWith("บรรจุเสร็จ")) return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.cs_id) return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.tro_id && (r.dest === "บรรจุ" || r.dest === "รถเข็นรอจัดส่ง")) return { label: "รอบรรจุจัดส่ง", color: "#047857", bg: "#D1FAE5" };
-  if (["รอCheckin", "ห้องเย็นใหญ่", "เข้าห้องเย็น", "ห้องเย็น", "เข้าห้องเย็นใหญ่"].includes(r.dest)) {
+  // heading to a cold room ("เข้าห้องเย็น", "ห้องเย็น", "ห้องเย็นใหญ่", "รอCheckin", "เข้าห้องเย็น-รอรถเข็น" ...) and not in a slot yet
+  if (/^(เข้า)?ห้องเย็น/.test(r.dest || "") || /^รอCheckin/i.test(r.dest || "")) {
     return { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
   }
   return { label: "-", color: "#6B7489", bg: "#F1F3F8" }; // no rule matches: no made-up name
@@ -75,6 +76,8 @@ const mergeHu = (m, h) => {
 const norm = (v) => String(v ?? "").trim().toUpperCase();
 const planBatches = (r) => (Array.isArray(r.batchArray) && r.batchArray.length ? r.batchArray : String(r.batch ?? "").split(",")).map(norm).filter(Boolean);
 
+const cleanText = (v) => v.normalize("NFC").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/\s+/g, " ").trim();
+
 export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now()) => {
   // production-plan rows (RMForProd) of "จัดการวัตถุดิบ", joined to a HU by MAT|BATCH
   const planByKey = new Map();
@@ -90,6 +93,8 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
     const h = m.hu !== null && m.hu !== undefined && m.hu !== "" ? huByKey.get(String(m.hu)) : null;
     if (h) used.add(String(m.hu));
     const merged = h ? mergeHu(m, h) : { ...m };
+    // text written by many screens over the years: hidden spaces / a different Unicode form made "เข้าห้องเย็น" not equal to "เข้าห้องเย็น", so the status rules missed the row
+    ["dest", "stay_place", "rm_status"].forEach((k) => { if (typeof merged[k] === "string") merged[k] = cleanText(merged[k]); });
     merged.__key = `map:${m.mapping_id}`;
     merged.__kind = "map";
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
