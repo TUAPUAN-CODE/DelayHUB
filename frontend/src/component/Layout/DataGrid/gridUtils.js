@@ -2,13 +2,18 @@ import { compareValues } from "../../../hooks/useTableTools";
 
 export { compareValues };
 
-/** "2026-10-08 13:05:00" -> "08/10 13:05" (year only shown when it is not the current year) */
+const THIS_YEAR = new Date().getFullYear();
+const TIME_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/;
+/** "2026-10-08 13:05:00" -> "08/10 13:05" (year only shown when it is not the current year). Plain string work: this runs for thousands of cells. */
 export const shortTime = (v) => {
   if (!v) return "";
-  const d = new Date(String(v).replace(" ", "T"));
-  if (Number.isNaN(d.getTime())) return String(v);
+  const str = String(v);
+  const m = TIME_RE.exec(str);
+  if (m) return `${m[3]}/${m[2]}${Number(m[1]) !== THIS_YEAR ? `/${m[1].slice(2)}` : ""} ${m[4]}:${m[5]}`;
+  const d = new Date(str.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return str;
   const p = (n) => String(n).padStart(2, "0");
-  const year = d.getFullYear() !== new Date().getFullYear() ? `/${String(d.getFullYear()).slice(2)}` : "";
+  const year = d.getFullYear() !== THIS_YEAR ? `/${String(d.getFullYear()).slice(2)}` : "";
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}${year} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
@@ -33,14 +38,31 @@ export const cellSortValue = (col, row) => {
   return isEmpty(v) ? null : v;
 };
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/;
+const collator = new Intl.Collator(["th", "en"], { numeric: true, sensitivity: "base" });
+/** sort key of a value, computed ONCE per row (dates -> time stamp, numeric text -> number, anything else -> text) so a sort does not parse in every comparison */
+const sortKey = (v) => {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return { n: v, s: String(v) };
+  const s = String(v);
+  if (DATE_RE.test(s)) { const t = Date.parse(s.replace(" ", "T")); if (!Number.isNaN(t)) return { n: t, s }; }
+  if (s.trim() !== "") { const n = Number(s); if (!Number.isNaN(n)) return { n, s }; }
+  return { n: null, s };
+};
+const compareKeys = (a, b) => {
+  if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
+  if (a.n !== null && b.n !== null) return a.n - b.n;
+  return collator.compare(a.s, b.s);
+};
+
 export const sortRows = (rows, sorts, colByKey, extraFirst) => {
   const active = (sorts || []).filter((s) => colByKey[s.key]);
   if (!active.length && !extraFirst) return rows;
-  const list = rows.map((row, i) => ({ row, i, keys: active.map((s) => cellSortValue(colByKey[s.key], row)), first: extraFirst ? extraFirst(row) : 0 }));
+  const list = rows.map((row, i) => ({ row, i, keys: active.map((s) => sortKey(cellSortValue(colByKey[s.key], row))), first: extraFirst ? extraFirst(row) : 0 }));
   list.sort((a, b) => {
     if (a.first !== b.first) return a.first - b.first;
     for (let k = 0; k < active.length; k += 1) {
-      const c = compareValues(a.keys[k], b.keys[k]);
+      const c = compareKeys(a.keys[k], b.keys[k]);
       if (c !== 0) return active[k].dir === "desc" ? -c : c;
     }
     return a.i - b.i; // stable

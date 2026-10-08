@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from "react";
 import {
   Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
@@ -24,6 +24,7 @@ const GRID = "2px solid #263238";
 // opaque hover colours: the theme's translucent hover colour would let the scrolled cells show through the frozen columns
 const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9" };
 const CHECK_W = 44;
+const EMPTY_SET = new Set();
 const HEAD_H = 32;
 const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "6px 8px" };
 
@@ -35,28 +36,32 @@ const DefaultCell = ({ col, row }) => {
   return <span>{String(v)}</span>;
 };
 
-const GridRow = memo(({ row, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick }) => (
+// Body cells are plain <td> (with the MUI class names, so the table-level border / hover rules still apply) and the tick box is a native input:
+// a MUI TableCell + Checkbox per cell made every render of a few hundred rows take seconds. Rows are memoised: every prop is a primitive or a stable reference.
+const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#1B2333", padding: "3px 8px", verticalAlign: "inherit", display: "table-cell" };
+const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick }) => (
   <TableRow
     hover onClick={onPick ? () => onPick(row) : undefined}
-    sx={{ cursor: onPick ? "pointer" : undefined, "& td": { background: bg, ...(active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : {}) }, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
+    sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
-      <TableCell onClick={(e) => e.stopPropagation()} sx={{ position: "sticky", left: 0, zIndex: 2, background: bg, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
-        <Checkbox size="small" checked={checked} disabled={!canSelect} onChange={onToggle} />
-      </TableCell>
+      <td className="MuiTableCell-root MuiTableCell-body" onClick={(e) => e.stopPropagation()}
+        style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: bg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
+        <input type="checkbox" checked={checked} disabled={!canSelect} onChange={() => onToggle(rowId)} style={{ width: 16, height: 16, cursor: canSelect ? "pointer" : "default", accentColor: "#1552F0", verticalAlign: "middle" }} />
+      </td>
     )}
     {cols.map((c) => {
       const left = frozenLeft[c.key];
       const sticky = left !== undefined;
       return (
-        <TableCell
-          key={c.key} align={c.align || "left"} className={c.lastFrozen ? "frozen-edge" : undefined}
-          sx={{
-            fontSize: 12.5, padding: "3px 8px", background: bg,
-            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { minWidth: c.width }),
+        <td
+          key={c.key} className={`MuiTableCell-root MuiTableCell-body${c.lastFrozen ? " frozen-edge" : ""}`}
+          style={{
+            ...CELL, background: bg, textAlign: c.align || "left",
+            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { width: c.width, maxWidth: c.width, overflow: "hidden", wordBreak: "break-word" }),
           }}
         >
           {c.render ? c.render(row, ctx) : <DefaultCell col={c} row={row} />}
-        </TableCell>
+        </td>
       );
     })}
   </TableRow>
@@ -76,7 +81,7 @@ const DataGrid = ({
   rowColor, colorSettings, toolbarExtra, selectable = false, selected, onSelectedChange, isSelectable, ctx,
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
-  fill = false, activeKey = null, onRowClick, actionBar, hideReload = false,
+  fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   const [search, setSearch] = useState("");
@@ -131,7 +136,8 @@ const DataGrid = ({
     return values.includes(cellText(colByKey[key], row));
   }), [filters, colByKey]);
 
-  const searched = useMemo(() => (search.trim() ? rows.filter((r) => matchesSearch(hayOf(r), search)) : rows), [rows, search, hayOf]);
+  const dSearch = useDeferredValue(search); // typing stays instant, the table follows a moment later
+  const searched = useMemo(() => (dSearch.trim() ? rows.filter((r) => matchesSearch(hayOf(r), dSearch)) : rows), [rows, dSearch, hayOf]);
   const filtered = useMemo(() => searched.filter((r) => passFilters(r)), [searched, passFilters]);
 
   const colorOf = useCallback((row) => (rowColor ? rowColor(row, prefs.ext) : null), [rowColor, prefs.ext]);
@@ -149,7 +155,7 @@ const DataGrid = ({
   const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
   const onTableScroll = (e) => {
     const el = e.currentTarget;
-    if (limit < sorted.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 400) setLimit((l) => l + pageSize * 2);
+    if (limit < sorted.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 900) setLimit((l) => l + Math.max(50, Math.round(pageSize / 2)));
   };
 
   // header groups over the columns that are actually shown
@@ -162,6 +168,7 @@ const DataGrid = ({
     return out.map((g) => ({ ...g, ...(groups.find((x) => x.key === g.key) || { label: "", color: "#1552F0" }) }));
   }, [cols, groups]);
   const frozenCount = cols.filter((c) => c.frozen).length;
+  const tableWidth = useMemo(() => (selectable ? CHECK_W : 0) + cols.reduce((sum, c) => sum + (c.width || 110), 0), [cols, selectable]);
 
   const rowsFor = useCallback((key) => searched.filter((r) => passFilters(r, key)), [searched, passFilters]);
 
@@ -177,19 +184,25 @@ const DataGrid = ({
   const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); prefs.setSorts([]); setPage(0); };
 
   // selection
-  const selSet = selected || new Set();
-  const selectableRows = useMemo(() => (selectable ? sorted.filter((r) => (isSelectable ? isSelectable(r) : true)) : []), [sorted, selectable, isSelectable]);
-  const allChecked = selectableRows.length > 0 && selectableRows.every((r) => selSet.has(rowKey(r)));
+  const selSet = selected || EMPTY_SET;
+  const selRef = useRef(selSet);
+  selRef.current = selSet;
+  const pickRef = useRef(onRowClick);
+  pickRef.current = onRowClick;
+  const stablePick = useMemo(() => (onRowClick ? (r) => pickRef.current?.(r) : undefined), [!!onRowClick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectableRows = useMemo(() => (selectable ? sorted.filter((r) => (isSelectable ? isSelectable(r) : true)) : []), [sorted, selectable, isSelectable]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allChecked = useMemo(() => selectableRows.length > 0 && selectableRows.every((r) => selSet.has(rowKey(r))), [selectableRows, selSet, rowKey]);
+  const someChecked = useMemo(() => selSet.size > 0 && selectableRows.some((r) => selSet.has(rowKey(r))), [selectableRows, selSet, rowKey]);
   const toggleAll = () => {
     if (!onSelectedChange) return;
     onSelectedChange(allChecked ? new Set() : new Set(selectableRows.map(rowKey)));
   };
   const toggleOne = useCallback((key) => {
     if (!onSelectedChange) return;
-    const next = new Set(selSet);
+    const next = new Set(selRef.current);
     if (next.has(key)) next.delete(key); else next.add(key);
     onSelectedChange(next);
-  }, [onSelectedChange, selSet]);
+  }, [onSelectedChange]);
 
   const doExport = async (kind) => {
     setExporting(true);
@@ -259,7 +272,8 @@ const DataGrid = ({
           <Table
             stickyHeader size="small"
             sx={{
-              minWidth: 600, borderCollapse: "separate", borderSpacing: 0,
+              // fixed layout: the browser does not measure the content of thousands of cells at every change (this was the slowest part of every click)
+              tableLayout: "fixed", width: tableWidth, minWidth: 600, borderCollapse: "separate", borderSpacing: 0,
               // black grid lines (separate borders keep the lines on the frozen columns while scrolling)
               "& .MuiTableCell-root": { borderRight: GRID, borderBottom: GRID },
               "& thead tr:first-of-type .MuiTableCell-root": { borderTop: GRID },
@@ -267,6 +281,10 @@ const DataGrid = ({
               "& .MuiTableCell-root.frozen-edge": { borderRight: "3px solid #000" },
             }}
           >
+            <colgroup>
+              {selectable && <col style={{ width: CHECK_W }} />}
+              {cols.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+            </colgroup>
             <TableHead>
               <TableRow>
                 {(selectable || frozenCount > 0) && (
@@ -279,7 +297,7 @@ const DataGrid = ({
               <TableRow>
                 {selectable && (
                   <TableCell sx={{ ...HEAD, background: "#1552F0", position: "sticky", left: 0, top: HEAD_H, zIndex: 6, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
-                    <Checkbox size="small" checked={allChecked} indeterminate={!allChecked && selectableRows.some((r) => selSet.has(rowKey(r)))} onChange={toggleAll} sx={{ color: "#fff", "&.Mui-checked, &.MuiCheckbox-indeterminate": { color: "#fff" } }} />
+                    <Checkbox size="small" checked={allChecked} indeterminate={!allChecked && someChecked} onChange={toggleAll} sx={{ color: "#fff", "&.Mui-checked, &.MuiCheckbox-indeterminate": { color: "#fff" } }} />
                   </TableCell>
                 )}
                 {cols.map((c) => {
@@ -313,9 +331,9 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
-                    selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={() => toggleOne(key)} ctx={ctx}
-                    active={activeKey !== null && activeKey === key} onPick={onRowClick}
+                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
+                    selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
+                    active={activeKey !== null && activeKey === key} onPick={stablePick}
                   />
                 );
               })}

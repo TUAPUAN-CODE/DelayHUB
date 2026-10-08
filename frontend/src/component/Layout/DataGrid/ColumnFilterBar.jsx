@@ -6,7 +6,8 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { cellText } from "./gridUtils";
 
-const MAX_OPTIONS = 300;
+const MAX_OPTIONS = 150;
+const collator = new Intl.Collator(["th", "en"], { numeric: true });
 
 /** The dropdown of ONE column: sort, search inside the column, and tick the values to show (like an Excel filter). */
 export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClose, anchor }) => {
@@ -16,7 +17,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
   const options = useMemo(() => {
     const counts = new Map();
     rows.forEach((r) => { const t = cellText(col, r); counts.set(t, (counts.get(t) || 0) + 1); });
-    return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, ["th", "en"], { numeric: true }));
+    return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => collator.compare(a.value, b.value));
   }, [rows, col]);
 
   const needle = q.trim().toLowerCase();
@@ -62,11 +63,11 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
         </Box>
         <Box sx={{ maxHeight: 340, overflowY: "auto" }}>
           {visible.map((o) => (
-            <Box key={o.value || "__empty"} sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox size="small" checked={isOn(o.value)} onChange={() => toggle(o.value)} />
-              <Typography variant="body2" sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</Typography>
-              <Typography variant="caption" color="text.secondary">{o.count}</Typography>
-            </Box>
+            <label key={o.value || "__empty"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 11px", cursor: "pointer", fontSize: 14 }}>
+              <input type="checkbox" checked={isOn(o.value)} onChange={() => toggle(o.value)} style={{ width: 16, height: 16, accentColor: "#1552F0", flexShrink: 0 }} />
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</span>
+              <span style={{ fontSize: 12, color: "#6B7489" }}>{o.count}</span>
+            </label>
           ))}
           {shown.length > MAX_OPTIONS && <Typography variant="caption" color="text.secondary" sx={{ display: "block", py: 0.5 }}>แสดง {MAX_OPTIONS} จาก {shown.length} ค่า — พิมพ์ค้นหาเพื่อกรองให้แคบลง</Typography>}
           {!shown.length && <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>ไม่พบค่า</Typography>}

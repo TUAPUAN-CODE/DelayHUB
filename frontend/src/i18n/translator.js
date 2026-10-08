@@ -112,6 +112,9 @@ const enqueue = (n) => {
 const startObserver = () => {
   if (observer || typeof MutationObserver === "undefined") return;
   observer = new MutationObserver((muts) => {
+    // Thai is the language the screens are written in: nothing to translate (setLang restores the originals when the user comes back to Thai).
+    // Walking every node that React adds made big tables slow for everyone.
+    if (lang === "th") return;
     for (const m of muts) {
       if (m.type === "childList") m.addedNodes.forEach(enqueue);
       else if (m.type === "characterData") enqueue(m.target);

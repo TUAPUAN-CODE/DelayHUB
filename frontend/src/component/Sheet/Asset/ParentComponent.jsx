@@ -83,7 +83,6 @@ const ParentComponent = ({ role }) => {
   const [error, setError] = useState("");
   const [days, setDays] = useState(7);
   const [includeOpen, setIncludeOpen] = useState(true);
-  const [mine, setMine] = useState(false);
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
   const [myType, setMyType] = useState((role === "qc" || role === "prep") && MY_TYPES.length > 0);
   const [cart, setCart] = useState(null);
@@ -101,6 +100,7 @@ const ParentComponent = ({ role }) => {
   const defVisible = useMemo(() => defaultVisible(role), [role]);
 
   const huRef = useRef([]);
+  const lastSig = useRef("");
   const trolleyRef = useRef(null);
   const checkoutRef = useRef(null);
   const largeRef = useRef(null);
@@ -116,7 +116,9 @@ const ParentComponent = ({ role }) => {
       const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: { days, include_open: includeOpen ? 1 : 0 } });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       huRef.current = res.data.hus || [];
-      setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] });
+      // the table refreshes by itself every minute: when nothing changed keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
+      const sig = `${res.data.hus?.length}|${res.data.mappings?.length}|${JSON.stringify(res.data)}`;
+      if (sig !== lastSig.current) { lastSig.current = sig; setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] }); }
       setError("");
       if (role === "prep") {
         // lists of the old mixing pages (a failing list must not break the sheet)
@@ -231,7 +233,12 @@ const ParentComponent = ({ role }) => {
     }
     return out;
   }, [role, hu, weights, selected]);
-  const ctx = useMemo(() => ({ tools }), [tools]);
+  // ctx must keep the same identity, otherwise every row of the grid renders again at each click: the grid reads the latest tools() through a ref
+  const toolsRef = useRef(tools);
+  toolsRef.current = tools;
+  const ctx = useMemo(() => ({ tools: (r) => toolsRef.current(r) }), []);
+  // a row only has to render again when what its cells show changed: the weight input of the Pack confirm
+  const rowSig = useCallback((r) => (role === "pack" ? `${weights[r.mapping_id] ?? ""}|${selected.has(r.__key) ? 1 : 0}` : ""), [role, weights, selected]);
 
   const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans), [data, mix, plans]);
   const allRowsRef = useRef([]);
@@ -240,9 +247,8 @@ const ParentComponent = ({ role }) => {
     let list = allRows;
     if (myLine && role === "pack") list = list.filter((r) => r.__kind === "map" && (r.line_id === MY_LINE || (r.__stage === "trolley" && Number(r.pack_line_id) === MY_LINE)));
     if (myType && (role === "qc" || role === "prep")) list = list.filter((r) => (role === "prep" && r.__kind !== "map") || (r.__kind === "map" && MY_TYPES.includes(Number(r.rm_type_id))));
-    if (mine) list = list.filter((r) => tools(r).some((t) => !t.passive && t.ok !== false));
     return list;
-  }, [allRows, mine, myLine, myType, role, tools]);
+  }, [allRows, myLine, myType, role]);
 
   // ── action bar above the table: the tools of the chosen row ──
   const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
@@ -311,6 +317,7 @@ const ParentComponent = ({ role }) => {
     </Paper>
   );
 
+  const rowKey = useCallback((r) => r.__key, []);
   const afterMix = () => { setSelected(new Set()); load(); };
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
@@ -356,7 +363,7 @@ const ParentComponent = ({ role }) => {
       <DataGrid
         fill actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" columns={columns} groups={GROUPS} defaultVisible={defVisible} defaultExt={DEFAULT_EXT}
-        rows={rows} rowKey={(r) => r.__key} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
+        rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
         toolbarExtra={toolbarExtra}
