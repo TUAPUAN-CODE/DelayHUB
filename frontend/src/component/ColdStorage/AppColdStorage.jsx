@@ -26,11 +26,9 @@ import ModalCSR3 from "./Room/Modals/ModalCSR3";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import EmptyTrolley from "./EmptyTrolley/DeleteTrolleyPage"
 
-import RoomTableCSSupOnly from "./RoomTableSupervisor/RoomTable.jsx";
 import RoomTableCS from "./RoomTable/RoomTable";
 import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
-import RoomSelectPage from "./Room/RoomSelectPage.jsx";
 import SheetPage from "../Sheet/SheetPage";
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -49,11 +47,14 @@ function AppColdStorage() {
 			<Routes>
 				<Route path="/Sheet" element={<SheetPage role="cs1" />} />
 				{/* <Route path='/' element={<MainCS />} /> */}
-				<Route path='/' element={<Navigate to='/coldStorage/RoomTable/RoomTableCSSupOnly' replace />} />
-				<Route path='/Room' element={<RoomSelectPage />} />
+				<Route path='/' element={<Navigate to='/coldStorage/Sheet' replace />} />
+				{/* the two pages that were removed (raw material table, room selector) are in the Sheet now: their addresses go there */}
+				{['/Room', '/RoomTable/RoomTableCSSupOnly'].map((p) => (
+					<Route key={p} path={p} element={<Navigate to='/coldStorage/Sheet' replace />} />
+				))}
 				{/* check-in / check-out / move were merged into the raw material table: old addresses go there */}
 				{['/CheckIn/*', '/CheckOut/*', '/Move/*'].map((p) => (
-					<Route key={p} path={p} element={<Navigate to='/coldStorage/RoomTable/RoomTableCSSupOnly' replace />} />
+					<Route key={p} path={p} element={<Navigate to='/coldStorage/Sheet' replace />} />
 				))}
 
 
@@ -67,7 +68,6 @@ function AppColdStorage() {
 				<Route path='/Room/Large/LargePage' element={<CSLargePageCO />} />
 				<Route path='/HisInput/HisInputPage' element={<CSHisInputPage />} />
 				<Route path='/RoomTable/RoomTable' element={<RoomTableCS />} />
-				<Route path='/RoomTable/RoomTableCSSupOnly' element={<RoomTableCSSupOnly />} />
 
 				<Route path='/Room/Modals/Modal4C' element={<Modal4C />} />
 				<Route path='/Room/Modals/ModalAnte' element={<ModalAnte />} />
