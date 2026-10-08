@@ -150,7 +150,9 @@ export const COLUMNS = [
 ];
 
 /** columns a Role can see: its own tools + every data column */
-export const columnsForRole = (role) => COLUMNS.filter((c) => !c.roles || c.roles.includes(role));
+// The tool (action) columns are not in the table any more: the buttons are above the table and work on the chosen row (ParentComponent).
+// Only the weight input of the Pack confirm (t_kg) stays in the row, because every ticked row needs its own weight.
+export const columnsForRole = (role) => COLUMNS.filter((c) => (!c.roles || c.roles.includes(role)) && (c.kind !== "tool" || c.key === "t_kg"));
 
 const INFO = ["hu", "tro_id", "batch", "mat_name", "code", "weight_RM", "rm_status", "dest", "cs_name", "slot_id"];
 const DBS = ["DBS1", "DBS2", "DBS3", "DBS4"];

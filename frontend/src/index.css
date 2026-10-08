@@ -81,70 +81,20 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
   display: none;
 }
 
-/* ---------- Shared left bar (Layout/AppSidebar.jsx) ---------- */
-.app-sidebar-desktop { display: none; position: relative; z-index: 10; flex-shrink: 0; height: 100vh; background: rgb(var(--c-primary));
-  transition: width .28s cubic-bezier(.22, 1, .36, 1); overflow: hidden; }
-@media (min-width: 1024px) { .app-sidebar-desktop { display: block; } }
-.app-sidebar { height: 100%; display: flex; flex-direction: column; color: #fff; background: rgb(var(--c-primary)); font-family: 'Prompt', sans-serif; }
-.app-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 68px; padding: 0 16px; flex-shrink: 0; }
-.app-sidebar.is-collapsed .app-sidebar-head { justify-content: center; padding: 0; }
-.app-sidebar-brand { min-width: 0; line-height: 1.2; overflow: hidden; transition: opacity .2s ease, max-width .28s ease; max-width: 180px; }
-.app-sidebar.is-collapsed .app-sidebar-brand { opacity: 0; max-width: 0; }
-.app-sidebar-title { font-size: 18px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
-.app-sidebar-sub { font-size: 11px; color: rgb(255 255 255 / .7); white-space: nowrap; }
-.app-sidebar-iconbtn { display: inline-flex; align-items: center; justify-content: center; padding: 8px; border-radius: 10px; color: #fff; background: transparent; }
-.app-sidebar-iconbtn:hover { background: rgb(255 255 255 / .15); }
-.app-sidebar-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 0; scrollbar-width: none; }
-.app-sidebar-nav::-webkit-scrollbar { display: none; }
-.app-nav-list { position: relative; }
-.app-nav-section { margin-bottom: 14px; }
-.app-nav-section-title { padding: 0 24px; margin: 2px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgb(255 255 255 / .6);
-  white-space: nowrap; transition: opacity .2s ease, height .2s ease; height: 16px; overflow: hidden; }
-.app-sidebar.is-collapsed .app-nav-section-title { opacity: 0; height: 0; margin: 0; }
-.app-nav-list ul { list-style: none; margin: 0; padding: 0; }
-.app-nav-item { position: relative; padding-left: 12px; margin: 4px 0; }
-.app-nav-link { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 14px 8px 14px; border: 0;
-  border-radius: 999px 0 0 999px; background: transparent; color: rgb(255 255 255 / .9); font: inherit; font-size: 14px; text-align: left; cursor: pointer; text-decoration: none;
-  transition: background-color .2s ease, color .3s ease .08s, padding .28s ease; }
-.app-nav-link:hover { background: rgb(255 255 255 / .12); color: #fff; }
-.app-nav-link.is-active { color: rgb(var(--c-primary)); font-weight: 600; background: transparent; }
-.app-nav-link.is-active:hover { background: transparent; }
-.app-nav-link.has-active { color: #fff; font-weight: 600; }
-.app-nav-link:active { transform: none; }
-.app-nav-label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; transition: opacity .2s ease, max-width .28s ease; }
-.app-sidebar.is-collapsed .app-nav-label, .app-sidebar.is-collapsed .app-nav-chevron { opacity: 0; max-width: 0; flex: 0 0 0; }
-.app-sidebar.is-collapsed .app-nav-link { gap: 0; padding-left: 16px; }
-.app-nav-chevron { transition: transform .28s ease, opacity .2s ease; opacity: .8; }
-.app-nav-link.is-child { min-height: 36px; font-size: 13px; padding-left: 52px; }
-.app-sidebar.is-collapsed .app-nav-link.is-child { padding-left: 16px; }
-/* sub menu: height animation without measuring */
-.app-nav-sub { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s cubic-bezier(.22, 1, .36, 1), opacity .25s ease; opacity: 0; }
-.app-nav-sub > ul { overflow: hidden; min-height: 0; }
-.app-nav-sub.is-open { grid-template-rows: 1fr; opacity: 1; }
-.app-nav-sub .app-nav-item { margin: 2px 0; padding-left: 0; }
-/* the sliding pill with inverted corners */
-.app-nav-pill { position: absolute; left: 12px; right: 0; top: 0; z-index: 0; background: rgb(var(--c-bg)); border-radius: 999px 0 0 999px; pointer-events: none;
-  transition: transform .42s cubic-bezier(.22, 1, .36, 1), height .3s cubic-bezier(.22, 1, .36, 1), opacity .2s ease; will-change: transform, height; }
-.app-nav-pill::before, .app-nav-pill::after { content: ''; position: absolute; right: 0; width: 24px; height: 24px; background: transparent; }
-.app-nav-pill::before { top: -24px; border-bottom-right-radius: 24px; box-shadow: 8px 8px 0 8px rgb(var(--c-bg)); }
-.app-nav-pill::after { bottom: -24px; border-top-right-radius: 24px; box-shadow: 8px -8px 0 8px rgb(var(--c-bg)); }
-.app-sidebar-foot { flex-shrink: 0; padding: 10px 0 14px; border-top: 1px solid rgb(255 255 255 / .15); }
-.app-sidebar-foot .app-nav-item { margin: 0; }
-/* phones */
-.app-sidebar-burger { position: fixed; top: 10px; left: 10px; z-index: 40; display: inline-flex; padding: 9px; border-radius: 12px; color: #fff;
-  background: rgb(var(--c-primary)); box-shadow: 0 6px 16px rgb(21 82 240 / .35); }
-@media (min-width: 1024px) { .app-sidebar-burger { display: none; } }
-.app-sidebar-drawer { position: fixed; inset: 0; z-index: 50; display: flex; animation: drawerFade .2s ease both; }
-.app-sidebar-drawer-panel { width: 272px; max-width: 82vw; height: 100%; box-shadow: 0 0 40px rgb(0 0 0 / .3); animation: drawerIn .28s cubic-bezier(.22, 1, .36, 1) both; }
-.app-sidebar-drawer-back { flex: 1; background: rgb(15 23 42 / .45); }
-@keyframes drawerIn { from { transform: translateX(-100%); } to { transform: none; } }
-@keyframes drawerFade { from { opacity: 0; } to { opacity: 1; } }
-@media (max-width: 1023px) { .flex-1.overflow-auto.relative.z-10 { padding-top: 48px; } }
-@media (prefers-reduced-motion: reduce) {
-  .app-nav-pill, .app-nav-sub, .app-sidebar-desktop, .app-nav-link, .app-nav-label { transition: none !important; }
-  .app-sidebar-drawer, .app-sidebar-drawer-panel { animation: none; }
-}
+/* ---------- Shared top bar (Layout/AppSidebar.jsx) ---------- */
+.app-topbar { position: relative; z-index: 20; flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px;
+  background: rgb(var(--c-primary)); color: #fff; font-family: 'Prompt', sans-serif; box-shadow: 0 2px 8px rgb(0 0 0 / .18); }
+.app-top-brand { flex-shrink: 0; line-height: 1.15; padding-right: 8px; border-right: 1px solid rgb(255 255 255 / .25); }
+.app-top-title { font-size: 16px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+.app-top-sub { font-size: 10.5px; color: rgb(255 255 255 / .75); white-space: nowrap; }
+.app-top-nav { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.app-top-nav::-webkit-scrollbar { display: none; }
+.app-top-end { flex-shrink: 0; display: flex; align-items: center; }
+.app-top-link { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
+  color: rgb(255 255 255 / .92); font: inherit; font-size: 13.5px; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s ease, color .15s ease; }
+.app-top-link:hover { background: rgb(255 255 255 / .16); color: #fff; }
+.app-top-link.is-active { background: #fff; color: rgb(var(--c-primary)); font-weight: 600; }
 
 /* multilingual fonts (system fonts first, no download needed) */
-html[lang="my"] body, html[lang="my"] .MuiTypography-root, html[lang="my"] .MuiButton-root, html[lang="my"] .MuiTableCell-root, html[lang="my"] .app-sidebar { font-family: 'Prompt', 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', sans-serif; }
-html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiButton-root, html[lang="km"] .MuiTableCell-root, html[lang="km"] .app-sidebar { font-family: 'Prompt', 'Noto Sans Khmer', 'Khmer UI', 'Leelawadee UI', sans-serif; }
+html[lang="my"] body, html[lang="my"] .MuiTypography-root, html[lang="my"] .MuiButton-root, html[lang="my"] .MuiTableCell-root, html[lang="my"] .app-topbar { font-family: 'Prompt', 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', sans-serif; }
+html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiButton-root, html[lang="km"] .MuiTableCell-root, html[lang="km"] .app-topbar { font-family: 'Prompt', 'Noto Sans Khmer', 'Khmer UI', 'Leelawadee UI', sans-serif; }

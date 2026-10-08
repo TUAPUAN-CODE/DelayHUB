@@ -31,10 +31,12 @@ const DefaultCell = ({ col, row }) => {
   return <span>{String(v)}</span>;
 };
 
-const GridRow = memo(({ row, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx }) => (
-  <TableRow hover sx={{ "& td": { background: bg }, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
+const GridRow = memo(({ row, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick }) => (
+  <TableRow
+    hover onClick={onPick ? () => onPick(row) : undefined}
+    sx={{ cursor: onPick ? "pointer" : undefined, "& td": { background: bg, ...(active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : {}) }, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
-      <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, background: bg, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
+      <TableCell onClick={(e) => e.stopPropagation()} sx={{ position: "sticky", left: 0, zIndex: 2, background: bg, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
         <Checkbox size="small" checked={checked} disabled={!canSelect} onChange={onToggle} />
       </TableCell>
     )}
@@ -69,6 +71,8 @@ const DataGrid = ({
   loading = false, error = "", onReload, searchPlaceholder = "ค้นหาทุกคอลัมน์...", pageSize = 100,
   rowColor, colorSettings, toolbarExtra, selectable = false, selected, onSelectedChange, isSelectable, ctx,
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
+  // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
+  fill = false, activeKey = null, onRowClick, actionBar,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   const [search, setSearch] = useState("");
@@ -192,8 +196,8 @@ const DataGrid = ({
   const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorOnly ? 1 : 0);
 
   return (
-    <div>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
+    <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
         <TextField
           size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: 240 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -209,8 +213,10 @@ const DataGrid = ({
         {onReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
       </Box>
 
+      {actionBar}
+
       {counts && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
           <Typography variant="body2" color="text.secondary">แสดงเฉพาะสี Delay:</Typography>
           <Chip
             clickable label={`ทั้งหมด ${filtered.length}`} onClick={() => { setColorOnly(null); setPage(0); }}
@@ -229,7 +235,7 @@ const DataGrid = ({
 
       <ColumnFilterBar columns={dropdownCols} sorts={prefs.sorts} filters={filters} rowsFor={rowsFor} onSort={setSort} onFilter={setFilter} />
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
         <Typography variant="caption" color="text.secondary">
           {activeFilters || sorted.length !== rows.length ? `แสดง ${sorted.length} จาก ${rows.length} แถว` : `${rows.length} แถว`}{caption ? ` · ${caption}` : ""}
         </Typography>
@@ -238,8 +244,8 @@ const DataGrid = ({
 
       {error && <Alert severity="error" sx={{ mb: 1 }} action={onReload ? <Button color="inherit" size="small" onClick={onReload}>ลองใหม่</Button> : null}>{error}</Alert>}
 
-      <Paper sx={{ borderRadius: "16px", overflow: "hidden" }}>
-        <TableContainer sx={{ maxHeight }}>
+      <Paper sx={{ borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
+        <TableContainer sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
           <Table
             stickyHeader size="small"
             sx={{
@@ -292,6 +298,7 @@ const DataGrid = ({
                   <GridRow
                     key={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={() => toggleOne(key)} ctx={ctx}
+                    active={activeKey !== null && activeKey === key} onPick={onRowClick}
                   />
                 );
               })}

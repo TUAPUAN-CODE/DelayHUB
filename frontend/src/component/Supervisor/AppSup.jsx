@@ -112,7 +112,7 @@ const routes = [
 
 function AppSup() {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* BG */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br opacity-80" />

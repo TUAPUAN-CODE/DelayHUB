@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Button, Chip, ListSubheader, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -91,6 +91,7 @@ const ParentComponent = ({ role }) => {
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
   const [plans, setPlans] = useState([]);
+  const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   const [mixMenu, setMixMenu] = useState(null);
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
@@ -242,6 +243,27 @@ const ParentComponent = ({ role }) => {
     return list;
   }, [allRows, mine, myLine, myType, role, tools]);
 
+  // ── action bar above the table: the tools of the chosen row ──
+  const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
+  const barItems = useMemo(() => (activeRow ? tools(activeRow).filter((i) => i.col !== "t_kg") : []), [activeRow, tools]);
+  const actionBar = (
+    <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#1552F0" : undefined, background: activeRow ? "#F3F7FF" : undefined }}>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#1552F0" : "text.secondary" }}>
+        {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
+      </Typography>
+      {activeRow && !barItems.length && <Typography variant="body2" color="text.secondary">แถวนี้ไม่มีรายการที่ทำได้ในขั้นตอนนี้</Typography>}
+      {barItems.map((it) => (it.node ? <Box key={it.key}>{it.node}</Box> : (
+        <Tooltip key={it.key} title={it.ok === false ? it.title || "ยังทำรายการนี้ไม่ได้" : it.title || ""} arrow>
+          <span>
+            <Button size="small" variant="contained" disabled={it.ok === false} onClick={it.run} startIcon={it.icon}
+              sx={{ textTransform: "none", whiteSpace: "nowrap", background: it.color, "&:hover": { background: it.color, filter: "brightness(.92)" } }}>{it.label}</Button>
+          </span>
+        </Tooltip>
+      )))}
+      {activeRow && <Button size="small" onClick={() => setActiveKey(null)}>ยกเลิกการเลือก</Button>}
+    </Paper>
+  );
+
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
     if (!picked.length) return;
@@ -296,15 +318,16 @@ const ParentComponent = ({ role }) => {
   );
 
   return (
-    <div>
+    <div style={{ height: "100%", minHeight: 0 }}>
       <DataGrid
+        fill actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" columns={columns} groups={GROUPS} defaultVisible={defVisible} defaultExt={DEFAULT_EXT}
         rows={rows} rowKey={(r) => r.__key} loading={loading} error={error} onReload={load} ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
         toolbarExtra={toolbarExtra}
         selectable={role === "pack"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => r.__stage === "ready" && !r.sc_pack_date}
-        caption="ช่องว่าง (-) คือขั้นตอนที่ยังไม่มีเวลา · สีแถวและ DBS ตั้งค่าได้ที่ปุ่มตั้งค่าคอลัมน์"
+        caption="คลิกแถวเพื่อเลือกแล้วทำรายการที่แถบด้านบนตาราง · ช่องว่าง (-) คือขั้นตอนที่ยังไม่มีเวลา · สีแถวและ DBS ตั้งค่าได้ที่ปุ่มตั้งค่าคอลัมน์"
       />
 
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
