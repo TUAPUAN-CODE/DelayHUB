@@ -12,10 +12,7 @@ import OrderRequestRawmat from "./OrderRequestrawmat/RequestrawmatPage";
 import ManageRequestOrder from "./ManageRequestOrder/ManagePage";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import ScanBarcodePage from "./ScanSAP/ScanBatcodePage.jsx"
-import ManageRawmatPack from "./ManageRawmat/ManagePage.jsx"
 import ReportDelay from "./ReportDelay/ManagePage.jsx"
-import Managedelaymaster from "./ManageDelay/ManagePage.jsx";
-import CheckInPage from "./CheckIn/CheckInPage.jsx";
 import Pull_History from "./PullHistory/ManagePage.jsx";
 import PrintMasterPage from "./PrintMaster/CheckInPage.jsx";
 import Printpackandroid from  "./PrintMasters/CheckInPage.jsx";
@@ -39,7 +36,7 @@ function AppPack() {
 
         <Route path="/Sheet" element={<SheetPage role="pack" />} />
         <Route path="/CheckStatus/CheckStatusPage" element={<CheckStatusPage />} />
-        <Route path="/" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/" element={<Navigate to="/packaging/Sheet" replace />} />
         {/* <Route path="/manage/ManagePage" element={<ManagePack />} /> */}
         <Route path="/Workplace/WorkplacePage" element={<WorkplacePage />} />
         <Route path="/Mixed/Trolley" element={<MixRMPage />} />
@@ -51,20 +48,21 @@ function AppPack() {
         {/* เลือกสถานที่ไลน์ผลิต */}
         <Route path="/User/LineSelectWP" element={<LineSelectWP />} />
         <Route path="/ScanBarcodePage" element={<ScanBarcodePage />} />
-        <Route path="/ManageRawmatPack" element={<ManageRawmatPack />} />
+        {/* ตารางจัดการ Delay / เพิ่ม RM / Check In รวมอยู่ในตารางรวมวัตถุดิบแล้ว — ลิงก์เดิมยังเปิดได้และพาไปที่ Sheet */}
+        <Route path="/ManageRawmatPack" element={<Navigate to="/packaging/Sheet" replace />} />
         <Route path="/Report/sup" element={<ReportHubPage initialView="sup" />} />
         <Route path="/ReportDelay" element={<ReportDelay />} />
-        <Route path="/Managedelaymaster" element={<Managedelaymaster />} />
-        <Route path="/CheckInPagePack" element={<CheckInPage />} />
+        <Route path="/Managedelaymaster" element={<Navigate to="/packaging/Sheet" replace />} />
+        <Route path="/CheckInPagePack" element={<Navigate to="/packaging/Sheet" replace />} />
         <Route path="/Pull_History" element={<Pull_History />} />
         <Route path="/ReportPull" element={<ReportHubPage initialView="history" />} />
         <Route path="/ReportRawmatPackuser" element={<ReportHubPage initialView="report" />} />
         {/* หน้าเดิมที่รวมเข้าตาราง Delay แล้ว */}
-        <Route path="/TrackTrolley" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
-        <Route path="/CheckOut" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
-        <Route path="/IncludeRawmatPagePack" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
-        <Route path="/PackTro/PackTroPage" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
-        <Route path="/History/HistoryPage" element={<Navigate to="/packaging/ManageRawmatPack" replace />} />
+        <Route path="/TrackTrolley" element={<Navigate to="/packaging/Sheet" replace />} />
+        <Route path="/CheckOut" element={<Navigate to="/packaging/Sheet" replace />} />
+        <Route path="/IncludeRawmatPagePack" element={<Navigate to="/packaging/Sheet" replace />} />
+        <Route path="/PackTro/PackTroPage" element={<Navigate to="/packaging/Sheet" replace />} />
+        <Route path="/History/HistoryPage" element={<Navigate to="/packaging/Sheet" replace />} />
         <Route path="/PrintMaster" element={<PrintMasterPage />} />
         <Route path="/Printpackandroid" element={<Printpackandroid />} />
         <Route path="/UsePKG" element={<UsePKGPage />} />

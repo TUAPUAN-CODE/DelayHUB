@@ -20,7 +20,7 @@ const x = (key, label, group, width = 110, extra = {}) => ({ key, label, group, 
 /** buttons of one tool column: the Role's handlers come from ctx.tools(row) */
 const ToolButtons = ({ items }) => {
   if (!items.length) return <span style={{ color: "#C5CCD9" }}>-</span>;
-  return items.map((it) => (it.icon ? (
+  return items.map((it) => (it.node ? <span key={it.key}>{it.node}</span> : it.icon ? (
     <Tooltip key={it.key} title={it.title || it.label} arrow>
       <span><IconButton size="small" onClick={it.run} sx={{ color: it.ok === false ? "#C5CCD9" : it.color }}>{it.icon}</IconButton></span>
     </Tooltip>
@@ -66,6 +66,11 @@ export const COLUMNS = [
   tool("t_qc", "ตรวจ QC", 90, ["qc", "pack"]),
   tool("t_cart", "ใส่รถเข็น", 100, ["pack"]),
   tool("t_send", "ส่งไป", 80, ["pack"]),
+  { key: "w_total", label: "น้ำหนัก", group: "tool", kind: "data", type: "number", frozen: true, width: 80, align: "right", roles: ["pack"], get: (r) => r.weight_RM ?? r.weight },
+  tool("t_kg", "น้ำหนัก (kg)", 110, ["pack"]),
+  tool("t_edit", "แก้ไข", 80, ["pack"]),
+  tool("t_confirm", "ยืนยัน", 80, ["pack"]),
+  tool("t_checkin", "Check In", 90, ["pack"]),
   // "รายการ" = mapping_id, always right after the tools
   { key: "mapping_id", label: "รายการ", group: "tool", kind: "data", type: "number", frozen: true, width: 80 },
   // ข้อมูล
@@ -140,13 +145,13 @@ export const COLUMNS = [
 ];
 
 /** columns a Role can see: its own tools + every data column */
-export const columnsForRole = (role) => COLUMNS.filter((c) => c.kind !== "tool" || (c.roles || []).includes(role));
+export const columnsForRole = (role) => COLUMNS.filter((c) => !c.roles || c.roles.includes(role));
 
 const INFO = ["hu", "tro_id", "batch", "mat_name", "code", "weight_RM", "rm_status", "dest", "cs_name", "slot_id"];
 const DBS = ["DBS1", "DBS2", "DBS3", "DBS4"];
 const FIXED = ["status", "mapping_id"];
 
-const TOOLS = { prep: [], qc: ["t_qc"], cs1: ["t_cs1"], cs2: ["t_stamp", "t_cs2"], pack: ["t_qc", "t_cart", "t_send"], sup: [] };
+const TOOLS = { prep: [], qc: ["t_qc"], cs1: ["t_cs1"], cs2: ["t_stamp", "t_cs2"], pack: ["t_qc", "t_cart", "t_send", "w_total", "t_kg", "t_edit", "t_confirm", "t_checkin"], sup: [] };
 const TIMES = {
   prep: ["cooked_date", "rmit_date", "start_mixed_date", "qc_date", "come_cold_date", "out_cold_date"],
   qc: ["cooked_date", "rmit_date", "qc_date"],
@@ -158,7 +163,8 @@ const TIMES = {
 
 /** columns shown the first time an account opens the sheet (the account can change them with the settings button) */
 export const defaultVisible = (role) => {
-  const pick = new Set([...FIXED, ...(TOOLS[role] || []), ...INFO, ...(TIMES[role] || []), ...(role === "cs1" ? ["DBS1", "DBS2"] : DBS)]);
+  const info = role === "pack" ? INFO.filter((k) => k !== "weight_RM") : INFO; // Pack has its own "น้ำหนัก" tool column
+  const pick = new Set([...FIXED, ...(TOOLS[role] || []), ...info, ...(TIMES[role] || []), ...(role === "cs1" ? ["DBS1", "DBS2"] : DBS)]);
   return columnsForRole(role).filter((c) => pick.has(c.key)).map((c) => c.key);
 };
 

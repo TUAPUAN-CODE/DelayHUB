@@ -24,6 +24,9 @@ const HIST_DATES = [
 const HIST_TEXT = [
   "hu", "weight", "remark", "remark_dalay", "storage_purpose", "storage_purpose_2", "storage_purpose_3",
   "at_pd_storage_purpose", "at_pd_storage_purpose_2", "at_pd_storage_purpose_3", "cs_re", "cs_re_2", "cs_re_3",
+  // fields the Pack / QC forms read from History
+  "first_prod", "two_prod", "three_prod", "name_edit_prod_two", "name_edit_prod_three", "remark_rework", "edit_rework",
+  "remark_rework_cold", "receiver_qc_cold", "qccheck_cold", "prepare_mor_night", "receiver", "receiver_qc",
 ];
 const SAP_DATES = [
   "withdraw_date", "start_defrost_date", "end_defrost_date", "input_pd_date", "output_pd_date", "input_cd_date",
@@ -50,6 +53,15 @@ const buildMappingQuery = () => `
       rmm.mix_code,
       rmm.prod_mix,
       rmm.rmm_line_name,
+      rmm.qc_id,
+      l.line_id,
+      ptl.line_tro AS pack_line_id,
+      FORMAT(rmm.prep_to_pack_time, 'N2') AS remaining_ptp_time,
+      FORMAT(rmg.prep_to_pack, 'N2') AS standard_ptp_time,
+      FORMAT(rmm.cold_to_pack_time, 'N2') AS remaining_ctp_time,
+      FORMAT(rmg.cold_to_pack, 'N2') AS standard_ctp_time,
+      FORMAT(rmm.rework_time, 'N2') AS remaining_rework_time,
+      FORMAT(rmg.rework, 'N2') AS standard_rework_time,
       rm.mat,
       rm.mat_name,
       p.doc_no,
@@ -75,6 +87,12 @@ const buildMappingQuery = () => `
   LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
   LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
   LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+  LEFT JOIN Line l WITH (NOLOCK) ON rmm.rmm_line_name = l.line_name
+  OUTER APPLY (
+      SELECT TOP 1 pt.line_tro
+      FROM PackTrolley pt WITH (NOLOCK)
+      WHERE pt.tro_id = rmm.tro_id AND pt.pack_tro_status = '0'
+  ) ptl
   LEFT JOIN Slot sl WITH (NOLOCK) ON sl.tro_id = rmm.tro_id AND rmm.tro_id IS NOT NULL
   LEFT JOIN ColdStorage cs WITH (NOLOCK) ON cs.cs_id = sl.cs_id
   OUTER APPLY (
