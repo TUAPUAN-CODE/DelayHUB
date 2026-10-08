@@ -2,13 +2,13 @@ import { useState, useMemo } from "react";
 import { Box, TextField, InputAdornment, Button, Popover, IconButton, Typography, Chip } from "@mui/material";
 import { Search, ArrowUp, ArrowDown, ArrowUpDown, X } from "lucide-react";
 
-const KEY_LABELS = {
+export const KEY_LABELS = {
   tro_id: "รถเข็น", trolley_number: "รถเข็น", mat: "รหัสวัตถุดิบ", mat_name: "ชื่อวัตถุดิบ", batch: "Batch",
   production: "แผนผลิต", rm_status: "สถานะ", weight_RM: "น้ำหนัก", tray_count: "จำนวนถาด", cs_name: "ห้อง",
   slot_id: "ช่อง", line_name: "ไลน์", dest: "ปลายทาง", cooked_date: "วันที่สุก", rmit_date: "วันที่เข้า",
   qc_date: "วันที่ QC", mixed_date: "วันที่ผสม", remaining_time: "เวลาคงเหลือ", standard_time: "เวลามาตรฐาน",
 };
-const prettify = (k) => KEY_LABELS[k] || k.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+export const prettify = (k) => KEY_LABELS[k] || k.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
 
 const TableToolbar = ({ tools, resultCount }) => {
   const { search, setSearch, sorts, toggleSort, clearSorts, columns, total } = tools;

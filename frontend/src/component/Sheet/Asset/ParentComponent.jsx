@@ -21,6 +21,9 @@ import CheckoutFlow from "../../ColdStorage/RoomTableSupervisor/Asset/flow/Check
 import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
 import ReworkFlows from "./prep/ReworkFlows";
+import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
+import ModalStampBoil from "../../Prep/TimeStampMain/Asset/stamp/ModalStampBoil";
+import ModalStampReturn from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReturn";
 import { EmulsionFlows, BatchFlows, MixPackFlows, LoafFlows, MIX_KINDS } from "./prep/mixVariants";
 import { CHECKIN_DEST } from "./pack/checkinData";
 
@@ -30,6 +33,7 @@ const REFRESH_MS = 60000;
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
+const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 const MY_LINE = parseInt(localStorage.getItem("line_id"), 10);
 // ประเภทวัตถุดิบของผู้ใช้ (หน้า QC / จุดเตรียมเดิมกรองด้วยค่านี้)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
@@ -63,6 +67,7 @@ const ParentComponent = ({ role }) => {
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
   const [mixMenu, setMixMenu] = useState(null);
+  const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
   const columns = useMemo(() => columnsForRole(role), [role]);
   const defVisible = useMemo(() => defaultVisible(role), [role]);
@@ -137,6 +142,11 @@ const ParentComponent = ({ role }) => {
       );
     }
     if (role === "prep") {
+      if (h && h.sap_re_id !== undefined) {
+        [["receive", "รับ", "#2e7d32", "บันทึกเวลารับวัตถุดิบ"], ["boil", "ต้ม/อบเสร็จ", "#e65100", "บันทึกเวลาต้มอบเสร็จ"], ["return", "ส่งคืน", "#6a1b9a", "บันทึกเวลาส่งคืนวัตถุดิบ"]].forEach(([k, label, color, title]) => {
+          out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, title, run: () => setPstamp({ kind: k, hu: h }) });
+        });
+      }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
         const ref = mixRefs[kind];
@@ -261,6 +271,11 @@ const ParentComponent = ({ role }) => {
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}
       <PackFlows ref={packRef} onDone={load} onNotify={setToast} />
+      {pstamp && (() => {
+        const M = PREP_STAMPS[pstamp.kind];
+        const sap = pstamp.hu;
+        return <M open onClose={() => { setPstamp(null); load(); }} onSuccess={load} data={sap} material={sap.mat} batch={sap.batch} sap_re_id={sap.sap_re_id} withdraw_date={sap.withdraw_date} hu={sap.hu} remark={sap.remark} />;
+      })()}
       {role === "prep" && (
         <>
           <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />

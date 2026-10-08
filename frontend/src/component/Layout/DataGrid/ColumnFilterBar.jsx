@@ -9,7 +9,7 @@ import { cellText } from "./gridUtils";
 const MAX_OPTIONS = 300;
 
 /** The dropdown of ONE column: sort, search inside the column, and tick the values to show (like an Excel filter). */
-const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClose, anchor }) => {
+export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClose, anchor }) => {
   const [q, setQ] = useState("");
 
   // distinct values of this column among the rows that pass the OTHER filters

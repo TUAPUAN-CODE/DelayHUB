@@ -44,7 +44,7 @@ const GridRow = memo(({ row, cols, frozenLeft, bg, selectable, checked, canSelec
           key={c.key} align={c.align || "left"}
           sx={{
             fontSize: 12.5, padding: "3px 8px", background: bg,
-            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, borderRight: c.lastFrozen ? "2px solid #D5DCEB" : undefined } : { minWidth: c.width }),
+            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis", borderRight: c.lastFrozen ? "2px solid #D5DCEB" : undefined } : { minWidth: c.width }),
           }}
         >
           {c.render ? c.render(row, ctx) : <DefaultCell col={c} row={row} />}
