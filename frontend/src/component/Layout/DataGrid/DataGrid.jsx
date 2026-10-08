@@ -72,7 +72,7 @@ const DataGrid = ({
   rowColor, colorSettings, toolbarExtra, selectable = false, selected, onSelectedChange, isSelectable, ctx,
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
-  fill = false, activeKey = null, onRowClick, actionBar,
+  fill = false, activeKey = null, onRowClick, actionBar, hideReload = false,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   const [search, setSearch] = useState("");
@@ -200,28 +200,8 @@ const DataGrid = ({
 
   const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorOnly ? 1 : 0);
 
-  return (
-    <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
-        <TextField
-          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: 240 }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-        />
-        {toolbarExtra}
-        <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setChooserOpen(true)}>ตั้งค่าคอลัมน์</Button>
-        {!hideExport && (
-          <>
-            <Button variant="outlined" startIcon={<TableViewIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("xlsx")}>Excel</Button>
-            <Button variant="outlined" startIcon={<PictureAsPdfIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("pdf")}>PDF</Button>
-          </>
-        )}
-        {onReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
-      </Box>
-
-      {actionBar}
-
-      {counts && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
+  const colorChips = counts && (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
           <Typography variant="body2" color="text.secondary">แสดงเฉพาะสี Delay:</Typography>
           <Chip
             clickable label={`ทั้งหมด ${filtered.length}`} onClick={() => { setColorOnly(null); setPage(0); }}
@@ -235,8 +215,31 @@ const DataGrid = ({
               />
             </Tooltip>
           ))}
-        </Box>
-      )}
+    </Box>
+  );
+
+  return (
+    <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
+        <TextField
+          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: 240 }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+        />
+        {fill && colorChips}
+        {toolbarExtra}
+        <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setChooserOpen(true)}>ตั้งค่าคอลัมน์</Button>
+        {!hideExport && (
+          <>
+            <Button variant="outlined" startIcon={<TableViewIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("xlsx")}>Excel</Button>
+            <Button variant="outlined" startIcon={<PictureAsPdfIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("pdf")}>PDF</Button>
+          </>
+        )}
+        {onReload && !hideReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
+      </Box>
+
+      {actionBar}
+
+      {!fill && colorChips}
 
       <ColumnFilterBar columns={dropdownCols} sorts={prefs.sorts} filters={filters} rowsFor={rowsFor} onSort={setSort} onFilter={setFilter} />
 

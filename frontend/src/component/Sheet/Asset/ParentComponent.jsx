@@ -300,14 +300,6 @@ const ParentComponent = ({ role }) => {
 
   const toolbarExtra = (
     <>
-      <Chip label={`งานของ ${ROLE_LABEL[role] || "ฉัน"}`} clickable color={mine ? "primary" : "default"} variant={mine ? "filled" : "outlined"} onClick={() => setMine((v) => !v)} />
-      <Typography variant="body2" color="text.secondary">ย้อนหลัง</Typography>
-      <Select size="small" value={days} onChange={(e) => setDays(e.target.value)}>
-        {[3, 7, 14, 30, 90].map((d) => <MenuItem key={d} value={d}>{d} วัน</MenuItem>)}
-      </Select>
-      <Tooltip title="รวมรายการที่ยังไม่ปิด แม้เก่ากว่าช่วงวันที่เลือก (กันของตกค้าง)" arrow>
-        <Chip label="รวมรายการที่ยังไม่ปิด" clickable size="small" color={includeOpen ? "secondary" : "default"} variant={includeOpen ? "filled" : "outlined"} onClick={() => setIncludeOpen((v) => !v)} />
-      </Tooltip>
       {(role === "qc" || role === "prep") && MY_TYPES.length > 0 && (
         <Tooltip title="แสดงเฉพาะวัตถุดิบประเภทที่บัญชีของคุณรับผิดชอบ (เหมือนหน้าเดิม) — กดอีกครั้งเพื่อดูทั้งหมด" arrow>
           <Chip label="ประเภทของฉัน" clickable color={myType ? "primary" : "default"} variant={myType ? "filled" : "outlined"} onClick={() => setMyType((v) => !v)} />
@@ -342,7 +334,7 @@ const ParentComponent = ({ role }) => {
       <DataGrid
         fill actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" columns={columns} groups={GROUPS} defaultVisible={defVisible} defaultExt={DEFAULT_EXT}
-        rows={rows} rowKey={(r) => r.__key} loading={loading} error={error} onReload={load} ctx={ctx}
+        rows={rows} rowKey={(r) => r.__key} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
         toolbarExtra={toolbarExtra}
