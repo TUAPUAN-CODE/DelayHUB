@@ -1,32 +1,23 @@
 import { useMemo, useState } from "react";
-import {
-  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, TextField, Typography,
-} from "@mui/material";
+import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { COLUMNS, GROUPS } from "./columns";
 
-const ColumnSettings = ({ open, onClose, visible, onChange, onReset, storage, warning }) => {
+/** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings (e.g. row colours) shown on top. */
+const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra }) => {
   const [q, setQ] = useState("");
   const set = useMemo(() => new Set(visible), [visible]);
 
   const byGroup = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return GROUPS.map((g) => ({
+    return groups.map((g) => ({
       ...g,
-      cols: COLUMNS.filter((c) => c.group === g.key && (!needle || c.label.toLowerCase().includes(needle) || c.key.toLowerCase().includes(needle))),
+      cols: columns.filter((c) => c.group === g.key && (!needle || c.label.toLowerCase().includes(needle) || c.key.toLowerCase().includes(needle))),
     })).filter((g) => g.cols.length);
-  }, [q]);
+  }, [q, columns, groups]);
 
-  const toggle = (key) => {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    onChange(COLUMNS.filter((c) => next.has(c.key)).map((c) => c.key)); // keep the sheet order
-  };
-  const toggleGroup = (g, on) => {
-    const next = new Set(set);
-    g.cols.forEach((c) => (on ? next.add(c.key) : next.delete(c.key)));
-    onChange(COLUMNS.filter((c) => next.has(c.key)).map((c) => c.key));
-  };
+  const emit = (next) => onChange(columns.filter((c) => next.has(c.key)).map((c) => c.key)); // keep the registry order
+  const toggle = (key) => { const next = new Set(set); if (next.has(key)) next.delete(key); else next.add(key); emit(next); };
+  const toggleGroup = (g, on) => { const next = new Set(set); g.cols.forEach((c) => (on ? next.add(c.key) : next.delete(c.key))); emit(next); };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -37,6 +28,7 @@ const ColumnSettings = ({ open, onClose, visible, onChange, onReset, storage, wa
       <DialogContent dividers>
         {warning && <Alert severity="warning" sx={{ mb: 1.5 }}>{warning}</Alert>}
         {!warning && storage === "server" && <Alert severity="success" sx={{ mb: 1.5 }}>บันทึกตามบัญชีของคุณในฐานข้อมูลแล้ว (ใช้ได้ทุกเครื่อง)</Alert>}
+        {extra}
         <TextField
           size="small" fullWidth placeholder="ค้นหาคอลัมน์..." value={q} onChange={(e) => setQ(e.target.value)} sx={{ mb: 1.5 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -55,11 +47,7 @@ const ColumnSettings = ({ open, onClose, visible, onChange, onReset, storage, wa
               </Box>
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
                 {g.cols.map((c) => (
-                  <FormControlLabel
-                    key={c.key} sx={{ m: 0 }}
-                    control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />}
-                    label={<span style={{ fontSize: 13 }}>{c.label}</span>}
-                  />
+                  <FormControlLabel key={c.key} sx={{ m: 0 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={<span style={{ fontSize: 13 }}>{c.label}</span>} />
                 ))}
               </Box>
             </Box>
@@ -67,7 +55,7 @@ const ColumnSettings = ({ open, onClose, visible, onChange, onReset, storage, wa
         })}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button color="inherit" onClick={onReset}>คืนค่าเริ่มต้นของ Role นี้</Button>
+        <Button color="inherit" onClick={onReset}>คืนค่าเริ่มต้น</Button>
         <Box sx={{ flex: 1 }} />
         <Button variant="contained" onClick={onClose}>เสร็จสิ้น</Button>
       </DialogActions>
@@ -75,4 +63,4 @@ const ColumnSettings = ({ open, onClose, visible, onChange, onReset, storage, wa
   );
 };
 
-export default ColumnSettings;
+export default ColumnChooser;
