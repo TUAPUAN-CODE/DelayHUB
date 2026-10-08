@@ -1,3 +1,4 @@
+// COPY of frontend/src/component/Sheet/Asset/dbs.js (ES module) so the alert worker counts delay exactly like the Master Sheet. Keep the two files identical.
 // DBS1–DBS4 (delay time) — ported verbatim from the Report page (Pack/ReportRawmatNotEditTIME/Asset/Table.jsx) so the numbers match it.
 // DBS1 = prep -> cold, DBS2 = time in cold rooms (+ waiting-for-production deposits), DBS3 = cold -> packed, DBS4 = total.
 // Standards (hours) come from the row: DBS1..DBS4.

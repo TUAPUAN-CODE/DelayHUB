@@ -92,6 +92,7 @@ const ParentComponent = ({ role }) => {
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
   const [plans, setPlans] = useState([]);
+  const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
@@ -102,6 +103,7 @@ const ParentComponent = ({ role }) => {
 
   const huRef = useRef([]);
   const lastSig = useRef("");
+  const lastLoadAt = useRef(0);
   const trolleyRef = useRef(null);
   const checkoutRef = useRef(null);
   const largeRef = useRef(null);
@@ -112,6 +114,7 @@ const ParentComponent = ({ role }) => {
   const mixRefs = { emu: useRef(null), batch: useRef(null), pack: useRef(null), loaf: useRef(null) };
 
   const load = useCallback(async () => {
+    lastLoadAt.current = Date.now();
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: { days, include_open: includeOpen ? 1 : 0 } });
@@ -148,17 +151,25 @@ const ParentComponent = ({ role }) => {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load]);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   // real-time: reload when another user changes data (same events as the old pages)
   useEffect(() => {
     if (!API_URL) return undefined;
     let timer = null;
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000 });
-    const refresh = () => { clearTimeout(timer); timer = setTimeout(load, 800); };
+    const refresh = () => { if (Date.now() - lastLoadAt.current < 4000) return; clearTimeout(timer); timer = setTimeout(load, 800); }; // an event right after our own load is an echo: ignore it
+    // the server only sends these events to the rooms: join the ones that tell the table something changed.
+    // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
+    ["QcCheckRoom", "trolleyUpdatesRoom"].forEach((room) => socket.emit("joinRoom", room));
+    socket.on("connect", () => ["QcCheckRoom", "trolleyUpdatesRoom"].forEach((room) => socket.emit("joinRoom", room)));
+    socket.on("trolleyUpdated", refresh);
+    socket.on("rawMaterialSaved", refresh);
+    socket.on("qcDateTimeUpdated", refresh);
     socket.on("dataUpdated", refresh);
     socket.on("dataDelete", refresh);
     socket.on("connect_error", (err) => console.error("[Sheet] socket error:", err.message));
-    return () => { clearTimeout(timer); socket.off("dataUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
+    return () => { clearTimeout(timer); socket.off("dataUpdated", refresh); socket.off("trolleyUpdated", refresh); socket.off("rawMaterialSaved", refresh); socket.off("qcDateTimeUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
   }, [load]);
 
   const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload: load });
@@ -241,7 +252,7 @@ const ParentComponent = ({ role }) => {
   // a row only has to render again when what its cells show changed: the weight input of the Pack confirm
   const rowSig = useCallback((r) => (role === "pack" ? `${weights[r.mapping_id] ?? ""}|${selected.has(r.__key) ? 1 : 0}` : ""), [role, weights, selected]);
 
-  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans), [data, mix, plans]);
+  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans, now), [data, mix, plans, now]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const rows = useMemo(() => {

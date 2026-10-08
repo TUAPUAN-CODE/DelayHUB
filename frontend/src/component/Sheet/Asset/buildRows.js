@@ -27,7 +27,7 @@ export const lastActivity = (row) => {
   return best;
 };
 
-const safeDbs = (row) => { try { return getDbs(row); } catch (err) { console.error("[Sheet] DBS error:", err); return []; } };
+const safeDbs = (row, now) => { try { return getDbs(row, now); } catch (err) { console.error("[Sheet] DBS error:", err); return []; } };
 
 /** Pack stage of a mapping (same rules as the old Pack page): qc = waiting for QC · ready = can be put in a trolley · trolley = in a trolley, can be sent on */
 export const packStage = (r) => {
@@ -42,44 +42,25 @@ export const packStage = (r) => {
   return null;
 };
 
-const MIX_STATUS = {
-  emu: "จุดเตรียมรอผสม (ผสมวัตถุดิบ)", batch: "จุดเตรียมรอผสม (Batch)", pack: "จุดเตรียมรอผสม (ผสมเตรียม)", loaf: "จุดเตรียมรอผสม (loaf สุก)",
-};
-
-// raw dest / stay_place / rm_status values that reach the last rule get a readable name with the area in front. A value that is not here is shown as it is,
-// except the internal marker "create_manual", which is never shown.
-const RAW_LABEL = {
-  "จุดเตรียม": "อยู่ที่จุดเตรียม", "หม้ออบ": "อยู่ที่หม้ออบ", "บรรจุ": "อยู่ที่บรรจุ", "ไปบรรจุ": "รอไปบรรจุ", "ไปจุดเตรียม": "รอไปจุดเตรียม",
-  "ในห้องเย็นใหญ่": "อยู่ในห้องเย็นใหญ่", "รถเข็นรอจัดส่ง": "บรรจุรถเข็นรอจัดส่ง", "ผสมเตรียม": "จุดเตรียมผสมเตรียม", "ออกห้องเย็น": "ออกจากห้องเย็นแล้ว",
-  "บรรจุ-รอรถเข็น": "บรรจุรอรถเข็น", "เข้าห้องเย็น-รอรถเข็น": "ห้องเย็นรอรถเข็น",
-};
-const rawLabel = (v) => {
-  const t = String(v ?? "").trim();
-  if (!t || t === "create_manual") return null;
-  if (t.startsWith("บรรจุเสร็จสิ้น")) return "บรรจุเสร็จ";
-  return RAW_LABEL[t] || t;
-};
-
-/** status chip of a row. The name starts with the area it belongs to (บรรจุ / จุดเตรียม / QC / ห้องเย็น) */
+/** status chip of a row (names agreed with the users) */
 export const statusOf = (r) => {
-  if (r.__kind === "mix") return { label: MIX_STATUS[r.__mix] || "จุดเตรียมรอผสม", color: "#6A1B9A", bg: "#F3E5F5" };
-  if (r.__rework === "A") return { label: "จุดเตรียมรอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
-  if (r.__rework === "B") return { label: "รอกลับมาเตรียม", color: "#B45309", bg: "#FEF3C7" };
+  if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
+  if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.__kind === "hu") {
     const a = analyzeRow(r);
     return { label: a.status.label, color: a.status.color, bg: a.status.bg };
   }
   const st = String(r.rm_status || "");
-  if (r.__stage === "ready") return { label: "บรรจุพร้อมใส่รถเข็น", color: "#1552F0", bg: "#EAF0FF" };
-  if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "QC รอตรวจสอบ", color: "#B45309", bg: "#FEF3C7" };
+  if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
   if (st === "รอแก้ไข") return { label: "รอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
-  if (r.dest === "บรรจุเสร็จ") return { label: "บรรจุเสร็จ", color: "#047857", bg: "#D1FAE5" };
+  if (String(r.dest || "").startsWith("บรรจุเสร็จ")) return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.cs_id) return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
-  if (r.tro_id && (r.dest === "บรรจุ" || r.dest === "รถเข็นรอจัดส่ง")) return { label: "บรรจุอยู่ในรถเข็น", color: "#047857", bg: "#D1FAE5" };
+  if (r.tro_id && (r.dest === "บรรจุ" || r.dest === "รถเข็นรอจัดส่ง")) return { label: "รอบรรจุจัดส่ง", color: "#047857", bg: "#D1FAE5" };
   if (["รอCheckin", "ห้องเย็นใหญ่", "เข้าห้องเย็น", "ห้องเย็น", "เข้าห้องเย็นใหญ่"].includes(r.dest)) {
-    return { label: "ห้องเย็นรอรับเข้า", color: "#B45309", bg: "#FEF3C7" };
+    return { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
   }
-  return { label: rawLabel(r.dest) || rawLabel(r.stay_place) || rawLabel(st) || "-", color: "#6B7489", bg: "#F1F3F8" };
+  return { label: "-", color: "#6B7489", bg: "#F1F3F8" }; // no rule matches: no made-up name
 };
 
 /** the HU is the source of truth for the SAP time stamps; History only holds a copy */
@@ -94,7 +75,7 @@ const mergeHu = (m, h) => {
 const norm = (v) => String(v ?? "").trim().toUpperCase();
 const planBatches = (r) => (Array.isArray(r.batchArray) && r.batchArray.length ? r.batchArray : String(r.batch ?? "").split(",")).map(norm).filter(Boolean);
 
-export const buildRows = (hus, mappings, mix = {}, plans = []) => {
+export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now()) => {
   // production-plan rows (RMForProd) of "จัดการวัตถุดิบ", joined to a HU by MAT|BATCH
   const planByKey = new Map();
   (plans || []).forEach((p) => planBatches(p).forEach((b) => {
@@ -112,7 +93,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = []) => {
     merged.__key = `map:${m.mapping_id}`;
     merged.__kind = "map";
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
-    merged.__dbs = safeDbs(merged);
+    merged.__dbs = safeDbs(merged, now);
     merged.__stage = packStage(merged);
     merged.__plans = plansOf(h);
     merged.__rework = reworkKind(merged);
@@ -139,7 +120,6 @@ export const buildRows = (hus, mappings, mix = {}, plans = []) => {
     });
   });
   // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
-  const now = Date.now();
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
   rows.sort((a, b) => b.__last - a.__last);
   return rows;

@@ -185,6 +185,27 @@ module.exports = {
     },
 
     // =========================
+    // DELAY ALERT (LINE) — แจ้งกลุ่ม LINE เมื่อวัตถุดิบเปลี่ยนเป็นสีเหลือง/แดง (ต้องตั้ง LINE_CHANNEL_ACCESS_TOKEN + LINE_GROUP_ID ใน .env)
+    // =========================
+    {
+      name: 'delay-alert-worker',
+      script: './delayAlertWorker.js',
+      instances: 1,                // ❗ ห้ามหลาย instance (จะส่งซ้ำ)
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      restart_delay: 5000,
+      max_memory_restart: '512M',
+
+      out_file: './logs/delay-alert-out.log',
+      error_file: './logs/delay-alert-error.log',
+
+      env: {
+        NODE_ENV: 'production',
+      }
+    },
+
+    // =========================
     // PRINT AGENT (เครื่องพิมพ์สลิป นอกโปรเจกต์)
     // =========================
     {
