@@ -5,24 +5,25 @@
 **/.env.*
 !.env.example
 
-# **de dependencies
+# Dependencies
 node_modules/
-**/**de_modules/
+**/node_modules/
 
 # Database backups
-****k
+*.bak
 *.bacpac
 
 # Logs
 *.log
 logs/
 
-***emporary files
+# Temporary files
 *.tmp
 *.swp
 
-# Cl***e
+# Claude
 .claude/
 
 # OS files
-.DS_Store***umbs.db
+.DS_Store
+Thumbs.db
