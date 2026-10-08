@@ -1,0 +1,9 @@
+# ตัวอย่างค่าสำหรับแจ้งเตือน Delay เข้า LINE (คัดลอกบรรทัดที่ต้องใช้ไปใส่ใน backend/.env เอง — ห้าม commit token)
+LINE_CHANNEL_ACCESS_TOKEN=
+LINE_GROUP_ID=
+# ไม่บังคับ
+# DELAY_ALERT_DBS=4            # ถ้าใส่ 1-4 จะใช้ DBS นั้นกับทุกแถว (ไม่ใส่ = ตามขั้นตอนของแถว)
+# DELAY_ALERT_GREEN_PCT=50
+# DELAY_ALERT_YELLOW_PCT=0
+# DELAY_ALERT_SUMMARY_MIN=60   # สรุปทุกกี่นาที (0 = ไม่ส่งสรุป)
+# DELAY_ALERT_LINK=http://172.48.0.116/coldStorage/Sheet

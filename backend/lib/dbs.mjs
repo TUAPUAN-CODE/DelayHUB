@@ -325,3 +325,22 @@ export const getDbs = (row, now = null) => {
     return { text, minutes, std: skip ? null : std[i], over: !skip && std[i] !== null && minutes !== null && minutes > std[i] };
   });
 };
+
+/**
+ * Which DBS colours a row (index 0..3): the DBS of the stage the row is in.
+ *   finished (packed)                              -> DBS4 (the final total)
+ *   in a cold room (cs_id, or an open stay)        -> DBS2
+ *   out of the cold room, not finished             -> DBS3
+ *   before the cold room                           -> DBS1
+ * A row of a special group has no DBS1-3: the caller falls back to DBS4 when the chosen DBS has no value.
+ */
+export const stageDbsIndex = (row) => {
+  if (isFinished(row)) return 3;
+  const inCold = Boolean(row.cs_id)
+    || Boolean(row.come_cold_date && !row.out_cold_date)
+    || Boolean(row.come_cold_date_two && !row.out_cold_date_two)
+    || Boolean(row.come_cold_date_three && !row.out_cold_date_three);
+  if (inCold) return 1;
+  if (row.out_cold_date) return 2;
+  return 0;
+};
