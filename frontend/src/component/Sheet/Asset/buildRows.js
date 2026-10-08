@@ -50,6 +50,8 @@ export const statusOf = (r) => {
     const a = analyzeRow(r);
     return { label: a.status.label, color: a.status.color, bg: a.status.bg };
   }
+  const fixed = FIXED_STATUS(r);
+  if (fixed) return fixed;
   const st = String(r.rm_status || "");
   if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
@@ -76,6 +78,27 @@ const mergeHu = (m, h) => {
 const norm = (v) => String(v ?? "").trim().toUpperCase();
 const planBatches = (r) => (Array.isArray(r.batchArray) && r.batchArray.length ? r.batchArray : String(r.batch ?? "").split(",")).map(norm).filter(Boolean);
 
+// (rm_status | stay_place | dest) combinations that are not real work: the row is not shown at all (agreed with the users; the API hides them too)
+const HIDDEN_COMBOS = new Set([
+  "QcCheck|create_manual|create_manual",
+  "QcCheck|เข้าห้องเย็น|บรรจุ",
+  "QcCheck|บรรจุ|รถเข็นรอจัดส่ง",
+  "QcCheck รอแก้ไข|จุดเตรียม|จุดเตรียม",
+]);
+const comboOf = (r) => `${r.rm_status ?? ""}|${r.stay_place ?? ""}|${r.dest ?? ""}`;
+
+// combinations with a fixed status name (checked before every other rule)
+const FIXED_STATUS = (r) => {
+  const st = r.rm_status;
+  if ((st === "QcCheck" || st === "รอกลับมาเตรียม") && (r.stay_place === "จุดเตรียม" || r.stay_place === "ออกห้องเย็น") && r.dest === "บรรจุ") {
+    return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  }
+  if (st === "รอกลับมาเตรียม" && r.stay_place === "เข้าห้องเย็นใหญ่" && r.dest === "ในห้องเย็นใหญ่") {
+    return { label: "อยู่ในห้องเย็นใหญ่", color: "#6A1B9A", bg: "#F3E5F5" };
+  }
+  return null;
+};
+
 const cleanText = (v) => v.normalize("NFC").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/\s+/g, " ").trim();
 
 export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now()) => {
@@ -89,7 +112,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
   const plansOf = (h) => (h ? [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()] : []);
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
-  const rows = (mappings || []).map((m) => {
+  const rows = (mappings || []).filter((m) => !HIDDEN_COMBOS.has(comboOf({ rm_status: cleanText(String(m.rm_status ?? "")), stay_place: cleanText(String(m.stay_place ?? "")), dest: cleanText(String(m.dest ?? "")) }))).map((m) => {
     const h = m.hu !== null && m.hu !== undefined && m.hu !== "" ? huByKey.get(String(m.hu)) : null;
     if (h) used.add(String(m.hu));
     const merged = h ? mergeHu(m, h) : { ...m };

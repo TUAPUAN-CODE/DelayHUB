@@ -109,6 +109,18 @@ const buildMappingQuery = () => `
   WHERE
       -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
       ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
+      -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
+      AND NOT EXISTS (
+          SELECT 1 FROM (VALUES
+              (N'QcCheck', N'create_manual', N'create_manual'),
+              (N'QcCheck', N'เข้าห้องเย็น', N'บรรจุ'),
+              (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
+              (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
+          ) hid(rm_status, stay_place, dest)
+          WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
+            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
+            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
+      )
       AND (
           -- still open (not packed / not finished): always shown, however old — these are the rows that get forgotten
           (@include_open = 1 AND ISNULL(rmm.dest, N'') <> N'บรรจุเสร็จ' AND ISNULL(rmm.rm_status, N'') <> N'สำเร็จ')
