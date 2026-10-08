@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { Alert, Button, Chip, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { io } from "socket.io-client";
+import { Alert, Button, Chip, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -19,6 +20,8 @@ import TrolleyFlows from "../../ColdStorage/RoomTableSupervisor/Asset/flow/Troll
 import CheckoutFlow from "../../ColdStorage/RoomTableSupervisor/Asset/flow/CheckoutFlow";
 import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
+import ReworkFlows from "./prep/ReworkFlows";
+import { EmulsionFlows, BatchFlows, MixPackFlows, LoafFlows, MIX_KINDS } from "./prep/mixVariants";
 import { CHECKIN_DEST } from "./pack/checkinData";
 
 axios.defaults.withCredentials = true;
@@ -28,6 +31,8 @@ const REFRESH_MS = 60000;
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const MY_LINE = parseInt(localStorage.getItem("line_id"), 10);
+// ประเภทวัตถุดิบของผู้ใช้ (หน้า QC / จุดเตรียมเดิมกรองด้วยค่านี้)
+const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
 // "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
 const CAN_ADD_RM = ["3", "4", "5", "6"].includes(localStorage.getItem("pos_id"));
 
@@ -51,10 +56,13 @@ const ParentComponent = ({ role }) => {
   const [includeOpen, setIncludeOpen] = useState(true);
   const [mine, setMine] = useState(false);
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
+  const [myType, setMyType] = useState((role === "qc" || role === "prep") && MY_TYPES.length > 0);
   const [cart, setCart] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [weights, setWeights] = useState({});
   const [toast, setToast] = useState("");
+  const [mix, setMix] = useState({});
+  const [mixMenu, setMixMenu] = useState(null);
 
   const columns = useMemo(() => columnsForRole(role), [role]);
   const defVisible = useMemo(() => defaultVisible(role), [role]);
@@ -65,6 +73,8 @@ const ParentComponent = ({ role }) => {
   const largeRef = useRef(null);
   const packRef = useRef(null);
   const moreRef = useRef(null);
+  const reworkRef = useRef(null);
+  const mixRefs = { emu: useRef(null), batch: useRef(null), pack: useRef(null), loaf: useRef(null) };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,16 +84,39 @@ const ParentComponent = ({ role }) => {
       huRef.current = res.data.hus || [];
       setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] });
       setError("");
+      if (role === "prep") {
+        // lists of the old mixing pages (a failing list must not break the sheet)
+        const kinds = Object.keys(MIX_KINDS);
+        const results = await Promise.allSettled(kinds.map((k) => axios.get(`${API_URL}${MIX_KINDS[k].url}`)));
+        const next = {};
+        results.forEach((r, i) => {
+          if (r.status === "fulfilled") { const d = r.value.data; next[kinds[i]] = Array.isArray(d) ? d : (d?.success ? d.data : []); }
+          else console.error(`[Sheet] mix list ${kinds[i]} error:`, r.reason?.message);
+        });
+        setMix(next);
+      }
     } catch (err) {
       console.error("[Sheet] load error:", err);
       setError(err.response?.data?.error || err.message || "โหลดตารางไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
-  }, [days, includeOpen]);
+  }, [days, includeOpen, role]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load]);
+
+  // real-time: reload when another user changes data (same events as the old pages)
+  useEffect(() => {
+    if (!API_URL) return undefined;
+    let timer = null;
+    const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000 });
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(load, 800); };
+    socket.on("dataUpdated", refresh);
+    socket.on("dataDelete", refresh);
+    socket.on("connect_error", (err) => console.error("[Sheet] socket error:", err.message));
+    return () => { clearTimeout(timer); socket.off("dataUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
+  }, [load]);
 
   const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload: load });
 
@@ -102,6 +135,21 @@ const ParentComponent = ({ role }) => {
         mk("dispatch", "จ่ายลงไลน์", "#1552F0", <LocalShippingOutlinedIcon fontSize="small" />),
         mk("checkin", "รับเข้าห้องเย็น", "#6A1B9A", <WarehouseOutlinedIcon fontSize="small" />),
       );
+    }
+    if (role === "prep") {
+      const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
+      if (kind) {
+        const ref = mixRefs[kind];
+        out.push({ col: "t_mix", key: `cart-${kind}`, label: "ใส่รถเข็น", color: "#1552F0", title: `${MIX_KINDS[kind].label}: ใส่รถเข็น`, run: () => ref.current?.cart(r.__loaf || r) });
+        out.push({ col: "t_mix", key: `ok-${kind}`, label: "เสร็จ", color: "#2E7D32", run: () => ref.current?.success(r.__loaf || r) });
+        if (kind !== "loaf") out.push({ col: "t_mix", key: `del-${kind}`, label: "ลบ", color: "#C62828", run: () => ref.current?.remove(r) });
+      }
+      const rk = r.__rework;
+      if (rk) {
+        out.push({ col: "t_rework", key: "rw-cart", label: "ใส่รถเข็น (รอแก้ไข)", color: "#B91C1C", run: () => reworkRef.current?.cart(r, "rework") });
+        if (rk === "B") out.push({ col: "t_rework", key: "im-cart", label: "กลับมาเตรียม", color: "#B45309", run: () => reworkRef.current?.cart(r, "import") });
+        out.push({ col: "t_rework", key: "rw-edit", label: "แก้ไข", color: "#B26A00", run: () => reworkRef.current?.edit(r, rk === "B" ? "import" : "rework") });
+      }
     }
     if (r.__kind !== "map") return out;
     const st = String(r.rm_status || "");
@@ -137,15 +185,16 @@ const ParentComponent = ({ role }) => {
   }, [role, hu, weights, selected]);
   const ctx = useMemo(() => ({ tools }), [tools]);
 
-  const allRows = useMemo(() => buildRows(data.hus, data.mappings), [data]);
+  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix), [data, mix]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const rows = useMemo(() => {
     let list = allRows;
     if (myLine && role === "pack") list = list.filter((r) => r.__kind === "map" && (r.line_id === MY_LINE || (r.__stage === "trolley" && Number(r.pack_line_id) === MY_LINE)));
+    if (myType && (role === "qc" || role === "prep")) list = list.filter((r) => (role === "prep" && r.__kind !== "map") || (r.__kind === "map" && MY_TYPES.includes(Number(r.rm_type_id))));
     if (mine) list = list.filter((r) => tools(r).some((t) => !t.passive && t.ok !== false));
     return list;
-  }, [allRows, mine, myLine, role, tools]);
+  }, [allRows, mine, myLine, myType, role, tools]);
 
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
@@ -165,6 +214,21 @@ const ParentComponent = ({ role }) => {
       <Tooltip title="รวมรายการที่ยังไม่ปิด แม้เก่ากว่าช่วงวันที่เลือก (กันของตกค้าง)" arrow>
         <Chip label="รวมรายการที่ยังไม่ปิด" clickable size="small" color={includeOpen ? "secondary" : "default"} variant={includeOpen ? "filled" : "outlined"} onClick={() => setIncludeOpen((v) => !v)} />
       </Tooltip>
+      {(role === "qc" || role === "prep") && MY_TYPES.length > 0 && (
+        <Tooltip title="แสดงเฉพาะวัตถุดิบประเภทที่บัญชีของคุณรับผิดชอบ (เหมือนหน้าเดิม) — กดอีกครั้งเพื่อดูทั้งหมด" arrow>
+          <Chip label="ประเภทของฉัน" clickable color={myType ? "primary" : "default"} variant={myType ? "filled" : "outlined"} onClick={() => setMyType((v) => !v)} />
+        </Tooltip>
+      )}
+      {role === "prep" && (
+        <>
+          <Button variant="contained" size="small" onClick={(e) => setMixMenu(e.currentTarget)}>เพิ่มรายการผสม ▾</Button>
+          <Menu anchorEl={mixMenu} open={!!mixMenu} onClose={() => setMixMenu(null)}>
+            {Object.entries(MIX_KINDS).map(([k, v]) => (
+              <MenuItem key={k} onClick={() => { setMixMenu(null); mixRefs[k].current?.add(); }}>{v.label}</MenuItem>
+            ))}
+          </Menu>
+        </>
+      )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
         <Button key={k} variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan(k)}>
           สแกน {{ start: "เริ่มละลาย", end: "ละลายเสร็จ", dispatch: "จ่ายลงไลน์" }[k]}
@@ -197,6 +261,15 @@ const ParentComponent = ({ role }) => {
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}
       <PackFlows ref={packRef} onDone={load} onNotify={setToast} />
+      {role === "prep" && (
+        <>
+          <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />
+          <EmulsionFlows ref={mixRefs.emu} onDone={load} />
+          <BatchFlows ref={mixRefs.batch} onDone={load} />
+          <MixPackFlows ref={mixRefs.pack} onDone={load} />
+          <LoafFlows ref={mixRefs.loaf} onDone={load} />
+        </>
+      )}
       <PackMoreFlows ref={moreRef} onDone={afterConfirm} onNotify={setToast} />
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="info" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>

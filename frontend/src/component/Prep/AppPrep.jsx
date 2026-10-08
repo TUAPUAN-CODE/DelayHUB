@@ -3,18 +3,13 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import SidebarPrep from "./SidebarPrep";
 import MainProduction from "./Main/MainPage";
 import HistoryCookedPage from "./HistoryCooked/HistoryCookedPage";
-import MatReworkPage from "./MatRework/MatReworkPage";
 import ScanSAPPage from "./ScanSAP/ScanSAPPage";
 import HistoryTranform from "./HistoryTransform/HistoryTransformPage";
 import ManageSelect from "../User/ManageSelect";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
-import EmulsionPage from "./Emulsion/EmusionPage.jsx";
 import RM_EMU from "./RMEmu/MainPage.jsx";
-import BatchMIXPage from "./BatchMIX/BatchMIXPage.jsx";
 import EditDataTrolley from "./EditDataTrolley/EditDataTrolley.jsx";
-import IncludeRawmatPage from "./IncludeRawmat/IncludeRawmatPage.jsx";
 import CheckInPagePrep from "./CheckIn/CheckInPage.jsx";
-import IncludeRawmatPageotherplant from "./IncludeRawmatOtherPlant/IncludeRawmatPage.jsx";
 import Timestamp from "./Timestampbroth/Timestampborth.jsx";
 import TimeStampMainPage from "./TimeStampMain/TimeStampMainPage.jsx";
 
@@ -37,19 +32,18 @@ function AppPrep() {
           path="/HistoryCooked/HistoryCookedPage"
           element={<HistoryCookedPage />}
         />
-        <Route path="/MatRework/MatReworkPage" element={<MatReworkPage />} />
         <Route path="/ScanSAP/ScanSAPPage" element={<ScanSAPPage />} />
-        <Route path="/MatImport/MatImportPage" element={<Navigate to="/prep/MatRework/MatReworkPage?tab=import" replace />} />
+        
         <Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
         <Route path="/HistoryTranform/HistoryTranformPage"element={<HistoryTranform />}/>
         <Route path="/User/SelectWP" element={<ManageSelect />} />
         <Route path="/RM_EMU" element={<RM_EMU/>} />
-        <Route path="/Emulsions" element={<EmulsionPage />} />
-        <Route path="/BatchMIX" element={<BatchMIXPage />} />
         <Route path="/EditDataTrolley" element={<EditDataTrolley />} />
-        <Route path="/IncludeRawmat" element={<IncludeRawmatPage />} />
         <Route path="/checkinpage" element={<CheckInPagePrep />} />
-        <Route path="/IncludeRawmatPageotherplant" element={<IncludeRawmatPageotherplant />} />
+        {/* รอแก้ไข / กลับมาเตรียม / ผสมวัตถุดิบ ทั้ง 4 หน้า รวมอยู่ในตารางรวมวัตถุดิบแล้ว (tool ในตาราง) — ลิงก์เดิมพาไปที่ Sheet */}
+        {["/MatRework/MatReworkPage", "/MatImport/MatImportPage", "/Emulsions", "/BatchMIX", "/IncludeRawmat", "/IncludeRawmatPageotherplant"].map((p) => (
+          <Route key={p} path={p} element={<Navigate to="/prep/Sheet" replace />} />
+        ))}
         {/* addresses of the pages that were merged into the Time Stamp page keep working (bookmarks, old links) */}
         {["/manageprep", "/managepreps", "/pd/checkout", "/MatManage/MatManagePage", "/ColdCheck", "/RMInclude", "/TraceBack_HU", "/history"].map((p) => (
           <Route key={p} path={p} element={<Navigate to="/prep" replace />} />

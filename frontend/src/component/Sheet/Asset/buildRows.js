@@ -1,5 +1,6 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 import { getDbs } from "./dbs";
+import { reworkKind } from "./prep/kinds";
 
 // ONE flat list: every raw material (mapping) is a row. A HU (SAP_Receive) that has no mapping yet is its own row,
 // so its time stamps (start thaw / done / dispatch) can still be recorded. The HU of a mapping is History.hu.
@@ -41,8 +42,15 @@ export const packStage = (r) => {
   return null;
 };
 
+const MIX_STATUS = {
+  emu: "รอผสม (ผสมวัตถุดิบ)", batch: "รอผสม (Batch)", pack: "รอผสม (ผสมเตรียม)", loaf: "รอผสม (loaf สุก)",
+};
+
 /** status chip of a row */
 export const statusOf = (r) => {
+  if (r.__kind === "mix") return { label: MIX_STATUS[r.__mix] || "รอผสม", color: "#6A1B9A", bg: "#F3E5F5" };
+  if (r.__rework === "A") return { label: "รอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
+  if (r.__rework === "B") return { label: "รอกลับมาเตรียม", color: "#B45309", bg: "#FEF3C7" };
   if (r.__kind === "hu") {
     const a = analyzeRow(r);
     return { label: a.status.label, color: a.status.color, bg: a.status.bg };
@@ -69,7 +77,7 @@ const mergeHu = (m, h) => {
   return out;
 };
 
-export const buildRows = (hus, mappings) => {
+export const buildRows = (hus, mappings, mix = {}) => {
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
   const rows = (mappings || []).map((m) => {
@@ -81,6 +89,7 @@ export const buildRows = (hus, mappings) => {
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
     merged.__dbs = safeDbs(merged);
     merged.__stage = packStage(merged);
+    merged.__rework = reworkKind(merged);
     // field names the forms of the old pages expect
     merged.production = merged.code;
     merged.line_name = merged.rmm_line_name;
@@ -90,6 +99,18 @@ export const buildRows = (hus, mappings) => {
   (hus || []).forEach((h) => {
     if (used.has(String(h.hu))) return;
     rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [] });
+  });
+  // Prep mixing lists (materials waiting to be mixed). A "loaf" item is a real mapping: the tool is attached to that row instead of a new row.
+  const byMapping = new Map(rows.filter((r) => r.__kind === "map").map((r) => [r.mapping_id, r]));
+  Object.entries(mix).forEach(([kind, list]) => {
+    (list || []).forEach((m, i) => {
+      const target = kind === "loaf" && m.mapping_id !== undefined ? byMapping.get(m.mapping_id) : null;
+      if (target) { target.__loaf = m; return; }
+      const id = m.rmfemu_id ?? m.rmfbatch_id ?? m.mixtp_id ?? m.mapping_id ?? i;
+      rows.push({
+        ...m, weight_RM: m.weight_RM ?? m.weight, code: m.production || m.code, __key: `mix:${kind}:${id}`, __kind: "mix", __mix: kind, __dbs: [], __hu: null,
+      });
+    });
   });
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = lastActivity(r); });
   rows.sort((a, b) => b.__last - a.__last);

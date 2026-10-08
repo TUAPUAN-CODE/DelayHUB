@@ -1,7 +1,6 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import HisCheck from "./HisCheck/HisCheckPage";
-import QCCheckPage from "./QCCheck/QCCheckPage";
 import SidebarQC from "./SidebarQC";
 import QCMain from "./MainQC/MainPage";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
@@ -23,7 +22,8 @@ function AppQualityControl() {
 				<Route path="/Sheet" element={<SheetPage role="qc" />} />
 				<Route path='/TrackTrolleyQC' element={<TrackTrolleyQC />} />
 				<Route path='/HisCheck/HisCheckPage' element={<HisCheck />} />
-				<Route path='/' element={<QCCheckPage />} />
+				{/* ตารางตรวจสอบคุณภาพรวมอยู่ในตารางรวมวัตถุดิบแล้ว (tool ตรวจ QC) */}
+				<Route path='/' element={<Navigate to='/qualitycontrol/Sheet' replace />} />
 				<Route path="/User/SelectWP" element={<QCSelectWP />} />
 				<Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
 			</Routes>
