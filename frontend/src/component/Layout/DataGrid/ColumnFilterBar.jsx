@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Box, Button, Checkbox, Divider, InputAdornment, Popover, TextField, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, InputAdornment, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -39,10 +39,10 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
   const numeric = col.type === "time" || col.type === "number" || col.type === "dbs" || col.align === "right";
 
   return (
-    <Popover open onClose={onClose} anchorEl={anchor} anchorOrigin={{ vertical: "bottom", horizontal: "left" }}>
-      <Box sx={{ width: 300, p: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>{col.label}</Typography>
-        <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle sx={{ fontSize: 17, fontWeight: 700, pb: 1 }}>{col.label}</DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
           <Button size="small" fullWidth variant={sort === "asc" ? "contained" : "outlined"} startIcon={<ArrowUpwardIcon fontSize="small" />} onClick={() => onSort(sort === "asc" ? null : "asc")}>
             {numeric ? "น้อย → มาก" : "A → Z"}
           </Button>
@@ -50,7 +50,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
             {numeric ? "มาก → น้อย" : "Z → A"}
           </Button>
         </Box>
-        <Divider sx={{ mb: 1 }} />
+        <Divider sx={{ mb: 1.5 }} />
         <TextField
           size="small" fullWidth autoFocus placeholder="ค้นหาในคอลัมน์นี้..." value={q} onChange={(e) => setQ(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -60,7 +60,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
             onChange={(e) => setMany(shown.map((o) => o.value), e.target.checked)} />
           <Typography variant="body2">{needle ? "เลือกทั้งหมดที่ค้นเจอ" : "(เลือกทั้งหมด)"}</Typography>
         </Box>
-        <Box sx={{ maxHeight: 240, overflowY: "auto" }}>
+        <Box sx={{ maxHeight: 340, overflowY: "auto" }}>
           {visible.map((o) => (
             <Box key={o.value || "__empty"} sx={{ display: "flex", alignItems: "center" }}>
               <Checkbox size="small" checked={isOn(o.value)} onChange={() => toggle(o.value)} />
@@ -71,12 +71,12 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
           {shown.length > MAX_OPTIONS && <Typography variant="caption" color="text.secondary" sx={{ display: "block", py: 0.5 }}>แสดง {MAX_OPTIONS} จาก {shown.length} ค่า — พิมพ์ค้นหาเพื่อกรองให้แคบลง</Typography>}
           {!shown.length && <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>ไม่พบค่า</Typography>}
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-          <Button size="small" disabled={!selected} onClick={() => onFilter(null)}>ล้างตัวกรอง</Button>
-          <Button size="small" variant="contained" onClick={onClose}>ตกลง</Button>
-        </Box>
-      </Box>
-    </Popover>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 1.5, justifyContent: "space-between" }}>
+        <Button size="small" disabled={!selected} onClick={() => onFilter(null)}>ล้างตัวกรอง</Button>
+        <Button size="small" variant="contained" onClick={onClose}>ตกลง</Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

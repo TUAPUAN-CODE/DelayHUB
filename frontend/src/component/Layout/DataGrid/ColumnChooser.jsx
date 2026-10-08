@@ -1,11 +1,21 @@
 import { useMemo, useState } from "react";
-import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, TextField, Tooltip, Typography } from "@mui/material";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 
 /** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings (e.g. row colours) shown on top. */
-const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra }) => {
+const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange }) => {
   const [q, setQ] = useState("");
   const set = useMemo(() => new Set(visible), [visible]);
+  const pinSet = useMemo(() => new Set(pins), [pins]);
+  const pinnedWidth = useMemo(() => columns.filter((c) => pinSet.has(c.key) && set.has(c.key)).reduce((sum, c) => sum + (c.width || 100), 0), [columns, pinSet, set]);
+  const togglePin = (key) => {
+    if (!onPinsChange) return;
+    const next = new Set(pinSet);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    onPinsChange(columns.filter((c) => next.has(c.key)).map((c) => c.key));
+  };
 
   const byGroup = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -29,6 +39,12 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
         {warning && <Alert severity="warning" sx={{ mb: 1.5 }}>{warning}</Alert>}
         {!warning && storage === "server" && <Alert severity="success" sx={{ mb: 1.5 }}>บันทึกตามบัญชีของคุณในฐานข้อมูลแล้ว (ใช้ได้ทุกเครื่อง)</Alert>}
         {extra}
+        {onPinsChange && (
+          <Alert severity={pinnedWidth > 900 ? "warning" : "info"} sx={{ mb: 1.5 }}>
+            ไอคอนหมุด <PushPinIcon sx={{ fontSize: 15, verticalAlign: "text-bottom" }} /> = ตรึงคอลัมน์ไว้ทางซ้าย (ไม่เลื่อนตามเมื่อเลื่อนดูคอลัมน์อื่น) · ตรึงอยู่ {pins.length} คอลัมน์ กว้างรวมประมาณ {pinnedWidth}px
+            {pinnedWidth > 900 ? " — กว้างมาก อาจเหลือที่ให้ดูคอลัมน์อื่นน้อย" : ""}
+          </Alert>
+        )}
         <TextField
           size="small" fullWidth placeholder="ค้นหาคอลัมน์..." value={q} onChange={(e) => setQ(e.target.value)} sx={{ mb: 1.5 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -47,7 +63,16 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
               </Box>
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
                 {g.cols.map((c) => (
-                  <FormControlLabel key={c.key} sx={{ m: 0 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={<span style={{ fontSize: 13 }}>{c.label}</span>} />
+                  <Box key={c.key} sx={{ display: "flex", alignItems: "center" }}>
+                    <FormControlLabel sx={{ m: 0, flex: 1 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={<span style={{ fontSize: 13 }}>{c.label}</span>} />
+                    {onPinsChange && (
+                      <Tooltip title={pinSet.has(c.key) ? "ยกเลิกการตรึง" : "ตรึงไว้ทางซ้าย"} arrow>
+                        <IconButton size="small" onClick={() => togglePin(c.key)} sx={{ color: pinSet.has(c.key) ? "#1552F0" : "#B0BAC9" }}>
+                          {pinSet.has(c.key) ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
                 ))}
               </Box>
             </Box>

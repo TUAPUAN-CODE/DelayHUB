@@ -25,7 +25,7 @@ const ToolButtons = ({ items }) => {
       <span><IconButton size="small" onClick={it.run} sx={{ color: it.ok === false ? "#C5CCD9" : it.color }}>{it.icon}</IconButton></span>
     </Tooltip>
   ) : (
-    <Button key={it.key} size="small" variant="outlined" onClick={it.run} sx={{ py: 0, px: 1, minWidth: 0, fontSize: 12, textTransform: "none", color: it.color, borderColor: it.color, mr: 0.5 }}>{it.label}</Button>
+    <Button key={it.key} size="small" variant="outlined" onClick={it.run} sx={{ py: 0, px: 1, minWidth: 0, fontSize: 12, textTransform: "none", whiteSpace: "nowrap", color: it.color, borderColor: it.color, mr: 0.5, mb: 0.25 }}>{it.label}</Button>
   )));
 };
 
@@ -70,7 +70,7 @@ export const COLUMNS = [
   tool("t_kg", "น้ำหนัก (kg)", 110, ["pack"]),
   tool("t_edit", "แก้ไข", 80, ["pack"]),
   tool("t_confirm", "ยืนยัน", 80, ["pack"]),
-  tool("t_checkin", "Check In", 90, ["pack"]),
+  tool("t_checkin", "Check In", 100, ["pack"]),
   tool("t_pstamp", "Time Stamp (รับ / ต้ม / ส่งคืน)", 190, ["prep"]),
   tool("t_rework", "รอแก้ไข / กลับมาเตรียม", 200, ["prep"]),
   tool("t_mix", "ผสม", 150, ["prep"]),

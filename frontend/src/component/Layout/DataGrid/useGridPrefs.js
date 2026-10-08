@@ -25,6 +25,7 @@ const useGridPrefs = (gridKey, defaults) => {
     visible: local?.visible || defaults.visible,
     sorts: local?.sorts || defaults.sorts || [],
     ext: { ...(defaults.ext || {}), ...(local?.ext || {}) },
+    pins: local?.pins ?? null, // columns frozen on the left; null = the default of the table
   }));
   const [storage, setStorage] = useState("loading");
   const [warning, setWarning] = useState("");
@@ -48,6 +49,7 @@ const useGridPrefs = (gridKey, defaults) => {
             visible: cfg.visible?.length ? cfg.visible : prev.visible,
             sorts: cfg.sorts || prev.sorts,
             ext: { ...prev.ext, ...(cfg.ext || {}) },
+            pins: cfg.pins ?? prev.pins,
           }));
           writeLocal(userId, gridKey, cfg);
         }
@@ -84,12 +86,13 @@ const useGridPrefs = (gridKey, defaults) => {
   const setVisible = useCallback((visible) => update({ visible }), [update]);
   const setSorts = useCallback((sorts) => update({ sorts }), [update]);
   const setExt = useCallback((patch) => setConfig((prev) => { const next = { ...prev, ext: { ...prev.ext, ...patch } }; persist(next); return next; }), [persist]);
+  const setPins = useCallback((pins) => update({ pins }), [update]);
   const reset = useCallback(() => {
     const d = defaultsRef.current;
-    update({ visible: d.visible, ext: { ...(d.ext || {}) } });
+    update({ visible: d.visible, ext: { ...(d.ext || {}) }, pins: null });
   }, [update]);
 
-  return { visible: config.visible, sorts: config.sorts, ext: config.ext, setVisible, setSorts, setExt, reset, storage, warning };
+  return { visible: config.visible, sorts: config.sorts, ext: config.ext, pins: config.pins, setVisible, setSorts, setExt, setPins, reset, storage, warning };
 };
 
 export default useGridPrefs;

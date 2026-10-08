@@ -106,7 +106,9 @@ const buildMappingQuery = () => `
       ORDER BY hh.hist_id DESC
   ) h
   WHERE
-      (
+      -- rows deleted by the clear / QC-delete buttons keep a marker in stay_place / dest ("...ลบจาก...") — not shown
+      ISNULL(rmm.dest, N'') NOT LIKE N'%ลบจาก%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบจาก%'
+      AND (
           -- still open (not packed / not finished): always shown, however old — these are the rows that get forgotten
           (@include_open = 1 AND ISNULL(rmm.dest, N'') <> N'บรรจุเสร็จ' AND ISNULL(rmm.rm_status, N'') <> N'สำเร็จ')
           OR COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date) >= DATEADD(DAY, -@days, GETDATE())

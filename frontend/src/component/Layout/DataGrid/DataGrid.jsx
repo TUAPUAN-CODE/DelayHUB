@@ -16,7 +16,9 @@ import { cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridU
 const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#2E7D32", yellow: "#B26A00", red: "#C62828" };
-const COLOR_ORDER = { red: 0, yellow: 1, green: 2 };
+const GRID = "1px solid #000";
+// opaque hover colours: the theme's translucent hover colour would let the scrolled cells show through the frozen columns
+const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9" };
 const CHECK_W = 44;
 const HEAD_H = 32;
 const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "6px 8px" };
@@ -29,8 +31,8 @@ const DefaultCell = ({ col, row }) => {
   return <span>{String(v)}</span>;
 };
 
-const GridRow = memo(({ row, cols, frozenLeft, bg, selectable, checked, canSelect, onToggle, ctx }) => (
-  <TableRow hover sx={{ "& td": { background: bg, borderBottom: "1px solid #EEF2F9" } }}>
+const GridRow = memo(({ row, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx }) => (
+  <TableRow hover sx={{ "& td": { background: bg }, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
       <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, background: bg, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
         <Checkbox size="small" checked={checked} disabled={!canSelect} onChange={onToggle} />
@@ -41,10 +43,10 @@ const GridRow = memo(({ row, cols, frozenLeft, bg, selectable, checked, canSelec
       const sticky = left !== undefined;
       return (
         <TableCell
-          key={c.key} align={c.align || "left"}
+          key={c.key} align={c.align || "left"} className={c.lastFrozen ? "frozen-edge" : undefined}
           sx={{
             fontSize: 12.5, padding: "3px 8px", background: bg,
-            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis", borderRight: c.lastFrozen ? "2px solid #D5DCEB" : undefined } : { minWidth: c.width }),
+            ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { minWidth: c.width }),
           }}
         >
           {c.render ? c.render(row, ctx) : <DefaultCell col={c} row={row} />}
@@ -71,7 +73,7 @@ const DataGrid = ({
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({}); // { colKey: [values] } — not saved (a saved filter would silently hide new rows)
-  const [colorFirst, setColorFirst] = useState(null);
+  const [colorOnly, setColorOnly] = useState(null); // show only the rows of this colour
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
@@ -79,14 +81,16 @@ const DataGrid = ({
 
   const colByKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns]);
 
-  // visible columns: frozen ones (tools, status, รายการ) first, the rest in registry order
+  // columns frozen on the left: the account's own choice (column settings), or the default of the table
+  const pinSet = useMemo(() => new Set(prefs.pins ?? columns.filter((c) => c.frozen).map((c) => c.key)), [prefs.pins, columns]);
+  const pinnedKeys = useMemo(() => columns.filter((c) => pinSet.has(c.key)).map((c) => c.key), [columns, pinSet]);
+
+  // visible columns: frozen ones first (in registry order), the rest in registry order
   const visibleCols = useMemo(() => {
     const on = new Set(prefs.visible);
-    const list = columns.filter((c) => on.has(c.key));
-    const frozen = list.filter((c) => c.frozen);
-    const rest = list.filter((c) => !c.frozen);
-    return [...frozen, ...rest];
-  }, [columns, prefs.visible]);
+    const list = columns.filter((c) => on.has(c.key)).map((c) => ({ ...c, frozen: pinSet.has(c.key) }));
+    return [...list.filter((c) => c.frozen), ...list.filter((c) => !c.frozen)];
+  }, [columns, prefs.visible, pinSet]);
 
   const { frozenLeft, cols } = useMemo(() => {
     let left = selectable ? CHECK_W : 0;
@@ -121,10 +125,6 @@ const DataGrid = ({
   const filtered = useMemo(() => searched.filter((r) => passFilters(r)), [searched, passFilters]);
 
   const colorOf = useCallback((row) => (rowColor ? rowColor(row, prefs.ext) : null), [rowColor, prefs.ext]);
-  const sorted = useMemo(
-    () => sortRows(filtered, prefs.sorts, colByKey, colorFirst ? (row) => (colorOf(row) === colorFirst ? 0 : 1) : null),
-    [filtered, prefs.sorts, colByKey, colorFirst, colorOf],
-  );
 
   const counts = useMemo(() => {
     if (!rowColor) return null;
@@ -132,6 +132,9 @@ const DataGrid = ({
     filtered.forEach((r) => { const k = colorOf(r); if (k) c[k] += 1; });
     return c;
   }, [filtered, rowColor, colorOf]);
+
+  const shownRows = useMemo(() => (colorOnly ? filtered.filter((r) => colorOf(r) === colorOnly) : filtered), [filtered, colorOnly, colorOf]);
+  const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
 
   const pageRows = useMemo(() => sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), [sorted, page, rowsPerPage]);
 
@@ -158,7 +161,7 @@ const DataGrid = ({
     setFilters((prev) => { const next = { ...prev }; if (values) next[key] = values; else delete next[key]; return next; });
     setPage(0);
   }, []);
-  const clearAll = () => { setSearch(""); setFilters({}); setColorFirst(null); prefs.setSorts([]); setPage(0); };
+  const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); prefs.setSorts([]); setPage(0); };
 
   // selection
   const selSet = selected || new Set();
@@ -186,7 +189,7 @@ const DataGrid = ({
     } finally { setExporting(false); }
   };
 
-  const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorFirst ? 1 : 0);
+  const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorOnly ? 1 : 0);
 
   return (
     <div>
@@ -208,12 +211,16 @@ const DataGrid = ({
 
       {counts && (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">เรียงตามสี Delay:</Typography>
+          <Typography variant="body2" color="text.secondary">แสดงเฉพาะสี Delay:</Typography>
+          <Chip
+            clickable label={`ทั้งหมด ${filtered.length}`} onClick={() => { setColorOnly(null); setPage(0); }}
+            sx={{ fontWeight: 700, border: "1px solid #546E7A", background: colorOnly ? "#fff" : "#546E7A", color: colorOnly ? "#546E7A" : "#fff" }}
+          />
           {["red", "yellow", "green"].map((k) => (
-            <Tooltip key={k} title={colorFirst === k ? "กดอีกครั้งเพื่อยกเลิกการเรียงตามสี" : `เอาแถวสี${COLOR_LABEL[k]}ขึ้นก่อน`} arrow>
+            <Tooltip key={k} title={colorOnly === k ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
               <Chip
-                clickable label={`${COLOR_LABEL[k]} ${counts[k]}`} onClick={() => { setColorFirst(colorFirst === k ? null : k); setPage(0); }}
-                sx={{ fontWeight: 700, background: colorFirst === k ? COLOR_FG[k] : ROW_BG[k], color: colorFirst === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
+                clickable label={`${COLOR_LABEL[k]} ${counts[k]}`} onClick={() => { setColorOnly(colorOnly === k ? null : k); setPage(0); }}
+                sx={{ fontWeight: 700, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
               />
             </Tooltip>
           ))}
@@ -233,7 +240,17 @@ const DataGrid = ({
 
       <Paper sx={{ borderRadius: "16px", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight }}>
-          <Table stickyHeader size="small" sx={{ minWidth: 600 }}>
+          <Table
+            stickyHeader size="small"
+            sx={{
+              minWidth: 600, borderCollapse: "separate", borderSpacing: 0,
+              // black grid lines (separate borders keep the lines on the frozen columns while scrolling)
+              "& .MuiTableCell-root": { borderRight: GRID, borderBottom: GRID },
+              "& thead tr:first-of-type .MuiTableCell-root": { borderTop: GRID },
+              "& .MuiTableCell-root:first-of-type": { borderLeft: GRID },
+              "& .MuiTableCell-root.frozen-edge": { borderRight: "3px solid #000" },
+            }}
+          >
             <TableHead>
               <TableRow>
                 {(selectable || frozenCount > 0) && (
@@ -255,10 +272,10 @@ const DataGrid = ({
                   const s = prefs.sorts.find((x) => x.key === c.key);
                   return (
                     <TableCell
-                      key={c.key} align={c.align || "left"}
+                      key={c.key} align={c.align || "left"} className={c.lastFrozen ? "frozen-edge" : undefined}
                       sx={{
                         ...HEAD, background: "#1552F0", top: HEAD_H,
-                        ...(sticky ? { position: "sticky", left, zIndex: 6, width: c.width, minWidth: c.width, maxWidth: c.width, borderRight: c.lastFrozen ? "2px solid #D5DCEB" : undefined } : { minWidth: c.width }),
+                        ...(sticky ? { position: "sticky", left, zIndex: 6, width: c.width, minWidth: c.width, maxWidth: c.width } : { minWidth: c.width }),
                       }}
                     >
                       {c.label}{s ? (s.dir === "asc" ? " ↑" : " ↓") : ""}
@@ -273,7 +290,7 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"}
+                    key={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={() => toggleOne(key)} ctx={ctx}
                   />
                 );
@@ -293,12 +310,11 @@ const DataGrid = ({
 
       <ColumnChooser
         open={chooserOpen} onClose={() => setChooserOpen(false)} columns={columns} groups={groups} visible={prefs.visible} onChange={prefs.setVisible} onReset={prefs.reset}
-        storage={prefs.storage} warning={prefs.warning}
+        storage={prefs.storage} warning={prefs.warning} pins={pinnedKeys} onPinsChange={prefs.setPins}
         extra={colorSettings ? colorSettings(prefs.ext, prefs.setExt) : null}
       />
     </div>
   );
 };
 
-export { COLOR_ORDER };
 export default DataGrid;
