@@ -4,6 +4,7 @@ module.exports = (io) => {
   const { connectToDatabase } = require("../database/db");
 
   const sql = require("mssql");
+  const { saveBatchRows } = require("./batchHelper");
   const router = express.Router();
 
   router.get("/oven/main/fetchRMForProd", async (req, res) => {
@@ -661,6 +662,9 @@ WHERE
       if (!result.recordset || result.recordset.length === 0) throw new Error("ไม่สามารถ insert TrolleyRMMapping");
 
       const mapping_id = result.recordset[0].mapping_id;
+
+      // Batch: the one the front sent (batchAfterArray / batch_after / batch), else the plan's batch
+      await saveBatchRows(transaction, mapping_id, req.body, rmfpID);
 
       // Insert History
       const historyResult = await transaction.request()

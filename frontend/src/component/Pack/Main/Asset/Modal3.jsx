@@ -26,6 +26,7 @@ const Modal3 = ({ open, onClose, data, onEdit, CookedDateTime, }) => {
     const payload = {
       license_plate: inputValues.join(" "), // ค่าที่ส่งคือ license plate ที่ได้รับจาก inputValues
       rmfpID: rmfp_id || "", // รหัส RMFP หรือค่าว่างถ้าไม่พบ
+      batch: data?.batch_after || data?.batch || "", // batch จากหน้าจอ (ถ้าไม่มี backend ใช้ batch ของแผนผลิตแทน)
       CookedDateTime: CookedDateTime || "", // ค่าของ CookedDateTime ถ้าไม่มีจะเป็นค่าว่าง
       weight: input2?.weightPerCart || "", // น้ำหนักจาก input2 หรือค่าว่างถ้าไม่พบ
       weightTotal: input2?.weightPerCart || "", // น้ำหนักรวมจาก input2 หรือค่าว่าง

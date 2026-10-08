@@ -2,6 +2,7 @@ module.exports = (io) => {
   const express = require("express");
   const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
   const sql = require("mssql");
+  const { copyBatchRows } = require("./batchHelper");
   // const { Line } = require("recharts");
   const router = express.Router();
   const multer = require('multer');
@@ -3464,6 +3465,9 @@ module.exports = (io) => {
               }
 
               const newMappingId = insertMap.recordset[0].mapping_id;
+
+              // Batch of the new mapping = batch of the mapping it came from
+              await copyBatchRows(transaction, from_mapping_id, newMappingId, req.body, oldRecord.rmfp_id);
 
               // เพิ่มข้อมูลใหม่ใน History
               const insertHis = await request
@@ -6938,6 +6942,9 @@ WHERE
         const newMappingId = insertNewMapping.recordset[0]?.mapping_id;
         if (!newMappingId) throw new Error("สร้าง mapping ใหม่ไม่สำเร็จ");
 
+        // Batch of the new mapping = batch of the mapping it was moved from (or the one the front sent)
+        await copyBatchRows(transaction, mapping_id, newMappingId, req.body, oldData.rmfp_id);
+
         // ✅ เพิ่มข้อมูลลงใน History โดยใช้ mapping_id ของรายการใหม่
         const insertHistory = await transaction.request()
           .input("mapping_id", sql.Int, newMappingId)
@@ -7655,6 +7662,9 @@ WHERE
       if (!newMappingId) {
         throw new Error("ไม่สามารถดึง mapping_id ของรายการใหม่ได้");
       }
+
+      // Batch of the new mapping = batch of the mapping it was moved from (or the one the front sent)
+      await copyBatchRows(transaction, mapping_id, newMappingId, req.body, rmfpID);
 
       await transaction.request()
         .input("request_rm_id", sql.Int, request_rm_id)

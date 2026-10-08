@@ -3,6 +3,7 @@ module.exports = (io) => {
   const { connectToDatabase } = require("../database/db");
   const router = express.Router();
   const sql = require("mssql");
+  const { saveBatchRows } = require("./batchHelper");
 
   // ── Dropdown APIs for DelayTimeTrackingRM filters ─────────────────────────────
 
@@ -6646,6 +6647,9 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       `);
 
       const mapping_id = insertResult.recordset[0].mapping_id;
+
+      // Batch: the one the front sent (batchAfterArray / batch_after / batch), else the plan's batch
+      await saveBatchRows(transaction, mapping_id, req.body, rmfpID);
 
       // 📌 แทรกข้อมูลลง History
       const historyResult = await transaction.request()

@@ -46,6 +46,7 @@ const Modal3 = ({ open, onClose, data, onEdit, CookedDateTime }) => {
     const payload = {
       license_plate: inputValues.join(" "),
       rmfpID: rmfp_id || "",
+      batch: data?.batch_after || data?.batch || "", // batch จากหน้าจอ (ถ้าไม่มี backend ใช้ batch ของแผนผลิตแทน)
       CookedDateTime: CookedDateTime || "",
       weight: input2?.weightPerCart || "",
       weightTotal: input2?.weightPerCart || "",

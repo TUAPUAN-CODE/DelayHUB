@@ -25,6 +25,7 @@ const Modal3 = ({ open, onClose, data, onEdit }) => {
     const payload = {
       license_plate: inputValues.join(" "),
       rmfpID: rmfp_id || "",
+      batch: data?.batch_after || data?.batch || "", // batch จากหน้าจอ (ถ้าไม่มี backend ใช้ batch ของแผนผลิตแทน)
       weight: input2?.weightPerCart || "",
       weightTotal: input2?.weightPerCart || "",
       ntray: input2?.numberOfTrays || "",
