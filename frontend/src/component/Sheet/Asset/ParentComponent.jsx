@@ -84,7 +84,8 @@ const ParentComponent = ({ role }) => {
   const [days, setDays] = useState(7);
   const [includeOpen, setIncludeOpen] = useState(true);
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
-  const [myType, setMyType] = useState((role === "qc" || role === "prep") && MY_TYPES.length > 0);
+  // off by default: when the types of the account match none of the rows the whole table of mappings looked empty. The chip below shows how many rows it would keep.
+  const [myType, setMyType] = useState(false);
   const [cart, setCart] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [weights, setWeights] = useState({});
@@ -319,6 +320,7 @@ const ParentComponent = ({ role }) => {
 
   const rowKey = useCallback((r) => r.__key, []);
   const afterMix = () => { setSelected(new Set()); load(); };
+  const myTypeCount = useMemo(() => (role === "qc" || role === "prep" ? allRows.filter((r) => r.__kind === "map" && MY_TYPES.includes(Number(r.rm_type_id))).length : 0), [allRows, role]);
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
     if (!picked.length) return;
@@ -331,7 +333,7 @@ const ParentComponent = ({ role }) => {
     <>
       {(role === "qc" || role === "prep") && MY_TYPES.length > 0 && (
         <Tooltip title="แสดงเฉพาะวัตถุดิบประเภทที่บัญชีของคุณรับผิดชอบ (เหมือนหน้าเดิม) — กดอีกครั้งเพื่อดูทั้งหมด" arrow>
-          <Chip label="ประเภทของฉัน" clickable color={myType ? "primary" : "default"} variant={myType ? "filled" : "outlined"} onClick={() => setMyType((v) => !v)} />
+          <Chip label={`ประเภทของฉัน (${myTypeCount})`} clickable color={myType ? "primary" : "default"} variant={myType ? "filled" : "outlined"} onClick={() => setMyType((v) => !v)} />
         </Tooltip>
       )}
       {role === "prep" && (
