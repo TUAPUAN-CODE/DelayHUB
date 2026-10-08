@@ -7368,7 +7368,18 @@ ORDER BY rmm.mapping_id DESC
 
             // Add search condition
             if (searchTerm) {
-                additionalWhereConditions += ` AND (rm.mat_name LIKE @searchTerm OR rm.mat LIKE @searchTerm)`;
+                // ค้นในฐานข้อมูลทุกประวัติ: วัตถุดิบ / Batch / รถเข็น / mapping_id / แผนผลิต / HU / ช่อง
+                additionalWhereConditions += `
+                AND (
+                    rm.mat_name LIKE @searchTerm OR rm.mat LIKE @searchTerm
+                    OR h.tro_id LIKE @searchTerm
+                    OR CAST(rmm.mapping_id AS VARCHAR(20)) LIKE @searchTerm
+                    OR p.doc_no LIKE @searchTerm
+                    OR h.hu LIKE @searchTerm
+                    OR rmf.batch LIKE @searchTerm
+                    OR CAST(s.slot_id AS VARCHAR(20)) LIKE @searchTerm
+                    OR EXISTS (SELECT 1 FROM Batch bs WHERE bs.mapping_id = rmm.mapping_id AND (bs.batch_after LIKE @searchTerm OR bs.batch_before LIKE @searchTerm))
+                )`;
             }
 
             // Add status condition

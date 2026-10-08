@@ -9208,6 +9208,17 @@ WHERE
         request.input('mat_name', mat_name);
       }
 
+      // ค้นหาข้อความทั่วฐานข้อมูล (ทุกวัน): วัตถุดิบ / Batch / รถเข็น / รายการ / แผนผลิต / HU — ใช้ร่วมกับตัวกรองอื่นได้
+      const q = String(req.query.q || '').trim().slice(0, 100);
+      if (q) {
+        whereClauses.push(`(
+          rm.mat LIKE @q OR rm.mat_name LIKE @q OR h.tro_id LIKE @q OR CAST(rmm.mapping_id AS VARCHAR(20)) LIKE @q
+          OR p.doc_no LIKE @q OR h.hu LIKE @q
+          OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND (bq.batch_after LIKE @q OR bq.batch_before LIKE @q))
+        )`);
+        request.input('q', `%${q}%`);
+      }
+
       // ─────────────────────────────────────────────────────────────
       // sc_pack_date + shift logic
       //   DS (Day Shift)   = baseDate 06:00:00 → baseDate 18:00:00

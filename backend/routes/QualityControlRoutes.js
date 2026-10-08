@@ -956,9 +956,10 @@ ORDER BY MAX(htr.cooked_date) DESC;
 	router.get("/qc/History/ByDate", async (req, res) => {
 		try {
 			const { start, end } = req.query;
+			const q = String(req.query.q || "").trim().slice(0, 100);
 
-			// Validate required params
-			if (!start || !end) {
+			// Validate required params (search by text covers the whole database, so it does not need a date range)
+			if (!q && (!start || !end)) {
 				return res.status(400).json({
 					success: false,
 					error: "กรุณาระบุ start และ end (YYYY-MM-DD) ใน query string"
@@ -968,8 +969,16 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
 
+			const searchWhere = `
+				(
+					rm.mat LIKE @like OR rm.mat_name LIKE @like OR htr.tro_id LIKE @like
+					OR CAST(rmm.mapping_id AS VARCHAR(20)) LIKE @like OR p.doc_no LIKE @like
+					OR b.batch_after LIKE @like OR b.batch_before LIKE @like
+					OR q.md_no LIKE @like OR htr.hu LIKE @like OR htr.receiver_qc LIKE @like
+				)`;
+			const dateWhere = `htr.rmit_date >= @start AND htr.rmit_date < DATEADD(DAY, 1, @end)`;
 			const mainQuery = `
-			SELECT
+			SELECT ${q ? "TOP (500)" : ""}
 				rmm.mapping_id,
 				rmf.rmfp_id,
 				STRING_AGG(CAST(b.batch_before AS VARCHAR(50)), CHAR(10)) AS batch_before,
@@ -1036,8 +1045,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			JOIN QC q ON rmm.qc_id = q.qc_id
 			LEFT JOIN WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
 			WHERE
-				htr.rmit_date >= @start
-				AND htr.rmit_date < DATEADD(DAY, 1, @end)
+				${q ? searchWhere : dateWhere}
 			GROUP BY
 				rmm.mapping_id,
 				rmf.rmfp_id,
@@ -1095,10 +1103,10 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			ORDER BY htr.rmit_date DESC
 		`;
 
-			const result = await pool.request()
-				.input('start', sql.Date, start)
-				.input('end', sql.Date, end)
-				.query(mainQuery);
+			const request = pool.request();
+			if (q) request.input('like', sql.NVarChar(120), `%${q}%`);
+			else request.input('start', sql.Date, start).input('end', sql.Date, end);
+			const result = await request.query(mainQuery);
 
 			console.log("Data fetched:", result.recordset.length, 'records');
 

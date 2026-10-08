@@ -104,6 +104,7 @@ const ParentComponent = () => {
       if (filters?.scPackDate) params.sc_pack_date = filters.scPackDate;
       if (filters?.matName) params.mat_name = filters.matName;
       if (filters?.shift) params.shift = filters.shift;
+      if (filters?.q) params.q = filters.q;
 
       const response = await axios.get(
         `${API_URL}/api/pack/report/fetchRM/all/line`,

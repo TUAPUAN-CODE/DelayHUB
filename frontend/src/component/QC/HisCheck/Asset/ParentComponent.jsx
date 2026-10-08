@@ -34,13 +34,16 @@ const ParentComponent = () => {
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
 
-  const fetchData = async (start, end) => {
+  // ค้นหาด้วยข้อความ: ดึงจากฐานข้อมูลทั้งหมด (ไม่สนช่วงวันที่) สูงสุด 500 รายการล่าสุด
+  const [dbQuery, setDbQuery] = useState('');
+
+  const fetchData = async (start, end, q = '') => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await axios.get(`${API_URL}/api/qc/History/ByDate`, {
-        params: { start, end }
+        params: q ? { q } : { start, end }
       });
 
       console.log('ได้รับข้อมูลจาก API:', response.data);
@@ -93,6 +96,10 @@ const ParentComponent = () => {
 
   // ค้นหาด้วยช่วงวันที่ที่เลือก
   const handleSearch = () => {
+    if (dbQuery.trim()) {
+      fetchData(startDate, endDate, dbQuery.trim());
+      return;
+    }
     if (!startDate || !endDate) {
       setError('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด');
       return;
@@ -143,6 +150,16 @@ const ParentComponent = () => {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="ค้นหาทั้งฐานข้อมูล"
+            placeholder="วัตถุดิบ / Batch / รถเข็น / รายการ / แผนผลิต / HU"
+            size="small"
+            value={dbQuery}
+            onChange={(e) => setDbQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+            helperText={dbQuery.trim() ? 'ค้นจากทุกวัน (ไม่ใช้ช่วงวันที่) สูงสุด 500 รายการล่าสุด' : ' '}
+            sx={{ minWidth: 280 }}
           />
           <Button
             variant="contained"

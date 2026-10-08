@@ -37,6 +37,8 @@ const ParentComponent = () => {
   
   // State สำหรับการค้นหาและกรอง
   const [searchTerm, setSearchTerm] = useState("");
+  // คำค้นที่ส่งไปค้นใน DB (หน่วง 400ms หลังหยุดพิมพ์) — ค้นทั้งฐานข้อมูล ไม่สนช่วงวันที่
+  const [dbTerm, setDbTerm] = useState("");
   const [selectedColor, setSelectedColor] = useState('');
   
   // State สำหรับการค้นหาตามช่วงเวลา
@@ -56,6 +58,12 @@ const ParentComponent = () => {
     page: 1,
     pageSize: 20
   });
+
+  useEffect(() => {
+    const t = setTimeout(() => { setDbTerm(searchTerm.trim()); }, 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+  useEffect(() => { setPage(0); }, [dbTerm]);
 
   // ดึงข้อมูลจาก API
   useEffect(() => {
@@ -78,8 +86,11 @@ const ParentComponent = () => {
           }[selectedColor];
         }
         
+        // ค้นหาใน DB: ใช้คำค้นแทนช่วงวันที่ (ได้ผลทั้งฐานข้อมูล)
+        if (dbTerm) params.searchTerm = dbTerm;
+
         // เพิ่ม params สำหรับการกรองตามวันที่
-        if (isDateFiltering && startDate && endDate) {
+        if (!dbTerm && isDateFiltering && startDate && endDate) {
           params.startDate = `${startDate}`;
           params.endDate = `${endDate}`;
           params.filterType = filterType;
@@ -120,12 +131,12 @@ const ParentComponent = () => {
     };
 
     fetchColdStorageData();
-  }, [page, rowsPerPage, selectedColor, isDateFiltering && startDate, isDateFiltering && endDate, isDateFiltering && filterType]);
+  }, [page, rowsPerPage, selectedColor, dbTerm, isDateFiltering && startDate, isDateFiltering && endDate, isDateFiltering && filterType]);
 
   // ฟังก์ชันสำหรับกรองข้อมูลโดยใช้ searchTerm (ทำงานเฉพาะ client-side)
   useEffect(() => {
-    // ถ้าไม่มีข้อมูลหรือ searchTerm ว่างเปล่า ให้แสดงข้อมูลทั้งหมด
-    if (!allColdStorageData.length || !searchTerm.trim()) {
+    // ถ้าไม่มีข้อมูลหรือ searchTerm ว่างเปล่า — หรือผลที่ได้มาจากการค้นใน DB แล้ว — ให้แสดงข้อมูลทั้งหมดที่ได้มา
+    if (!allColdStorageData.length || !searchTerm.trim() || dbTerm === searchTerm.trim()) {
       setFilteredData(allColdStorageData);
       return;
     }
@@ -231,7 +242,7 @@ const ParentComponent = () => {
     });
     
     setFilteredData(filtered);
-  }, [searchTerm, allColdStorageData]);
+  }, [searchTerm, dbTerm, allColdStorageData]);
 
   // จัดการการเปลี่ยนหน้า - ต้องดึงข้อมูลใหม่จาก API
   const handleChangePage = (event, newPage) => {
@@ -364,7 +375,7 @@ const ParentComponent = () => {
         <TextField
           variant="outlined"
           fullWidth
-          placeholder="พิมพ์เพื่อค้นหา..."
+          placeholder="พิมพ์เพื่อค้นหาจากฐานข้อมูล (วัตถุดิบ / Batch / รถเข็น / รายการ / แผนผลิต / HU / ช่อง)..."
           value={searchTerm}
           onChange={handleSearchChange}
           InputProps={{

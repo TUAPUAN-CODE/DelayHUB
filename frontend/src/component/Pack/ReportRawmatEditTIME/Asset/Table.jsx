@@ -1010,6 +1010,7 @@ const TableMainPrep = ({
   const [selectedSCPackDate, setselectedSCPackDate] = useState('');
   const [exportLine, setExportLine] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
+  const [dbQuery, setDbQuery] = useState('');
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
   const [signatureData, setSignatureData] = useState({ recordedBy: '', reviewedBy: '', qcManager: '' });
@@ -1091,12 +1092,14 @@ const TableMainPrep = ({
         scPackDate: selectedSCPackDate,
         matName: selectedMatName,
         shift: selectedShift,
+        q: dbQuery.trim(),
       });
     }
   };
 
   // ✅ ปุ่ม "ล้างค่า"
   const handleClearFilters = () => {
+    setDbQuery('');
     setSelectedLineName('');
     setSelectedDocNo('');
     setselectedSCPackDate('');
@@ -1856,6 +1859,15 @@ const TableMainPrep = ({
           <SearchableDropdown label="sc_pack_date" options={uniqueSCPackDate} value={selectedSCPackDate} onChange={setselectedSCPackDate} placeholder="เลือกวันที่บรรจุเสร็จ" />
           <SearchableDropdown label="Shift" options={['DS', 'NS']} value={selectedShift} onChange={setSelectedShift} placeholder="เลือก Shift" />
           <SearchableDropdown label="mat_name" options={uniqueMatName} value={selectedMatName} onChange={setSelectedMatName} placeholder="เลือก วัตถุดิบ" />
+
+          <input
+            value={dbQuery}
+            onChange={(e) => setDbQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+            placeholder="ค้นหาทุกวันจากฐานข้อมูล (วัตถุดิบ / Batch / รถเข็น / รายการ / แผน / HU)"
+            title="พิมพ์แล้วกด Enter หรือปุ่มค้นหา — ค้นจากฐานข้อมูลทั้งหมด ใช้ร่วมกับตัวกรองด้านซ้ายได้"
+            style={{ height: '42px', minWidth: '300px', padding: '0 12px', borderRadius: '12px', border: '1px solid #cfd8dc', fontSize: '14px' }}
+          />
 
           {/* ✅ ปุ่มค้นหา */}
           <button
