@@ -24,7 +24,7 @@ const MixFlows = forwardRef(({ modals, idField, onDone }, ref) => {
   const clear = useCallback(() => { setM1(null); setM2(null); setM3(null); }, []);
 
   useImperativeHandle(ref, () => ({
-    add: () => setOpen4(true),
+    add: (ids) => setOpen4(ids && ids.length ? ids : true),
     cart: (row) => setM1({ ...row, rm_type_id: row.rm_type_id, CookedDateTime: row.CookedDateTime, withdraw_date: row.withdraw_date, production: row.production, level_eu: row.level_eu }),
     success: (row) => setSuccess({ batch: row.batch, mat: row.mat, mat_name: row.mat_name, production: row.production, rmfp_id: row.rmfp_id, level_eu: row.level_eu, newBatch: row.newBatch, withdraw_date: row.withdraw_date }),
     remove: (row) => setDel({ batch: row.batch, mat: row.mat, mat_name: row.mat_name, production: row.production, [idField]: row[idField], withdraw_date: row.withdraw_date, level_eu: row.level_eu }),
@@ -86,7 +86,7 @@ const MixFlows = forwardRef(({ modals, idField, onDone }, ref) => {
       )}
       {open4 && (
         <Modal4
-          open
+          open onlyIds={Array.isArray(open4) ? open4 : null}
           onClose={(d) => {
             if (d && d.selectedMaterials?.length > 0) { setSelectedMaterials(d.selectedMaterials); setWeightTotal(d.totalWeight || 0); }
             setOpen4(false);

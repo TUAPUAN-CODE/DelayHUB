@@ -89,6 +89,10 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
 .app-top-sub { font-size: 10.5px; color: rgb(255 255 255 / .75); white-space: nowrap; }
 .app-top-nav { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .app-top-nav::-webkit-scrollbar { display: none; }
+.app-top-user { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+.app-top-name { display: inline-flex; align-items: center; gap: 6px; max-width: 200px; font-size: 13px; white-space: nowrap; }
+.app-top-name > span { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 767px) { .app-top-name { display: none; } }
 .app-top-end { flex-shrink: 0; display: flex; align-items: center; }
 .app-top-link { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
   color: rgb(255 255 255 / .92); font: inherit; font-size: 13.5px; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s ease, color .15s ease; }
@@ -98,3 +102,6 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
 /* multilingual fonts (system fonts first, no download needed) */
 html[lang="my"] body, html[lang="my"] .MuiTypography-root, html[lang="my"] .MuiButton-root, html[lang="my"] .MuiTableCell-root, html[lang="my"] .app-topbar { font-family: 'Prompt', 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', sans-serif; }
 html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiButton-root, html[lang="km"] .MuiTableCell-root, html[lang="km"] .app-topbar { font-family: 'Prompt', 'Noto Sans Khmer', 'Khmer UI', 'Leelawadee UI', sans-serif; }
+
+/* tables with page buttons: the "rows per page" chooser is hidden to leave room for the rows (the page arrows stay) */
+.MuiTablePagination-selectLabel, .MuiTablePagination-input { display: none !important; }

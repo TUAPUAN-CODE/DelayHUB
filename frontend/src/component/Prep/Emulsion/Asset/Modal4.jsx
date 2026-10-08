@@ -36,7 +36,8 @@ import {
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
-const Modal4 = ({ open, onClose, onSuccess }) => {
+// onlyIds: rows chosen in the Master Sheet — the list shows only them, each with its full weight (still editable)
+const Modal4 = ({ open, onClose, onSuccess, onlyIds = null }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [materials, setMaterials] = useState([]);
   const [filteredMaterials, setFilteredMaterials] = useState([]); // ✅ เพิ่ม state สำหรับ filter
@@ -56,8 +57,10 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
     try {
       const res = await axios.get(`${API_URL}/api/prep/getRMForEmuList`);
       if (res.data && res.data.success && Array.isArray(res.data.data)) {
-        setMaterials(res.data.data);
-        setFilteredMaterials(res.data.data); // ✅ ตั้งค่าเริ่มต้น
+        const list = onlyIds ? res.data.data.filter((x) => onlyIds.includes(x.rmfemu_id)) : res.data.data;
+        setMaterials(list);
+        setFilteredMaterials(list);
+        if (onlyIds) setSelectedWeights(Object.fromEntries(list.map((x) => [x.rmfemu_id, Number(x.weight ?? x.weight_RM) || 0])));
       } else {
         setMaterials([]);
         setFilteredMaterials([]);

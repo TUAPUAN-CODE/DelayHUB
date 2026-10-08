@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
-  Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Tooltip, Typography,
+  Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
@@ -78,8 +78,9 @@ const DataGrid = ({
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({}); // { colKey: [values] } — not saved (a saved filter would silently hide new rows)
   const [colorOnly, setColorOnly] = useState(null); // show only the rows of this colour
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(pageSize);
+  // no page buttons: rows are added while the table is scrolled down (setPage(0) = back to the first block after a search / sort / filter)
+  const [limit, setLimit] = useState(pageSize);
+  const setPage = () => setLimit(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -140,7 +141,11 @@ const DataGrid = ({
   const shownRows = useMemo(() => (colorOnly ? filtered.filter((r) => colorOf(r) === colorOnly) : filtered), [filtered, colorOnly, colorOf]);
   const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
 
-  const pageRows = useMemo(() => sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), [sorted, page, rowsPerPage]);
+  const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
+  const onTableScroll = (e) => {
+    const el = e.currentTarget;
+    if (limit < sorted.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 400) setLimit((l) => l + pageSize * 2);
+  };
 
   // header groups over the columns that are actually shown
   const headGroups = useMemo(() => {
@@ -235,17 +240,17 @@ const DataGrid = ({
 
       <ColumnFilterBar columns={dropdownCols} sorts={prefs.sorts} filters={filters} rowsFor={rowsFor} onSort={setSort} onFilter={setFilter} />
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
-        <Typography variant="caption" color="text.secondary">
+      {(!fill || activeFilters > 0 || prefs.sorts.length > 0) && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
+        {!fill && <Typography variant="caption" color="text.secondary">
           {activeFilters || sorted.length !== rows.length ? `แสดง ${sorted.length} จาก ${rows.length} แถว` : `${rows.length} แถว`}{caption ? ` · ${caption}` : ""}
-        </Typography>
+        </Typography>}
         {(activeFilters > 0 || prefs.sorts.length > 0) && <Button size="small" onClick={clearAll}>ล้างการค้นหา/กรอง/เรียง</Button>}
-      </Box>
+      </Box>}
 
       {error && <Alert severity="error" sx={{ mb: 1 }} action={onReload ? <Button color="inherit" size="small" onClick={onReload}>ลองใหม่</Button> : null}>{error}</Alert>}
 
       <Paper sx={{ borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
-        <TableContainer sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
+        <TableContainer onScroll={onTableScroll} sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
           <Table
             stickyHeader size="small"
             sx={{
@@ -308,11 +313,6 @@ const DataGrid = ({
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          component="div" count={sorted.length} page={page} rowsPerPage={rowsPerPage} rowsPerPageOptions={[50, 100, 200, 500]}
-          onPageChange={(_, p) => setPage(p)} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          labelRowsPerPage="แถวต่อหน้า:" labelDisplayedRows={({ from, to, count }) => `${from}-${to} จาก ${count}`}
-        />
       </Paper>
 
       <ColumnChooser

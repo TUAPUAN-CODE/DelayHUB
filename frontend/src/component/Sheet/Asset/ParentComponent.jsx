@@ -93,7 +93,6 @@ const ParentComponent = ({ role }) => {
   const [plans, setPlans] = useState([]);
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
-  const [mixMenu, setMixMenu] = useState(null);
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
   const columns = useMemo(() => columnsForRole(role), [role]);
@@ -246,6 +245,31 @@ const ParentComponent = ({ role }) => {
   // ── action bar above the table: the tools of the chosen row ──
   const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
   const barItems = useMemo(() => (activeRow ? tools(activeRow).filter((i) => i.col !== "t_kg") : []), [activeRow, tools]);
+  // Prep: tick several rows, then pick the kind of mixing here (rows of that kind that are ticked go into the mix)
+  const mixPicked = useMemo(() => {
+    const out = { emu: [], batch: [], pack: [], loaf: [] };
+    if (role !== "prep") return out;
+    rows.forEach((r) => {
+      if (!selected.has(r.__key)) return;
+      if (r.__kind === "mix") out[r.__mix]?.push(r[MIX_KINDS[r.__mix].idField]);
+      else if (r.__loaf) out.loaf.push(r.__loaf.mapping_id);
+    });
+    return out;
+  }, [rows, selected, role]);
+  const mixBar = role === "prep" && (
+    <>
+      <Typography variant="body2" sx={{ fontWeight: 700 }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
+      {Object.entries(MIX_KINDS).map(([k, v]) => (
+        <Tooltip key={k} title={mixPicked[k].length ? "" : `ติ๊กแถว "${v.status}" ในตารางก่อน`} arrow>
+          <span>
+            <Button size="small" variant="contained" color="secondary" disabled={!mixPicked[k].length} onClick={() => mixRefs[k].current?.add(mixPicked[k])} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>
+              {v.label} ({mixPicked[k].length})
+            </Button>
+          </span>
+        </Tooltip>
+      ))}
+    </>
+  );
   const actionBar = (
     <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#1552F0" : undefined, background: activeRow ? "#F3F7FF" : undefined }}>
       <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#1552F0" : "text.secondary" }}>
@@ -261,9 +285,11 @@ const ParentComponent = ({ role }) => {
         </Tooltip>
       )))}
       {activeRow && <Button size="small" onClick={() => setActiveKey(null)}>ยกเลิกการเลือก</Button>}
+      {mixBar}
     </Paper>
   );
 
+  const afterMix = () => { setSelected(new Set()); load(); };
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
     if (!picked.length) return;
@@ -292,12 +318,6 @@ const ParentComponent = ({ role }) => {
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
             <Button variant="contained" size="small" startIcon={<IoBarcodeSharp />} onClick={() => setScan({ camera: true, review: false, mat: "", batch: "", hu: "" })}>สแกนป้าย SAP</Button>
           )}
-          <Button variant="contained" size="small" onClick={(e) => setMixMenu(e.currentTarget)}>เพิ่มรายการผสม ▾</Button>
-          <Menu anchorEl={mixMenu} open={!!mixMenu} onClose={() => setMixMenu(null)}>
-            {Object.entries(MIX_KINDS).map(([k, v]) => (
-              <MenuItem key={k} onClick={() => { setMixMenu(null); mixRefs[k].current?.add(); }}>{v.label}</MenuItem>
-            ))}
-          </Menu>
         </>
       )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
@@ -326,8 +346,7 @@ const ParentComponent = ({ role }) => {
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
         toolbarExtra={toolbarExtra}
-        selectable={role === "pack"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => r.__stage === "ready" && !r.sc_pack_date}
-        caption="คลิกแถวเพื่อเลือกแล้วทำรายการที่แถบด้านบนตาราง · ช่องว่าง (-) คือขั้นตอนที่ยังไม่มีเวลา · สีแถวและ DBS ตั้งค่าได้ที่ปุ่มตั้งค่าคอลัมน์"
+        selectable={role === "pack" || role === "prep"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : r.__stage === "ready" && !r.sc_pack_date)}
       />
 
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
@@ -349,10 +368,10 @@ const ParentComponent = ({ role }) => {
           />
           {scan.review && <DataReviewSAP open onClose={() => { setScan((s) => ({ ...s, review: false })); load(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />}
           <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />
-          <EmulsionFlows ref={mixRefs.emu} onDone={load} />
-          <BatchFlows ref={mixRefs.batch} onDone={load} />
-          <MixPackFlows ref={mixRefs.pack} onDone={load} />
-          <LoafFlows ref={mixRefs.loaf} onDone={load} />
+          <EmulsionFlows ref={mixRefs.emu} onDone={afterMix} />
+          <BatchFlows ref={mixRefs.batch} onDone={afterMix} />
+          <MixPackFlows ref={mixRefs.pack} onDone={afterMix} />
+          <LoafFlows ref={mixRefs.loaf} onDone={afterMix} />
         </>
       )}
       <PackMoreFlows ref={moreRef} onDone={afterConfirm} onNotify={setToast} />

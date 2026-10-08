@@ -124,7 +124,9 @@ export const buildRows = (hus, mappings, mix = {}, plans = []) => {
       });
     });
   });
-  rows.forEach((r) => { r.__status = statusOf(r); r.__last = lastActivity(r); });
+  // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
+  const now = Date.now();
+  rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
   rows.sort((a, b) => b.__last - a.__last);
   return rows;
 };

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, UserRound } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 /**
  * Top bar shared by every module (it replaced the left bar; the file keeps its name so the 8 Sidebar*.jsx files did not have to change).
@@ -76,6 +77,8 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
 
   const activeKey = useMemo(() => findActiveKey(pathname, leaves), [pathname, leaves]);
 
+  const userName = [localStorage.getItem("first_name"), localStorage.getItem("last_name")].filter((v) => v && v !== "null").join(" ");
+
   return (
     <header className="app-topbar">
       <div className="app-top-brand">
@@ -85,6 +88,10 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
       <nav aria-label="เมนูหลัก" className="app-top-nav">
         {main.map((it) => (it.submenu ? <GroupLink key={it.key} item={it} activeKey={activeKey} /> : <NavLink key={it.key} leaf={it} active={activeKey === it.key} />))}
       </nav>
+      <div className="app-top-user">
+        {userName && <span className="app-top-name" title={userName}><UserRound size={16} className="shrink-0" /><span>{userName}</span></span>}
+        <LanguageSwitcher sx={{ color: "#fff", background: "rgb(255 255 255 / .14)", height: 32, "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(255 255 255 / .45)" }, "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" }, "& .MuiSvgIcon-root": { color: "#fff" }, "& svg": { color: "#fff" } }} />
+      </div>
       {bottom.length > 0 && <div className="app-top-end">{bottom.map((it) => <NavLink key={it.key} leaf={it} active={false} />)}</div>}
     </header>
   );
