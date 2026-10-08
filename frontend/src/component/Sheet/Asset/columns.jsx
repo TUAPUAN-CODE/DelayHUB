@@ -74,6 +74,7 @@ export const COLUMNS = [
   tool("t_pstamp", "Time Stamp (รับ / ต้ม / ส่งคืน)", 190, ["prep"]),
   tool("t_rework", "รอแก้ไข / กลับมาเตรียม", 200, ["prep"]),
   tool("t_mix", "ผสม", 150, ["prep"]),
+  tool("t_manage", "จัดการ (รถเข็น / สลิป / เสร็จสิ้น / แผน)", 150, ["prep"]),
   // "รายการ" = mapping_id, always right after the tools
   { key: "mapping_id", label: "รายการ", group: "tool", kind: "data", type: "number", frozen: true, width: 80 },
   // ข้อมูล
@@ -155,7 +156,7 @@ const INFO = ["hu", "tro_id", "batch", "mat_name", "code", "weight_RM", "rm_stat
 const DBS = ["DBS1", "DBS2", "DBS3", "DBS4"];
 const FIXED = ["status", "mapping_id"];
 
-const TOOLS = { prep: ["t_pstamp", "t_rework", "t_mix"], qc: ["t_qc"], cs1: ["t_cs1"], cs2: ["t_stamp", "t_cs2"], pack: ["t_qc", "t_cart", "t_send", "w_total", "t_kg", "t_edit", "t_confirm", "t_checkin"], sup: [] };
+const TOOLS = { prep: ["t_pstamp", "t_manage", "t_rework", "t_mix"], qc: ["t_qc"], cs1: ["t_cs1"], cs2: ["t_stamp", "t_cs2"], pack: ["t_qc", "t_cart", "t_send", "w_total", "t_kg", "t_edit", "t_confirm", "t_checkin"], sup: [] };
 const TIMES = {
   prep: ["cooked_date", "rmit_date", "start_mixed_date", "qc_date", "come_cold_date", "out_cold_date"],
   qc: ["cooked_date", "rmit_date", "qc_date"],

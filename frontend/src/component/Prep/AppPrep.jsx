@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import SidebarPrep from "./SidebarPrep";
 import MainProduction from "./Main/MainPage";
 import HistoryCookedPage from "./HistoryCooked/HistoryCookedPage";
-import ScanSAPPage from "./ScanSAP/ScanSAPPage";
 import HistoryTranform from "./HistoryTransform/HistoryTransformPage";
 import ManageSelect from "../User/ManageSelect";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
@@ -11,7 +10,6 @@ import RM_EMU from "./RMEmu/MainPage.jsx";
 import EditDataTrolley from "./EditDataTrolley/EditDataTrolley.jsx";
 import CheckInPagePrep from "./CheckIn/CheckInPage.jsx";
 import Timestamp from "./Timestampbroth/Timestampborth.jsx";
-import TimeStampMainPage from "./TimeStampMain/TimeStampMainPage.jsx";
 
 
 import SheetPage from "../Sheet/SheetPage";
@@ -27,12 +25,12 @@ function AppPrep() {
       <SidebarPrep />
       <Routes>
         <Route path="/Sheet" element={<SheetPage role="prep" />} />
-        <Route path="/" element={<TimeStampMainPage />} />
+        <Route path="/" element={<Navigate to="/prep/Sheet" replace />} />
         <Route
           path="/HistoryCooked/HistoryCookedPage"
           element={<HistoryCookedPage />}
         />
-        <Route path="/ScanSAP/ScanSAPPage" element={<ScanSAPPage />} />
+        <Route path="/ScanSAP/ScanSAPPage" element={<Navigate to="/prep/Sheet" replace />} />
         
         <Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
         <Route path="/HistoryTranform/HistoryTranformPage"element={<HistoryTranform />}/>
@@ -46,7 +44,7 @@ function AppPrep() {
         ))}
         {/* addresses of the pages that were merged into the Time Stamp page keep working (bookmarks, old links) */}
         {["/manageprep", "/managepreps", "/pd/checkout", "/MatManage/MatManagePage", "/ColdCheck", "/RMInclude", "/TraceBack_HU", "/history"].map((p) => (
-          <Route key={p} path={p} element={<Navigate to="/prep" replace />} />
+          <Route key={p} path={p} element={<Navigate to="/prep/Sheet" replace />} />
         ))}
         <Route path="/timestamp" element={<Timestamp />} />
       </Routes>

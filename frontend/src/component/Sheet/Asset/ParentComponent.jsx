@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Button, Chip, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Button, Chip, ListSubheader, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -25,11 +26,34 @@ import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampRe
 import ModalStampBoil from "../../Prep/TimeStampMain/Asset/stamp/ModalStampBoil";
 import ModalStampReturn from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReturn";
 import { EmulsionFlows, BatchFlows, MixPackFlows, LoafFlows, MIX_KINDS } from "./prep/mixVariants";
+import ManageModals from "../../Prep/TimeStampMain/Asset/ManageModals";
+import { formatDateTime } from "../../Prep/TimeStampMain/Asset/timeFields";
+import CameraActivationModal from "../../Prep/ScanSAP/Asset/ModalScanSAP";
+import DataReviewSAP from "../../Prep/ScanSAP/Asset/ModalConfirmSAP";
 import { CHECKIN_DEST } from "./pack/checkinData";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
+const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
+
+/** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
+const ManageMenu = ({ plans, onAction }) => {
+  const [anchor, setAnchor] = useState(null);
+  return (
+    <>
+      <Button size="small" variant="outlined" onClick={(e) => setAnchor(e.currentTarget)} sx={{ whiteSpace: "nowrap", minWidth: 0, px: 1, fontSize: 12 }}>จัดการ ({plans.length}) ▾</Button>
+      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
+        {plans.flatMap((p) => [
+          <ListSubheader key={`h${p.rmfp_id}`} sx={{ lineHeight: "28px", fontSize: 12 }}>{[p.production, p.rm_group_name, p.level_eu && `EU ${p.level_eu}`].filter(Boolean).join(" · ") || `แผน ${p.rmfp_id}`}</ListSubheader>,
+          ...[["cart", "ใส่รถเข็น"], ["slip", "สลิป"], ["complete", "เสร็จสิ้น"], ["editPlan", "เปลี่ยนแผนการผลิต"]].map(([a, label]) => (
+            <MenuItem key={`${p.rmfp_id}-${a}`} dense onClick={() => { setAnchor(null); onAction(a, p); }}>{label}</MenuItem>
+          )),
+        ])}
+      </Menu>
+    </>
+  );
+};
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
@@ -66,6 +90,8 @@ const ParentComponent = ({ role }) => {
   const [weights, setWeights] = useState({});
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
+  const [plans, setPlans] = useState([]);
+  const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   const [mixMenu, setMixMenu] = useState(null);
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
@@ -79,6 +105,7 @@ const ParentComponent = ({ role }) => {
   const packRef = useRef(null);
   const moreRef = useRef(null);
   const reworkRef = useRef(null);
+  const manageRef = useRef(null);
   const mixRefs = { emu: useRef(null), batch: useRef(null), pack: useRef(null), loaf: useRef(null) };
 
   const load = useCallback(async () => {
@@ -99,6 +126,12 @@ const ParentComponent = ({ role }) => {
           else console.error(`[Sheet] mix list ${kinds[i]} error:`, r.reason?.message);
         });
         setMix(next);
+        if (MY_TYPES.length) {
+          try {
+            const pr = await axios.get(`${API_URL}/api/prep/manage/fetchRMForProd`, { params: { rm_type_ids: MY_TYPES.join(",") } });
+            setPlans((pr.data?.data ?? []).map(prepPlan));
+          } catch (e) { console.error("[Sheet] plan list error:", e.message); }
+        }
       }
     } catch (err) {
       console.error("[Sheet] load error:", err);
@@ -146,6 +179,9 @@ const ParentComponent = ({ role }) => {
         [["receive", "รับ", "#2e7d32", "บันทึกเวลารับวัตถุดิบ"], ["boil", "ต้ม/อบเสร็จ", "#e65100", "บันทึกเวลาต้มอบเสร็จ"], ["return", "ส่งคืน", "#6a1b9a", "บันทึกเวลาส่งคืนวัตถุดิบ"]].forEach(([k, label, color, title]) => {
           out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, title, run: () => setPstamp({ kind: k, hu: h }) });
         });
+      }
+      if (r.__plans?.length) {
+        out.push({ col: "t_manage", key: "manage", passive: true, node: <ManageMenu plans={r.__plans} onAction={(a, p) => { const m = manageRef.current; ({ cart: m?.openCart, slip: m?.openSlip, complete: m?.openComplete, editPlan: m?.openEdit })[a]?.(p); }} /> });
       }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
@@ -195,7 +231,7 @@ const ParentComponent = ({ role }) => {
   }, [role, hu, weights, selected]);
   const ctx = useMemo(() => ({ tools }), [tools]);
 
-  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix), [data, mix]);
+  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans), [data, mix, plans]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const rows = useMemo(() => {
@@ -231,6 +267,9 @@ const ParentComponent = ({ role }) => {
       )}
       {role === "prep" && (
         <>
+          {!MY_TYPES.some((id) => id === 998 || id === 999) && (
+            <Button variant="contained" size="small" startIcon={<IoBarcodeSharp />} onClick={() => setScan({ camera: true, review: false, mat: "", batch: "", hu: "" })}>สแกนป้าย SAP</Button>
+          )}
           <Button variant="contained" size="small" onClick={(e) => setMixMenu(e.currentTarget)}>เพิ่มรายการผสม ▾</Button>
           <Menu anchorEl={mixMenu} open={!!mixMenu} onClose={() => setMixMenu(null)}>
             {Object.entries(MIX_KINDS).map(([k, v]) => (
@@ -278,6 +317,14 @@ const ParentComponent = ({ role }) => {
       })()}
       {role === "prep" && (
         <>
+          <ManageModals ref={manageRef} onRefresh={load} />
+          <CameraActivationModal
+            open={scan.camera} onClose={() => setScan((s) => ({ ...s, camera: false }))}
+            onConfirm={(m, b, h) => setScan({ camera: false, review: true, mat: m, batch: b, hu: h })}
+            primaryBatch={scan.mat} secondaryBatch={scan.batch} hu={scan.hu}
+            setPrimaryBatch={(v) => setScan((s) => ({ ...s, mat: v }))} setSecondaryBatch={(v) => setScan((s) => ({ ...s, batch: v }))} setHu={(v) => setScan((s) => ({ ...s, hu: v }))}
+          />
+          <DataReviewSAP open={scan.review} onClose={() => { setScan((s) => ({ ...s, review: false })); load(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />
           <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />
           <EmulsionFlows ref={mixRefs.emu} onDone={load} />
           <BatchFlows ref={mixRefs.batch} onDone={load} />

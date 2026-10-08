@@ -77,7 +77,18 @@ const mergeHu = (m, h) => {
   return out;
 };
 
-export const buildRows = (hus, mappings, mix = {}) => {
+const norm = (v) => String(v ?? "").trim().toUpperCase();
+const planBatches = (r) => (Array.isArray(r.batchArray) && r.batchArray.length ? r.batchArray : String(r.batch ?? "").split(",")).map(norm).filter(Boolean);
+
+export const buildRows = (hus, mappings, mix = {}, plans = []) => {
+  // production-plan rows (RMForProd) of "จัดการวัตถุดิบ", joined to a HU by MAT|BATCH
+  const planByKey = new Map();
+  (plans || []).forEach((p) => planBatches(p).forEach((b) => {
+    const k = `${norm(p.mat)}|${b}`;
+    if (!planByKey.has(k)) planByKey.set(k, []);
+    planByKey.get(k).push(p);
+  }));
+  const plansOf = (h) => (h ? [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()] : []);
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
   const rows = (mappings || []).map((m) => {
@@ -89,6 +100,7 @@ export const buildRows = (hus, mappings, mix = {}) => {
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
     merged.__dbs = safeDbs(merged);
     merged.__stage = packStage(merged);
+    merged.__plans = plansOf(h);
     merged.__rework = reworkKind(merged);
     // field names the forms of the old pages expect
     merged.production = merged.code;
@@ -98,7 +110,7 @@ export const buildRows = (hus, mappings, mix = {}) => {
   });
   (hus || []).forEach((h) => {
     if (used.has(String(h.hu))) return;
-    rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [] });
+    rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: plansOf(h) });
   });
   // Prep mixing lists (materials waiting to be mixed). A "loaf" item is a real mapping: the tool is attached to that row instead of a new row.
   const byMapping = new Map(rows.filter((r) => r.__kind === "map").map((r) => [r.mapping_id, r]));
