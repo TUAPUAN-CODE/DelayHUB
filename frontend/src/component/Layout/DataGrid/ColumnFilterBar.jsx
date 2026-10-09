@@ -17,7 +17,9 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
   const options = useMemo(() => {
     const counts = new Map();
     rows.forEach((r) => { const t = cellText(col, r); counts.set(t, (counts.get(t) || 0) + 1); });
-    return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => collator.compare(a.value, b.value));
+    const list = [...counts.entries()].map(([value, count]) => ({ value, count, meta: col.optionMeta ? col.optionMeta(value) : null }));
+    // a column with `optionMeta` (the status) lists its values in the order of its zones instead of A-Z
+    return list.sort((a, b) => (a.meta && b.meta && a.meta.rank !== b.meta.rank ? a.meta.rank - b.meta.rank : collator.compare(a.value, b.value)));
   }, [rows, col]);
 
   const needle = q.trim().toLowerCase();
@@ -62,13 +64,25 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
           <Typography variant="body2">{needle ? "เลือกทั้งหมดที่ค้นเจอ" : "(เลือกทั้งหมด)"}</Typography>
         </Box>
         <Box sx={{ maxHeight: 340, overflowY: "auto" }}>
-          {visible.map((o) => (
-            <label key={o.value || "__empty"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 11px", cursor: "pointer", fontSize: 14 }}>
-              <input type="checkbox" checked={isOn(o.value)} onChange={() => toggle(o.value)} style={{ width: 16, height: 16, accentColor: "#1552F0", flexShrink: 0 }} />
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</span>
-              <span style={{ fontSize: 12, color: "#6B7489" }}>{o.count}</span>
-            </label>
-          ))}
+          {visible.map((o, i) => {
+            const zone = o.meta ? o.meta.zone : undefined;
+            const prevZone = i > 0 ? visible[i - 1].meta?.zone : undefined;
+            const newZone = o.meta && (i === 0 || zone !== prevZone);
+            return (
+              <div key={o.value || "__empty"}>
+                {newZone && (
+                  <div style={{ margin: "8px 0 2px", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, background: zone ? zone.bg : "#F1F3F8", color: zone ? zone.color : "#6B7489" }}>
+                    {zone ? zone.title : "อื่นๆ"}
+                  </div>
+                )}
+                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 11px", cursor: "pointer", fontSize: 14 }}>
+                  <input type="checkbox" checked={isOn(o.value)} onChange={() => toggle(o.value)} style={{ width: 16, height: 16, accentColor: zone ? zone.dot : "#1552F0", flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</span>
+                  <span style={{ fontSize: 12, color: "#6B7489" }}>{o.count}</span>
+                </label>
+              </div>
+            );
+          })}
           {shown.length > MAX_OPTIONS && <Typography variant="caption" color="text.secondary" sx={{ display: "block", py: 0.5 }}>แสดง {MAX_OPTIONS} จาก {shown.length} ค่า — พิมพ์ค้นหาเพื่อกรองให้แคบลง</Typography>}
           {!shown.length && <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>ไม่พบค่า</Typography>}
         </Box>

@@ -1,6 +1,7 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 import { getDbs } from "./dbs";
 import { reworkKind } from "./prep/kinds";
+import { statusMeta } from "./statusZones";
 
 // ONE flat list: every raw material (mapping) is a row. A HU (SAP_Receive) that has no mapping yet is its own row,
 // so its time stamps (start thaw / done / dispatch) can still be recorded. The HU of a mapping is History.hu.
@@ -42,8 +43,14 @@ export const packStage = (r) => {
   return null;
 };
 
-/** status chip of a row (names agreed with the users) */
+/** status chip of a row (names agreed with the users); the colour of a status in a zone is the colour of its zone */
 export const statusOf = (r) => {
+  const s = baseStatusOf(r);
+  const zone = statusMeta(s.label).zone;
+  return zone ? { label: s.label, color: zone.color, bg: zone.bg } : s;
+};
+
+const baseStatusOf = (r) => {
   if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.__kind === "hu") {
@@ -53,10 +60,11 @@ export const statusOf = (r) => {
   const fixed = FIXED_STATUS(r);
   if (fixed) return fixed;
   const st = String(r.rm_status || "");
+  // packed = Done, whatever rm_status says (e.g. "รอแก้ไข | บรรจุเสร็จ | บรรจุเสร็จ" is Done, not "รอแก้ไข")
+  if (String(r.dest || "").startsWith("บรรจุเสร็จ")) return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
   if (st === "รอแก้ไข") return { label: "รอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
-  if (String(r.dest || "").startsWith("บรรจุเสร็จ")) return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.cs_id) return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.tro_id && (r.dest === "บรรจุ" || r.dest === "รถเข็นรอจัดส่ง")) return { label: "รอบรรจุจัดส่ง", color: "#047857", bg: "#D1FAE5" };
   // heading to a cold room ("เข้าห้องเย็น", "ห้องเย็น", "ห้องเย็นใหญ่", "รอCheckin", "เข้าห้องเย็น-รอรถเข็น" ...) and not in a slot yet
@@ -88,12 +96,14 @@ const HIDDEN_COMBOS = new Set([
 const comboOf = (r) => `${r.rm_status ?? ""}|${r.stay_place ?? ""}|${r.dest ?? ""}`;
 
 // combinations with a fixed status name (checked before every other rule)
+const isBigColdCombo = (r) => (r.rm_status === "QcCheck" || r.rm_status === "รอกลับมาเตรียม") && r.stay_place === "เข้าห้องเย็นใหญ่" && r.dest === "ในห้องเย็นใหญ่";
+
 const FIXED_STATUS = (r) => {
   const st = r.rm_status;
   if ((st === "QcCheck" || st === "รอกลับมาเตรียม") && (r.stay_place === "จุดเตรียม" || r.stay_place === "ออกห้องเย็น") && r.dest === "บรรจุ") {
     return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   }
-  if (st === "รอกลับมาเตรียม" && r.stay_place === "เข้าห้องเย็นใหญ่" && r.dest === "ในห้องเย็นใหญ่") {
+  if (isBigColdCombo(r)) {
     return { label: "อยู่ในห้องเย็นใหญ่", color: "#6A1B9A", bg: "#F3E5F5" };
   }
   return null;
@@ -112,7 +122,12 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
   const plansOf = (h) => (h ? [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()] : []);
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
-  const rows = (mappings || []).filter((m) => !HIDDEN_COMBOS.has(comboOf({ rm_status: cleanText(String(m.rm_status ?? "")), stay_place: cleanText(String(m.stay_place ?? "")), dest: cleanText(String(m.dest ?? "")) }))).map((m) => {
+  const isShown = (m) => {
+    const c = { rm_status: cleanText(String(m.rm_status ?? "")), stay_place: cleanText(String(m.stay_place ?? "")), dest: cleanText(String(m.dest ?? "")) };
+    if (HIDDEN_COMBOS.has(comboOf(c))) return false;
+    return !(isBigColdCombo(c) && !m.tro_id); // "in the big cold room" needs a trolley
+  };
+  const rows = (mappings || []).filter(isShown).map((m) => {
     const h = m.hu !== null && m.hu !== undefined && m.hu !== "" ? huByKey.get(String(m.hu)) : null;
     if (h) used.add(String(m.hu));
     const merged = h ? mergeHu(m, h) : { ...m };

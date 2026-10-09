@@ -121,6 +121,13 @@ const buildMappingQuery = () => `
             AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
             AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
       )
+      -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
+      AND NOT (
+          LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck')
+          AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'เข้าห้องเย็นใหญ่'
+          AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
+          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
+      )
       AND (
           -- still open (not packed / not finished): always shown, however old — these are the rows that get forgotten
           (@include_open = 1 AND ISNULL(rmm.dest, N'') <> N'บรรจุเสร็จ' AND ISNULL(rmm.rm_status, N'') <> N'สำเร็จ')
