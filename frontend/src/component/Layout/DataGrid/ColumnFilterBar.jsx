@@ -16,9 +16,10 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
   // distinct values of this column among the rows that pass the OTHER filters
   const options = useMemo(() => {
     const counts = new Map();
-    rows.forEach((r) => { const t = cellText(col, r); counts.set(t, (counts.get(t) || 0) + 1); });
-    const list = [...counts.entries()].map(([value, count]) => ({ value, count, meta: col.optionMeta ? col.optionMeta(value) : null }));
-    // a column with `optionMeta` (the status) lists its values in the order of its zones instead of A-Z
+    const first = new Map();
+    rows.forEach((r) => { const t = cellText(col, r); counts.set(t, (counts.get(t) || 0) + 1); if (!first.has(t)) first.set(t, r); });
+    const list = [...counts.entries()].map(([value, count]) => ({ value, count, meta: col.optionMeta ? col.optionMeta(first.get(value)) : null }));
+    // a column with `optionMeta(row)` -> { rank, zone } (the status) lists its values in the order of its zones instead of A-Z
     return list.sort((a, b) => (a.meta && b.meta && a.meta.rank !== b.meta.rank ? a.meta.rank - b.meta.rank : collator.compare(a.value, b.value)));
   }, [rows, col]);
 

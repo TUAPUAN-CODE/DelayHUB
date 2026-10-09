@@ -73,10 +73,11 @@ GridRow.displayName = "GridRow";
  * (sort / search / value filter), column chooser per account, row colours by delay, Excel / PDF export.
  *
  * columns: [{ key, label, group, kind: 'tool'|'data', frozen, type: 'text'|'time'|'number', width, align, get(row), text(row), sortValue(row), render(row, ctx) }]
+ * prepareRows(rows, ext) -> rows      (optional; re-derives row fields from the account's ext settings)
  * rowColor(row, ext) -> 'green' | 'yellow' | 'red' | null      (optional; enables the colour chips + colour sort)
  */
 const DataGrid = ({
-  gridKey, title, columns, groups, defaultVisible, defaultSorts, defaultExt, rows, rowKey,
+  gridKey, title, columns, groups, defaultVisible, defaultSorts, defaultExt, rows: rawRows, rowKey, prepareRows,
   loading = false, error = "", onReload, searchPlaceholder = "ค้นหาทุกคอลัมน์...", pageSize = 100,
   rowColor, colorSettings, toolbarExtra, selectable = false, selected, onSelectedChange, isSelectable, ctx,
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
@@ -84,6 +85,8 @@ const DataGrid = ({
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
+  // prepareRows(rows, ext): lets a page re-derive row fields from the account's own settings (ext) — it must return the same array when nothing changes
+  const rows = useMemo(() => (prepareRows ? prepareRows(rawRows, prefs.ext) : rawRows), [rawRows, prefs.ext, prepareRows]);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({}); // { colKey: [values] } — not saved (a saved filter would silently hide new rows)
   const [menuKey, setMenuKey] = useState(null); // column whose sort / filter modal is open (opened by clicking its header)

@@ -1,7 +1,7 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 import { getDbs } from "./dbs";
 import { reworkKind } from "./prep/kinds";
-import { statusMeta } from "./statusZones";
+import { withZone } from "./statusZones";
 
 // ONE flat list: every raw material (mapping) is a row. A HU (SAP_Receive) that has no mapping yet is its own row,
 // so its time stamps (start thaw / done / dispatch) can still be recorded. The HU of a mapping is History.hu.
@@ -44,11 +44,7 @@ export const packStage = (r) => {
 };
 
 /** status chip of a row (names agreed with the users); the colour of a status in a zone is the colour of its zone */
-export const statusOf = (r) => {
-  const s = baseStatusOf(r);
-  const zone = statusMeta(s.label).zone;
-  return zone ? { label: s.label, color: zone.color, bg: zone.bg } : s;
-};
+export const statusOf = (r) => withZone(baseStatusOf(r));
 
 const baseStatusOf = (r) => {
   if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };

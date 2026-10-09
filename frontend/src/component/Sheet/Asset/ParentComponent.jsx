@@ -10,6 +10,8 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import ColorSettings, { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
+import StatusZoneSettings from "./StatusZoneSettings";
+import { applyStatusZones } from "./statusZones";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS, ROLE_LABEL } from "./columns";
 import { buildRows } from "./buildRows";
@@ -378,7 +380,8 @@ const ParentComponent = ({ role }) => {
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" columns={columns} groups={GROUPS} defaultVisible={defVisible} defaultExt={DEFAULT_EXT}
         rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
-        rowColor={rowColorOf} colorSettings={(ext, setExt) => <ColorSettings ext={ext} setExt={setExt} />}
+        rowColor={rowColorOf} prepareRows={applyStatusZones}
+        colorSettings={(ext, setExt) => (<><ColorSettings ext={ext} setExt={setExt} /><StatusZoneSettings ext={ext} setExt={setExt} /></>)}
         toolbarExtra={toolbarExtra}
         selectable={role === "pack" || role === "prep" || role === "cs1" || role === "cs2"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : role === "cs1" || role === "cs2" ? inMyRoom(r) && Number(r.weight_RM) > 0 : r.__stage === "ready" && !r.sc_pack_date)}
       />

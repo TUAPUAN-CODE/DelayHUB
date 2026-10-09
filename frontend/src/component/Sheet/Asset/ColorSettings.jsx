@@ -2,7 +2,7 @@ import { Box, MenuItem, Select, TextField, Typography } from "@mui/material";
 import { stageDbsIndex } from "./dbs";
 
 // colorMode: "stage" = the DBS of the stage the row is in (default) · 0..3 = always that DBS (DBS1..DBS4) · -1 = no row colour
-export const DEFAULT_EXT = { colorMode: "stage", greenPct: 50, yellowPct: 0 };
+export const DEFAULT_EXT = { colorMode: "stage", greenPct: 50, yellowPct: 0, statusZones: {} };
 
 const colorFromDbs = (d, ext) => {
   if (!d || d.text === "-" || d.minutes === null || d.minutes === undefined || !d.std) return null;

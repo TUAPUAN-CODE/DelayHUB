@@ -2,7 +2,6 @@
 // Time columns use the DB field name as key, so a HU (SAP_Receive) and a mapping (History) fill the same column.
 // Tool columns (kind: 'tool') are the actions of each Role; they are chosen in the column settings just like data columns.
 import { Button, IconButton, Tooltip } from "@mui/material";
-import { statusMeta, statusRank } from "./statusZones";
 
 export const GROUPS = [
   { key: "tool", label: "เครื่องมือ", color: "#0F3FC4" },
@@ -38,8 +37,8 @@ const tool = (key, label, width, roles) => ({
 export const STATUS_COLUMN = {
   key: "status", label: "สถานะ", group: "tool", kind: "data", type: "text", frozen: true, width: 150,
   text: (r) => r.__status?.label || "",
-  sortValue: (r) => (r.__status ? statusRank(r.__status.label) : null), // sort follows the zones, not the alphabet
-  optionMeta: (label) => statusMeta(label), // the dropdown groups its values by zone, in this order
+  sortValue: (r) => (r.__status ? r.__status.rank : null), // sort follows the areas, not the alphabet
+  optionMeta: (r) => (r.__status ? { rank: r.__status.rank, zone: r.__status.zone } : null), // the dropdown groups its values by area, in this order
   render: (r) => (r.__status ? (
     <span title={r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{r.__status.label}</span>
   ) : null),
