@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Snackbar, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -11,9 +11,11 @@ import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import ColorSettings, { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
 import StatusZoneSettings from "./StatusZoneSettings";
-import { applyStatusZones } from "./statusZones";
+import LineGroupSettings from "./LineGroupSettings";
+import DonePanel from "./DonePanel";
+import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
-import { columnsForRole, defaultVisible, GROUPS, ROLE_LABEL } from "./columns";
+import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows } from "./buildRows";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
@@ -38,6 +40,7 @@ import { CHECKIN_DEST } from "./pack/checkinData";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
+const DAYS = 7; // HU rows (SAP) with no movement for longer than this are not loaded; open mappings are always loaded
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
@@ -62,7 +65,7 @@ const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห�
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 const MY_LINE = parseInt(localStorage.getItem("line_id"), 10);
-// ประเภทวัตถุดิบของผู้ใช้ (หน้า QC / จุดเตรียมเดิมกรองด้วยค่านี้)
+// ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
 // "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
 const CAN_ADD_RM = ["3", "4", "5", "6"].includes(localStorage.getItem("pos_id"));
@@ -83,11 +86,8 @@ const ParentComponent = ({ role }) => {
   const [data, setData] = useState({ hus: [], mappings: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [days, setDays] = useState(7);
-  const [includeOpen, setIncludeOpen] = useState(true);
+  const [view, setView] = useState("work"); // "work" = the work table · "done" = finished rows, searched on demand
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
-  // off by default: when the types of the account match none of the rows the whole table of mappings looked empty. The chip below shows how many rows it would keep.
-  const [myType, setMyType] = useState(false);
   const [cart, setCart] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [weights, setWeights] = useState({});
@@ -119,7 +119,7 @@ const ParentComponent = ({ role }) => {
     lastLoadAt.current = Date.now();
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: { days, include_open: includeOpen ? 1 : 0 } });
+      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: { days: DAYS } });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       huRef.current = res.data.hus || [];
       // the table refreshes by itself every minute: when nothing changed keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
@@ -136,12 +136,7 @@ const ParentComponent = ({ role }) => {
           else console.error(`[Sheet] mix list ${kinds[i]} error:`, r.reason?.message);
         });
         setMix(next);
-        if (MY_TYPES.length) {
-          try {
-            const pr = await axios.get(`${API_URL}/api/prep/manage/fetchRMForProd`, { params: { rm_type_ids: MY_TYPES.join(",") } });
-            setPlans((pr.data?.data ?? []).map(prepPlan));
-          } catch (e) { console.error("[Sheet] plan list error:", e.message); }
-        }
+        setPlans((res.data.plans || []).map(prepPlan)); // scanned production-plan rows (all raw material types) that are not in a trolley yet
       }
     } catch (err) {
       console.error("[Sheet] load error:", err);
@@ -149,7 +144,7 @@ const ParentComponent = ({ role }) => {
     } finally {
       setLoading(false);
     }
-  }, [days, includeOpen, role]);
+  }, [role]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load]);
@@ -260,9 +255,8 @@ const ParentComponent = ({ role }) => {
   const rows = useMemo(() => {
     let list = allRows;
     if (myLine && role === "pack") list = list.filter((r) => r.__kind === "map" && (r.line_id === MY_LINE || (r.__stage === "trolley" && Number(r.pack_line_id) === MY_LINE)));
-    if (myType && (role === "qc" || role === "prep")) list = list.filter((r) => (role === "prep" && r.__kind !== "map") || (r.__kind === "map" && MY_TYPES.includes(Number(r.rm_type_id))));
     return list;
-  }, [allRows, myLine, myType, role]);
+  }, [allRows, myLine, role]);
 
   // ── action bar above the table: the tools of the chosen row ──
   const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
@@ -333,7 +327,6 @@ const ParentComponent = ({ role }) => {
 
   const rowKey = useCallback((r) => r.__key, []);
   const afterMix = () => { setSelected(new Set()); load(); };
-  const myTypeCount = useMemo(() => (role === "qc" || role === "prep" ? allRows.filter((r) => r.__kind === "map" && MY_TYPES.includes(Number(r.rm_type_id))).length : 0), [allRows, role]);
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
     if (!picked.length) return;
@@ -344,11 +337,6 @@ const ParentComponent = ({ role }) => {
 
   const toolbarExtra = (
     <>
-      {(role === "qc" || role === "prep") && MY_TYPES.length > 0 && (
-        <Tooltip title="แสดงเฉพาะวัตถุดิบประเภทที่บัญชีของคุณรับผิดชอบ (เหมือนหน้าเดิม) — กดอีกครั้งเพื่อดูทั้งหมด" arrow>
-          <Chip label={`ประเภทของฉัน (${myTypeCount})`} clickable color={myType ? "primary" : "default"} variant={myType ? "filled" : "outlined"} onClick={() => setMyType((v) => !v)} />
-        </Tooltip>
-      )}
       {role === "prep" && (
         <>
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
@@ -373,18 +361,38 @@ const ParentComponent = ({ role }) => {
     </>
   );
 
+  // everything the two tables share: the same columns and the same account settings (tabs of the "ตั้งค่าคอลัมน์ที่แสดง" dialog)
+  const lineNames = useMemo(() => [...new Set(allRows.map((r) => r.rmm_line_name).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "th", { numeric: true })), [allRows]);
+  const settingPages = useCallback((ext, setExt) => [
+    { key: "color", label: "สีของแถว (เขียว / เหลือง / แดง) ตาม Delay", node: <ColorSettings ext={ext} setExt={setExt} /> },
+    { key: "status", label: "สถานะอยู่ในพื้นที่ไหน (ใช้เรียงลำดับและแบ่งสีในเมนูสถานะ)", node: <StatusZoneSettings ext={ext} setExt={setExt} /> },
+    { key: "line", label: "ไลน์นี้ใครดูแล (ใช้จัดกลุ่มและแบ่งสีในเมนูไลน์)", node: <LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /> },
+  ], [lineNames]);
+  const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages };
+
   return (
-    <div style={{ height: "100%", minHeight: 0 }}>
+    <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ minHeight: 36, flexShrink: 0, mb: 0.5, "& .MuiTab-root": { minHeight: 36, py: 0, textTransform: "none", fontWeight: 600 } }}>
+        <Tab value="work" label="ตารางงาน (ที่ยังไม่เสร็จ)" />
+        <Tab value="done" label="Done (เลือกก่อนแล้วดึงจากฐานข้อมูล)" />
+      </Tabs>
+      {view === "done" ? (
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}><div style={{ position: "absolute", inset: 0 }}><DonePanel gridKey={`sheet-${role}`} gridProps={sharedGrid} /></div></div>
+      ) : (
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+      <div style={{ position: "absolute", inset: 0 }}>
       <DataGrid
         fill actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
-        gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" columns={columns} groups={GROUPS} defaultVisible={defVisible} defaultExt={DEFAULT_EXT}
+        gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" defaultExt={DEFAULT_EXT} {...sharedGrid}
         rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
-        rowColor={rowColorOf} prepareRows={applyStatusZones}
-        colorSettings={(ext, setExt) => (<><ColorSettings ext={ext} setExt={setExt} /><StatusZoneSettings ext={ext} setExt={setExt} /></>)}
+        rowColor={rowColorOf}
         toolbarExtra={toolbarExtra}
         selectable={role === "pack" || role === "prep" || role === "cs1" || role === "cs2"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : role === "cs1" || role === "cs2" ? inMyRoom(r) && Number(r.weight_RM) > 0 : r.__stage === "ready" && !r.sc_pack_date)}
       />
+      </div>
+      </div>
+      )}
 
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}

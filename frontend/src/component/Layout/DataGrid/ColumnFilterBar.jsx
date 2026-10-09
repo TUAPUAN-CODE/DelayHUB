@@ -71,11 +71,25 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
             const newZone = o.meta && (i === 0 || zone !== prevZone);
             return (
               <div key={o.value || "__empty"}>
-                {newZone && (
-                  <div style={{ margin: "8px 0 2px", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, background: zone ? zone.bg : "#F1F3F8", color: zone ? zone.color : "#6B7489" }}>
-                    {zone ? zone.title : "อื่นๆ"}
-                  </div>
-                )}
+                {newZone && (() => {
+                  // click the area / group header = tick (or untick) every value of it at once
+                  const values = options.filter((x) => x.meta && x.meta.zone === zone).map((x) => x.value);
+                  const allOn = values.length > 0 && values.every(isOn);
+                  const someOn = values.some(isOn);
+                  // nothing filtered yet: the click shows ONLY this area; otherwise it adds / removes the area to what is shown
+                  const pick = () => { if (!chosen) onFilter(values.length === options.length ? null : values); else setMany(values, !allOn); };
+                  return (
+                    <div
+                      role="button" tabIndex={0} title="กดเพื่อเลือกทั้งกลุ่ม (ถ้ายังไม่กรอง = แสดงเฉพาะกลุ่มนี้ · ถ้ากรองอยู่ = เพิ่ม/เอากลุ่มนี้ออก)" onClick={pick}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }}
+                      style={{ margin: "8px 0 2px", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8, background: zone ? zone.bg : "#F1F3F8", color: zone ? zone.color : "#6B7489" }}
+                    >
+                      <span style={{ width: 14, height: 14, borderRadius: 3, border: "2px solid currentColor", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, lineHeight: 1, flexShrink: 0 }}>{allOn ? "✓" : someOn ? "–" : ""}</span>
+                      <span style={{ flex: 1 }}>{zone ? zone.title : "อื่นๆ"}</span>
+                      <span style={{ fontWeight: 400, opacity: 0.85 }}>{values.length}</span>
+                    </div>
+                  );
+                })()}
                 <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 11px", cursor: "pointer", fontSize: 14 }}>
                   <input type="checkbox" checked={isOn(o.value)} onChange={() => toggle(o.value)} style={{ width: 16, height: 16, accentColor: zone ? zone.dot : "#1552F0", flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</span>

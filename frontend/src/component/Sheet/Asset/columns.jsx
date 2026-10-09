@@ -100,7 +100,11 @@ export const COLUMNS = [
   x("mat", "รหัสวัตถุดิบ", "info", 100),
   x("mat_name", "ชื่อวัตถุดิบ", "info", 190),
   x("code", "แผนผลิต", "info", 130),
-  x("rmm_line_name", "ไลน์", "info", 90),
+  x("rmm_line_name", "ไลน์", "info", 90, {
+    // with line groups set up (column settings), sort and the dropdown follow the groups: by group first, then by line
+    sortValue: (r) => (r.__lgroup ? `${String(r.__lgroup.rank).padStart(6, "0")}|${r.rmm_line_name ?? ""}` : (r.rmm_line_name ?? null)),
+    optionMeta: (r) => r.__lgroup || null,
+  }),
   x("weight_RM", "น้ำหนัก", "info", 80, { get: (r) => r.weight_RM ?? r.weight, align: "right", type: "number" }),
   x("tray_count", "ถาด", "info", 60, { align: "right", type: "number" }),
   x("rm_status", "สถานะวัตถุดิบ", "info", 130),

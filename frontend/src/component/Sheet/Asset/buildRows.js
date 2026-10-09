@@ -47,6 +47,7 @@ export const packStage = (r) => {
 export const statusOf = (r) => withZone(baseStatusOf(r));
 
 const baseStatusOf = (r) => {
+  if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
   if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.__kind === "hu") {
@@ -57,7 +58,7 @@ const baseStatusOf = (r) => {
   if (fixed) return fixed;
   const st = String(r.rm_status || "");
   // packed = Done, whatever rm_status says (e.g. "รอแก้ไข | บรรจุเสร็จ | บรรจุเสร็จ" is Done, not "รอแก้ไข")
-  if (String(r.dest || "").startsWith("บรรจุเสร็จ")) return { label: "Done", color: "#047857", bg: "#D1FAE5" };
+  if (String(r.dest || "").startsWith("บรรจุเสร็จ") || st === "สำเร็จ") return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
   if (st === "รอแก้ไข") return { label: "รอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
@@ -115,7 +116,13 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
     if (!planByKey.has(k)) planByKey.set(k, []);
     planByKey.get(k).push(p);
   }));
-  const plansOf = (h) => (h ? [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()] : []);
+  const consumed = new Set(); // plan rows that belong to a HU / mapping row; the others get a row of their own
+  const plansOf = (h) => {
+    if (!h) return [];
+    const list = [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()];
+    list.forEach((p) => consumed.add(p.rmfp_id));
+    return list;
+  };
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
   const isShown = (m) => {
@@ -145,6 +152,14 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
   (hus || []).forEach((h) => {
     if (used.has(String(h.hu))) return;
     rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: plansOf(h) });
+  });
+  // scanned production-plan rows that no HU row picked up (e.g. a batch typed by hand, no HU): they are their own rows, so a scan is never "lost"
+  (plans || []).forEach((p) => {
+    if (consumed.has(p.rmfp_id)) return;
+    consumed.add(p.rmfp_id);
+    rows.push({
+      ...p, weight_RM: p.weight, code: p.production, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
+    });
   });
   // Prep mixing lists (materials waiting to be mixed). A "loaf" item is a real mapping: the tool is attached to that row instead of a new row.
   const byMapping = new Map(rows.filter((r) => r.__kind === "map").map((r) => [r.mapping_id, r]));

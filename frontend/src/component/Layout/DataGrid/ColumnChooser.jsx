@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 
-/** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings (e.g. row colours) shown on top. */
+/** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings: a node (shown on top) or an array of pages [{ key, label, node }] that become tabs next to the column list. */
 const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange }) => {
   const [q, setQ] = useState("");
+  const [tab, setTab] = useState(0);
+  const pages = Array.isArray(extra) ? extra : null;
   const set = useMemo(() => new Set(visible), [visible]);
   const pinSet = useMemo(() => new Set(pins), [pins]);
   const pinnedWidth = useMemo(() => columns.filter((c) => pinSet.has(c.key) && set.has(c.key)).reduce((sum, c) => sum + (c.width || 100), 0), [columns, pinSet, set]);
@@ -35,10 +37,19 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
         ตั้งค่าคอลัมน์ที่แสดง
         <Typography variant="body2" color="text.secondary">การตั้งค่านี้จำแยกตามบัญชีของคุณ</Typography>
       </DialogTitle>
-      <DialogContent dividers>
+      {pages && (
+        <Tabs value={Math.min(tab, pages.length)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: "1px solid #E3E9F6" }}>
+          <Tab label="1. จัดการคอลัมน์ที่จะแสดง / tool ต่างๆ" sx={{ textTransform: "none", fontWeight: 600 }} />
+          {pages.map((p, i) => <Tab key={p.key} label={`${i + 2}. ${p.label}`} sx={{ textTransform: "none", fontWeight: 600 }} />)}
+        </Tabs>
+      )}
+      {pages && tab > 0 && pages[tab - 1] ? (
+        <DialogContent dividers sx={{ minHeight: "55vh" }}>{pages[tab - 1].node}</DialogContent>
+      ) : (
+      <DialogContent dividers sx={pages ? { minHeight: "55vh" } : undefined}>
         {warning && <Alert severity="warning" sx={{ mb: 1.5 }}>{warning}</Alert>}
         {!warning && storage === "server" && <Alert severity="success" sx={{ mb: 1.5 }}>บันทึกตามบัญชีของคุณในฐานข้อมูลแล้ว (ใช้ได้ทุกเครื่อง)</Alert>}
-        {extra}
+        {!pages && extra}
         {onPinsChange && (
           <Alert severity={pinnedWidth > 900 ? "warning" : "info"} sx={{ mb: 1.5 }}>
             ไอคอนหมุด <PushPinIcon sx={{ fontSize: 15, verticalAlign: "text-bottom" }} /> = ตรึงคอลัมน์ไว้ทางซ้าย (ไม่เลื่อนตามเมื่อเลื่อนดูคอลัมน์อื่น) · ตรึงอยู่ {pins.length} คอลัมน์ กว้างรวมประมาณ {pinnedWidth}px
@@ -79,6 +90,7 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
           );
         })}
       </DialogContent>
+      )}
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button color="inherit" onClick={onReset}>คืนค่าเริ่มต้น</Button>
         <Box sx={{ flex: 1 }} />

@@ -37,8 +37,13 @@ const SAP_DATES = [
 
 const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col}`;
 
-const buildMappingQuery = () => `
-  SELECT TOP (@limit)
+const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')";
+// the date a mapping counts for in the Done table (last thing that happened to it)
+const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
+
+/** scope "open" = the work table (everything not finished, however old) · scope "done" = finished rows, searched on demand (date range + text) */
+const buildMappingQuery = (scope = "open") => `
+  SELECT TOP (@mlimit)
       rmm.mapping_id,
       rmm.from_mapping_id,
       rmm.rmfp_id,
@@ -128,11 +133,16 @@ const buildMappingQuery = () => `
           AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
           AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
       )
-      AND (
-          -- still open (not packed / not finished): always shown, however old — these are the rows that get forgotten
-          (@include_open = 1 AND ISNULL(rmm.dest, N'') <> N'บรรจุเสร็จ' AND ISNULL(rmm.rm_status, N'') <> N'สำเร็จ')
-          OR COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date) >= DATEADD(DAY, -@days, GETDATE())
-      )
+      AND ${scope === "done" ? `
+          ${DONE_SQL}
+          AND ${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)
+          AND (@q = N'' OR (
+              rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
+              OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like OR rmm.mix_code LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
+              OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
+          ))` : `
+          -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
+          NOT ${DONE_SQL}`}
   ORDER BY rmm.mapping_id DESC
 `;
 
@@ -150,11 +160,45 @@ const buildHuQuery = () => `
   ORDER BY la.last_at DESC, s.sap_re_id DESC
 `;
 
+// Production-plan rows that were scanned ("สแกนป้าย SAP") but are not in a trolley yet: the same rows the old "จัดการวัตถุดิบ" page listed (all raw material types).
+// Same field names as /prep/manage/fetchRMForProd, so the "จัดการ" menu of the sheet works on them.
+const buildPlanQuery = () => `
+  SELECT TOP (@limit)
+      rmf.rmfp_id,
+      CASE WHEN rmf.batch LIKE 'mix_batch_' THEN
+          (SELECT STRING_AGG(rmmb.batch, ',') FROM Mix_Batch_Prod mbp2 JOIN RMMixBatch rmmb ON mbp2.rmfbatch_id = rmmb.rmfbatch_id WHERE mbp2.rmfp_id = rmf.rmfp_id)
+          ELSE rmf.batch END AS batch,
+      rm.mat,
+      rm.mat_name,
+      rmf.dest,
+      rmf.weight,
+      CONCAT(p.doc_no, ' (', rmf.rmfp_line_name, ')') AS production,
+      rmf.rmfp_line_name,
+      rmg.rm_type_id,
+      rmg.rm_group_name,
+      rmg.cold,
+      rmf.level_eu,
+      rmf.remark,
+      rmf.hu,
+      FORMAT(htr.cooked_date, 'dd/MM/yyyy HH:mm') AS CookedDateTime,
+      CONVERT(VARCHAR(19), htr.cooked_date, 120) AS cooked_date,
+      FORMAT(htr.withdraw_date, 'dd/MM/yyyy HH:mm') AS withdraw_date
+  FROM RMForProd rmf WITH (NOLOCK)
+  JOIN ProdRawMat pr WITH (NOLOCK) ON rmf.prod_rm_id = pr.prod_rm_id
+  JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+  JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+  JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+  JOIN History htr WITH (NOLOCK) ON rmf.hist_id_rmfp = htr.hist_id
+  WHERE rmf.stay_place IN (N'จุดเตรียมรับเข้า', N'หม้ออบ')
+    AND rmf.dest IN (N'ไปจุดเตรียม', N'จุดเตรียม')
+  ORDER BY htr.cooked_date DESC
+`;
+
 router.get("/sheet/rows", async (req, res) => {
   try {
     const days = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 365);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3000, 100), MAX_ROWS);
-    const includeOpen = req.query.include_open === "0" ? 0 : 1;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3000, 100), MAX_ROWS); // HU rows + plan rows
+    const mlimit = Math.min(Math.max(parseInt(req.query.mlimit, 10) || 20000, 100), 50000); // open mappings: never cut at a few thousand rows
 
     const pool = await connectToDatabase();
     if (!pool) {
@@ -164,16 +208,49 @@ router.get("/sheet/rows", async (req, res) => {
     const bind = (request) => request
       .input("days", sql.Int, days)
       .input("limit", sql.Int, limit)
-      .input("include_open", sql.Int, includeOpen);
+      .input("mlimit", sql.Int, mlimit);
 
-    const [mappings, hus] = await Promise.all([
-      bind(pool.request()).query(buildMappingQuery()),
+    const [mappings, hus, plans] = await Promise.all([
+      bind(pool.request()).query(buildMappingQuery("open")),
       bind(pool.request()).query(buildHuQuery()),
+      bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error("[Route /sheet/rows] plans error:", err.message); return { recordset: [] }; }),
     ]);
 
-    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, days, limit });
+    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, days, limit });
   } catch (err) {
     console.error("[Route /sheet/rows] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Done table: finished rows are NOT loaded with the work table. The user picks the date range (+ optional text) first, then the rows are read from the database.
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+router.get("/sheet/done", async (req, res) => {
+  try {
+    const ymd = (d) => d.toISOString().slice(0, 10);
+    const dateTo = DATE_RE.test(req.query.date_to || "") ? req.query.date_to : ymd(new Date());
+    const dateFrom = DATE_RE.test(req.query.date_from || "") ? req.query.date_from : ymd(new Date(Date.now() - 7 * 86400000));
+    if (dateFrom > dateTo) {
+      return res.status(400).json({ success: false, error: "วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด" });
+    }
+    const q = String(req.query.q || "").trim().slice(0, 100);
+    const mlimit = Math.min(Math.max(parseInt(req.query.limit, 10) || 2000, 100), 20000);
+
+    const pool = await connectToDatabase();
+    if (!pool) {
+      return res.status(503).json({ success: false, error: "Database unavailable" });
+    }
+    const result = await pool.request()
+      .input("mlimit", sql.Int, mlimit)
+      .input("date_from", sql.Date, dateFrom)
+      .input("date_to", sql.Date, dateTo)
+      .input("q", sql.NVarChar(100), q)
+      .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
+      .query(buildMappingQuery("done"));
+
+    res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: dateFrom, date_to: dateTo });
+  } catch (err) {
+    console.error("[Route /sheet/done] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
