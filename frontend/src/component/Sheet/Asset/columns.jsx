@@ -38,7 +38,7 @@ export const STATUS_COLUMN = {
   key: "status", label: "สถานะ", group: "tool", kind: "data", type: "text", frozen: true, width: 150,
   text: (r) => r.__status?.label || "",
   sortValue: (r) => (r.__status ? r.__status.rank : null), // sort follows the areas, not the alphabet
-  optionMeta: (r) => (r.__status ? { rank: r.__status.rank, zone: r.__status.zone } : null), // the dropdown groups its values by area, in this order
+  optionMeta: (r) => (r.__status ? { rank: r.__status.rank, zone: r.__status.zone, zones: r.__status.zones } : null), // the dropdown groups its values by area, in this order
   render: (r) => (r.__status ? (
     <span title={r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{r.__status.label}</span>
   ) : null),
@@ -64,10 +64,13 @@ const DbsCell = ({ d }) => {
     </Tooltip>
   );
 };
+const COLOR_RANK = { green: 0, yellow: 1, red: 2 };
 const dbs = (i, key, label) => ({
   key, label, group: "dbs", kind: "data", type: "dbs", width: 160,
   text: (r) => { const d = r.__dbs?.[i]; return d && d.text !== "-" ? d.text : ""; },
-  sortValue: (r) => { const d = r.__dbs?.[i]; return d && d.text !== "-" ? d.minutes : null; },
+  // the sort button of a DBS column sorts by its colour (green -> yellow -> red, then by time); the colours come from prepareSheetRows (they follow the account's thresholds)
+  sortValue: (r) => { const c = r.__dbsc?.[i]; const d = r.__dbs?.[i]; return c ? COLOR_RANK[c] * 1e6 + Math.min(Math.round(d?.minutes ?? 0), 999999) : null; },
+  sortLabels: ["เขียว → เหลือง → แดง", "แดง → เหลือง → เขียว"],
   render: (r) => <DbsCell d={r.__dbs?.[i]} />,
 });
 
@@ -115,7 +118,6 @@ export const COLUMNS = [
   // เตรียม / QC
   t("cooked_date", "ต้ม/อบเสร็จ", "prep"),
   t("rmit_date", "เตรียมเสร็จ", "prep"),
-  t("withdraw_date", "เบิก / จ่ายลงไลน์ 1", "prep"),
   t("start_mixed_date", "เริ่มผสม", "prep"),
   t("start_gravy_date", "เริ่มใส่ Gravy", "prep"),
   t("gm_date", "เริ่มบด", "prep"),
@@ -137,6 +139,7 @@ export const COLUMNS = [
   t("cs_come_cold_date_four", "เข้าห้องเย็นใหญ่ 4", "cs2"),
   t("cs_out_cold_date_four", "ออกห้องเย็นใหญ่ 4", "cs2"),
   // HU (SAP)
+  t("withdraw_date", "เบิก / จ่ายลงไลน์ 1", "sap"),
   t("start_defrost_date", "เริ่มละลาย 1", "sap"),
   t("end_defrost_date", "ละลายเสร็จ 1", "sap"),
   t("input_pd_date", "ไลน์รับเข้า 1", "sap"),

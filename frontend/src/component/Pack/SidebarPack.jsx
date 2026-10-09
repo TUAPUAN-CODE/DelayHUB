@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart2, PackageCheck, Printer, LogOut, Table2 } from "lucide-react";
+import { BarChart2, PackageCheck, Printer, LogOut, Table2, CheckCircle2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarPack = () => {
@@ -8,6 +8,7 @@ const SidebarPack = () => {
       items: [
         // หน้าเดียวสำหรับ ผสม · QC · ใส่รถเข็น · ส่งปลายทาง · ยืนยัน Delay · เพิ่ม RM · Check In
         { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/packaging/Sheet" },
+      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/packaging/Sheet?view=done" },
         { name: "Report", icon: BarChart2, href: "/packaging/ReportRawmatPackuser" },
         { name: "รายงานการใช้บรรจุภัณฑ์", icon: PackageCheck, href: "/packaging/UsePKG" },
         { name: "พิมพ์สลีป Android", icon: Printer, href: "/packaging/Printpackandroid" },

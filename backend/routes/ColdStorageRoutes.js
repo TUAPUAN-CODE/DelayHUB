@@ -5070,6 +5070,7 @@ OUTER APPLY (
 
 WHERE
      rmm.tro_id IS NOT NULL
+     AND htr.sc_pack_date IS NULL -- in process = not packed yet (no sc_pack_date)
 ${extraWhere}
 
 ORDER BY rmm.mapping_id DESC
@@ -5301,6 +5302,7 @@ OUTER APPLY (
 WHERE
 
      rmm.tro_id IS NOT NULL
+     AND htr.sc_pack_date IS NULL -- in process = not packed yet (no sc_pack_date)
 
 ${extraWhere}
 

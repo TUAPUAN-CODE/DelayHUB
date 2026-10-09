@@ -1,3 +1,17 @@
+// หา prod_rm_id ของ (แผนการผลิต, วัตถุดิบ) — ถ้ายังไม่มีการผูก (ProdRawMat) ให้สร้างในทรานแซกชันเดียวกัน แล้วคืนค่า id
+async function getOrCreateProdRmId(transaction, productId, mat) {
+  const found = await transaction.request()
+    .input("productId", productId)
+    .input("mat", mat)
+    .query(`SELECT TOP 1 prod_rm_id FROM ProdRawMat WHERE prod_id = @productId AND mat = @mat ORDER BY prod_rm_id`);
+  if (found.recordset.length > 0) return found.recordset[0].prod_rm_id;
+  const created = await transaction.request()
+    .input("productId", productId)
+    .input("mat", mat)
+    .query(`INSERT INTO ProdRawMat (mat, prod_id) OUTPUT INSERTED.prod_rm_id VALUES (@mat, @productId)`);
+  return created.recordset[0].prod_rm_id;
+}
+
 module.exports = (io) => {
   const express = require("express");
   const { connectToDatabase } = require("../database/db");
@@ -574,20 +588,8 @@ module.exports = (io) => {
       }
 
       // ✅ หา prod_rm_id
-      const result = await transaction.request()
-        .input("productId", productId)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_Id = @productId AND mat = @mat
-      `);
-
-      if (result.recordset.length === 0) {
-        throw new Error("ไม่พบ prod_rm_id สำหรับ productId และ mat ที่ระบุ");
-      }
-
-      const ProdrmID = result.recordset[0].prod_rm_id;
+      // วัตถุดิบเลือกแผนการผลิตตัวไหนก็ได้ ไม่ต้องผูก mat กับแผนไว้ก่อน: ถ้ายังไม่มีการผูก จะสร้างให้อัตโนมัติ
+      const ProdrmID = await getOrCreateProdRmId(transaction, productId, mat);
 
       // ✅ ฟังก์ชัน insert RMForProd
       const insertRMForProd = async (groupIDs, stayPlace) => {
@@ -725,20 +727,8 @@ module.exports = (io) => {
       await transaction.begin();
 
       // ✅ ดึงค่า prod_rm_id
-      const result = await transaction.request()
-        .input("productId", productId)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_Id = @productId AND mat = @mat
-      `);
-
-      if (result.recordset.length === 0) {
-        throw new Error("ไม่พบ prod_rm_id สำหรับ productId และ mat ที่ระบุ");
-      }
-
-      const ProdrmID = result.recordset[0].prod_rm_id;
+      // วัตถุดิบเลือกแผนการผลิตตัวไหนก็ได้ ไม่ต้องผูก mat กับแผนไว้ก่อน: ถ้ายังไม่มีการผูก จะสร้างให้อัตโนมัติ
+      const ProdrmID = await getOrCreateProdRmId(transaction, productId, mat);
 
       const insertRMForProd = async (groupIDs, stayPlace) => {
         for (let i = 0; i < groupIDs.length; i++) {
@@ -1037,20 +1027,8 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       await transaction.begin();
 
       // ✅ ดึงค่า prod_rm_id
-      const result = await transaction.request()
-        .input("productId", productId)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_Id = @productId AND mat = @mat
-      `);
-
-      if (result.recordset.length === 0) {
-        throw new Error("ไม่พบ prod_rm_id สำหรับ productId และ mat ที่ระบุ");
-      }
-
-      const ProdrmID = result.recordset[0].prod_rm_id;
+      // วัตถุดิบเลือกแผนการผลิตตัวไหนก็ได้ ไม่ต้องผูก mat กับแผนไว้ก่อน: ถ้ายังไม่มีการผูก จะสร้างให้อัตโนมัติ
+      const ProdrmID = await getOrCreateProdRmId(transaction, productId, mat);
 
       const insertRMForProd = async (groupIDs, stayPlace) => {
         for (let i = 0; i < groupIDs.length; i++) {

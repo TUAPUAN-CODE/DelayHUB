@@ -82,9 +82,16 @@ router.get("/fetchProduction", async (req, res) => {
     const pool = await connectToDatabase();
 
     // 1. Fetch Production data
+    //    all=1: every production plan (newest first), whether or not the material was linked to it in ProdRawMat (prod_rm_id is null when it is not):
+    //    the scan page lets the material pick any plan; the link is created when the scan is saved
     const productionResult = await pool.request()
       .input("mat", mat)
-      .query(`
+      .query(req.query.all === "1" ? `
+        SELECT TOP (3000) p.prod_id, p.doc_no, p.code, p.line_type_id, pr.prod_rm_id
+        FROM Production p
+        LEFT JOIN ProdRawMat pr ON p.prod_id = pr.prod_id AND pr.mat = @mat
+        ORDER BY p.prod_id DESC
+      ` : `
         SELECT p.prod_id, p.doc_no, p.code, p.line_type_id,pr.prod_rm_id
         FROM Production p
         JOIN ProdRawMat pr ON p.prod_id = pr.prod_id

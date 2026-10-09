@@ -1,12 +1,10 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
 import Sidebar from "./SidebarSup";
 
 import SheetPage from "../Sheet/SheetPage";
 // ใช้ Lazy Loading เพื่อลดขนาดไฟล์ที่โหลดตอนแรก
-const MainSup = lazy(() => import("./Main/MainPage"));
-const TableMainSupv = lazy(() => import("./Main/Asset/TableOvenToCold"));
 const TableUserPage = lazy(() => import("./TableUser/TableUserPage"));
 
 // Rawmat
@@ -20,43 +18,31 @@ const RawmatGroupTable = lazy(() => import("./TableRawmat/RawmatGroup/RawmatGrou
 const ProdRawmatTable = lazy(() => import("./TableProduction/ProdRawmat/ProdRawmatTable"));
 const ProductionTable = lazy(() => import("./TableProduction/Production/ProductionTable"));
 
-const ImportRMCSV = lazy(() => import("./ImportCSVFileRM/mainPage.jsx"));
 
-const HisInputPage = lazy(() => import("./HisInput/HisInputPage"));
 const MDmanagepage = lazy(() => import("./MDmanage/MDmanagepage"));
 
-const ImportscVF = lazy(() => import("./ImportCSVFile/mainPage"));
 
-const TableToCold = lazy(() => import("./MainCold/MainPage"));
 
 const LineTable = lazy(() => import("./TableLine/AddLine/LineTable"));
 
 const LineNameTable = lazy(() => import("./TableLine/AddLineName/LineNameTable"));
-const PKGTable = lazy(() => import("./TablePKGandIGD/AddLine/LineTable.jsx"));
-const IGDTable = lazy(() => import("./TablePKGandIGD/AddLineName/LineNameTable.jsx"));
 
 const CartTable = lazy(() => import("./CartTable/CartTable"));
 
 const WorkplaceSelector = lazy(() => import("../User/WorkplaceSelector.jsx"));
 
 
-const DelayTimeTrackingPage = lazy(() => import("./DelayTimeTracking/DelayTimeTrackingPage"));
 
 const WorkplacePage = lazy(() => import("./Workplace/WorkplacePage"));
 
-const DelayTimeDBSTrackingPage = lazy(() => import("./DelayTimeTrackingDBS/DelayTimeTrackingPage.jsx"));
-const DelayTimeLine = lazy(() => import("./DelayTimeTrackingByLine/DelayTimeTrackingPage.jsx"));
 const DelayTimepercentage_tie = lazy(() => import("./DelayTimeTrackingByPercentage/DelayTimeTrackingPage.jsx"));
 const DelayTimeTrackingRM = lazy(() => import("./DelayTimeTrackingRM/DelayTimeTrackingPage"));
-const DelayTimeTrackingRMinprocess = lazy(() => import("./DelayTimeTrackingRM copy/DelayTimeTrackingPage.jsx"));
 const TrackTrolleyQC = lazy(() => import("./TrackTrolley/TrackTrolleyQC.jsx"));
-const TrackTrolleyQCinprocess = lazy(() => import("./DelayTimeTrackingRM copy 2/DelayTimeTrackingPage.jsx"));
+const DelayTimeTrackingIP = lazy(() => import("./DelayTimeTrackingIP/DelayTimeTrackingPage.jsx")); // in process: rows with no sc_pack_date yet
 
 
 // เก็บเส้นทางทั้งหมดไว้ใน Array เพื่อลดโค้ดซ้ำซ้อน
 const routes = [
-  { path: "/", element: <MainSup /> },
-  { path: "/TableMainSupv", element: <TableMainSupv /> },
 
   // จัดการวัตถุดิบ | Rawmat Management
   { path: "/RawmatType", element: <RawmatTypeTable /> },
@@ -73,36 +59,26 @@ const routes = [
   { path: "/TableUserPage", element: <TableUserPage /> },
 
   // จัดการการรถเข็นรอเข้าห้องเย็น
-  { path: "/TableToCold", element: <TableToCold /> },
 
-  { path: "/HisInput", element: <HisInputPage /> },
 
 // จัดการ Metal Detector
 { path: "/MDmanage", element: <MDmanagepage /> },
 
-{ path: "/ipscvF", element: <ImportscVF /> },
 
 { path: "/AddLine", element: <LineTable /> },
 { path: "/AddLineName", element: <LineNameTable /> },
-{ path: "/AddPKG", element: <PKGTable /> },
-{ path: "/AddIGD", element: <IGDTable /> },
 
 { path: "/CartMange", element: <CartTable /> },
 
-{ path: "/DelayTraking", element: <DelayTimeTrackingPage /> },
 
 
 
 { path: "/WorkplaceSelector", element: <WorkplaceSelector /> },
 { path: "/WorkplacePage", element: <WorkplacePage /> },
-{ path: "/import/rm/csv", element: <ImportRMCSV/> },
-{ path: "/delay/report", element: <DelayTimeDBSTrackingPage/> },
-{ path: "/delay/report/line", element: <DelayTimeLine/> },
 { path: "/DelayTimepercentage_tie", element: <DelayTimepercentage_tie/> },
 { path: "/DelayTimeTrackingRM", element: <DelayTimeTrackingRM/> },
-{ path: "/DelayTimeTrackingRMinprocess", element: <DelayTimeTrackingRMinprocess/> },
 { path: "/TrackTrolley", element: <TrackTrolleyQC/> },
-{ path: "/TrackTrolley/inprocess", element: <TrackTrolleyQCinprocess/> },
+{ path: "/TrackTrolley/inprocess", element: <DelayTimeTrackingIP/> },
   // // จัดการการทำงาน
   // { path: "/Table/WorkPlace", element: <TableWorkPlaceSup /> },
   // { path: "/Table/Role", element: <TableRoleSup /> },
@@ -129,6 +105,10 @@ function AppSup() {
       >
         <Routes>
           <Route path="/Sheet" element={<SheetPage role="sup" />} />
+          {/* pages that were removed: old links go to the sheet */}
+          {["/", "/TableMainSupv", "/TableToCold", "/HisInput", "/ipscvF", "/AddPKG", "/AddIGD", "/DelayTraking", "/import/rm/csv", "/delay/report", "/delay/report/line", "/DelayTimeTrackingRMinprocess"].map((p) => (
+            <Route key={p} path={p} element={<Navigate to="/sup/Sheet" replace />} />
+          ))}
           {routes.map((route, index) => (
             <Route key={index} path={route.path} element={route.element} />
           ))}

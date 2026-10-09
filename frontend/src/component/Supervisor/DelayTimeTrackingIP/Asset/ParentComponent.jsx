@@ -558,7 +558,7 @@ const ProductionLineDelayDashboard = () => {
       Object.entries(activeFilters).forEach(([k, v]) => {
         if (v && String(v).trim()) params[k] = String(v).trim();
       });
-      const res = await axios.get(`${API_URL}/api/all/delay/tracking/rm`, { params });
+      const res = await axios.get(`${API_URL}/api/all/delay/tracking/rm/inprocess`, { params });
       const raw = res.data;
       setRawData(Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []));
       setSearched(true);

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Home, Fish, Factory, Package, Rows3, ShoppingCart, Users, Newspaper, ScanEye, FileUp, Timer, LogOut, Table2 } from "lucide-react";
+import { Fish, Factory, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Table2, CheckCircle2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarSup = () => {
@@ -10,7 +10,7 @@ const SidebarSup = () => {
     {
       items: [
         { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/sup/Sheet" },
-        { name: "หน้าหลัก", icon: Home, href: "/sup" },
+        { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/sup/Sheet?view=done" },
         {
           name: "จัดการวัตถุดิบ", icon: Fish,
           submenu: [
@@ -25,13 +25,6 @@ const SidebarSup = () => {
           submenu: [
             { name: "ตารางการผลิตวัตถุดิบ", href: "/sup/ProdRawmat" },
             { name: "ตารางแผนการผลิต", href: "/sup/Production" },
-          ],
-        },
-        {
-          name: "จัดการ PKG,Ingradiant", icon: Package,
-          submenu: [
-            { name: "ตารางจัดาร PKG", href: "/sup/AddPKG" },
-            { name: "ตารางจัดการ Ingradiant", href: "/sup/AddIGD" },
           ],
         },
         ...(canManageTrolley ? [{
@@ -49,13 +42,7 @@ const SidebarSup = () => {
           ],
         }] : []),
         { name: "การจัดการพนักงาน", icon: Users, href: "/sup/TableUserPage" },
-        { name: "ประวัติเข้า/ออก ห้องเย็น", icon: Newspaper, href: "/sup/HisInput" },
         { name: "จัดการ Metal Detector", icon: ScanEye, href: "/sup/MDmanage" },
-        { name: "นำเข้าแผนการผลิต", icon: FileUp, href: "/sup/ipscvF" },
-        { name: "นำเข้าข้อมูลวัตถุดิบ", icon: FileUp, href: "/sup/import/rm/csv" },
-        { name: "Delay Time Traking", icon: Timer, href: "/sup/DelayTraking" },
-        { name: "Delay Time", icon: Timer, href: "/sup/delay/report" },
-        { name: "Delay Time line", icon: Timer, href: "/sup/delay/report/line" },
         { name: "Delay Time Percentage", icon: Timer, href: "/sup/DelayTimepercentage_tie" },
         { name: "Delay Time Tracking SC", icon: Timer, href: "/sup/DelayTimeTrackingRM" },
         { name: "Delay Time Tracking IP", icon: Timer, href: "/sup/TrackTrolley/inprocess" },

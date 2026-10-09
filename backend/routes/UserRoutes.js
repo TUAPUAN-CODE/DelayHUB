@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 
 const router = express.Router();
@@ -8,6 +9,87 @@ const router = express.Router();
 async function getPool() {
   return await connectToDatabase();
 }
+
+
+// ─────────────────────[ หลาย Role ต่อ 1 บัญชี ]─────────────────────
+// Users.wp_id = Role หลักของบัญชี (ใช้ตอน login) · UserRoles = Role เพิ่มเติมที่บัญชีนี้สลับไปใช้ได้จากปุ่มที่ header
+// ตารางสร้างให้เองครั้งแรกที่ใช้ (ถ้า login ฐานข้อมูลสร้างตารางไม่ได้ จะได้เฉพาะ Role หลัก ระบบอื่นยังทำงานปกติ)
+let userRolesChecked = false;
+async function ensureUserRolesTable(pool) {
+  if (userRolesChecked) return;
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.UserRoles', N'U') IS NULL
+    BEGIN
+      CREATE TABLE dbo.UserRoles (
+        user_id INT NOT NULL,
+        wp_id   INT NOT NULL,
+        CONSTRAINT PK_UserRoles PRIMARY KEY (user_id, wp_id)
+      );
+    END
+  `);
+  userRolesChecked = true;
+  console.log("✅ [UserRoles] ตรวจ/สร้างตาราง UserRoles เรียบร้อย");
+}
+
+/** [{ wp_id, wp_name, primary }] — Role หลักก่อน แล้วตามด้วย Role เพิ่มเติม */
+async function loadUserRoles(pool, userId, primaryWpId) {
+  let extra = [];
+  try {
+    await ensureUserRolesTable(pool);
+    const r = await pool.request().input("user_id", sql.Int, userId).query("SELECT wp_id FROM UserRoles WHERE user_id = @user_id");
+    extra = r.recordset.map((x) => x.wp_id);
+  } catch (err) {
+    console.error("❌ [UserRoles] load error:", err.message);
+  }
+  const ids = [...new Set([primaryWpId, ...extra].filter((v) => v !== null && v !== undefined))];
+  if (!ids.length) return [];
+  const names = await pool.request().query("SELECT wp_id, wp_name FROM Workplace");
+  const nameOf = new Map(names.recordset.map((w) => [w.wp_id, w.wp_name]));
+  return ids.map((id) => ({ wp_id: id, wp_name: nameOf.get(id) || `Role ${id}`, primary: id === primaryWpId }));
+}
+
+router.get("/user/roles", async (req, res) => {
+  try {
+    const userId = parseInt(req.query.user_id, 10);
+    if (Number.isNaN(userId)) return res.status(400).json({ success: false, error: "กรุณาระบุ user_id" });
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const u = await pool.request().input("user_id", sql.Int, userId).query("SELECT wp_id FROM Users WHERE user_id = @user_id");
+    if (!u.recordset.length) return res.status(404).json({ success: false, error: "ไม่พบพนักงาน" });
+    res.json({ success: true, data: await loadUserRoles(pool, userId, u.recordset[0].wp_id) });
+  } catch (err) {
+    console.error("[Route /user/roles GET] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ตั้ง Role เพิ่มเติมของพนักงาน (body: { user_id, wp_ids: [..] }) — Role หลักอยู่ที่ Users.wp_id ไม่ต้องใส่ซ้ำ
+router.put("/user/roles", async (req, res) => {
+  try {
+    const userId = parseInt(req.body.user_id, 10);
+    const wpIds = Array.isArray(req.body.wp_ids) ? [...new Set(req.body.wp_ids.map((v) => parseInt(v, 10)).filter((v) => !Number.isNaN(v)))] : null;
+    if (Number.isNaN(userId) || !wpIds) return res.status(400).json({ success: false, error: "กรุณาระบุ user_id และ wp_ids" });
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureUserRolesTable(pool);
+    const transaction = new sql.Transaction(pool);
+    try {
+      await transaction.begin();
+      await new sql.Request(transaction).input("user_id", sql.Int, userId).query("DELETE FROM UserRoles WHERE user_id = @user_id");
+      for (const wp of wpIds) {
+        await new sql.Request(transaction).input("user_id", sql.Int, userId).input("wp_id", sql.Int, wp).query("INSERT INTO UserRoles (user_id, wp_id) VALUES (@user_id, @wp_id)");
+      }
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+    res.json({ success: true, message: "บันทึก Role เพิ่มเติมสำเร็จ" });
+  } catch (err) {
+    console.error("[Route /user/roles PUT] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // -------------------------[ LOGIN ]---------------------------
 /**
@@ -94,11 +176,20 @@ router.post("/login", async (req, res) => {
       ? rmTypeQuery.recordset[0].rm_type_ids.split(',').map(Number) 
       : [];
 
+    // Role ทั้งหมดที่บัญชีนี้ใช้ได้ (ปุ่มสลับ Role ที่ header) — ดึงไม่ได้ก็ใช้ Role หลักอย่างเดียว ไม่ทำให้ login ล้ม
+    let roles = [];
+    try {
+      roles = await loadUserRoles(pool, user.user_id, user.wp_id);
+    } catch (err) {
+      console.error("❌ [Route /login] roles error:", err.message);
+    }
+
     res.status(200).json({
       message: "เข้าสู่ระบบสำเร็จ",
       user: {
         ...user,
-        rm_type_id: rm_type_ids
+        rm_type_id: rm_type_ids,
+        roles,
       },
     });
   } catch (error) {
@@ -858,6 +949,10 @@ router.delete("/delete-user/:user_id", async (req, res) => {
       .request()
       .input("user_id", user_id)
       .query(`DELETE FROM WorkplaceUsers WHERE user_id = @user_id`);
+    // Role เพิ่มเติมของพนักงาน (ตารางอาจยังไม่ถูกสร้าง)
+    await pool.request()
+      .input("user_id", user_id)
+      .query(`IF OBJECT_ID(N'dbo.UserRoles', N'U') IS NOT NULL DELETE FROM UserRoles WHERE user_id = @user_id`);
 
     // ลบข้อมูลในตาราง Users
     await pool

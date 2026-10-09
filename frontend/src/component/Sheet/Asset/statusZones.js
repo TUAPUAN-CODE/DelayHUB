@@ -1,5 +1,7 @@
-// Every status belongs to an AREA (zone). The dropdown / sort of the status column follows the order of the zones, and every zone has its own colour.
-// The default area of a status is below; each account can change it in the column settings (saved in the grid prefs as ext.statusZones = { [status]: zoneId }).
+// Every status belongs to one or more AREAS (zones). The dropdown / sort of the status column follows the order of the areas, and every area has its own colour.
+// Built-in areas + the default area of each status are below. Each account can (column settings, saved in the grid prefs):
+//   - add its own areas:            ext.statusAreas = [{ id, title, color, bg, dot }]
+//   - put a status in other areas:  ext.statusZones = { [status]: areaId | [areaId, ...] }  (a status can be listed in several areas; the first one gives its colour)
 
 export const ZONES = [
   { id: "bigcold", title: "พื้นที่ห้องเย็นใหญ่", color: "#FFFFFF", bg: "#1D4ED8", dot: "#1D4ED8" },
@@ -9,10 +11,21 @@ export const ZONES = [
   { id: "pack", title: "พื้นที่บรรจุ", color: "#166534", bg: "#BBF7D0", dot: "#22C55E" },
   { id: "done", title: "บันทึกเอกสารสมบูรณ์", color: "#0F766E", bg: "#99F6E4", dot: "#14B8A6" },
 ];
-const ZONE_BY_ID = new Map(ZONES.map((z, i) => [z.id, { ...z, order: i }]));
 export const DEFAULT_ZONE = "prep"; // a status that is not listed below
 
-// all status names the Sheet can show (in the order they are listed inside a zone) and the default zone of each
+/** colours offered to the areas an account adds */
+export const AREA_PALETTE = [
+  { color: "#FFFFFF", bg: "#BE185D", dot: "#BE185D" },
+  { color: "#FFFFFF", bg: "#0F766E", dot: "#0F766E" },
+  { color: "#FFFFFF", bg: "#7C3AED", dot: "#7C3AED" },
+  { color: "#FFFFFF", bg: "#B45309", dot: "#B45309" },
+  { color: "#FFFFFF", bg: "#4D7C0F", dot: "#4D7C0F" },
+  { color: "#FFFFFF", bg: "#0369A1", dot: "#0369A1" },
+  { color: "#1F2937", bg: "#FDE047", dot: "#EAB308" },
+  { color: "#1F2937", bg: "#FDA4AF", dot: "#F43F5E" },
+];
+
+// all status names the Sheet can show (in the order they are listed inside an area) and the default area of each
 export const STATUS_LIST = [
   ["กำลังละลาย", "bigcold"], ["ละลายเสร็จแล้ว", "bigcold"], ["จ่ายลงไลน์แล้ว", "bigcold"],
   ["อยู่ในห้องเย็น", "cold"], ["อยู่ในห้องเย็นใหญ่", "cold"], ["รอห้องเย็นรับเข้า", "cold"], ["รอรับเข้าห้องเย็น", "cold"],
@@ -24,25 +37,43 @@ export const STATUS_LIST = [
 const DEFAULT_OF = new Map(STATUS_LIST);
 const LABEL_ORDER = new Map(STATUS_LIST.map(([l], i) => [l, i]));
 
-/** zone object (with .order) of a status: the account's own choice first, then the default */
-export const zoneOf = (label, overrides) => ZONE_BY_ID.get(overrides?.[label]) || ZONE_BY_ID.get(DEFAULT_OF.get(label)) || ZONE_BY_ID.get(DEFAULT_ZONE);
+const BUILTIN = new Map(ZONES.map((z, i) => [z.id, { ...z, order: i }]));
+const indexCache = new WeakMap(); // ext.statusAreas array -> Map(id -> area)
+
+/** Map(id -> area with .order) of the built-in areas + the areas of the account */
+export const areaIndex = (ext) => {
+  const custom = ext?.statusAreas;
+  if (!custom?.length) return BUILTIN;
+  let map = indexCache.get(custom);
+  if (!map) {
+    map = new Map(BUILTIN);
+    custom.forEach((a, i) => map.set(a.id, { color: "#FFFFFF", bg: "#6B7489", dot: "#6B7489", ...a, order: ZONES.length + i, custom: true }));
+    indexCache.set(custom, map);
+  }
+  return map;
+};
+export const allAreas = (ext) => [...areaIndex(ext).values()];
+
+/** area objects (with .order) a status is listed in: the account's own choice first, then the default area */
+export const zonesOf = (label, ext) => {
+  const idx = areaIndex(ext);
+  const own = ext?.statusZones?.[label];
+  const ids = (Array.isArray(own) ? own : own ? [own] : []).filter((id) => idx.has(id));
+  if (ids.length) return ids.map((id) => idx.get(id));
+  return [idx.get(DEFAULT_OF.get(label)) || idx.get(DEFAULT_ZONE)];
+};
+export const zoneOf = (label, ext) => zonesOf(label, ext)[0];
 export const rankOf = (label, zone) => zone.order * 100 + (LABEL_ORDER.get(label) ?? 99);
 
-/** { zone, rank, color, bg } of a status for the given overrides */
-export const statusZone = (label, overrides) => {
-  const zone = zoneOf(label, overrides);
-  return { zone, rank: rankOf(label, zone) };
+/** status chip { label, color, bg } -> the same chip in the colour of its (first) area, plus { zone, zones, rank } used by the status sort / dropdown */
+export const withZone = (st, ext) => {
+  const zones = zonesOf(st.label, ext);
+  const zone = zones[0];
+  return { label: st.label, color: zone.color, bg: zone.bg, zone, zones, rank: rankOf(st.label, zone) };
 };
 
-/** status chip { label, color, bg } -> the same chip in the colour of its zone, plus { zone, rank } used by the status sort / dropdown */
-export const withZone = (st, overrides) => {
-  const { zone, rank } = statusZone(st.label, overrides);
-  return { label: st.label, color: zone.color, bg: zone.bg, zone, rank };
-};
-
-/** DataGrid prepareRows: re-colour the status of every row with the account's own areas (ext.statusZones); same array when there is no change */
+/** DataGrid prepareRows: re-colour the status of every row with the account's own areas; same array when there is no change */
 export const applyStatusZones = (rows, ext) => {
-  const o = ext?.statusZones;
-  if (!o || !Object.keys(o).length) return rows;
-  return rows.map((r) => (r.__status ? { ...r, __status: withZone(r.__status, o) } : r));
+  if (!Object.keys(ext?.statusZones || {}).length && !ext?.statusAreas?.length) return rows;
+  return rows.map((r) => (r.__status ? { ...r, __status: withZone(r.__status, ext) } : r));
 };

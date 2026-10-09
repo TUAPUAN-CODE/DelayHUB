@@ -494,7 +494,7 @@ useEffect(() => {
   const fetchProduction = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material, all: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});

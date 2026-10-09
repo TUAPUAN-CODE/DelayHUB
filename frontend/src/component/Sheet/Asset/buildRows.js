@@ -95,8 +95,17 @@ const comboOf = (r) => `${r.rm_status ?? ""}|${r.stay_place ?? ""}|${r.dest ?? "
 // combinations with a fixed status name (checked before every other rule)
 const isBigColdCombo = (r) => (r.rm_status === "QcCheck" || r.rm_status === "รอกลับมาเตรียม") && r.stay_place === "เข้าห้องเย็นใหญ่" && r.dest === "ในห้องเย็นใหญ่";
 
+const noTro = (v) => v === null || v === undefined || String(v).trim() === "" || String(v).trim() === "0";
+// statuses that only mean something when the material is on a trolley: a row without tro_id is not shown (agreed with the users)
+const NEEDS_TROLLEY = new Set(["รอ QC Check", "อยู่ในห้องเย็น", "อยู่ในห้องเย็นใหญ่", "รอห้องเย็นรับเข้า"]);
+
 const FIXED_STATUS = (r) => {
   const st = r.rm_status;
+  // "QcCheck รอ MD": to the packing line = รอบรรจุเสร็จ · to a cold room (รอCheckin) = รอห้องเย็นรับเข้า when it is on a trolley, otherwise it can only wait for packing
+  if (st === "QcCheck รอ MD" && r.dest === "บรรจุ") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  if (st === "QcCheck รอ MD" && r.dest === "รอCheckin") {
+    return noTro(r.tro_id) ? { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" } : { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
+  }
   if ((st === "QcCheck" || st === "รอกลับมาเตรียม") && (r.stay_place === "จุดเตรียม" || r.stay_place === "ออกห้องเย็น") && r.dest === "บรรจุ") {
     return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   }
@@ -128,7 +137,8 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
   const isShown = (m) => {
     const c = { rm_status: cleanText(String(m.rm_status ?? "")), stay_place: cleanText(String(m.stay_place ?? "")), dest: cleanText(String(m.dest ?? "")) };
     if (HIDDEN_COMBOS.has(comboOf(c))) return false;
-    return !(isBigColdCombo(c) && !m.tro_id); // "in the big cold room" needs a trolley
+    if (isBigColdCombo(c) && noTro(m.tro_id)) return false; // "in the big cold room" needs a trolley
+    return !(m.weight_RM !== null && m.weight_RM !== undefined && m.weight_RM !== "" && Number(m.weight_RM) === 0); // nothing left of the material
   };
   const rows = (mappings || []).filter(isShown).map((m) => {
     const h = m.hu !== null && m.hu !== undefined && m.hu !== "" ? huByKey.get(String(m.hu)) : null;
@@ -175,6 +185,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
   });
   // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
-  rows.sort((a, b) => b.__last - a.__last);
-  return rows;
+  const visible = rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label)));
+  visible.sort((a, b) => b.__last - a.__last);
+  return visible;
 };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Box, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Tooltip,
+  Box, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip,
 } from "@mui/material";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -44,15 +44,21 @@ const ActionButton = ({ kind, row, icon, label, color, onStamp, onCheckin }) => 
   );
 };
 
+const BLOCK = 100;
+
 const SapTable = ({ data, onStamp, onCheckin }) => {
-  const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(100);
+  // no page buttons: more rows are added while the table is scrolled down (same as the Master Sheet)
+  const [limit, setLimit] = useState(BLOCK);
   const rows = data || [];
-  const shown = rows.slice(page * perPage, page * perPage + perPage);
+  const shown = rows.slice(0, limit);
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    if (limit < rows.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 300) setLimit((n) => n + BLOCK);
+  };
 
   return (
-    <Paper sx={{ borderRadius: "16px", overflow: "hidden" }}>
-      <TableContainer sx={{ maxHeight: "66vh" }}>
+    <Paper sx={{ borderRadius: "16px", overflow: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <TableContainer sx={{ flex: 1, minHeight: 0 }} onScroll={onScroll}>
         <Table stickyHeader size="small" sx={{ minWidth: 1500 }}>
           <TableHead>
             <TableRow>
@@ -106,11 +112,6 @@ const SapTable = ({ data, onStamp, onCheckin }) => {
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div" count={rows.length} page={page} rowsPerPage={perPage} rowsPerPageOptions={[50, 100, 300]}
-        onPageChange={(_, p) => setPage(p)} onRowsPerPageChange={(e) => { setPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        labelRowsPerPage="แถวต่อหน้า:" labelDisplayedRows={({ from, to, count }) => `${from}-${to} จาก ${count}`}
-      />
     </Paper>
   );
 };

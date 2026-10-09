@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { clearUserLocalStorage } from "../../services/localStorageUtil";
+import { WORKPLACE_ROUTES } from "../../services/roleRoutes";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
 import {
@@ -76,16 +77,9 @@ const Login = () => {
       }
 
       // ตรวจสอบสถานที่ทำงานของ user และนำทางไปยังหน้าที่เกี่ยวข้อง
-      const workplaceRoutes = {
-        1: "/oven",
-        2: "/prep",
-        3: "/qualitycontrol",
-        4: "/line/selectwp",
-        5: "/coldStorage",
-        6: "/sup",
-        7: "/coldStorages",
-        8: "/master/report",
-      };
+      // Role ทั้งหมดของบัญชี (ปุ่มสลับ Role ที่ header ใช้)
+      localStorage.setItem("roles", JSON.stringify(Array.isArray(user.roles) ? user.roles : []));
+      const workplaceRoutes = WORKPLACE_ROUTES;
 
       workplaceRoutes[user.wp_id]
         ? navigate(workplaceRoutes[user.wp_id], { replace: true })

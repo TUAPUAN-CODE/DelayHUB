@@ -25,7 +25,17 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
 
   const needle = q.trim().toLowerCase();
   const shown = useMemo(() => options.filter((o) => !needle || (o.value || "(ว่าง)").toLowerCase().includes(needle)), [options, needle]);
-  const visible = shown.slice(0, MAX_OPTIONS);
+  // a value can be listed in several areas (meta.zones): it then appears under each of them, in the order of the areas. The checkbox is the same value everywhere.
+  const entries = useMemo(() => {
+    const list = [];
+    shown.forEach((o) => {
+      const zones = o.meta ? (o.meta.zones || [o.meta.zone]) : [undefined];
+      zones.forEach((zone) => list.push({ ...o, meta: o.meta && { ...o.meta, zone }, zoneKey: zone ? zone.id : "__none" }));
+    });
+    if (options.some((o) => o.meta?.zones && o.meta.zones.length > 1)) list.sort((a, b) => ((a.meta?.zone?.order ?? 9999) - (b.meta?.zone?.order ?? 9999)) || (a.meta.rank - b.meta.rank));
+    return list;
+  }, [shown, options]);
+  const visible = entries.slice(0, MAX_OPTIONS);
   const chosen = selected ? new Set(selected) : null;
   const isOn = (v) => (chosen ? chosen.has(v) : true);
 
@@ -48,10 +58,10 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
       <DialogContent dividers>
         <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
           <Button size="small" fullWidth variant={sort === "asc" ? "contained" : "outlined"} startIcon={<ArrowUpwardIcon fontSize="small" />} onClick={() => onSort(sort === "asc" ? null : "asc")}>
-            {numeric ? "น้อย → มาก" : "A → Z"}
+            {col.sortLabels ? col.sortLabels[0] : numeric ? "น้อย → มาก" : "A → Z"}
           </Button>
           <Button size="small" fullWidth variant={sort === "desc" ? "contained" : "outlined"} startIcon={<ArrowDownwardIcon fontSize="small" />} onClick={() => onSort(sort === "desc" ? null : "desc")}>
-            {numeric ? "มาก → น้อย" : "Z → A"}
+            {col.sortLabels ? col.sortLabels[1] : numeric ? "มาก → น้อย" : "Z → A"}
           </Button>
         </Box>
         <Divider sx={{ mb: 1.5 }} />
@@ -70,10 +80,10 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
             const prevZone = i > 0 ? visible[i - 1].meta?.zone : undefined;
             const newZone = o.meta && (i === 0 || zone !== prevZone);
             return (
-              <div key={o.value || "__empty"}>
+              <div key={`${o.zoneKey}|${o.value || "__empty"}`}>
                 {newZone && (() => {
                   // click the area / group header = tick (or untick) every value of it at once
-                  const values = options.filter((x) => x.meta && x.meta.zone === zone).map((x) => x.value);
+                  const values = options.filter((x) => x.meta && (x.meta.zones || [x.meta.zone]).includes(zone)).map((x) => x.value);
                   const allOn = values.length > 0 && values.every(isOn);
                   const someOn = values.some(isOn);
                   // nothing filtered yet: the click shows ONLY this area; otherwise it adds / removes the area to what is shown
@@ -98,7 +108,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
               </div>
             );
           })}
-          {shown.length > MAX_OPTIONS && <Typography variant="caption" color="text.secondary" sx={{ display: "block", py: 0.5 }}>แสดง {MAX_OPTIONS} จาก {shown.length} ค่า — พิมพ์ค้นหาเพื่อกรองให้แคบลง</Typography>}
+          {entries.length > MAX_OPTIONS && <Typography variant="caption" color="text.secondary" sx={{ display: "block", py: 0.5 }}>แสดง {MAX_OPTIONS} จาก {entries.length} ค่า — พิมพ์ค้นหาเพื่อกรองให้แคบลง</Typography>}
           {!shown.length && <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>ไม่พบค่า</Typography>}
         </Box>
       </DialogContent>

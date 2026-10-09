@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
-import { ChevronDown, UserRound } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, UserRound } from "lucide-react";
+import axios from "axios";
+import { WORKPLACE_ROUTES, readRoles } from "../../services/roleRoutes";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 /**
@@ -19,17 +21,22 @@ import LanguageSwitcher from "./LanguageSwitcher";
 const norm = (p) => (String(p || "").replace(/\/+$/, "") || "/").toLowerCase();
 const isRealHref = (h) => typeof h === "string" && h.startsWith("/");
 
-/** Longest matching href wins. A menu entry that is the prefix of another entry (e.g. "/prep" vs "/prep/timestamp") only matches exactly. */
-function findActiveKey(pathname, leaves) {
+/** Longest matching href wins. A menu entry that is the prefix of another entry (e.g. "/prep" vs "/prep/timestamp") only matches exactly.
+ *  An entry with a query string ("/prep/Sheet?view=done") matches only that exact page + query and wins over the same page without a query. */
+function findActiveKey(pathname, search, leaves) {
+  const full = `${norm(pathname)}${String(search || "").toLowerCase()}`;
   const path = norm(pathname);
   const hrefs = leaves.map((l) => norm(l.href));
   let best = null;
   leaves.forEach((leaf, i) => {
     const href = hrefs[i];
-    const prefixOfOther = hrefs.some((o, j) => j !== i && o.startsWith(`${href}/`));
-    const exact = leaf.exact ?? prefixOfOther;
-    const hit = exact ? path === href : path === href || path.startsWith(`${href}/`);
-    if (hit && (!best || href.length > best.len)) best = { key: leaf.key, len: href.length };
+    let hit; let len = href.length;
+    if (href.includes("?")) { hit = full === href; len += 10000; } else {
+      const prefixOfOther = hrefs.some((o, j) => j !== i && o.startsWith(`${href}/`));
+      const exact = leaf.exact ?? prefixOfOther;
+      hit = exact ? path === href : path === href || path.startsWith(`${href}/`);
+    }
+    if (hit && (!best || len > best.len)) best = { key: leaf.key, len };
   });
   return best?.key ?? null;
 }
@@ -60,8 +67,52 @@ const GroupLink = ({ item, activeKey }) => {
   );
 };
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+/** Role switch: an account can have several Roles (set by the supervisor in the staff table). Shown after the brand only when the account has more than one. */
+const RoleSwitcher = () => {
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState(null);
+  const [roles, setRoles] = useState(readRoles);
+  const current = String(localStorage.getItem("wp_id") || "");
+
+  useEffect(() => {
+    // the list may have been changed after login: read it again (a failure keeps the list saved at login)
+    const userId = parseInt(localStorage.getItem("user_id"), 10);
+    if (Number.isNaN(userId) || !API_URL) return;
+    axios.get(`${API_URL}/api/user/roles`, { params: { user_id: userId } })
+      .then((res) => { const list = res.data?.data; if (Array.isArray(list)) { localStorage.setItem("roles", JSON.stringify(list)); setRoles(list); } })
+      .catch((err) => console.error("Role list error:", err.message));
+  }, []);
+
+  if (roles.length < 2) return null;
+  const now = roles.find((r) => String(r.wp_id) === current);
+
+  const pick = (role) => {
+    setAnchor(null);
+    if (String(role.wp_id) === current) return;
+    const target = WORKPLACE_ROUTES[role.wp_id];
+    if (!target) return;
+    localStorage.setItem("wp_id", String(role.wp_id));
+    navigate(target, { replace: true });
+  };
+
+  return (
+    <>
+      <button type="button" className="app-top-link" title="สลับ Role" aria-haspopup="true" onClick={(e) => setAnchor(e.currentTarget)}>
+        <ArrowLeftRight size={16} className="shrink-0" /><span>{now ? now.wp_name : "สลับ Role"}</span><ChevronDown size={14} className="shrink-0" />
+      </button>
+      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
+        {roles.map((r) => (
+          <MenuItem key={r.wp_id} selected={String(r.wp_id) === current} onClick={() => pick(r)} sx={{ fontSize: 14 }}>{r.wp_name}{r.primary ? " (หลัก)" : ""}</MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
 const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const normalized = useMemo(() => sections || [{ items: items || [] }], [sections, items]);
 
   const { main, bottom, leaves } = useMemo(() => {
@@ -75,7 +126,7 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
     return { main: all.filter((it) => !isBottom(it)), bottom: all.filter(isBottom), leaves: lv };
   }, [normalized]);
 
-  const activeKey = useMemo(() => findActiveKey(pathname, leaves), [pathname, leaves]);
+  const activeKey = useMemo(() => findActiveKey(pathname, search, leaves), [pathname, search, leaves]);
 
   const userName = [localStorage.getItem("first_name"), localStorage.getItem("last_name")].filter((v) => v && v !== "null").join(" ");
 
@@ -85,6 +136,7 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
         <div className="app-top-title">{title}</div>
         {subtitle && <div className="app-top-sub">{subtitle}</div>}
       </div>
+      <RoleSwitcher />
       <nav aria-label="เมนูหลัก" className="app-top-nav">
         {main.map((it) => (it.submenu ? <GroupLink key={it.key} item={it} activeKey={activeKey} /> : <NavLink key={it.key} leaf={it} active={activeKey === it.key} />))}
       </nav>

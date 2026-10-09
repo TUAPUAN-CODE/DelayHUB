@@ -173,8 +173,8 @@ const ParentComponent = () => {
   };
 
   return (
-    <div>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1.5 }}>
+    <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1.5, flexShrink: 0 }}>
         {["start", "end", "dispatch"].map((k) => (
           <Button key={k} variant="contained" startIcon={<QrCodeScannerIcon />} onClick={() => setScanKind(k)}>
             สแกน {STAMP_LABEL[k]}
@@ -211,7 +211,7 @@ const ParentComponent = () => {
 
       <SapTable data={visible} onStamp={handleRowStamp} onCheckin={handleRowCheckin} />
 
-      <Box sx={{ mt: 1.5 }}>
+      <Box sx={{ mt: 1, flexShrink: 0 }}>
         <Button size="small" onClick={() => setShowLog((v) => !v)}>{showLog ? "ซ่อน" : "แสดง"}ประวัติการทำรายการล่าสุด ({log.length})</Button>
         <Collapse in={showLog}><Box sx={{ mt: 1 }}><LogList log={log} max={20} /></Box></Collapse>
       </Box>

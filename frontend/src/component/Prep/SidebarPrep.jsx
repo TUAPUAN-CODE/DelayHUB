@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Soup, ListChecks, LogOut, Table2 } from "lucide-react";
+import { Soup, ListChecks, LogOut, Table2, CheckCircle2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarPrep = () => {
@@ -9,6 +9,7 @@ const SidebarPrep = () => {
       items: [
         // รอแก้ไข · กลับมาเตรียม · ผสมวัตถุดิบ / Batch / ผสมเตรียม / loaf สุก อยู่เป็น tool ในตารางนี้
         { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/prep/Sheet" },
+      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/prep/Sheet?view=done" },
         { name: "Time Stamp น้ำต้มไก่", icon: Soup, href: "/prep/timestamp" },
       ],
     },

@@ -99,7 +99,13 @@ const buildMappingQuery = (scope = "open") => `
       FROM PackTrolley pt WITH (NOLOCK)
       WHERE pt.tro_id = rmm.tro_id AND pt.pack_tro_status = '0'
   ) ptl
-  LEFT JOIN Slot sl WITH (NOLOCK) ON sl.tro_id = rmm.tro_id AND rmm.tro_id IS NOT NULL
+  -- one slot per trolley: a trolley written in two Slot rows (e.g. after a move) used to make the same mapping appear twice
+  OUTER APPLY (
+      SELECT TOP 1 s2.slot_id, s2.cs_id
+      FROM Slot s2 WITH (NOLOCK)
+      WHERE s2.tro_id = rmm.tro_id AND rmm.tro_id IS NOT NULL
+      ORDER BY s2.cs_id, s2.slot_id
+  ) sl
   LEFT JOIN ColdStorage cs WITH (NOLOCK) ON cs.cs_id = sl.cs_id
   OUTER APPLY (
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
@@ -125,6 +131,14 @@ const buildMappingQuery = (scope = "open") => `
           WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
             AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
             AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
+      )
+      -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
+      AND ISNULL(rmm.weight_RM, 1) <> 0
+      -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
+      AND NOT (
+          (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')
+          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
+          AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
       )
       -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
       AND NOT (
@@ -189,8 +203,9 @@ const buildPlanQuery = () => `
   JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
   JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
   JOIN History htr WITH (NOLOCK) ON rmf.hist_id_rmfp = htr.hist_id
+  -- a scan ("สแกนป้าย SAP") saves stay_place = จุดเตรียมรับเข้า and the destination chosen at the scan (จุดเตรียม / หม้ออบ / เข้าห้องเย็น): all of them wait to be put in a trolley
   WHERE rmf.stay_place IN (N'จุดเตรียมรับเข้า', N'หม้ออบ')
-    AND rmf.dest IN (N'ไปจุดเตรียม', N'จุดเตรียม')
+    AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest NOT LIKE N'%ลบ%'
   ORDER BY htr.cooked_date DESC
 `;
 

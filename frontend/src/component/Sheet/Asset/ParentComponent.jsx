@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Snackbar, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -12,6 +12,7 @@ import DataGrid from "../../Layout/DataGrid/DataGrid";
 import ColorSettings, { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
 import StatusZoneSettings from "./StatusZoneSettings";
 import LineGroupSettings from "./LineGroupSettings";
+import PasswordGate from "./PasswordGate";
 import DonePanel from "./DonePanel";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
@@ -82,11 +83,10 @@ const WeightInput = ({ value, disabled, onChange }) => {
   );
 };
 
-const ParentComponent = ({ role }) => {
+const ParentComponent = ({ role, view = "work" }) => {
   const [data, setData] = useState({ hus: [], mappings: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState("work"); // "work" = the work table · "done" = finished rows, searched on demand
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
   const [cart, setCart] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -146,13 +146,14 @@ const ParentComponent = ({ role }) => {
     }
   }, [role]);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load]);
+  // the work table refreshes by itself; the Done table is only read when the user presses its button
+  useEffect(() => { if (view === "work") load(); }, [load, view]);
+  useEffect(() => { if (view !== "work") return undefined; const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load, view]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   // real-time: reload when another user changes data (same events as the old pages)
   useEffect(() => {
-    if (!API_URL) return undefined;
+    if (!API_URL || view !== "work") return undefined;
     let timer = null;
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000 });
     const refresh = () => { if (Date.now() - lastLoadAt.current < 4000) return; clearTimeout(timer); timer = setTimeout(load, 800); }; // an event right after our own load is an echo: ignore it
@@ -167,7 +168,7 @@ const ParentComponent = ({ role }) => {
     socket.on("dataDelete", refresh);
     socket.on("connect_error", (err) => console.error("[Sheet] socket error:", err.message));
     return () => { clearTimeout(timer); socket.off("dataUpdated", refresh); socket.off("trolleyUpdated", refresh); socket.off("rawMaterialSaved", refresh); socket.off("qcDateTimeUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
-  }, [load]);
+  }, [load, view]);
 
   const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload: load });
 
@@ -363,19 +364,16 @@ const ParentComponent = ({ role }) => {
 
   // everything the two tables share: the same columns and the same account settings (tabs of the "ตั้งค่าคอลัมน์ที่แสดง" dialog)
   const lineNames = useMemo(() => [...new Set(allRows.map((r) => r.rmm_line_name).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "th", { numeric: true })), [allRows]);
+  // tabs 2-4 of the settings dialog: they change what everybody on the account sees, so they are locked with the password of the day
   const settingPages = useCallback((ext, setExt) => [
-    { key: "color", label: "สีของแถว (เขียว / เหลือง / แดง) ตาม Delay", node: <ColorSettings ext={ext} setExt={setExt} /> },
-    { key: "status", label: "สถานะอยู่ในพื้นที่ไหน (ใช้เรียงลำดับและแบ่งสีในเมนูสถานะ)", node: <StatusZoneSettings ext={ext} setExt={setExt} /> },
-    { key: "line", label: "ไลน์นี้ใครดูแล (ใช้จัดกลุ่มและแบ่งสีในเมนูไลน์)", node: <LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /> },
+    { key: "color", label: "สีของแถว (เขียว / เหลือง / แดง) ตาม Delay", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
+    { key: "status", label: "สถานะอยู่ในพื้นที่ไหน (ใช้เรียงลำดับและแบ่งสีในเมนูสถานะ)", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
+    { key: "line", label: "ไลน์นี้ใครดูแล (ใช้จัดกลุ่มและแบ่งสีในเมนูไลน์)", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
   ], [lineNames]);
   const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ minHeight: 36, flexShrink: 0, mb: 0.5, "& .MuiTab-root": { minHeight: 36, py: 0, textTransform: "none", fontWeight: 600 } }}>
-        <Tab value="work" label="ตารางงาน (ที่ยังไม่เสร็จ)" />
-        <Tab value="done" label="Done (เลือกก่อนแล้วดึงจากฐานข้อมูล)" />
-      </Tabs>
       {view === "done" ? (
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}><div style={{ position: "absolute", inset: 0 }}><DonePanel gridKey={`sheet-${role}`} gridProps={sharedGrid} /></div></div>
       ) : (

@@ -33,6 +33,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
   const [posId, setPosId] = useState(userData?.pos_id || "");
   const [wpId, setWpId] = useState(userData?.wp_id || "");
   const [workplaces, setWorkplaces] = useState([]);
+  const [extraRoles, setExtraRoles] = useState([]); // Role เพิ่มเติม (นอกจากสถานที่ทำงานหลัก) ที่พนักงานสลับไปใช้ได้จากปุ่มที่ header
 
   const [rawmatTypes, setRawmatTypes] = useState([]); // เก็บข้อมูล rawmatType
   const [selectedRawmatTypes, setSelectedRawmatTypes] = useState(
@@ -55,6 +56,10 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
       setLeader(userData.leader);
       setPosId(userData.pos_id);
       setWpId(userData.wp_id);
+
+      axios.get(`${API_URL}/api/user/roles`, { params: { user_id: userData.user_id } })
+        .then((res) => setExtraRoles((res.data?.data || []).filter((r) => !r.primary).map((r) => r.wp_id)))
+        .catch((err) => console.error("โหลด Role เพิ่มเติมไม่สำเร็จ:", err.message));
 
       // ใช้ค่า rm_type_ids โดยตรงถ้าเป็น array
       setSelectedRawmatTypes(
@@ -191,8 +196,14 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
           selectedRawmatTypes
         );
 
+        const rolesResult = await axios.put(`${API_URL}/api/user/roles`, { user_id: userId, wp_ids: extraRoles.filter((id) => id !== wpId) })
+          .then(() => ({ success: true }))
+          .catch((err) => ({ success: false, error: err.response?.data?.error || "บันทึก Role เพิ่มเติมไม่สำเร็จ" }));
+
         if (!updateResult.success) {
           setError(updateResult.error);
+        } else if (!rolesResult.success) {
+          setError(rolesResult.error);
         } else {
           if (onSuccess) onSuccess();
           alert("แก้ไขข้อมูลพนักงานสำเร็จ");
@@ -299,6 +310,24 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
                 ) : (
                   <MenuItem disabled>No workplaces available</MenuItem>
                 )}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Role เพิ่มเติม (สลับได้ที่ header)</InputLabel>
+              <Select
+                multiple
+                value={extraRoles.filter((id) => id !== wpId)}
+                onChange={(e) => setExtraRoles(e.target.value)}
+                label="Role เพิ่มเติม (สลับได้ที่ header)"
+                renderValue={(ids) => workplaces.filter((w) => ids.includes(w.wp_id)).map((w) => w.wp_name).join(", ")}
+              >
+                {workplaces.filter((w) => w.wp_id !== wpId).map((w) => (
+                  <MenuItem key={w.wp_id} value={w.wp_id}>
+                    <Checkbox checked={extraRoles.includes(w.wp_id)} />
+                    {w.wp_name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </div>
