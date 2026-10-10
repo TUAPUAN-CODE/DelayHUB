@@ -1,4 +1,5 @@
 const { safeRollback } = require("../lib/safeRollback");
+const { issueUserToken, USER_TTL_SECONDS } = require("../lib/auth");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const sql = require("mssql");
@@ -189,8 +190,13 @@ router.post("/login", async (req, res) => {
     // ไม่ส่ง password hash กลับไปที่เบราว์เซอร์
     const { password: _passwordHash, ...safeUser } = user;
 
+    // token ยืนยันตัวตน: หน้าเว็บส่งกลับมาใน Authorization: Bearer ทุก request (ดู lib/authMiddleware.js)
+    const token = issueUserToken({ ...user, roles });
+
     res.status(200).json({
       message: "เข้าสู่ระบบสำเร็จ",
+      token,
+      expires_in: USER_TTL_SECONDS,
       user: {
         ...safeUser,
         rm_type_id: rm_type_ids,

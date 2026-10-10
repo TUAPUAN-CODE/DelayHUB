@@ -74,7 +74,8 @@ const useGridPrefs = (gridKey, defaults) => {
         .catch((err) => {
           console.error("[useGridPrefs] save error:", err);
           setStorage("local");
-          setWarning(err.response?.data?.code === "PREFS_TABLE_MISSING" ? MISSING : "บันทึกการตั้งค่าลงเซิร์ฟเวอร์ไม่สำเร็จ — เก็บไว้ในเครื่องนี้");
+          const code = err.response?.data?.code;
+          setWarning(code === "PREFS_TABLE_MISSING" ? MISSING : code === "SETTING_LOCKED" ? "ต้องปลดล็อกหน้า Setting ด้วยรหัสก่อน จึงจะบันทึกการตั้งค่านี้ลงเซิร์ฟเวอร์ได้ — เก็บไว้ในเครื่องนี้ชั่วคราว" : "บันทึกการตั้งค่าลงเซิร์ฟเวอร์ไม่สำเร็จ — เก็บไว้ในเครื่องนี้");
         });
     }, 600);
   }, [userId, gridKey]);

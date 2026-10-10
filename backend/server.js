@@ -1,12 +1,11 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const { connectToDatabase } = require("./database/db");
+const { connectToDatabase, getPoolStats } = require("./database/db");
 const swaggerUI = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
 const helmet = require("helmet");
 const compression = require("compression");
-const rateLimit = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
 const cluster = require("cluster");
@@ -15,6 +14,12 @@ const { createClient } = require("redis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { setupPrimary } = require("@socket.io/cluster-adapter");
+const { authenticate, authorize, isPrivateIp, AUTH_MODE } = require("./lib/authMiddleware");
+const { createLimiters, resolveTrustProxy } = require("./lib/rateLimiters");
+const requestObserver = require("./lib/requestObserver");
+const metrics = require("./lib/metrics");
+const logger = require("./lib/logger");
+const { startAlerts } = require("./lib/alerts");
 const rfidScanTriggerRoutes = require('./routes/rfidScanTrigger');
 const rfidReaderConfigRoutes = require('./routes/rfidReaderConfig');
 // const { getLatestData } = require("./autofetch");
@@ -66,19 +71,10 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const app = express();
   const port = process.env.PORT || 3000;
 
-  // Enhanced rate limiting
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 3000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => {
-      return req.ip.startsWith('192.168.') ||
-        req.ip.startsWith('10.') ||
-        req.ip.startsWith('172.') ||
-        req.path === '/health';
-    }
-  });
+  // อยู่หลัง nginx: ดู lib/rateLimiters.js (TRUST_PROXY, RATE_LIMIT_MAX, LOGIN_RATE_LIMIT ใน .env)
+  const trustProxy = resolveTrustProxy();
+  app.set("trust proxy", trustProxy);
+  const { limiter, loginLimiter, publicAuthLimiter } = createLimiters();
 
   // Security middleware
   app.use(helmet({
@@ -104,6 +100,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     }
   }));
 
+  app.use(requestObserver); // นับ/จับเวลา/log request (ไม่ตัดสินใจอะไร) — ต้องอยู่ก่อน limiter เพื่อเห็น 429 ด้วย
   app.use(limiter);
 
   // Create HTTP server
@@ -159,6 +156,19 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
         publishOnSpecificResponseChannel: true
       }));
       console.log("✅ Redis adapter connected");
+      metrics.registerGauge("db_pool", getPoolStats);
+      metrics.registerGauge("sockets_connected", () => io.engine.clientsCount);
+      metrics.startFlush(pubClient);
+      startAlerts({
+        redis: pubClient,
+        getPoolStats,
+        ping: async () => {
+          const pool = await connectToDatabase();
+          if (!pool) throw new Error("ไม่มี connection pool");
+          await pool.request().query("SELECT 1 AS ok");
+        },
+      });
+      logger.info("auth_mode", { mode: AUTH_MODE, trustProxy });
     })
     .catch((err) => {
       console.error("❌ Redis connection error:", err);
@@ -191,6 +201,13 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   // Body parsing middleware
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
+  // ตัวจำกัดของ endpoint สาธารณะ (ต้องอยู่หลัง body parser เพราะใช้ user_id ใน body) แล้วจึงตรวจตัวตน + สิทธิ์ Role ของทุก route ที่เหลือ
+  app.use("/api/login", loginLimiter);
+  app.use("/api/signup", publicAuthLimiter);
+  app.use("/api/forgot-password", publicAuthLimiter);
+  app.use(authenticate); // AUTH_MODE = off | warn (ค่าเริ่มต้น) | enforce — ดู lib/authMiddleware.js
+  app.use(authorize);
 
   // Real time for the Master Sheet: every successful write of the API tells the open sheets to reload (see sheetRealtime.js)
   require("./sheetRealtime")(app, io);
@@ -225,6 +242,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const QualityControlRoutes = require("./routes/QualityControlRoutes")(io);
   const SheetRoutes = require("./routes/SheetRoutes");
   const OtherRoutes = require("./routes/OtherRoutes");
+  const AuthRoutes = require("./routes/AuthRoutes");
 
   // Route registration
   app.use("/api", OvenRoutes);
@@ -242,6 +260,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api", QualityControlRoutes);
   app.use("/api", SheetRoutes);
   app.use("/api", OtherRoutes);
+  app.use("/api", AuthRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);
 
@@ -252,6 +271,30 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       worker: process.pid,
       memoryUsage: process.memoryUsage()
     });
+  });
+
+  // พร้อมรับงานจริงหรือไม่ (ตรวจ DB + Redis) — ใช้กับ load balancer / monitor; /health ด้านบนบอกแค่ว่า process ยังมีชีวิต
+  app.get("/health/ready", async (req, res) => {
+    const checks = { db: false, redis: !!(pubClient && pubClient.isOpen) };
+    try {
+      const pool = await connectToDatabase();
+      if (pool) { await pool.request().query("SELECT 1 AS ok"); checks.db = true; }
+    } catch (err) {
+      logger.warn("ready_db_failed", { error: err.message });
+    }
+    const ok = checks.db && checks.redis;
+    res.status(ok ? 200 : 503).json({ status: ok ? "ready" : "not_ready", worker: process.pid, checks, pool: getPoolStats() });
+  });
+
+  // ตัวชี้วัดรวมทุก worker (รูปแบบ Prometheus; เติม ?format=json เพื่อดู snapshot ดิบ)
+  // ป้องกันด้วย header x-metrics-key = METRICS_KEY ถ้าตั้งไว้ ไม่เช่นนั้นเปิดเฉพาะเครือข่ายภายใน
+  app.get("/metrics", async (req, res) => {
+    const key = process.env.METRICS_KEY;
+    const allowed = key ? req.headers["x-metrics-key"] === key : isPrivateIp(req.ip);
+    if (!allowed) return res.status(403).json({ success: false, error: "forbidden" });
+    const snaps = await metrics.readAll(pubClient);
+    if (req.query.format === "json") return res.json({ success: true, workers: snaps });
+    res.type("text/plain; version=0.0.4").send(metrics.renderPrometheus(snaps));
   });
 
   // Swagger setup
@@ -432,9 +475,10 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
   // Error handling middleware
   app.use((err, req, res, next) => {
-    console.error(err.stack);
+    logger.error("unhandled_route_error", { id: req.id, method: req.method, path: req.path, user_id: req.user ? req.user.user_id : null, error: err.message, stack: err.stack });
     res.status(500).json({
       error: "Internal Server Error",
+      requestId: req.id,
       message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   });

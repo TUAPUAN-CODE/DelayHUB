@@ -454,8 +454,8 @@ socket.on("connect_error", (err) => {
 
 ### Authentication
 
-- ระบบใช้ **bcrypt** สำหรับ password hashing (ไม่มี JWT)
-- Session state เก็บบน frontend (localStorage หรือ component state)
+- ระบบใช้ **bcrypt** สำหรับ password hashing และออก **token (JWT HS256)** ตอน login — ดูหัวข้อ 21
+- token เก็บบน frontend ใน `localStorage.auth_token` และถูกแนบกับทุก request โดย `frontend/src/services/authClient.js`
 - ทุก API endpoint ที่ sensitive ควรมีการตรวจสอบ user identity
 
 ### Input Validation (บังคับ)
@@ -968,6 +968,27 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 - Database pool max=30 ต่อ worker — ถ้า connection leak หรือ query ช้าค้าง คำขออื่นจะรอคิวจน timeout
 
 ---
+
+---
+
+## 21. Authentication, Authorization และ Observability
+
+**ยืนยันตัวตน** (`backend/lib/auth.js`, `backend/lib/authMiddleware.js`)
+- `POST /api/login` คืน `token` (อายุ 12 ชม., ต่ออายุอัตโนมัติผ่าน `POST /api/auth/refresh` ได้ต่อเนื่องไม่เกิน 7 วัน) — ไม่ใช้ library เพิ่ม ใช้ `crypto` ของ Node
+- middleware กลางใน `server.js` (`authenticate` → `authorize`) ตั้ง `req.user = { user_id, username, name, wp_id, roles[] }` ให้ทุก route ใช้ได้ (เช่น `created_by`)
+- `AUTH_MODE` ใน `.env`: `off` | `warn` (ค่าเริ่มต้น: log เตือน ไม่ปฏิเสธ) | `enforce` (401/403จริง) — ดู `backend/AUTH_ENV_EXAMPLE.txt`
+- endpoint สาธารณะ (ไม่ต้องมี token): `POST /api/login`, `PUT /api/signup`, `PUT /api/forgot-password`, `/health*`, `/metrics` (ตรวจ key/IP เอง), `/api-docs` (เครือข่ายภายใน)
+- worker ภายในเรียก API ด้วย service token (`issueServiceToken`) — ตัวอย่าง `delayAlertWorker.js`
+- route ใหม่ **ไม่ต้อง** ตรวจ token เอง; ถ้าต้องจำกัด Role ให้เพิ่มกฎใน `RULES` ของ `lib/authMiddleware.js`
+- Role ที่จัดการผู้ใช้ได้: wp_id 6 (Supervisor) และ 8 (Master) — ค่า `ADMIN_ROLES`
+
+**หน้า Setting (รหัสรายวัน)**: ตรวจที่ `POST /api/sheet/setting-unlock` (เวลาไทย) ได้ใบอนุญาต `x-setting-unlock` ที่ `authClient` แนบไปกับ `PUT /api/sheet/prefs`; server เทียบค่า colorMode/greenPct/yellowPct/statusZones/statusAreas/lineGroups ของเดิมกับใหม่ ถ้าเปลี่ยนโดยไม่มีใบอนุญาต → 403 `SETTING_LOCKED` (โหมด enforce)
+
+**Rate limit** (`lib/rateLimiters.js`): นับต่อผู้ใช้จาก token (ไม่ใช่ต่อ IP, ไม่ข้าม IP ภายในที่มี token), login ผิดนับต่อ IP+user_id, `TRUST_PROXY` สำหรับอยู่หลัง nginx
+
+**Observability**: `lib/logger.js` (log JSON 1 บรรทัด: `http_5xx`, `http_slow`, `slow_query`, `sql_error`, `forbidden`, `alert`), `lib/metrics.js` (รวมทุก worker ผ่าน Redis → `GET /metrics` รูปแบบ Prometheus), `GET /health/ready` (ตรวจ DB+Redis), `lib/alerts.js` (pool เต็ม / DB ล่ม / 5xx พุ่ง / event loop ค้าง → log + LINE ถ้าตั้ง `OPS_ALERT_LINE_GROUP_ID`)
+- ทุก response มี header `x-request-id` — ขอจากผู้ใช้เมื่อแจ้งปัญหา แล้ว grep ใน log ได้เลย
+- Socket.IO ยังไม่ตรวจ token (client 187 จุดเชื่อม socket เอง) — event ที่ส่งเป็นแค่สัญญาณให้โหลดข้อมูลใหม่ผ่าน API ที่ตรวจสิทธิ์แล้ว
 
 *อัปเดตล่าสุด: พฤษภาคม 2026 — หลังการทำ naming consistency refactor ครั้งแรก*
 *ผู้ดูแลระบบ: ทีม PFCM Development, i-Tail Corporation*

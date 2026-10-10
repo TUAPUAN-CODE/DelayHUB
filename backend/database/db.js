@@ -1,5 +1,6 @@
 const mssql = require('mssql');
 const dotenv = require('dotenv');
+require('../lib/sqlTelemetry').instrument(mssql); // นับ/วัดเวลา/log query ช้า ที่เดียว ไม่ต้องแก้ route
 
 dotenv.config();
 
@@ -27,7 +28,9 @@ const dbConfig = {
 };
 
 let pool = null;
-let connecting = null; // คำขอที่เข้ามาพร้อมกันตอน pool ยังไม่พร้อมจะรอ promise เดียวกัน (กัน connect ซ้อน → pool กำพร้า / error "already connecting")
+let connecting = null;
+let lastFailAt = 0;   // ต่อไม่ได้ครบทุกครั้งล่าสุดเมื่อไหร่ — ช่วงที่ DB ล่ม คำขอถัดไปได้ null ทันที ไม่ต้องรอ retry ซ้ำทุกคำขอ
+const FAIL_FAST_MS = 2000; // คำขอที่เข้ามาพร้อมกันตอน pool ยังไม่พร้อมจะรอ promise เดียวกัน (กัน connect ซ้อน → pool กำพร้า / error "already connecting")
 
 const attachPoolErrorHandler = (p, label) => {
   // mssql emit 'error' เมื่อ connection ในพูลมีปัญหา (ไม่ใช่ ESOCKET) — ถ้าไม่มี listener จะกลายเป็น uncaughtException แล้ว worker ล้ม
@@ -64,6 +67,7 @@ const openPool = async (retryCount, delayMs) => {
         await new Promise(res => setTimeout(res, delayMs));
       } else {
         console.error("❌ All retry attempts failed. Backend will start without DB.");
+        lastFailAt = Date.now();
         // ไม่ process.exit เพื่อให้ backend ยังรันได้ (เช่น /health, Swagger)
         return null;
       }
@@ -78,6 +82,7 @@ const connectToDatabase = async (retryCount = 3, delayMs = 1500) => {
     return pool;
   }
   if (connecting) return connecting;
+  if (Date.now() - lastFailAt < FAIL_FAST_MS) return null;
 
   connecting = openPool(retryCount, delayMs).finally(() => { connecting = null; });
   return connecting;
@@ -118,8 +123,15 @@ const connectToDatabaseWC = async () => {
   }
 };
 
+// สถานะ pool สำหรับ /metrics และ alert (size = connection ทั้งหมด, available = ว่าง, borrowed = ถูกใช้อยู่, pending = คำขอที่รอคิว)
+const getPoolStats = () => {
+  if (!pool) return { connected: 0, size: 0, available: 0, borrowed: 0, pending: 0 };
+  return { connected: pool.connected ? 1 : 0, size: pool.size || 0, available: pool.available || 0, borrowed: pool.borrowed || 0, pending: pool.pending || 0 };
+};
+
 module.exports = {
   connectToDatabase,
+  getPoolStats,
   connectToDatabaseWC,
   sql: mssql,
 };

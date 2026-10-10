@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 const { cached } = require("../lib/sheetCache");
+const { verifyToken } = require("../lib/auth");
+const { AUTH_MODE } = require("../lib/authMiddleware");
+const metrics = require("../lib/metrics");
+const logger = require("../lib/logger");
 
 const router = express.Router();
 
@@ -405,6 +409,25 @@ router.get("/sheet/prefs", async (req, res) => {
   }
 });
 
+// ── ค่าตั้งที่ต้องปลดล็อกด้วยรหัสรายวันของหน้า Setting (แท็บสีแถว / พื้นที่สถานะ / ผู้ดูแลไลน์) ──
+// เดิมล็อกที่หน้าเว็บอย่างเดียว ใครยิง API ตรงก็แก้ได้ ตอนนี้ server เทียบค่าเดิมกับค่าใหม่ และต้องมี header x-setting-unlock (ได้จาก POST /api/sheet/setting-unlock)
+const PROTECTED_EXT_DEFAULTS = { colorMode: "stage", greenPct: 50, yellowPct: 0, statusZones: {}, statusAreas: [], lineGroups: [] };
+const sortKeys = (_k, val) => (val && typeof val === "object" && !Array.isArray(val)
+  ? Object.keys(val).sort().reduce((o, kk) => { o[kk] = val[kk]; return o; }, {})
+  : val);
+const protectedPart = (cfg) => {
+  const ext = (cfg && cfg.ext) || {};
+  const out = {};
+  Object.keys(PROTECTED_EXT_DEFAULTS).forEach((k) => { out[k] = ext[k] === undefined ? PROTECTED_EXT_DEFAULTS[k] : ext[k]; });
+  return JSON.stringify(out, sortKeys);
+};
+const hasSettingUnlock = (req, userId) => {
+  const t = req.headers["x-setting-unlock"];
+  if (typeof t !== "string") return false;
+  const v = verifyToken(t);
+  return v.ok && v.payload.typ === "setting" && v.payload.user_id === userId;
+};
+
 router.put("/sheet/prefs", async (req, res) => {
   const key = parsePrefsKey(req.body || {});
   const config = typeof req.body?.config === "string" ? req.body.config : null;
@@ -419,6 +442,23 @@ router.put("/sheet/prefs", async (req, res) => {
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+    if (AUTH_MODE !== "off") {
+      const stored = await withPrefsTable(pool, () => pool.request()
+        .input("user_id", sql.Int, key.userId)
+        .input("sheet_key", sql.NVarChar(50), key.sheetKey)
+        .query("SELECT config FROM SheetUserPrefs WHERE user_id = @user_id AND sheet_key = @sheet_key"));
+      let oldCfg = null;
+      try { oldCfg = stored.recordset[0]?.config ? JSON.parse(stored.recordset[0].config) : null; } catch { oldCfg = null; }
+      if (protectedPart(oldCfg) !== protectedPart(JSON.parse(config)) && !hasSettingUnlock(req, key.userId)) {
+        metrics.inc("setting_locked_total", { mode: AUTH_MODE });
+        logger.warn("setting_locked", { id: req.id, user_id: key.userId, sheet_key: key.sheetKey, mode: AUTH_MODE, by: req.user ? req.user.user_id : null });
+        if (AUTH_MODE === "enforce") {
+          return res.status(403).json({ success: false, code: "SETTING_LOCKED", error: "ต้องใส่รหัสปลดล็อกของหน้า Setting ก่อนจึงบันทึกการตั้งค่านี้ได้" });
+        }
+      }
+    }
+
     await withPrefsTable(pool, () => pool.request()
       .input("user_id", sql.Int, key.userId)
       .input("sheet_key", sql.NVarChar(50), key.sheetKey)

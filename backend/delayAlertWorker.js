@@ -24,6 +24,7 @@ require("./lib/processGuards").installProcessGuards("delay-alert-worker");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const { issueServiceToken } = require("./lib/auth");
 
 const cfg = () => ({
   token: process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
@@ -112,7 +113,8 @@ const runOnce = async (now = Date.now()) => {
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const today = new Date();
   const from = new Date(today.getTime() - c.days * 86400000);
-  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: c.days, open_from: ymd(from), open_to: ymd(today) }, timeout: 60000 });
+  // เรียก API ภายในด้วย service token (ตัวตรวจสิทธิ์ของ server รู้จัก; ไม่ต้องมีรหัสผ่านผู้ใช้)
+  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: c.days, open_from: ymd(from), open_to: ymd(today) }, headers: { Authorization: `Bearer ${issueServiceToken("delay-alert-worker")}` }, timeout: 60000 });
   if (!res.data?.success) throw new Error(res.data?.error || "โหลดข้อมูลตารางไม่สำเร็จ");
 
   const prev = readState(c.stateFile);
