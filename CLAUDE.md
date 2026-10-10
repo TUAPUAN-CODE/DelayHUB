@@ -993,5 +993,7 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 **Observability**: `lib/logger.js` (log JSON 1 บรรทัด: `http_5xx`, `http_slow`, `slow_query`, `sql_error`, `forbidden`, `alert`), `lib/metrics.js` (รวมทุก worker ผ่าน Redis → `GET /metrics` รูปแบบ Prometheus), `GET /health/ready` (ตรวจ DB+Redis), `lib/alerts.js` (pool เต็ม / DB ล่ม / 5xx พุ่ง / event loop ค้าง → log + LINE ถ้าตั้ง `OPS_ALERT_LINE_GROUP_ID`)
 - ทุก response มี header `x-request-id` — ขอจากผู้ใช้เมื่อแจ้งปัญหา แล้ว grep ใน log ได้เลย
 
+**รันสองเครื่อง / ทนล่ม**: ดู `backend/HA_RUNBOOK.md` — Redis ตั้งค่าที่ `.env` (`REDIS_HOST` ฯลฯ ผ่าน `lib/redisClient.js`; Redis ล่มแล้ว API ต้องไม่ล่ม), งานที่ต้องมีตัวเดียว (delay-alert, RFID) ใช้ล็อกผู้นำ `lib/leaderLock.js`, rate limit นับร่วมผ่าน Redis (`lib/redisRateLimitStore.js`), `/health/ready` ตรวจเฉพาะ DB
+
 *อัปเดตล่าสุด: พฤษภาคม 2026 — หลังการทำ naming consistency refactor ครั้งแรก*
 *ผู้ดูแลระบบ: ทีม PFCM Development, i-Tail Corporation*

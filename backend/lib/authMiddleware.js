@@ -94,7 +94,7 @@ const recordUsage = (routeLabel, req) => {
 };
 
 const flushBuffers = async () => {
-  if (!redisRef || !redisRef.isOpen) return;
+  if (!redisRef || !redisRef.isReady) return;
   try {
     for (const [key, v] of missingBuf) {
       await redisRef.hIncrBy(MISSING_COUNT_KEY, key, v.n);
@@ -127,7 +127,7 @@ const initAuth = async (redis) => {
 };
 
 const readMissing = async (limit = 100) => {
-  if (!redisRef || !redisRef.isOpen) return [];
+  if (!redisRef || !redisRef.isReady) return [];
   const [counts, last] = await Promise.all([redisRef.hGetAll(MISSING_COUNT_KEY), redisRef.hGetAll(MISSING_LAST_KEY)]);
   return Object.entries(counts).map(([key, n]) => {
     const [ip, ...ua] = key.split("|");
@@ -136,7 +136,7 @@ const readMissing = async (limit = 100) => {
   }).sort((a, b) => b.requests - a.requests).slice(0, limit);
 };
 const readUsage = async () => {
-  if (!redisRef || !redisRef.isOpen) return {};
+  if (!redisRef || !redisRef.isReady) return {};
   return redisRef.hGetAll(USAGE_KEY);
 };
 

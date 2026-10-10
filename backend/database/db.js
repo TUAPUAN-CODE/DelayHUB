@@ -9,10 +9,15 @@ const dbConfig = {
   password: process.env.DB_PASSWORD,
   server: process.env.DB_SERVER,
   database: process.env.DB_DATABASE,
-  port: 1433,
+  port: parseInt(process.env.DB_PORT, 10) || 1433,
+  // เดิมใช้ค่าเริ่มต้นของ mssql (requestTimeout 15 วินาที) — query หนักของ Sheet ช่วงโหลดสูงอาจถูกตัด; ปรับได้ที่ .env
+  connectionTimeout: parseInt(process.env.DB_CONNECT_TIMEOUT_MS, 10) || 15000,
+  requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT_MS, 10) || 30000,
   options: {
     encrypt: true, // สำหรับ Azure
     trustServerCertificate: true, // สำหรับ local dev
+    // ใช้ SQL Server Always On: ให้ DB_SERVER ชี้ AG listener แล้วตั้ง DB_MULTI_SUBNET_FAILOVER=true เพื่อให้ต่อกับ replica ที่เป็น primary ใหม่ได้เร็วหลัง failover
+    ...(process.env.DB_MULTI_SUBNET_FAILOVER === 'true' ? { multiSubnetFailover: true } : {}),
   },
   // NEW: ลดจาก max:2000 ลงมา — server.js รัน cluster mode (fork 1 process ต่อ 1 CPU core)
   // แต่ละ worker process มี pool แยกของตัวเอง ค่าเดิม max:2000 หมายความว่าถ้าเครื่องมี

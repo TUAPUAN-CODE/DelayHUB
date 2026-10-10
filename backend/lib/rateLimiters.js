@@ -3,6 +3,7 @@ const rateLimit = require("express-rate-limit");
 const { verifyToken, bearerOf } = require("./auth");
 const { isPrivateIp } = require("./authMiddleware");
 const metrics = require("./metrics");
+const { RedisRateLimitStore } = require("./redisRateLimitStore");
 
 // อยู่หลัง nginx/load balancer: เชื่อ X-Forwarded-For จาก proxy ในเครือข่ายภายในเท่านั้น (ตั้ง TRUST_PROXY ใน .env เพื่อกำหนดเอง เช่น 1)
 const resolveTrustProxy = () =>
@@ -27,12 +28,13 @@ const rateLimited = (_req, res) => {
   res.status(429).json({ success: false, error: "คำขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่", code: "RATE_LIMITED" });
 };
 
-const createLimiters = () => ({
+const createLimiters = ({ getRedis } = {}) => ({
   limiter: rateLimit({
     windowMs: 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 3000,
     standardHeaders: true,
     legacyHeaders: false,
+    store: new RedisRateLimitStore({ getRedis, prefix: "api" }),
     keyGenerator: (req) => tokenKey(req) || `ip:${req.ip}`,
     skip: (req) => {
       if (req.path === "/health" || req.path.startsWith("/health/") || req.path === "/metrics") return true;
@@ -49,6 +51,7 @@ const createLimiters = () => ({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
+    store: new RedisRateLimitStore({ getRedis, prefix: "login" }),
     keyGenerator: (req) => `login:${req.ip}:${String((req.body && req.body.user_id) || "")}`,
     handler: rateLimited,
   }),
@@ -58,6 +61,7 @@ const createLimiters = () => ({
     max: parseInt(process.env.PUBLIC_AUTH_RATE_LIMIT, 10) || 30,
     standardHeaders: true,
     legacyHeaders: false,
+    store: new RedisRateLimitStore({ getRedis, prefix: "public" }),
     keyGenerator: (req) => `public:${req.ip}`,
     handler: rateLimited,
   }),

@@ -60,7 +60,7 @@ const startFlush = (redis) => {
   startLagProbe();
   const flush = async () => {
     try {
-      if (!redis.isOpen) return;
+      if (!redis.isReady) return;
       await redis.set(`${REDIS_PREFIX}${process.pid}`, JSON.stringify(snapshot()), { EX: 30 });
     } catch { /* Redis ไม่พร้อมชั่วคราว: ข้ามรอบนี้ */ }
   };
@@ -71,7 +71,7 @@ const startFlush = (redis) => {
 
 const readAll = async (redis) => {
   try {
-    if (redis && redis.isOpen) {
+    if (redis && redis.isReady) {
       const keys = await redis.keys(`${REDIS_PREFIX}*`);
       if (keys.length) {
         const values = await redis.mGet(keys);

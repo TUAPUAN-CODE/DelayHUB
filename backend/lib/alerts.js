@@ -14,7 +14,7 @@ const MIN_REQUESTS = 20;
 
 const notify = async (redis, key, text) => {
   try {
-    if (redis && redis.isOpen) {
+    if (redis && redis.isReady) {
       const first = await redis.set(`pfcm:alert:${key}`, "1", { NX: true, EX: COOLDOWN_SECONDS });
       if (!first) return; // มี worker อื่นแจ้งไปแล้ว
     }

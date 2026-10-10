@@ -10,7 +10,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cluster = require("cluster");
 const os = require("os");
-const { createClient } = require("redis");
+const { createRedis, duplicateRedis } = require("./lib/redisClient");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { setupPrimary } = require("@socket.io/cluster-adapter");
@@ -75,7 +75,8 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   // อยู่หลัง nginx: ดู lib/rateLimiters.js (TRUST_PROXY, RATE_LIMIT_MAX, LOGIN_RATE_LIMIT ใน .env)
   const trustProxy = resolveTrustProxy();
   app.set("trust proxy", trustProxy);
-  const { limiter, loginLimiter, publicAuthLimiter } = createLimiters();
+  let sharedRedis = null; // ตั้งค่าเมื่อสร้าง Redis client ด้านล่าง — ตัวนับ rate limit ใช้ Redis ร่วมกันทุก worker/เครื่อง (ไม่พร้อม = นับใน process)
+  const { limiter, loginLimiter, publicAuthLimiter } = createLimiters({ getRedis: () => sharedRedis });
 
   // Security middleware
   app.use(helmet({
@@ -136,19 +137,25 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     setupWorker(io);
   }
 
-  // Enhanced Redis configuration
-  const pubClient = createClient({
-    socket: {
-      host: '127.0.0.1',
-      port: 6379,
-      tls: {
-        servername: undefined
-      }
-    },
-    disableClientInfo: true
-  });
+  // Redis (socket adapter + ข้อมูลร่วมของทุก worker/ทุกเครื่อง) — ตั้งค่าที่ .env (REDIS_HOST/PORT/PASSWORD/TLS) ดู lib/redisClient.js
+  // Redis สะดุด/ยังไม่ขึ้น = ไม่ทำให้ API ล่ม (เชื่อมต่อใหม่เอง); ระหว่างนั้น realtime ข้าม worker/เครื่องอาจขาดชั่วคราว
+  const pubClient = createRedis("pub");
+  const subClient = duplicateRedis(pubClient, "sub");
+  sharedRedis = pubClient;
 
-  const subClient = pubClient.duplicate();
+  // ตัวชี้วัดและแจ้งเตือนเริ่มทันที ไม่ต้องรอ Redis (ส่วนที่ใช้ Redis จะข้ามเมื่อยังไม่พร้อม)
+  metrics.registerGauge("db_pool", getPoolStats);
+  metrics.registerGauge("sockets_connected", () => io.engine.clientsCount);
+  metrics.startFlush(pubClient);
+  startAlerts({
+    redis: pubClient,
+    getPoolStats,
+    ping: async () => {
+      const pool = await connectToDatabase();
+      if (!pool) throw new Error("ไม่มี connection pool");
+      await pool.request().query("SELECT 1 AS ok");
+    },
+  });
 
   Promise.all([pubClient.connect(), subClient.connect()])
     .then(() => {
@@ -157,24 +164,12 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
         publishOnSpecificResponseChannel: true
       }));
       console.log("✅ Redis adapter connected");
-      metrics.registerGauge("db_pool", getPoolStats);
-      metrics.registerGauge("sockets_connected", () => io.engine.clientsCount);
-      metrics.startFlush(pubClient);
-      startAlerts({
-        redis: pubClient,
-        getPoolStats,
-        ping: async () => {
-          const pool = await connectToDatabase();
-          if (!pool) throw new Error("ไม่มี connection pool");
-          await pool.request().query("SELECT 1 AS ok");
-        },
-      });
       initAuth(pubClient); // เริ่มนับช่วงเปลี่ยนผ่านของ AUTH_MODE อัตโนมัติ + ส่งสถิติผู้เรียกที่ไม่มี token / การใช้งานต่อ Role เข้า Redis
       logger.info("server_ready", { mode: getAuthMode(), trustProxy });
     })
     .catch((err) => {
-      console.error("❌ Redis connection error:", err);
-      process.exit(1);
+      // ไม่ออกจาก process: reconnectStrategy ของ client ลองเชื่อมต่อต่อเอง
+      logger.error("redis_connect_failed", { error: err && err.message });
     });
 
   app.set("io", io);
@@ -277,14 +272,15 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
   // พร้อมรับงานจริงหรือไม่ (ตรวจ DB + Redis) — ใช้กับ load balancer / monitor; /health ด้านบนบอกแค่ว่า process ยังมีชีวิต
   app.get("/health/ready", async (req, res) => {
-    const checks = { db: false, redis: !!(pubClient && pubClient.isOpen) };
+    const checks = { db: false, redis: !!(pubClient && pubClient.isReady) };
     try {
       const pool = await connectToDatabase();
       if (pool) { await pool.request().query("SELECT 1 AS ok"); checks.db = true; }
     } catch (err) {
       logger.warn("ready_db_failed", { error: err.message });
     }
-    const ok = checks.db && checks.redis;
+    // พร้อม = ต่อ DB ได้เท่านั้น (Redis ล่มแล้ว API ยังทำงานได้ — ถ้านับ Redis ด้วย load balancer จะถอดทุกเครื่องออกจากระบบพร้อมกัน); redis แสดงไว้เป็นข้อมูล
+    const ok = checks.db;
     res.status(ok ? 200 : 503).json({ status: ok ? "ready" : "not_ready", worker: process.pid, checks, pool: getPoolStats() });
   });
 
