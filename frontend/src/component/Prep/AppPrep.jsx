@@ -9,7 +9,6 @@ import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import RM_EMU from "./RMEmu/MainPage.jsx";
 import EditDataTrolley from "./EditDataTrolley/EditDataTrolley.jsx";
 import CheckInPagePrep from "./CheckIn/CheckInPage.jsx";
-import Timestamp from "./Timestampbroth/Timestampborth.jsx";
 
 
 import SheetPage from "../Sheet/SheetPage";
@@ -46,7 +45,8 @@ function AppPrep() {
         {["/manageprep", "/managepreps", "/pd/checkout", "/MatManage/MatManagePage", "/ColdCheck", "/RMInclude", "/TraceBack_HU", "/history"].map((p) => (
           <Route key={p} path={p} element={<Navigate to="/prep/Sheet" replace />} />
         ))}
-        <Route path="/timestamp" element={<Timestamp />} />
+        {/* the chicken broth time stamp is in the Role "Other" now */}
+        <Route path="/timestamp" element={<Navigate to="/other/timestamp" replace />} />
       </Routes>
     </div>
   );

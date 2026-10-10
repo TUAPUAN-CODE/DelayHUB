@@ -15,6 +15,7 @@ const AppPack = lazy(() => import("./component/Pack/AppPack.jsx"));
 const AppOven = lazy(() => import("./component/Oven/AppOven.jsx"));
 const AppColdStorages = lazy(() => import("./component/ColdStorages/AppColdStorages.jsx"));
 const AppPrep = lazy(() => import("./component/Prep/AppPrep.jsx"));
+const AppOther = lazy(() => import("./component/Other/AppOther.jsx"));
 const AppMaster = lazy(() => import("./component/Master/AppMaster.jsx")); // เพิ่ม AppMaster
 
 // User-related components
@@ -75,6 +76,7 @@ function App() {
           <Route path="/qualitycontrol/*" element={<AppQualityControl />} />
           <Route path="/packaging/*" element={<AppPack />} />
           <Route path="/prep/*" element={<AppPrep />} />
+          <Route path="/other/*" element={<AppOther />} />
           <Route path="/ColdStorages/*" element={<AppColdStorages />} />
           <Route path="/master/*" element={<AppMaster />} /> {/* เพิ่ม Route สำหรับ Master */}
         </Routes>

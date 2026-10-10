@@ -45,6 +45,7 @@ async function loadUserRoles(pool, userId, primaryWpId) {
   if (!ids.length) return [];
   const names = await pool.request().query("SELECT wp_id, wp_name FROM Workplace");
   const nameOf = new Map(names.recordset.map((w) => [w.wp_id, w.wp_name]));
+  if (!nameOf.has(9)) nameOf.set(9, "Other"); // the Role "Other" may have no Workplace row
   return ids.map((id) => ({ wp_id: id, wp_name: nameOf.get(id) || `Role ${id}`, primary: id === primaryWpId }));
 }
 

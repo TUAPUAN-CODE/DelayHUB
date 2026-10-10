@@ -107,6 +107,8 @@ router.get("/get/workplaces", async (req, res) => {
     `);
 
     const data = result.recordset;
+    // Role "Other" (wp_id 9) is a Role of the system even when the Workplace table has no row for it yet
+    if (!data.some((w) => Number(w.wp_id) === 9)) data.push({ wp_id: 9, wp_name: "Other" });
 
     res.json({ success: true, data });
   } catch (error) {

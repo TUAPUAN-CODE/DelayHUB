@@ -8,6 +8,7 @@ export const WORKPLACE_ROUTES = {
   6: "/sup",
   7: "/coldStorages",
   8: "/master/report",
+  9: "/other",
 };
 
 /** roles of the logged-in account, saved at login: [{ wp_id, wp_name, primary }] */
