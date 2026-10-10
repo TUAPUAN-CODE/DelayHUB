@@ -1,7 +1,9 @@
 // Master Delay Sheet — read-only data for the combined table + per-user column settings.
 const express = require("express");
+const crypto = require("crypto");
 const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
+const { cached } = require("../lib/sheetCache");
 
 const router = express.Router();
 
@@ -282,14 +284,26 @@ router.get("/sheet/rows", async (req, res) => {
       .input("open_from", sql.Date, ranged ? req.query.open_from : null)
       .input("open_to", sql.Date, ranged ? req.query.open_to : null);
 
-    const [mappings, hus, plans, mixed] = await Promise.all([
-      bind(pool.request()).query(buildMappingQuery("open")),
-      bind(pool.request()).query(buildHuQuery()),
-      bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-      bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-    ]);
+    // เหมือนกัน + พร้อมกัน = query ชุดเดียว (ดู lib/sheetCache.js); rev = ลายเซ็นของข้อมูล ให้หน้าเว็บเทียบได้โดยไม่ต้องรับ/แปลงข้อมูลทั้งก้อนซ้ำ
+    const cacheKey = JSON.stringify([days, limit, mlimit, ranged ? req.query.open_from : null, ranged ? req.query.open_to : null]);
+    const payload = await cached(cacheKey, async () => {
+      const [mappings, hus, plans, mixed] = await Promise.all([
+        bind(pool.request()).query(buildMappingQuery("open")),
+        bind(pool.request()).query(buildHuQuery()),
+        bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+      ]);
+      const rev = crypto.createHash("md5").update(JSON.stringify([mappings.recordset, hus.recordset, plans.recordset, mixed.recordset])).digest("hex");
+      // แปลงเป็น JSON ครั้งเดียวต่อรอบ cache — ทุกคำขอที่ได้ชุดเดียวกันส่งข้อความเดิมออกไปเลย
+      const json = JSON.stringify({ success: true, rev, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
+      return { rev, json };
+    });
 
-    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
+    // หน้าเว็บส่ง ?rev= ของข้อมูลที่ถืออยู่ ถ้าตรงกัน = ไม่ส่งข้อมูลซ้ำ
+    if (req.query.rev && req.query.rev === payload.rev) {
+      return res.json({ success: true, unchanged: true, rev: payload.rev });
+    }
+    res.type("application/json").send(payload.json);
   } catch (err) {
     console.error(`[Route /sheet/rows] Error: ${err.message} (SQL error ${err.number ?? "-"}, line ${err.lineNumber ?? "-"})`, err.precedingErrors?.map((e) => e.message) || "");
     res.status(500).json({ success: false, error: err.message });

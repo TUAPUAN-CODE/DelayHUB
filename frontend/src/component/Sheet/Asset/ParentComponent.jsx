@@ -109,7 +109,11 @@ const ParentComponent = ({ role, view = "work" }) => {
   const defVisible = useMemo(() => defaultVisible(role), [role]);
 
   const huRef = useRef([]);
-  const lastSig = useRef("");
+  const revRef = useRef("");        // rev (signature) of the data on screen: the server answers "unchanged" when it still matches
+  const running = useRef(false);    // one load at a time ...
+  const again = useRef(false);      // ... a request that comes while one is running makes ONE more run afterwards
+  const loadOnceRef = useRef(null); // always the latest loadOnce (the range / role may change while a load is running)
+  const rangeKeyRef = useRef("");   // the answer of an old range must not replace the data of the new one
   const lastLoadAt = useRef(0);
   const trolleyRef = useRef(null);
   const checkoutRef = useRef(null);
@@ -120,17 +124,26 @@ const ParentComponent = ({ role, view = "work" }) => {
   const manageRef = useRef(null);
   const mixRefs = { emu: useRef(null), batch: useRef(null), pack: useRef(null), loaf: useRef(null) };
 
-  const load = useCallback(async () => {
+  rangeKeyRef.current = `${role}|${range.all ? "all" : `${range.from}|${range.to}`}`;
+
+  const loadOnce = useCallback(async () => {
     lastLoadAt.current = Date.now();
-    setLoading(true);
+    const myKey = rangeKeyRef.current;
+    if (!revRef.current) setLoading(true); // first load shows the spinner; the minute refresh does not flicker
     try {
-      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to } });
+      const params = range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to };
+      if (revRef.current) params.rev = revRef.current;
+      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
-      huRef.current = res.data.hus || [];
-      // the table refreshes by itself every minute: when nothing changed keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
-      const sig = `${res.data.hus?.length}|${res.data.mappings?.length}|${JSON.stringify(res.data)}`;
-      if (sig !== lastSig.current) { lastSig.current = sig; setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] }); }
-      setMixed(res.data.mixed || []);
+      if (myKey !== rangeKeyRef.current) return; // the range / role changed while this was loading: a newer load is queued, drop this answer
+      const unchanged = !!res.data.unchanged;
+      // nothing changed since the last load (same rev): keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
+      if (!unchanged) {
+        revRef.current = res.data.rev || "";
+        huRef.current = res.data.hus || [];
+        setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] });
+        setMixed(res.data.mixed || []);
+      }
       setError("");
       if (role === "prep") {
         // lists of the old mixing pages (a failing list must not break the sheet)
@@ -141,8 +154,9 @@ const ParentComponent = ({ role, view = "work" }) => {
           if (r.status === "fulfilled") { const d = r.value.data; next[kinds[i]] = Array.isArray(d) ? d : (d?.success ? d.data : []); }
           else console.error(`[Sheet] mix list ${kinds[i]} error:`, r.reason?.message);
         });
+        if (myKey !== rangeKeyRef.current) return;
         setMix(next);
-        setPlans((res.data.plans || []).map(prepPlan)); // scanned production-plan rows (all raw material types) that are not in a trolley yet
+        if (!unchanged) setPlans((res.data.plans || []).map(prepPlan)); // scanned production-plan rows (all raw material types) that are not in a trolley yet
       }
     } catch (err) {
       console.error("[Sheet] load error:", err);
@@ -151,6 +165,19 @@ const ParentComponent = ({ role, view = "work" }) => {
       setLoading(false);
     }
   }, [role, range]);
+  loadOnceRef.current = loadOnce;
+
+  // the socket event, the minute timer and the buttons can all ask for a load at the same moment: run one, and one more afterwards if asked meanwhile
+  // (an older answer can no longer arrive after a newer one and bring back the status the user just changed)
+  const load = useCallback(async () => {
+    if (running.current) { again.current = true; return; }
+    running.current = true;
+    try {
+      do { again.current = false; await loadOnceRef.current(); } while (again.current);
+    } finally {
+      running.current = false;
+    }
+  }, [loadOnce]); // eslint-disable-line react-hooks/exhaustive-deps -- new identity when the range / role changes, so the effects below load again
 
   // the work table refreshes by itself; the Done table is only read when the user presses its button
   useEffect(() => { if (view === "work") load(); }, [load, view]);
@@ -161,14 +188,16 @@ const ParentComponent = ({ role, view = "work" }) => {
   useEffect(() => {
     if (!API_URL || view !== "work") return undefined;
     let timer = null;
-    const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000 });
+    // never give up reconnecting (a pm2 reload or a network drop must not freeze the live updates until the page is refreshed)
+    const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: Infinity, reconnectionDelay: 2000, reconnectionDelayMax: 10000, timeout: 10000 });
     const refresh = () => { if (Date.now() - lastLoadAt.current < 4000) return; clearTimeout(timer); timer = setTimeout(load, 800); }; // an event right after our own load is an echo: ignore it
     // "sheetChanged": the server sends it after ANY successful write of any page, so a save on another device / Role shows here without a refresh (backend/sheetRealtime.js)
     // the server only sends these events to the rooms: join the ones that tell the table something changed.
     // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
     const ROOMS = ["QcCheckRoom", "trolleyUpdatesRoom", "sheetRoom"];
     ROOMS.forEach((room) => socket.emit("joinRoom", room));
-    socket.on("connect", () => ROOMS.forEach((room) => socket.emit("joinRoom", room)));
+    socket.on("connect", () => { ROOMS.forEach((room) => socket.emit("joinRoom", room)); refresh(); }); // after a re-connect, load what was missed meanwhile
+    socket.on("disconnect", (reason) => { if (reason === "io server disconnect") socket.connect(); }); // the server closed it: socket.io does not retry by itself in that case
     socket.on("sheetChanged", refresh);
     socket.on("trolleyUpdated", refresh);
     socket.on("rawMaterialSaved", refresh);

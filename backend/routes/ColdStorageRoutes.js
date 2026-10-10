@@ -23,9 +23,9 @@ AND tro_id = 'rsrv'
 AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
             `);
 
-            if (result.rowsAffected > 0) {
+            if (result.rowsAffected[0] > 0) {
                 io.emit("slotReset", {}); // แจ้ง frontend ว่ามีการรีเซ็ต Slot
-                debugLog(`ล้าง Slot ที่หมดอายุแล้ว (${result.rowsAffected} รายการ)`);
+                debugLog(`ล้าง Slot ที่หมดอายุแล้ว (${result.rowsAffected[0]} รายการ)`);
             }
         } catch (error) {
             console.error("Error clearing expired slots:", error);

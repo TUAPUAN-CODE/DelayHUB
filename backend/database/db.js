@@ -27,28 +27,37 @@ const dbConfig = {
 };
 
 let pool = null;
+let connecting = null; // คำขอที่เข้ามาพร้อมกันตอน pool ยังไม่พร้อมจะรอ promise เดียวกัน (กัน connect ซ้อน → pool กำพร้า / error "already connecting")
 
-const connectToDatabase = async (retryCount = 1, delayMs = 3000) => {
-  // NEW: connectToDatabase() ถูกเรียกแทบทุก route handler (หลายร้อยจุดทั่วโปรเจกต์) แปลว่า
-  // เดิม log บรรทัดนี้ยิงแทบทุก API request ที่เข้ามา ท่วม pm2 logs โดยไม่มีประโยชน์
-  // (pool ที่ยังต่ออยู่แล้วไม่ใช่เหตุการณ์ที่ต้อง log ทุกครั้ง) ตัดออกไปเลย เหลือ log
-  // เฉพาะตอนต่อ DB ใหม่จริงๆ หรือต่อไม่สำเร็จ (ซึ่งเป็นเหตุการณ์ที่ควรเห็น)
-  if (pool && pool.connected) {
-    return pool;
-  }
+const attachPoolErrorHandler = (p, label) => {
+  // mssql emit 'error' เมื่อ connection ในพูลมีปัญหา (ไม่ใช่ ESOCKET) — ถ้าไม่มี listener จะกลายเป็น uncaughtException แล้ว worker ล้ม
+  p.on("error", (err) => {
+    console.error(`❌ [${label}] pool error:`, err && err.message);
+  });
+};
 
+const openPool = async (retryCount, delayMs) => {
   for (let attempt = 1; attempt <= retryCount; attempt++) {
+    let candidate = null;
     try {
       console.log(`🔌 Connecting to MSSQL... (Attempt ${attempt}/${retryCount})`);
-      pool = await mssql.connect(dbConfig);
+      candidate = new mssql.ConnectionPool(dbConfig);
+      attachPoolErrorHandler(candidate, "MSSQL");
+      await candidate.connect();
 
       // ตรวจสอบว่า pool ทำงานจริง
-      if (!pool.connected) throw new Error("Pool connected is false");
+      if (!candidate.connected) throw new Error("Pool connected is false");
+
+      // ปิด pool เก่าที่หลุดไปแล้ว (ถ้ามี) เพื่อไม่ให้ค้างเป็น connection กำพร้า
+      const old = pool;
+      pool = candidate;
+      if (old && old !== candidate) old.close().catch(() => {});
 
       console.log('✅ Database connection successful!');
       return pool;
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed:`, error.message);
+      if (candidate) candidate.close().catch(() => {});
 
       if (attempt < retryCount) {
         console.log(`⏳ Retrying in ${delayMs / 1000} seconds...`);
@@ -60,6 +69,18 @@ const connectToDatabase = async (retryCount = 1, delayMs = 3000) => {
       }
     }
   }
+  return null;
+};
+
+const connectToDatabase = async (retryCount = 3, delayMs = 1500) => {
+  // connectToDatabase() ถูกเรียกแทบทุก route handler — pool ที่ต่ออยู่แล้วคืนทันที ไม่ log
+  if (pool && pool.connected) {
+    return pool;
+  }
+  if (connecting) return connecting;
+
+  connecting = openPool(retryCount, delayMs).finally(() => { connecting = null; });
+  return connecting;
 };
 
 const dbConfigWC = {
@@ -86,6 +107,7 @@ const connectToDatabaseWC = async () => {
   try {
     console.log(`🔌 Connecting to WC MSSQL... (server=${process.env.DB_SERVER_WC}, user=${process.env.DB_USER_WC})`);
     poolWC = new mssql.ConnectionPool(dbConfigWC);
+    attachPoolErrorHandler(poolWC, "MSSQL-WC");
     await poolWC.connect();
     console.log('✅ WC Database connection successful!');
     return poolWC;

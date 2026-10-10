@@ -26,8 +26,12 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.DB_SERVER || '0.0.0.0';
 
 // ✅ Idle Timeout Configuration
-const IDLE_TIMEOUT = 20 * 60 * 1000;       // 20 นาที = ตัดการเชื่อมต่อ
-const WARNING_TIME = 18 * 60 * 1000;       // 18 นาที = แจ้งเตือนล่วงหน้า
+// เดิมตัด socket ที่ไม่ส่ง event เองนาน 20 นาที แต่หน้าเว็บไม่มีตัวจัดการ "idle_disconnect"/ไม่เชื่อมใหม่ ทำให้จอที่เปิดทิ้งไว้ (wallboard) เงียบไปเฉยๆ
+// จึงปิดเป็นค่าเริ่มต้น (engine.io ping/pong ด้านล่างตรวจจับการเชื่อมต่อที่ตายอยู่แล้ว) — เปิดได้ด้วย SOCKET_IDLE_TIMEOUT_MIN=20 ใน .env
+const IDLE_TIMEOUT = (parseInt(process.env.SOCKET_IDLE_TIMEOUT_MIN, 10) || 0) * 60 * 1000;
+const WARNING_TIME = Math.max(IDLE_TIMEOUT - 2 * 60 * 1000, 0);   // เตือนล่วงหน้า 2 นาที
+const SOCKET_DEBUG_LOGS = process.env.SOCKET_DEBUG_LOGS === "true";
+const socketDebug = (...args) => { if (SOCKET_DEBUG_LOGS) console.log(...args); };
 
 // Cluster setup for production
 if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
@@ -271,7 +275,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
   // Enhanced Socket.IO connection handler
   io.on("connection", (socket) => {
-    console.log(`✅ New connection: ${socket.id}`);
+    socketDebug(`✅ New connection: ${socket.id}`);
     activeSockets.set(socket.id, socket);
 
     // ====================================================================
@@ -281,6 +285,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     let warningTimer = null;
 
     const resetIdleTimer = () => {
+      if (IDLE_TIMEOUT <= 0) return;
       if (idleTimer) clearTimeout(idleTimer);
       if (warningTimer) clearTimeout(warningTimer);
 
@@ -311,26 +316,14 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     // ✅ Reset timer ทุกครั้งที่มี event จาก client (= มี activity)
     socket.onAny((eventName, ...args) => {
       if (eventName !== 'ping' && eventName !== 'pong') {
-        console.log(`🔄 Activity from ${socket.id}: ${eventName}`);
         resetIdleTimer();
       }
     });
     // ====================================================================
 
-    // Heartbeat monitoring (network-level)
-    let missedPings = 0;
-    const heartbeatInterval = setInterval(() => {
-      if (missedPings > 2) {
-        console.log(`♻️ Terminating stale connection: ${socket.id}`);
-        socket.disconnect(true);
-      }
-      missedPings++;
-      socket.emit("ping");
-    }, 20000);
-
-    socket.on("pong", () => {
-      missedPings = 0;
-    });
+    // Heartbeat: เดิมมี heartbeat ระดับแอป (emit "ping" ทุก 20 วินาที แล้วตัด socket ที่ไม่ตอบ "pong" ใน ~80 วินาที) แต่หน้าเว็บเกือบทั้งหมดไม่ตอบ "pong"
+    // ทำให้ socket ถูกตัดแล้วไม่เชื่อมใหม่ (server disconnect ไม่ auto-reconnect) → realtime หยุดเงียบๆ
+    // การตรวจ connection ที่ตายใช้ engine.io pingInterval/pingTimeout (ตั้งไว้ที่ new Server ด้านบน) ซึ่ง client ตอบเองอัตโนมัติ
 
     // Room management
     socket.on("joinRoom", (roomName, callback) => {
@@ -429,15 +422,10 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
     // ✅ Cleanup on disconnect
     socket.on("disconnect", (reason) => {
-      console.log(`⚠️ ${socket.id} disconnected: ${reason}`);
-      clearInterval(heartbeatInterval);
+      socketDebug(`⚠️ ${socket.id} disconnected: ${reason}`);
       clearTimeout(idleTimer);
       clearTimeout(warningTimer);
       activeSockets.delete(socket.id);
-      io.emit("userDisconnected", {
-        userId: socket.id,
-        timestamp: new Date().toISOString()
-      });
     });
 
   }); // ✅ ปิด io.on("connection") ตรงนี้
@@ -466,7 +454,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       }
 
       console.log(`Worker ${process.pid} started on port ${PORT}`);
-      console.log(`⏰ Idle timeout: ${IDLE_TIMEOUT / 60000} นาที`);
+      if (IDLE_TIMEOUT > 0) console.log(`⏰ Idle timeout: ${IDLE_TIMEOUT / 60000} นาที`);
       console.log(`Accessible on:`);
       addresses.forEach(ip => {
         console.log(`  http://${ip}:${PORT}`);

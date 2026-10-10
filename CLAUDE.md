@@ -317,7 +317,7 @@ try {
 1. **ห้ามใช้ `SELECT *`** ใน production queries — ระบุ column ที่ต้องการเสมอ
 2. **ใช้ JOIN อย่างถูกต้อง** — ใส่ alias เสมอ เช่น `FROM TrolleyRMMapping rmm`
 3. **Index awareness** — หลีกเลี่ยง function บน indexed column ใน WHERE clause
-4. **Pool max = 2000** — อย่าเพิ่มเกินนี้โดยไม่ทดสอบ memory ก่อน
+4. **Pool max = 30 ต่อ worker** (min 5; PM2 cluster = จำนวน core × 30 connections รวม) — อย่าเพิ่มโดยไม่ดู log `ETIMEOUT` / pool เต็มก่อน
 5. **ห้าม DROP/TRUNCATE** ใน application code — ต้องทำผ่าน DBA เท่านั้น
 
 ---
@@ -478,7 +478,7 @@ if (!user_id || !password) {
 3. **Rate limiting** — มี built-in ที่ 3000 req/15min สำหรับ external IPs ห้ามปิด
 4. **Helmet middleware** — ห้ามปิดหรือ override CSP policy โดยไม่ผ่าน security review
 5. **CORS** — configured สำหรับ internal network เท่านั้น ห้ามเปิด `origin: "*"` ใน production
-6. **RFID credentials** — ต้อง migrate ออกจาก hardcode ใน `RFIDc1.js` ไปใช้ env ก่อน next deploy
+6. **RFID credentials** — `RFIDc1.js` อ่านจาก `process.env` แล้ว (DB_USER/DB_PASSWORD/DB_SERVER, READER_IP ฯลฯ) ห้ามกลับไป hardcode
 7. **Frontend** — ห้าม expose API_URL ที่มี credentials ใน browser console
 8. **SQL** — ห้ามใช้ `sa` account ใน production connection string
 
@@ -499,7 +499,7 @@ SELECT * FROM TrolleyRMMapping
 .query("SELECT TOP 100 ... ORDER BY col OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY")
 
 // ✅ Connection pool reuse — ใช้ singleton connectToDatabase()
-// Pool config: min=20, max=2000, idleTimeout=30s
+// Pool config: min=5, max=30 ต่อ worker, idleTimeout=30s
 ```
 
 ### Frontend
@@ -826,7 +826,7 @@ io.emit("event");  // ใน cluster mode ต้องผ่าน Redis adapter
 
 ### Database Connection
 
-- **Pool max = 2000** — ถ้า pool exhausted ให้ตรวจสอบ connection leak ในโค้ดก่อน เพิ่ม max เป็น last resort
+- **Pool max = 30 ต่อ worker** (`backend/database/db.js`) — ถ้า pool exhausted ให้ตรวจสอบ connection leak / query ช้าในโค้ดก่อน เพิ่ม max เป็น last resort
 - **`connectToDatabase()` คืน null** ได้เมื่อ DB ไม่พร้อม — ต้อง handle null ใน route handlers
 - ห้าม call `mssql.close()` ใน route handlers — pool ต้อง persist ตลอด lifetime ของ process
 
@@ -965,7 +965,7 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 - ปัญหา runtime = สายการผลิตหยุด = ผลกระทบโดยตรงต่อธุรกิจ
 - ระบบ real-time ด้วย Socket.IO — bug ใน connection handling กระทบ users ทุกคนพร้อมกัน
 - RFID reader service ต้องรัน fork mode instance เดียวเสมอ — ห้ามเพิ่ม instance
-- Database pool max=2000 — ถ้า connection leak จะ crash ทั้งระบบ
+- Database pool max=30 ต่อ worker — ถ้า connection leak หรือ query ช้าค้าง คำขออื่นจะรอคิวจน timeout
 
 ---
 
