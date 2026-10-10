@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, Box, Button, MenuItem, Paper, Select, TextField } from "@mui/material";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
@@ -40,6 +40,17 @@ const DonePanel = ({ gridKey, gridProps }) => {
       setLoading(false);
     }
   }, [from, to, q, limit]);
+
+  // a Supervisor edit (ParentComponent) asks for the same search again, once the table has been searched
+  const searchRef = useRef(search);
+  searchRef.current = search;
+  const searchedRef = useRef(false);
+  searchedRef.current = mappings !== null;
+  useEffect(() => {
+    const again = () => { if (searchedRef.current) searchRef.current(); };
+    window.addEventListener("sheet-edited", again);
+    return () => window.removeEventListener("sheet-edited", again);
+  }, []);
 
   const rows = useMemo(() => (mappings ? buildRows([], mappings, {}, [], Date.now()) : []), [mappings]);
 

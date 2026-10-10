@@ -14,6 +14,7 @@ import StatusZoneSettings from "./StatusZoneSettings";
 import LineGroupSettings from "./LineGroupSettings";
 import PasswordGate from "./PasswordGate";
 import DonePanel from "./DonePanel";
+import EditCellDialog from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
@@ -103,6 +104,8 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
+  const [editMode, setEditMode] = useState(false); // Supervisor: double-click a cell to edit it (server allows role 6 / 8 only)
+  const [editTarget, setEditTarget] = useState(null);
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
   const columns = useMemo(() => columnsForRole(role), [role]);
@@ -384,9 +387,26 @@ const ParentComponent = ({ role, view = "work" }) => {
     </Box>
   );
 
+  const openCellEdit = useCallback((row, col) => {
+    if (row.__kind !== "map" || !row.mapping_id) { setToast("แก้ไขได้เฉพาะแถววัตถุดิบที่อยู่ในรถเข็น (มี รายการ)"); return; }
+    setEditTarget({ row, col });
+  }, []);
+  const afterCellEdit = (msg) => {
+    setEditTarget(null);
+    setToast(msg);
+    load();
+    window.dispatchEvent(new Event("sheet-edited")); // the Done table searches again
+  };
+
   const toolbarExtra = (
     <>
       {rangeBar}
+      {role === "sup" && (
+        <Chip
+          label={editMode ? "โหมดแก้ไข: ดับเบิลคลิกเซลล์เพื่อแก้" : "โหมดแก้ไข"} clickable color={editMode ? "warning" : "default"} variant={editMode ? "filled" : "outlined"}
+          onClick={() => setEditMode((v) => !v)}
+        />
+      )}
       {mixBar}
       {gatherBar}
       {role === "prep" && (
@@ -421,7 +441,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "status", label: "พื้นที่สถานะ", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
   ], [lineNames]);
-  const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages };
+  const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -443,6 +463,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </div>
       )}
 
+      {role === "sup" && <EditCellDialog target={editTarget} onClose={() => setEditTarget(null)} onSaved={afterCellEdit} />}
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}
       <PackFlows ref={packRef} onDone={load} onNotify={setToast} />

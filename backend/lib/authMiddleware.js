@@ -198,6 +198,9 @@ const RULES = [
   { m: "GET", p: /^\/api\/auth\/(missing|policy-draft)$/, check: adminOnly },
   // Role ของตัวเอง ดูได้ แต่ดูของคนอื่นต้องเป็น admin
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
+  // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master เท่านั้น
+  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOnly },
+  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOnly },
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "PUT", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.body && req.body.user_id) },
