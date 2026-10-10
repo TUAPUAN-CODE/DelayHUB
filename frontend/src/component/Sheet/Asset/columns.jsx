@@ -14,7 +14,7 @@ export const GROUPS = [
   { key: "dbs", label: "DBS (Delay)", color: "#C62828" },
 ];
 
-const t = (key, label, group, width = 112) => ({ key, label, group, kind: "data", type: "time", width });
+const t = (key, label, group, width = 134) => ({ key, label, group, kind: "data", type: "time", width });
 const x = (key, label, group, width = 110, extra = {}) => ({ key, label, group, kind: "data", type: "text", width, ...extra });
 
 /** buttons of one tool column: the Role's handlers come from ctx.tools(row) */
@@ -65,12 +65,22 @@ const DbsCell = ({ d }) => {
   );
 };
 const COLOR_RANK = { green: 0, yellow: 1, red: 2 };
+// the dropdown of a DBS column groups its rows by colour: one group per colour (click the group to pick every row of that colour)
+const COLOR_AREAS = {
+  green: { id: "green", title: "เขียว", color: "#FFFFFF", bg: "#2E7D32", dot: "#2E7D32", order: 0 },
+  yellow: { id: "yellow", title: "เหลือง", color: "#1F2937", bg: "#FACC15", dot: "#EAB308", order: 1 },
+  red: { id: "red", title: "แดง", color: "#FFFFFF", bg: "#C62828", dot: "#C62828", order: 2 },
+  none: { id: "none", title: "ไม่มีค่า", color: "#6B7489", bg: "#E5E7EB", dot: "#9CA3AF", order: 3 },
+};
 const dbs = (i, key, label) => ({
   key, label, group: "dbs", kind: "data", type: "dbs", width: 160,
   text: (r) => { const d = r.__dbs?.[i]; return d && d.text !== "-" ? d.text : ""; },
-  // the sort button of a DBS column sorts by its colour (green -> yellow -> red, then by time); the colours come from prepareSheetRows (they follow the account's thresholds)
+  // sort button: by colour (green -> yellow -> red, then by time); the colours come from prepareSheetRows (they follow the account's thresholds)
   sortValue: (r) => { const c = r.__dbsc?.[i]; const d = r.__dbs?.[i]; return c ? COLOR_RANK[c] * 1e6 + Math.min(Math.round(d?.minutes ?? 0), 999999) : null; },
   sortLabels: ["เขียว → เหลือง → แดง", "แดง → เหลือง → เขียว"],
+  // dropdown: the values are the colours
+  filterText: (r) => COLOR_AREAS[r.__dbsc?.[i] || "none"].title,
+  optionMeta: (r) => { const a = COLOR_AREAS[r.__dbsc?.[i] || "none"]; return { rank: a.order, zone: a }; },
   render: (r) => <DbsCell d={r.__dbs?.[i]} />,
 });
 

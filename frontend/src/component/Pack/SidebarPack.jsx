@@ -7,11 +7,11 @@ const SidebarPack = () => {
     {
       items: [
         // หน้าเดียวสำหรับ ผสม · QC · ใส่รถเข็น · ส่งปลายทาง · ยืนยัน Delay · เพิ่ม RM · Check In
-        { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/packaging/Sheet" },
-      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/packaging/Sheet?view=done" },
+        { name: "กำลังดำเนินการ", icon: Table2, href: "/packaging/Sheet" },
+      { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/packaging/Sheet?view=done" },
         { name: "Report", icon: BarChart2, href: "/packaging/ReportRawmatPackuser" },
-        { name: "รายงานการใช้บรรจุภัณฑ์", icon: PackageCheck, href: "/packaging/UsePKG" },
-        { name: "พิมพ์สลีป Android", icon: Printer, href: "/packaging/Printpackandroid" },
+        { name: "ใช้บรรจุภัณฑ์", icon: PackageCheck, href: "/packaging/UsePKG" },
+        { name: "สลีป Android", icon: Printer, href: "/packaging/Printpackandroid" },
         { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
     },

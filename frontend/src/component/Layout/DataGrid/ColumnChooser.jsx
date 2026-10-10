@@ -5,6 +5,8 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 
 /** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings: a node (shown on top) or an array of pages [{ key, label, node }] that become tabs next to the column list. */
+const TYPE_NAME = { text: "ข้อความ", time: "วันเวลา", number: "ตัวเลข", dbs: "DBS" };
+
 const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange }) => {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(0);
@@ -39,7 +41,7 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
       </DialogTitle>
       {pages && (
         <Tabs value={Math.min(tab, pages.length)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: "1px solid #E3E9F6" }}>
-          <Tab label="1. จัดการคอลัมน์ที่จะแสดง / tool ต่างๆ" sx={{ textTransform: "none", fontWeight: 600 }} />
+          <Tab label="1. คอลัมน์" sx={{ textTransform: "none", fontWeight: 600 }} />
           {pages.map((p, i) => <Tab key={p.key} label={`${i + 2}. ${p.label}`} sx={{ textTransform: "none", fontWeight: 600 }} />)}
         </Tabs>
       )}
@@ -75,7 +77,12 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
                 {g.cols.map((c) => (
                   <Box key={c.key} sx={{ display: "flex", alignItems: "center" }}>
-                    <FormControlLabel sx={{ m: 0, flex: 1 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={<span style={{ fontSize: 13 }}>{c.label}</span>} />
+                    <FormControlLabel sx={{ m: 0, flex: 1 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={(
+                      <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+                        <span style={{ fontSize: 13 }}>{c.label}</span>
+                        <span style={{ fontSize: 10.5, color: "#6B7489" }}>{`${g.label} · ${c.kind === "tool" ? "เครื่องมือ" : TYPE_NAME[c.type] || TYPE_NAME.text}`}</span>
+                      </span>
+                    )} />
                     {onPinsChange && (
                       <Tooltip title={pinSet.has(c.key) ? "ยกเลิกการตรึง" : "ตรึงไว้ทางซ้าย"} arrow>
                         <IconButton size="small" onClick={() => togglePin(c.key)} sx={{ color: pinSet.has(c.key) ? "#1552F0" : "#B0BAC9" }}>

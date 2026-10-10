@@ -9,10 +9,10 @@ const SidebarSup = () => {
   const sections = useMemo(() => [
     {
       items: [
-        { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/sup/Sheet" },
-        { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/sup/Sheet?view=done" },
+        { name: "กำลังดำเนินการ", icon: Table2, href: "/sup/Sheet" },
+        { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/sup/Sheet?view=done" },
         {
-          name: "จัดการวัตถุดิบ", icon: Fish,
+          name: "วัตถุดิบ", icon: Fish,
           submenu: [
             { name: "ตารางวัตถุดิบ", href: "/sup/Rawmat" },
             { name: "ตารางประเภทวัตถุดิบ", href: "/sup/RawmatType" },
@@ -21,31 +21,31 @@ const SidebarSup = () => {
           ],
         },
         {
-          name: "จัดการการผลิต", icon: Factory,
+          name: "การผลิต", icon: Factory,
           submenu: [
             { name: "ตารางการผลิตวัตถุดิบ", href: "/sup/ProdRawmat" },
             { name: "ตารางแผนการผลิต", href: "/sup/Production" },
           ],
         },
         ...(canManageTrolley ? [{
-          name: "เพิ่ม Line Type/Line name", icon: Rows3,
+          name: "Line", icon: Rows3,
           submenu: [
             { name: "เพิ่ม Line Type", href: "/sup/AddLine" },
             { name: "เพิ่ม Line Name", href: "/sup/AddLineName" },
           ],
         }] : []),
         ...(canManageTrolley ? [{
-          name: "จัดการรถเข็น", icon: ShoppingCart,
+          name: "รถเข็น", icon: ShoppingCart,
           submenu: [
             { name: "จัดการรถเข็น", href: "/sup/CartMange" },
             { name: "เคลียร์รถเข็น", href: "/sup/TrackTrolley" },
           ],
         }] : []),
-        { name: "การจัดการพนักงาน", icon: Users, href: "/sup/TableUserPage" },
-        { name: "จัดการ Metal Detector", icon: ScanEye, href: "/sup/MDmanage" },
-        { name: "Delay Time Percentage", icon: Timer, href: "/sup/DelayTimepercentage_tie" },
-        { name: "Delay Time Tracking SC", icon: Timer, href: "/sup/DelayTimeTrackingRM" },
-        { name: "Delay Time Tracking IP", icon: Timer, href: "/sup/TrackTrolley/inprocess" },
+        { name: "พนักงาน", icon: Users, href: "/sup/TableUserPage" },
+        { name: "Metal Detector", icon: ScanEye, href: "/sup/MDmanage" },
+        { name: "Delay %", icon: Timer, href: "/sup/DelayTimepercentage_tie" },
+        { name: "Delay SC", icon: Timer, href: "/sup/DelayTimeTrackingRM" },
+        { name: "Delay IP", icon: Timer, href: "/sup/TrackTrolley/inprocess" },
         { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
     },

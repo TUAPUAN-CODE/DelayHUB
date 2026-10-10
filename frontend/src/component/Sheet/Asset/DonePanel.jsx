@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Button, MenuItem, Paper, Select, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, MenuItem, Paper, Select, TextField } from "@mui/material";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import { buildRows } from "./buildRows";
 import { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
@@ -46,7 +46,6 @@ const DonePanel = ({ gridKey, gridProps }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, px: 1.5, py: 1, mb: 1, flexShrink: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 700 }}>เลือกข้อมูล Done ที่ต้องการก่อน แล้วค่อยดึงจากฐานข้อมูล:</Typography>
         <TextField size="small" type="date" label="ตั้งแต่วันที่" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField size="small" type="date" label="ถึงวันที่" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField
@@ -57,11 +56,6 @@ const DonePanel = ({ gridKey, gridProps }) => {
           {[500, 2000, 5000, 10000].map((n) => <MenuItem key={n} value={n}>สูงสุด {n.toLocaleString()} แถว</MenuItem>)}
         </Select>
         <Button variant="contained" onClick={search} disabled={loading || !from || !to}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
-        {info && !loading && (
-          <Typography variant="body2" color="text.secondary">
-            {info.from} ถึง {info.to}: พบ {rows.length.toLocaleString()} แถว
-          </Typography>
-        )}
       </Paper>
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (

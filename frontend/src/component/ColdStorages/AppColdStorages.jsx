@@ -41,7 +41,6 @@ import ModalCSR3 from "./Room/Modals/ModalCSR3";
 import SalesPage from "./MatCold/MatColdPage.jsx";
 import HistoryBakingPrep from "./HistoryBaking/HistoryBakingPage.jsx";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
-import SapSheetPage from "./SapSheet/SapSheetPage.jsx";
 import MasterSheetPage from "../Sheet/SheetPage";
 import RoomTableCSSupOnly from "./RoomTablerminprocess/RoomTable.jsx";
 import RoomTableCSSupOnlysend from "./RoomMonitor/RoomTable.jsx";
@@ -62,17 +61,18 @@ function AppColdStorages() {
 
       <Sidebar />
       <Routes>
-        <Route path="/" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/SapSheet" element={<SapSheetPage />} />
+        <Route path="/" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        {/* the old Time Stamp table is the master table now (same layout, settings and status sort as /prep): its HU rows and stamp tools are in it */}
+        <Route path="/SapSheet" element={<Navigate to="/ColdStorages/Sheet" replace />} />
         <Route path="/Sheet" element={<MasterSheetPage role="cs2" />} />
         <Route path="/LargeRooms" element={<RoomTableCSSupOnlysend />} />
         {/* หน้าเดิมที่รวมเข้าตารางเดียวแล้ว */}
-        <Route path="/products" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/ScanSAPPage/defrost" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/ScanSAPPageEDF/end/defrost" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/Checkin/rm/in/line/not/inprocess" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/table/rm" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
-        <Route path="/RoomTableCS" element={<Navigate to="/ColdStorages/SapSheet" replace />} />
+        <Route path="/products" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        <Route path="/ScanSAPPage/defrost" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        <Route path="/ScanSAPPageEDF/end/defrost" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        <Route path="/Checkin/rm/in/line/not/inprocess" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        <Route path="/table/rm" element={<Navigate to="/ColdStorages/Sheet" replace />} />
+        <Route path="/RoomTableCS" element={<Navigate to="/ColdStorages/Sheet" replace />} />
         <Route path="/CheckIn/rooms" element={<Navigate to="/ColdStorages/LargeRooms" replace />} />
         <Route path="/CheckOut/CheckOutPage" element={<Navigate to="/ColdStorages/LargeRooms" replace />} />
         <Route path="/sales" element={<SalesPage />} />

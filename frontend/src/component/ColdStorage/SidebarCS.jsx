@@ -4,9 +4,9 @@ import AppSidebar from "../Layout/AppSidebar";
 const SECTIONS = [
   {
     items: [
-      { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/coldStorage/Sheet" },
-      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/coldStorage/Sheet?view=done" },
-      { name: "ส่งออกอัตโนมัติ (RFID)", icon: Radio, href: "/coldStorage/EmptyTrolley/RFIDCSCheckOutPage" },
+      { name: "กำลังดำเนินการ", icon: Table2, href: "/coldStorage/Sheet" },
+      { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/coldStorage/Sheet?view=done" },
+      { name: "ส่งออก RFID", icon: Radio, href: "/coldStorage/EmptyTrolley/RFIDCSCheckOutPage" },
       { name: "ประวัติ", icon: History, href: "/coldStorage/HisInput/HisInputPage" },
       { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
     ],

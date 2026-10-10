@@ -4,7 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { cellText } from "./gridUtils";
+import { cellFilterText } from "./gridUtils";
 
 const MAX_OPTIONS = 150;
 const collator = new Intl.Collator(["th", "en"], { numeric: true });
@@ -17,7 +17,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
   const options = useMemo(() => {
     const counts = new Map();
     const first = new Map();
-    rows.forEach((r) => { const t = cellText(col, r); counts.set(t, (counts.get(t) || 0) + 1); if (!first.has(t)) first.set(t, r); });
+    rows.forEach((r) => { const t = cellFilterText(col, r); counts.set(t, (counts.get(t) || 0) + 1); if (!first.has(t)) first.set(t, r); });
     const list = [...counts.entries()].map(([value, count]) => ({ value, count, meta: col.optionMeta ? col.optionMeta(first.get(value)) : null }));
     // a column with `optionMeta(row)` -> { rank, zone } (the status) lists its values in the order of its zones instead of A-Z
     return list.sort((a, b) => (a.meta && b.meta && a.meta.rank !== b.meta.rank ? a.meta.rank - b.meta.rank : collator.compare(a.value, b.value)));

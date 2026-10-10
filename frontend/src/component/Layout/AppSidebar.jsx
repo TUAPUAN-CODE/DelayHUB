@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
-import { ArrowLeftRight, ChevronDown, UserRound } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Settings, UserRound } from "lucide-react";
+import { openSettings, useHasSettings } from "./DataGrid/settingsBus";
 import axios from "axios";
 import { WORKPLACE_ROUTES, readRoles } from "../../services/roleRoutes";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -113,6 +114,7 @@ const RoleSwitcher = () => {
 
 const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
   const { pathname, search } = useLocation();
+  const hasSettings = useHasSettings();
   const normalized = useMemo(() => sections || [{ items: items || [] }], [sections, items]);
 
   const { main, bottom, leaves } = useMemo(() => {
@@ -141,6 +143,7 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
         {main.map((it) => (it.submenu ? <GroupLink key={it.key} item={it} activeKey={activeKey} /> : <NavLink key={it.key} leaf={it} active={activeKey === it.key} />))}
       </nav>
       <div className="app-top-user">
+        {hasSettings && <button type="button" className="app-top-link" onClick={openSettings}><Settings size={16} className="shrink-0" /><span>Setting</span></button>}
         {userName && <span className="app-top-name" title={userName}><UserRound size={16} className="shrink-0" /><span>{userName}</span></span>}
         <LanguageSwitcher sx={{ color: "#fff", background: "rgb(255 255 255 / .14)", height: 32, "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(255 255 255 / .45)" }, "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" }, "& .MuiSvgIcon-root": { color: "#fff" }, "& svg": { color: "#fff" } }} />
       </div>

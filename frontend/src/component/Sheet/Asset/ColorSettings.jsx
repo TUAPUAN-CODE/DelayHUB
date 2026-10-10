@@ -18,6 +18,7 @@ export const colorFromDbs = (d, ext) => {
  * Rows without any DBS value / standard (HU rows, rows waiting to be mixed) are not coloured. A row whose stage DBS has no value falls back to DBS4.
  */
 export const rowColorOf = (row, ext) => {
+  if (row.__status?.label === "Done") return "blue"; // a finished row is shown blue (the delay colours are for work in progress)
   const mode = ext?.colorMode ?? DEFAULT_EXT.colorMode;
   if (mode === -1 || !row.__dbs?.length) return null;
   const idx = mode === "stage" ? stageDbsIndex(row) : Number(mode);

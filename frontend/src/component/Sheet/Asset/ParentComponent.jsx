@@ -321,8 +321,6 @@ const ParentComponent = ({ role, view = "work" }) => {
         </Tooltip>
       )))}
       {activeRow && <Button size="small" onClick={() => setActiveKey(null)}>ยกเลิกการเลือก</Button>}
-      {mixBar}
-      {gatherBar}
     </Paper>
   );
 
@@ -338,6 +336,8 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   const toolbarExtra = (
     <>
+      {mixBar}
+      {gatherBar}
       {role === "prep" && (
         <>
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
@@ -366,9 +366,9 @@ const ParentComponent = ({ role, view = "work" }) => {
   const lineNames = useMemo(() => [...new Set(allRows.map((r) => r.rmm_line_name).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "th", { numeric: true })), [allRows]);
   // tabs 2-4 of the settings dialog: they change what everybody on the account sees, so they are locked with the password of the day
   const settingPages = useCallback((ext, setExt) => [
-    { key: "color", label: "สีของแถว (เขียว / เหลือง / แดง) ตาม Delay", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
-    { key: "status", label: "สถานะอยู่ในพื้นที่ไหน (ใช้เรียงลำดับและแบ่งสีในเมนูสถานะ)", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
-    { key: "line", label: "ไลน์นี้ใครดูแล (ใช้จัดกลุ่มและแบ่งสีในเมนูไลน์)", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
+    { key: "color", label: "สีแถว", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
+    { key: "status", label: "พื้นที่สถานะ", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
+    { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
   ], [lineNames]);
   const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages };
 

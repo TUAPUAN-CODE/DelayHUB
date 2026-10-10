@@ -2,19 +2,17 @@ import { compareValues } from "../../../hooks/useTableTools";
 
 export { compareValues };
 
-const THIS_YEAR = new Date().getFullYear();
 const TIME_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/;
-/** "2026-10-08 13:05:00" -> "08/10 13:05" (year only shown when it is not the current year). Plain string work: this runs for thousands of cells. */
+/** "2026-10-08 13:05:00" -> "08/10/2026 13:05" (the year is always shown: a table can hold several years). Plain string work: this runs for thousands of cells. */
 export const shortTime = (v) => {
   if (!v) return "";
   const str = String(v);
   const m = TIME_RE.exec(str);
-  if (m) return `${m[3]}/${m[2]}${Number(m[1]) !== THIS_YEAR ? `/${m[1].slice(2)}` : ""} ${m[4]}:${m[5]}`;
+  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
   const d = new Date(str.replace(" ", "T"));
   if (Number.isNaN(d.getTime())) return str;
   const p = (n) => String(n).padStart(2, "0");
-  const year = d.getFullYear() !== THIS_YEAR ? `/${String(d.getFullYear()).slice(2)}` : "";
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}${year} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
 export const cellValue = (col, row) => (col.get ? col.get(row) : row[col.key]);
@@ -30,6 +28,9 @@ export const cellText = (col, row) => {
   if (col.type === "time") return shortTime(v);
   return String(v);
 };
+
+/** text a column filter works on: normally the cell text; a column can group its values differently (e.g. the DBS columns by colour) */
+export const cellFilterText = (col, row) => (col.filterText ? col.filterText(row) : cellText(col, row));
 
 /** value used when sorting a column */
 export const cellSortValue = (col, row) => {

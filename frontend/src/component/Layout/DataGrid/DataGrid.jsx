@@ -1,4 +1,4 @@
-import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
@@ -15,14 +15,15 @@ import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
 import useGridPrefs from "./useGridPrefs";
 import { exportExcel, exportPdf } from "./exportGrid";
-import { cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
+import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
+import { registerSettings } from "./settingsBus";
 
-const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA" };
+const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA", blue: "#DCEBFF" }; // blue = a finished (Done) row
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#2E7D32", yellow: "#B26A00", red: "#C62828" };
 const GRID = "2px solid #263238";
 // opaque hover colours: the theme's translucent hover colour would let the scrolled cells show through the frozen columns
-const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9" };
+const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9", blue: "#C4DCFB" };
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
@@ -95,6 +96,10 @@ const DataGrid = ({
   const [limit, setLimit] = useState(pageSize);
   const setPage = () => setLimit(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
+  // the column settings are opened from the "Setting" button of the top bar; a page without the top bar keeps its own button
+  const [topbar, setTopbar] = useState(false);
+  useEffect(() => { setTopbar(!!document.querySelector(".app-topbar")); }, []);
+  useEffect(() => (topbar ? registerSettings(() => setChooserOpen(true)) : undefined), [topbar]);
   const [exporting, setExporting] = useState(false);
 
   const colByKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns]);
@@ -136,7 +141,7 @@ const DataGrid = ({
 
   const passFilters = useCallback((row, skipKey) => Object.entries(filters).every(([key, values]) => {
     if (key === skipKey || !colByKey[key]) return true;
-    return values.includes(cellText(colByKey[key], row));
+    return values.includes(cellFilterText(colByKey[key], row));
   }), [filters, colByKey]);
 
   const dSearch = useDeferredValue(search); // typing stays instant, the table follows a moment later
@@ -148,7 +153,7 @@ const DataGrid = ({
   const counts = useMemo(() => {
     if (!rowColor) return null;
     const c = { green: 0, yellow: 0, red: 0 };
-    filtered.forEach((r) => { const k = colorOf(r); if (k) c[k] += 1; });
+    filtered.forEach((r) => { const k = colorOf(r); if (k && k in c) c[k] += 1; });
     return c;
   }, [filtered, rowColor, colorOf]);
 
@@ -220,21 +225,17 @@ const DataGrid = ({
 
   const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorOnly ? 1 : 0);
 
+  // only the three colour buttons (number inside, the colour says which); a click shows just that colour, a second click shows all
   const colorChips = counts && (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
-          <Typography variant="body2" color="text.secondary">แสดงเฉพาะสี Delay:</Typography>
+      {["red", "yellow", "green"].map((k) => (
+        <Tooltip key={k} title={colorOnly === k ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
           <Chip
-            clickable label={`ทั้งหมด ${filtered.length}`} onClick={() => { setColorOnly(null); setPage(0); }}
-            sx={{ fontWeight: 700, border: "1px solid #546E7A", background: colorOnly ? "#fff" : "#546E7A", color: colorOnly ? "#546E7A" : "#fff" }}
+            clickable label={counts[k]} onClick={() => { setColorOnly(colorOnly === k ? null : k); setPage(0); }}
+            sx={{ fontWeight: 700, minWidth: 52, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
           />
-          {["red", "yellow", "green"].map((k) => (
-            <Tooltip key={k} title={colorOnly === k ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
-              <Chip
-                clickable label={`${COLOR_LABEL[k]} ${counts[k]}`} onClick={() => { setColorOnly(colorOnly === k ? null : k); setPage(0); }}
-                sx={{ fontWeight: 700, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
-              />
-            </Tooltip>
-          ))}
+        </Tooltip>
+      ))}
     </Box>
   );
 
@@ -247,7 +248,7 @@ const DataGrid = ({
         />
         {fill && colorChips}
         {toolbarExtra}
-        <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setChooserOpen(true)}>ตั้งค่าคอลัมน์</Button>
+        {!topbar && <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setChooserOpen(true)}>ตั้งค่าคอลัมน์</Button>}
         {!hideExport && (
           <>
             <Button variant="outlined" startIcon={<TableViewIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("xlsx")}>Excel</Button>

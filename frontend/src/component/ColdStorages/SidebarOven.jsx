@@ -1,13 +1,9 @@
-import { Snowflake, Warehouse, LogOut, Table2, CheckCircle2 } from "lucide-react";
+import { Warehouse, LogOut, Table2, CheckCircle2 } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SECTIONS = [
-  { items: [{ name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/ColdStorages/Sheet" },
-      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/ColdStorages/Sheet?view=done" }] },
-  {
-    title: "RM ไม่แปรรูป",
-    items: [{ name: "Time Stamp วัตถุดิบ", icon: Snowflake, href: "/ColdStorages/SapSheet" }],
-  },
+  { items: [{ name: "กำลังดำเนินการ", icon: Table2, href: "/ColdStorages/Sheet" },
+      { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/ColdStorages/Sheet?view=done" }] },
   {
     title: "RM แปรรูป",
     items: [{ name: "ห้องเย็นใหญ่", icon: Warehouse, href: "/ColdStorages/LargeRooms" }],

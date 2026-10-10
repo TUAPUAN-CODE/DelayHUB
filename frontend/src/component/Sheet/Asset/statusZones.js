@@ -9,7 +9,7 @@ export const ZONES = [
   { id: "prep", title: "พื้นที่จุดเตรียม (อื่นๆ)", color: "#6B21A8", bg: "#E9D5FF", dot: "#A855F7" },
   { id: "qc", title: "พื้นที่ QC", color: "#92400E", bg: "#FDE68A", dot: "#F59E0B" },
   { id: "pack", title: "พื้นที่บรรจุ", color: "#166534", bg: "#BBF7D0", dot: "#22C55E" },
-  { id: "done", title: "บันทึกเอกสารสมบูรณ์", color: "#0F766E", bg: "#99F6E4", dot: "#14B8A6" },
+  { id: "done", title: "บันทึกเอกสารสมบูรณ์", color: "#1E3A8A", bg: "#BFDBFE", dot: "#3B82F6" },
 ];
 export const DEFAULT_ZONE = "prep"; // a status that is not listed below
 

@@ -4,8 +4,8 @@ import AppSidebar from "../Layout/AppSidebar";
 const SECTIONS = [
   {
     items: [
-      { name: "ตารางรวมวัตถุดิบ", icon: Table2, href: "/qualitycontrol/Sheet" },
-      { name: "Done (ดึงจากฐานข้อมูล)", icon: CheckCircle2, href: "/qualitycontrol/Sheet?view=done" },
+      { name: "กำลังดำเนินการ", icon: Table2, href: "/qualitycontrol/Sheet" },
+      { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/qualitycontrol/Sheet?view=done" },
       { name: "ประวัติการตรวจ", icon: History, href: "/qualitycontrol/HisCheck/HisCheckPage" },
       { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
     ],
