@@ -7,6 +7,7 @@ import RFIDSlipPrintService from "./component/ColdStorage/CheckOutWithRFID/Asset
 
 import theme from "./theme/dochubTheme";
 import ErrorBoundary from "./component/Layout/ErrorBoundary.jsx";
+import MutationProgressBar from "./component/Layout/MutationProgressBar.jsx";
 
 // Lazy-loaded components (ใส่ .jsx ให้ครบ)
 const AppSup = lazy(() => import("./component/Supervisor/AppSup.jsx"));
@@ -56,6 +57,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <RFIDSlipPrintService />
+      <MutationProgressBar />
       <ErrorBoundary resetKey={pathname}>
       <Suspense fallback={<Loading />}>
         <Routes>

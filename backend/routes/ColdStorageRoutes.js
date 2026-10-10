@@ -1251,7 +1251,7 @@ WHERE
                 // ดึงข้อมูลประวัติต้นทาง
                 const historyResult = await new sql.Request(transaction)
                     .input('mapping_id', sourceRecord.mapping_id)
-                    .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
+                    .query(`SELECT come_cold_date, come_cold_date_three, come_cold_date_two, cooked_date, edit_rework, first_prod, location, md_time, mixed_date, name_edit_prod_three, name_edit_prod_two, out_cold_date, out_cold_date_three, out_cold_date_two, prepare_mor_night, qc_date, receiver, receiver_out_cold, receiver_out_cold_three, receiver_out_cold_two, receiver_oven_edit, receiver_pack_edit, receiver_prep_two, receiver_qc, receiver_qc_cold, remark_pack_edit, remark_rework, remark_rework_cold, rework_date, rmit_date, sc_pack_date, three_prod, two_prod, withdraw_date FROM History WHERE mapping_id = @mapping_id`);
 
                 if (historyResult.recordset.length === 0) throw new Error("History record not found for source material");
 

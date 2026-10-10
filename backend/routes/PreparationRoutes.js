@@ -8888,7 +8888,7 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
       // ✅ ดึงข้อมูล History เดิม
       const origHisData = await transaction.request()
         .input("mapping_id", mapping_id)
-        .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
+        .query(`SELECT cold_dest, cold_to_pack_time, come_cold_date, edit_rework, first_prod, location, name_edit_prod_three, name_edit_prod_two, out_cold_date, qccheck_cold, receiver, receiver_out_cold, remark_rework, remark_rework_cold, three_prod, two_prod, withdraw_date FROM History WHERE mapping_id = @mapping_id`);
       if (origHisData.recordset.length === 0)
         throw new Error(`ไม่พบประวัติ mapping_id: ${mapping_id}`);
       const his = origHisData.recordset[0];

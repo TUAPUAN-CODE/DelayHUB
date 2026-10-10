@@ -2,6 +2,7 @@
 // (กดปุ่มสองครั้ง, มือถือค้างแล้วกดใหม่) จะไม่ยิงซ้ำไปที่ server แต่รอผลของตัวแรกแล้วใช้ผลเดียวกัน — ผลที่หน้าเว็บเห็นเหมือนเดิม
 // ไม่แตะ GET, FormData/ไฟล์ และ request ที่ตั้ง config.dedupe = false
 import axios from "axios";
+import { beginMutation, endMutation } from "./mutationProgress";
 
 const inflight = new Map();
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
@@ -20,7 +21,11 @@ axios.defaults.adapter = (config) => {
   if (!key) return baseAdapter(config);
   const running = inflight.get(key);
   if (running) return running;
+  // request ที่ตั้ง config.silent = true (หรือบันทึกค่าตั้งหน้าจออัตโนมัติ) ไม่แสดงแถบโหลด
+  const visible = config.silent !== true && !/\/api\/sheet\/prefs/.test(String(config.url || ""));
+  if (visible) beginMutation();
   const request = baseAdapter(config).finally(() => {
+    if (visible) endMutation();
     if (inflight.get(key) === request) inflight.delete(key);
   });
   inflight.set(key, request);

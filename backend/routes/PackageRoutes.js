@@ -3271,7 +3271,7 @@ module.exports = (io) => {
       const data = await new sql.Request(transaction)
         .input("tro_id", sql.VarChar(20), tro_id)
         .query(`
-        SELECT * FROM TrolleyRMMapping
+        SELECT mapping_id FROM TrolleyRMMapping
         WHERE tro_id = @tro_id
       `);
 
@@ -3357,7 +3357,7 @@ module.exports = (io) => {
             const old = await request
               .input("mapping_id", sql.Int, from_mapping_id)
               .query(`
-              SELECT * 
+              SELECT weight_RM
               FROM TrolleyRMMapping
               WHERE mapping_id = @mapping_id
             `);
@@ -4346,7 +4346,7 @@ module.exports = (io) => {
       // ===============================
       const selectHis = await transaction.request()
         .input("mapping_id", sql.Int, mapping_id)
-        .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
+        .query(`SELECT come_cold_date, come_cold_date_three, come_cold_date_two, cooked_date, location, out_cold_date, out_cold_date_three, out_cold_date_two, qc_date, receiver, receiver_out_cold, receiver_out_cold_three, receiver_out_cold_two, receiver_oven_edit, receiver_pack_edit, receiver_prep_two, receiver_qc, remark_rework, rework_date, rmit_date, sc_pack_date, withdraw_date FROM History WHERE mapping_id = @mapping_id`);
 
 
       if (selectHis.recordset.length === 0) {
@@ -7002,7 +7002,7 @@ WHERE
       const haverawmat = await pool.request()
         .input('tro_id', sql.NVarChar, tro_id)
         .query(`
-          SELECT * 
+          SELECT mapping_id
           FROM TrolleyRMMapping
           WHERE tro_id = @tro_id
         `);
