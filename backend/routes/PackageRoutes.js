@@ -1,3 +1,4 @@
+const { placeholders, bindList } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
   const express = require("express");
@@ -7,7 +8,8 @@ module.exports = (io) => {
   // const { Line } = require("recharts");
   const router = express.Router();
   const multer = require('multer');
-  const upload = multer({ storage: multer.memoryStorage() });
+  // เก็บไฟล์ในหน่วยความจำ → ต้องจำกัดขนาด (ไม่งั้นไฟล์ใหญ่ไฟล์เดียวทำให้ worker หน่วยความจำเต็ม); ปรับด้วย UPLOAD_MAX_MB ใน .env
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: (parseInt(process.env.UPLOAD_MAX_MB, 10) || 20) * 1024 * 1024, files: 5 } });
 
   const DEBUG_LOGS = process.env.DEBUG_LOGS === 'true';
   function debugLog(...args) { if (DEBUG_LOGS) console.log(...args); }
@@ -2664,9 +2666,10 @@ module.exports = (io) => {
 
         // Update trolley status for each trolley
         if (item.tro_id) {
-          pool.request().query(`
-          UPDATE Trolley SET tro_status = '1', status = '1.2' WHERE tro_id = '${item.tro_id}'
-        `);
+          pool.request()
+            .input("tro_id", sql.VarChar, item.tro_id)
+            .query(`UPDATE Trolley SET tro_status = '1', status = '1.2' WHERE tro_id = @tro_id`)
+            .catch((e) => console.error("❌ [pack] update trolley status error:", e.message));
         }
       });
 
@@ -4018,6 +4021,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const packtrolley = await pool
         .request()
+        .input("line_id", sql.VarChar, line_id)
         .query(`
                 SELECT
                    ptl.tro_id
@@ -4025,7 +4029,7 @@ module.exports = (io) => {
                     PackTrolley ptl
                 WHERE 
                     ptl.pack_tro_status = '0' 
-                    AND ptl.line_tro = '${line_id}'
+                    AND ptl.line_tro = @line_id
             `);
 
       res.json({ success: true, data: packtrolley.recordset });
@@ -5668,10 +5672,10 @@ module.exports = (io) => {
       JOIN History AS htr ON htr.mapping_id = rmm.mapping_id
       LEFT JOIN batch AS b ON b.mapping_id = rmm.mapping_id
       LEFT JOIN RMForProd AS rfp ON rfp.rmfp_id = rmm.rmfp_id
-      WHERE rmm.mapping_id IN (${mapping_id.map(id => `'${id}'`).join(',')})
+      WHERE rmm.mapping_id IN (${placeholders("map_", mapping_id)})
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "map_", mapping_id, sql.Int).query(query);
 
       if (result.recordset.length === 0) {
         return res.status(404).json({ message: "ไม่พบวัตถุดิบในรถเข็นที่เลือก" });
@@ -5681,10 +5685,10 @@ module.exports = (io) => {
       const batchQuery = `
         SELECT batch_id, batch_before, batch_after, mapping_id
         FROM Batch
-        WHERE mapping_id IN (${mapping_id.map(id => `'${id}'`).join(',')})
+        WHERE mapping_id IN (${placeholders("map_", mapping_id)})
       `;
 
-      const batchResult = await pool.request().query(batchQuery);
+      const batchResult = await bindList(pool.request(), "map_", mapping_id, sql.Int).query(batchQuery);
 
       // จัดกลุ่ม Batch ตาม mapping_id
       const batchByMappingId = {};
@@ -6054,10 +6058,10 @@ module.exports = (io) => {
 
       const query = `
       UPDATE [PFCMv2].[dbo].[RMInTrolley] 
-      SET status = '${status}' 
-      WHERE tro_id IN (${tro_ids.join(",")})
+      SET status = @status 
+      WHERE tro_id IN (${placeholders("tro_", tro_ids)})
     `;
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request().input("status", status), "tro_", tro_ids, sql.VarChar).query(query);
 
       return res.status(200).json(result.rowsAffected);
     } catch (error) {

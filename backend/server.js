@@ -186,7 +186,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       ];
 
       const isAllowed = allowedOrigins.includes(origin) ||
-        /^(http:\/\/)?(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|172\.48\.\d+\.\d+)/.test(origin);
+        /^(http:\/\/)?(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|172\.48\.\d+\.\d+)(:\d{1,5})?$/.test(origin);
 
       callback(null, isAllowed);
     },

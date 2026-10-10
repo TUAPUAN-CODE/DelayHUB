@@ -55,6 +55,9 @@ const SLIP_STYLE = `
   }
 `;
 
+// ข้อความที่มาจากฐานข้อมูลต้อง escape ก่อนใส่ลง HTML ของสลิป (กัน HTML/สคริปต์ที่แฝงมากับข้อมูล)
+const esc = (v) => String(v ?? "-").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
 const execPrint = (innerHTML) => {
   document.getElementById("__broth_slip__")?.remove();
   document.getElementById("__broth_slip_style__")?.remove();
@@ -83,8 +86,8 @@ const execPrint = (innerHTML) => {
 const printStartSlip = (row) => {
   execPrint(`
     <div class="bs-title">น้ำอบไก่</div>
-    <div class="bs-row"><span class="bs-label">NO</span><span class="bs-value">${row.time_stamp_ck ?? "-"}</span></div>
-    <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${row.start_datetime ?? "-"}</span></div>
+    <div class="bs-row"><span class="bs-label">NO</span><span class="bs-value">${esc(row.time_stamp_ck)}</span></div>
+    <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${esc(row.start_datetime)}</span></div>
   `);
 };
 
@@ -92,10 +95,10 @@ const printStartSlip = (row) => {
 const printFullSlip = (row) => {
   execPrint(`
     <div class="bs-title">น้ำอบไก่</div>
-    <div class="bs-row"><span class="bs-label">NO</span><span class="bs-value">${row.time_stamp_ck ?? "-"}</span></div>
-    <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${row.start_datetime ?? "-"}</span></div>
-    <div class="bs-row"><span class="bs-label">ทำเย็นเสร็จ</span><span class="bs-value">${row.cooling_datetime ?? "-"}</span></div>
-    <div class="bs-row"><span class="bs-label">Delay</span><span class="bs-value">${row.end_datetime ?? "-"}</span></div>
+    <div class="bs-row"><span class="bs-label">NO</span><span class="bs-value">${esc(row.time_stamp_ck)}</span></div>
+    <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${esc(row.start_datetime)}</span></div>
+    <div class="bs-row"><span class="bs-label">ทำเย็นเสร็จ</span><span class="bs-value">${esc(row.cooling_datetime)}</span></div>
+    <div class="bs-row"><span class="bs-label">Delay</span><span class="bs-value">${esc(row.end_datetime)}</span></div>
   `);
 };
 

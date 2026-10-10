@@ -1366,7 +1366,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const io = req.app.get("io");  // ดึง io object สำหรับ socket.io
 
 
-    console.log("body :", req.body);
 
 
     try {
@@ -1687,7 +1686,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
     const io = req.app.get("io");
 
-    console.log("📥 Request body:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -1952,7 +1950,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const io = req.app.get("io");  // ดึง io object สำหรับ socket.io
 
 
-    console.log("body :", req.body);
 
 
     try {
@@ -2133,7 +2130,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
     const io = req.app.get("io");
 
-    console.log("BODY:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -2292,7 +2288,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
     const io = req.app.get("io");
 
-    console.log("BODY:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -2452,7 +2447,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { tro_id, mapping_id, ProdID, mat, line_name, name_edit_prod } = req.body;
     const io = req.app.get("io");
 
-    console.log("Update request body:", req.body);
 
     try {
       const pool = await connectToDatabase();

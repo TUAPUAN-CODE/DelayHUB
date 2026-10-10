@@ -1,3 +1,4 @@
+const { placeholders, bindList } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
 	const express = require("express");
@@ -59,7 +60,7 @@ module.exports = (io) => {
           (rmm.dest = 'ไปบรรจุ' AND (rmm.rm_status = 'รอQCตรวจสอบ' OR rmm.rm_status = 'QcCheck รอแก้ไข' OR rmm.rm_status = 'รอกลับมาเตรียม'))
         )
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       GROUP BY
         rmf.rmfp_id,
         rm.mat,
@@ -78,7 +79,7 @@ module.exports = (io) => {
       ORDER BY MAX(htr.cooked_date) DESC
     `;
 
-			const result = await pool.request().query(query);
+			const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 			const formattedData = result.recordset.map(item => {
 				const date = new Date(item.cooked_date);
@@ -174,7 +175,7 @@ WHERE
     rmm.stay_place IN ('จุดเตรียม', 'หม้ออบ')
     AND rmm.dest    IN ('รอCheckin','ห้องเย็นใหญ่')
     AND rmm.rm_status IN ('รอQCตรวจสอบ', 'รอ MD')
-    AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+    AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
 GROUP BY
     rmm.mapping_id,
     rmf.rmfp_id,
@@ -201,7 +202,7 @@ GROUP BY
 ORDER BY MAX(htr.cooked_date) DESC;
     `;
 
-			const result = await pool.request().query(query);
+			const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 			const formattedData = result.recordset.map(item => {
 				// Format cooked_date
@@ -1146,7 +1147,6 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 	router.put("/update-destination", async (req, res) => {
 		try {
-			console.log("Received Request:", req.body);
 			const { tro_id, dest, cold_time } = req.body;
 			if (!tro_id || !dest || !cold_time) {
 				console.log("Missing required fields:", { tro_id, dest });

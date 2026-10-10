@@ -19,8 +19,6 @@
 //       READER_NAME: 'ด้านหน้า',
 //       PRINT_AGENT_URL: 'http://172.48.0.115:9100',
 //       WEB_SERVER_URL: 'http://172.48.0.115:3000',
-//       DB_USER: 'PFCMv3',
-//       DB_PASSWORD: 'Pee@2026',
 //       DB_SERVER: '172.48.0.115',
 //       DB_DATABASE: 'PFCMv2',
 //     }

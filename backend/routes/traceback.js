@@ -1141,28 +1141,28 @@ router.get('/debug/trace/:mapping_id', async (req, res) => {
       const t = out.history.sc_pack_date;
       const line = S(out.history.rmm_line_name);
 
-      const pk = await pool.request().query(`
+      const pk = await pool.request().input('t', sql.VarChar(30), t).query(`
         SELECT COUNT(*) AS n FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
-        WHERE d.start_time <= '${t}' AND d.stop_time > '${t}'
+        WHERE d.start_time <= @t AND d.stop_time > @t
       `);
       out.packaging_in_time_window = pk.recordset[0].n;
 
-      const pk2 = await pool.request().query(`
+      const pk2 = await pool.request().input('t', sql.VarChar(30), t).input('line', sql.NVarChar(100), line).query(`
         SELECT COUNT(*) AS n
         FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
         LEFT JOIN [PFCMv2].[dbo].[PackagingUsageReport] r ON r.report_id = d.report_id
-        WHERE d.start_time <= '${t}' AND d.stop_time > '${t}'
-          AND DATEDIFF(MINUTE, d.start_time, d.stop_time) BETWEEN 0 AND ${MAX_PKG_WINDOW_MIN}
-          AND COALESCE(d.line_name, r.line_name) = N'${line}'
+        WHERE d.start_time <= @t AND d.stop_time > @t
+          AND DATEDIFF(MINUTE, d.start_time, d.stop_time) BETWEEN 0 AND ${Number(MAX_PKG_WINDOW_MIN)}
+          AND COALESCE(d.line_name, r.line_name) = @line
       `);
       out.packaging_matched_line = pk2.recordset[0].n;
       out.line_used = line;
 
-      const lines = await pool.request().query(`
+      const lines = await pool.request().input('t', sql.VarChar(30), t).query(`
         SELECT DISTINCT TOP 20 COALESCE(d.line_name, r.line_name) AS line_name
         FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
         LEFT JOIN [PFCMv2].[dbo].[PackagingUsageReport] r ON r.report_id = d.report_id
-        WHERE d.start_time <= '${t}' AND d.stop_time > '${t}'
+        WHERE d.start_time <= @t AND d.stop_time > @t
       `);
       out.lines_available_in_window = lines.recordset.map(x => x.line_name);
     }

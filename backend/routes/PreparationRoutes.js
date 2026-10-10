@@ -1,3 +1,4 @@
+const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
 // หา prod_rm_id ของ (แผนการผลิต, วัตถุดิบ) — ถ้ายังไม่มีการผูก (ProdRawMat) ให้สร้างในทรานแซกชันเดียวกัน แล้วคืนค่า id
 async function getOrCreateProdRmId(transaction, productId, mat) {
@@ -2229,7 +2230,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
           FROM RMForEmu rmemu
           JOIN History his
             ON rmemu.hist_id_rmfemu = his.hist_id
-          WHERE rmemu.rmfemu_id IN (${rmfemuIds.join(",")})
+          WHERE rmemu.rmfemu_id IN (${toIntList(rmfemuIds, "rmfemu_id").join(",")})
         `);
 
         const withdraw_date = minWithdrawResult.recordset[0]?.withdraw_date || null;
@@ -2400,7 +2401,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
           FROM RMMixBatch rmmb
           JOIN History his
             ON rmmb.hist_id_rmfbatch = his.hist_id
-          WHERE rmmb.rmfbatch_id IN (${rmfemuIds.join(",")})
+          WHERE rmmb.rmfbatch_id IN (${toIntList(rmfemuIds, "rmfbatch_id").join(",")})
         `);
 
         const withdraw_date = minWithdrawResult.recordset[0]?.withdraw_date || null;
@@ -3168,15 +3169,13 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       rmf.stay_place IN ('จุดเตรียมรับเข้า', 'หม้ออบ')
       AND rmf.dest IN ('ไปจุดเตรียม', 'จุดเตรียม')
       AND rmf.rm_group_id = rmg.rm_group_id
-      AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(",")})
+      AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
   ORDER BY
       htr.cooked_date DESC;
 `;
 
       const request = pool.request();
-      rmTypeIdsArray.forEach((id, i) => {
-        request.input(`rmTypeId${i}`, id);
-      });
+      bindList(request, "rm_type_", rmTypeIdsArray, sql.VarChar);
 
       const result = await request.query(query);
 
@@ -4031,11 +4030,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         rmf.stay_place = 'จุดเตรียมรับเข้า' 
         AND rmf.dest IN ('เข้าห้องเย็น', 'หม้ออบ')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
         ORDER BY htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
       const formattedData = result.recordset.map(item => {
         const date = new Date(item.cooked_date);
@@ -4765,7 +4764,8 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       console.log("=== STEP 0: UPDATING WEIGHTS (BULK) ===");
 
       // 1️⃣ สร้าง list ของ mapping_id และ weight ที่จะ update
-      const validMaterials = selectedMaterials.filter(m => m.mapping_id && m.weight);
+      const validMaterials = selectedMaterials.filter(m => m.mapping_id && m.weight)
+        .map(m => ({ ...m, mapping_id: toIntList([m.mapping_id], "mapping_id")[0], weight: toNumber(m.weight, "weight") })); // ตรวจเป็นตัวเลขก่อนต่อเป็น SQL
 
       if (validMaterials.length === 0) {
         await safeRollback(transaction);
@@ -5189,11 +5189,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         rmf.stay_place = 'จุดเตรียมรับเข้า' 
         AND rmf.dest IN ('เข้าห้องเย็น', 'หม้ออบ')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       ORDER BY htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
       // Format วันที่
       const formattedData = result.recordset.map(item => {
@@ -5898,7 +5898,8 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       transaction = await pool.transaction();
       await transaction.begin();
 
-      const validMaterials = selectedMaterials.filter(m => m.mapping_id && m.weight);
+      const validMaterials = selectedMaterials.filter(m => m.mapping_id && m.weight)
+        .map(m => ({ ...m, mapping_id: toIntList([m.mapping_id], "mapping_id")[0], weight: toNumber(m.weight, "weight") })); // ตรวจเป็นตัวเลขก่อนต่อเป็น SQL
       const mixIdList = validMaterials.map(m => `(${m.mapping_id}, ${parseFloat(m.weight)})`).join(",");
       const mappingIds = validMaterials.map(m => m.mapping_id);
 
@@ -6350,11 +6351,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         rmf.stay_place = 'จุดเตรียมรับเข้า' 
         AND rmf.dest IN ('เข้าห้องเย็น', 'หม้ออบ')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
         ORDER BY htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
       const formattedData = result.recordset.map(item => {
         const date = new Date(item.cooked_date);
@@ -6890,12 +6891,12 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         AND rmm.dest in ( 'จุดเตรียม','ส่งกลับจากห้องเย็นใหญ่')
         AND rmm.rm_status IN ('QcCheck รอกลับมาเตรียม', 'QcCheck รอ MD', 'รอกลับมาเตรียม', 'รอ Qc','QcCheck','QcCheck')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       ORDER BY
         htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
       const formattedData = result.recordset.map(item => {
         const date = new Date(item.cooked_date);
@@ -7276,8 +7277,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       const rmTypeIdsArray = rm_type_ids.split(',');
       const pool = await connectToDatabase();
-      const result = await pool
-        .request()
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar)
         .query(`
                   SELECT
                       rmf.rmfp_id,
@@ -7325,7 +7325,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
                         AND rmm.dest = 'จุดเตรียม'
                         AND rmm.rm_status IN ('รอแก้ไข','QcCheck รอแก้ไข')
                         AND rmf.rm_group_id = rmg.rm_group_id
-                        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+                        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
                       GROUP BY
                         rmf.rmfp_id,
                         rm.mat,
@@ -7436,11 +7436,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         AND rmm.dest IN ('จุดเตรียม','เข้าห้องเย็น','ไปบรรจุ')
         AND rmm.rm_status IN ('รับฝาก-รอแก้ไข')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       ORDER BY htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 
       const formattedData = result.recordset.map(item => {
@@ -7630,7 +7630,6 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
   // });
   router.post("/prep/mat/rework/rsrv/saveTrolley", async (req, res) => {
     const { license_plate, ntray, weightTotal, mapping_id, dest, tro_id, recorder, rm_status, edit_rework } = req.body;
-    console.log("body:", req.body);
 
     const sql = require("mssql");
     const pool = await connectToDatabase();
@@ -10001,8 +10000,7 @@ OPTION (RECOMPILE)
 
       const rmTypeIdsArray = rm_type_ids.split(',');
       const pool = await connectToDatabase();
-      const result = await pool
-        .request()
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar)
         .query(`
                   SELECT
                       rmf.rmfp_id,
@@ -10050,7 +10048,7 @@ OPTION (RECOMPILE)
                         AND rmm.dest = 'จุดเตรียม'
                         AND rmm.rm_status IN ('รอแก้ไข','QcCheck รอแก้ไข') 
                         AND rmf.rm_group_id = rmg.rm_group_id
-                        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+                        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
                         ORDER BY htr.cooked_date DESC
               `);
 
@@ -10136,11 +10134,11 @@ OPTION (RECOMPILE)
         AND rmm.dest IN ('จุดเตรียม','เข้าห้องเย็น','ไปบรรจุ')
         AND rmm.rm_status IN ('รับฝาก-รอแก้ไข')
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       ORDER BY htr.cooked_date DESC
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 
       const formattedData = result.recordset.map(item => {
