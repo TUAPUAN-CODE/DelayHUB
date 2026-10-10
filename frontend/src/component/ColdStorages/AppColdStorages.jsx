@@ -47,7 +47,7 @@ import RoomTableCSSupOnlysend from "./RoomMonitor/RoomTable.jsx";
 import ScanSAPPageComeAnti from "./ScanSAPComeAnti/ScanSAPPage.jsx";
 import ScanSAPPageOutCS from "./ScanSAPOutCS/ScanSAPPage.jsx";
 import Dashboardrmoutprocess from "./Dashboardrmoutprocess/RoomTable.jsx";
-import Dashboardrminprocess from "./dashboardrminprocess/RoomTable.jsx";
+import Dashboardrminprocess from "./Dashboardrminprocess/RoomTable.jsx";
 
 
 function AppColdStorages() {

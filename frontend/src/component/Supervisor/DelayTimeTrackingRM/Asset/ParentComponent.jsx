@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import TracebackModal from './TracebackModal';
+import TracebackModal from './Tracebackmodal';
 axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;

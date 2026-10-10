@@ -918,6 +918,11 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 - PM2 ecosystem config (กระทบ production deployment)
 - Redux store / global state structure (ถ้ามีในอนาคต)
 
+### ตรวจ import ที่หาย / ตัวพิมพ์ไม่ตรง / ไฟล์ที่ไม่ถูกใช้
+
+`cd frontend && npm run check:unused` — รายงาน (1) import ที่หาไฟล์ไม่เจอ (2) import ที่ตัวพิมพ์เล็ก/ใหญ่ไม่ตรง (ผ่านบน Windows แต่ build บน Linux ล้ม) (3) ไฟล์ใน `component/` ที่ไม่มีใครเรียกถึง
+ห้ามใช้ `--delete` จนกว่าข้อ (1) จะว่าง (ตอนนี้ `Pack/PrintMaster`, `Pack/PrintMasters`, `Pack/UsePKG` ยังไม่อยู่ในรีโป — ต้อง commit จากเครื่อง server ก่อน)
+
 ### ColdStorage vs ColdStorages
 
 ทั้งสองโมดูลนี้ **ยังคง active อยู่พร้อมกัน**:

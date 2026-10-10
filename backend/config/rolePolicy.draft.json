@@ -1,7 +1,7 @@
 {
   "version": 1,
   "note": "ร่างจากการวิเคราะห์โค้ด ไม่ได้บังคับ — ตรวจแล้วเปลี่ยนชื่อเป็น rolePolicy.json (ทุกกฎ mode=warn = log อย่างเดียว ลบ mode เมื่อมั่นใจ); ผู้ดูแล Role 6/8 ผ่านทุกกฎอยู่แล้ว",
-  "generated_at": "2026-10-10T14:14:41.519Z",
+  "generated_at": "2026-10-10T14:34:17.576Z",
   "rules": [
     {
       "method": "GET",
@@ -658,8 +658,6 @@
         "ColdStorages/ScanSAPComeAnti",
         "ColdStorages/ScanSAPOutCS",
         "Master/IncludeRawmatPack",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Oven/ScanSAP",
         "Pack/IncludeRawmatPack",
         "Pack/PullHistory",
@@ -861,7 +859,6 @@
       "mode": "warn",
       "callers": [
         "Master/Report",
-        "Master/manage copy 6",
         "Pack/ReportPull",
         "Pack/ReportRawmatEditTIME",
         "Pack/ReportRawmatNotEditTIME"
@@ -1005,11 +1002,6 @@
         "Master/OrderRequestrawmat",
         "Master/Report",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Pack/Manage",
         "Pack/ManageRawmat",
@@ -1035,11 +1027,6 @@
         "Master/OrderRequestrawmat",
         "Master/Report",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Pack/Manage",
         "Pack/ManageRequestOrder",
@@ -1080,11 +1067,6 @@
         "Master/PackTro",
         "Master/Report",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Pack/Manage",
         "Pack/ManageRawmat",
@@ -1110,11 +1092,6 @@
       "callers": [
         "Master/Report",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Pack/Manage",
         "Pack/ManageRawmat",
         "Pack/PullHistory",
@@ -1390,7 +1367,6 @@
       "mode": "warn",
       "callers": [
         "Master/Report",
-        "Master/manage copy 3",
         "Pack/ReportDelay",
         "Pack/ReportRawmatEditTIME",
         "Pack/ReportRawmatNotEditTIME"
@@ -1421,11 +1397,6 @@
         "Master/IncludeRawmatPack",
         "Master/Report",
         "Master/ScanSAP",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Pack/PullHistory",
         "Pack/ReportDelay",
         "Pack/ReportPull",
@@ -1458,9 +1429,6 @@
       "mode": "warn",
       "callers": [
         "Master/IncludeRawmatPack",
-        "Master/manage copy",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Pack/IncludeRawmatPack",
         "Pack/PullHistory"
       ]
@@ -1475,9 +1443,6 @@
       "mode": "warn",
       "callers": [
         "Master/IncludeRawmatPack",
-        "Master/manage copy",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Pack/IncludeRawmatPack",
         "Pack/PullHistory"
       ]
@@ -1492,8 +1457,6 @@
       "mode": "warn",
       "callers": [
         "Master/Report",
-        "Master/manage copy 3",
-        "Master/manage copy 6",
         "Pack/ReportDelay",
         "Pack/ReportRawmatEditTIME",
         "Pack/ReportRawmatNotEditTIME"
@@ -1597,12 +1560,10 @@
       "method": "GET",
       "path": "^/api/pack/paper/list$",
       "roles": [
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 5",
         "Pack/PullHistory"
       ]
     },
@@ -1610,12 +1571,10 @@
       "method": "GET",
       "path": "^/api/pack/data/pdf/history$",
       "roles": [
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 6",
         "Pack/ReportPull"
       ]
     },
@@ -1646,13 +1605,10 @@
       "path": "^/api/prep/saveRMMixBatch/for/BatchMIX$",
       "roles": [
         2,
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Pack/ManageDelay",
         "Pack/PullHistory",
         "Prep/ScanSAP",
@@ -1690,13 +1646,10 @@
       "path": "^/api/prep/saveRMForEmu/for/emulsion$",
       "roles": [
         2,
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Pack/ManageDelay",
         "Pack/PullHistory",
         "Prep/ScanSAP",
@@ -1865,13 +1818,10 @@
       "method": "POST",
       "path": "^/api/prep/create/rm/forprod$",
       "roles": [
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Pack/ManageDelay",
         "Pack/PullHistory"
       ]
@@ -2233,11 +2183,6 @@
         "Master/ScanSAP",
         "Master/TrackTrolley",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Oven/BatchSAP",
         "Oven/HistoryBaking",
@@ -2300,11 +2245,6 @@
         "Master/Report",
         "Master/ScanSAP",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Oven/BatchSAP",
         "Oven/MatCold",
@@ -2585,8 +2525,6 @@
       "mode": "warn",
       "callers": [
         "Master/IncludeRawmatPack",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Oven/ScanSAP",
         "Pack/IncludeRawmatPack",
         "Pack/ManageDelay",
@@ -2639,11 +2577,6 @@
         "Master/ScanSAP",
         "Master/TrackTrolley",
         "Master/manage",
-        "Master/manage copy",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Oven/BatchSAP",
         "Oven/HistoryBaking",
@@ -2809,8 +2742,6 @@
         "ColdStorages/ScanSAPComeAnti",
         "ColdStorages/ScanSAPOutCS",
         "Master/IncludeRawmatPack",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
         "Oven/ScanSAP",
         "Pack/IncludeRawmatPack",
         "Pack/PullHistory",
@@ -2826,12 +2757,10 @@
       "method": "GET",
       "path": "^/api/rawmat/AllSearch/matname$",
       "roles": [
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy 4",
         "Pack/ManageDelay"
       ]
     },
@@ -3021,12 +2950,10 @@
       "method": "PUT",
       "path": "^/api/MatOnTrolley/updateProduction/pack$",
       "roles": [
-        4,
-        8
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Master/manage copy",
         "Pack/ManageRawmat"
       ]
     },
@@ -3052,10 +2979,6 @@
         "Master/OrderRequestrawmat",
         "Master/Report",
         "Master/manage",
-        "Master/manage copy 3",
-        "Master/manage copy 4",
-        "Master/manage copy 5",
-        "Master/manage copy 6",
         "Master/requestrawmat",
         "Pack/Manage",
         "Pack/ManageRequestOrder",
