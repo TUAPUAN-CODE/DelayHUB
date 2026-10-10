@@ -212,9 +212,10 @@ const buildPlanQuery = () => `
       rmf.level_eu,
       rmf.remark,
       rmf.hu,
-      FORMAT(htr.cooked_date, 'dd/MM/yyyy HH:mm') AS CookedDateTime,
-      CONVERT(VARCHAR(19), htr.cooked_date, 120) AS cooked_date,
-      FORMAT(htr.withdraw_date, 'dd/MM/yyyy HH:mm') AS withdraw_date
+      -- the date columns of History are not always real dates (some databases hold text): TRY_CONVERT first, the raw text when it is not a date
+      COALESCE(FORMAT(TRY_CONVERT(DATETIME, htr.cooked_date), 'dd/MM/yyyy HH:mm'), CAST(htr.cooked_date AS NVARCHAR(30))) AS CookedDateTime,
+      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, htr.cooked_date), 120) AS cooked_date,
+      COALESCE(FORMAT(TRY_CONVERT(DATETIME, htr.withdraw_date), 'dd/MM/yyyy HH:mm'), CAST(htr.withdraw_date AS NVARCHAR(30))) AS withdraw_date
   FROM RMForProd rmf WITH (NOLOCK)
   JOIN ProdRawMat pr WITH (NOLOCK) ON rmf.prod_rm_id = pr.prod_rm_id
   JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
@@ -239,8 +240,8 @@ const buildMixedQuery = () => `
       CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
       rmfp.rmfp_line_name,
       rmfp.level_eu,
-      CONVERT(VARCHAR(19), his.withdraw_date, 120) AS withdraw_date,
-      CONVERT(VARCHAR(19), his.cooked_date, 120) AS cooked_date,
+      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
+      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,
       emx.emulsion_text
   FROM RMForProd rmfp WITH (NOLOCK)
   JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmfp.rmfp_id
@@ -250,8 +251,8 @@ const buildMixedQuery = () => `
   LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
   WHERE NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
     AND (@open_from IS NULL OR (
-        COALESCE(his.cooked_date, his.withdraw_date) >= @open_from
-        AND COALESCE(his.cooked_date, his.withdraw_date) < DATEADD(DAY, 1, @open_to)
+        COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
+        AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY rmfp.rmfp_id DESC
 `;
@@ -284,13 +285,13 @@ router.get("/sheet/rows", async (req, res) => {
     const [mappings, hus, plans, mixed] = await Promise.all([
       bind(pool.request()).query(buildMappingQuery("open")),
       bind(pool.request()).query(buildHuQuery()),
-      bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error("[Route /sheet/rows] plans error:", err.message); return { recordset: [] }; }),
-      bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error("[Route /sheet/rows] mixed error:", err.message); return { recordset: [] }; }),
+      bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+      bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
     ]);
 
     res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
   } catch (err) {
-    console.error("[Route /sheet/rows] Error:", err);
+    console.error(`[Route /sheet/rows] Error: ${err.message} (SQL error ${err.number ?? "-"}, line ${err.lineNumber ?? "-"})`, err.precedingErrors?.map((e) => e.message) || "");
     res.status(500).json({ success: false, error: err.message });
   }
 });
