@@ -14,8 +14,9 @@ const { createClient } = require("redis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { setupPrimary } = require("@socket.io/cluster-adapter");
-const { authenticate, authorize, isPrivateIp, AUTH_MODE } = require("./lib/authMiddleware");
+const { authenticate, authorize, isPrivateIp, initAuth, getAuthMode } = require("./lib/authMiddleware");
 const { createLimiters, resolveTrustProxy } = require("./lib/rateLimiters");
+const { verifyToken } = require("./lib/auth");
 const requestObserver = require("./lib/requestObserver");
 const metrics = require("./lib/metrics");
 const logger = require("./lib/logger");
@@ -168,7 +169,8 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
           await pool.request().query("SELECT 1 AS ok");
         },
       });
-      logger.info("auth_mode", { mode: AUTH_MODE, trustProxy });
+      initAuth(pubClient); // เริ่มนับช่วงเปลี่ยนผ่านของ AUTH_MODE อัตโนมัติ + ส่งสถิติผู้เรียกที่ไม่มี token / การใช้งานต่อ Role เข้า Redis
+      logger.info("server_ready", { mode: getAuthMode(), trustProxy });
     })
     .catch((err) => {
       console.error("❌ Redis connection error:", err);
@@ -206,7 +208,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api/login", loginLimiter);
   app.use("/api/signup", publicAuthLimiter);
   app.use("/api/forgot-password", publicAuthLimiter);
-  app.use(authenticate); // AUTH_MODE = off | warn (ค่าเริ่มต้น) | enforce — ดู lib/authMiddleware.js
+  app.use(authenticate); // AUTH_MODE = off | warn | enforce | (ไม่ตั้ง = warn 24 ชม.แรกแล้ว enforce เอง) — ดู lib/authMiddleware.js
   app.use(authorize);
 
   // Real time for the Master Sheet: every successful write of the API tells the open sheets to reload (see sheetRealtime.js)
@@ -312,6 +314,20 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   });
 
   app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+
+  // Socket.IO: ตรวจ token ตอนเชื่อมต่อ (client ส่งใน auth.token — authClient.js แนบให้ทุก socket; RFIDc1 ใช้ service token)
+  io.use((socket, next) => {
+    const mode = getAuthMode();
+    if (mode === "off") return next();
+    const v = verifyToken(socket.handshake.auth && socket.handshake.auth.token);
+    if (v.ok && (v.payload.typ === "user" || v.payload.typ === "service")) {
+      socket.data.user = { user_id: v.payload.typ === "service" ? 0 : v.payload.user_id, service: v.payload.typ === "service" };
+      return next();
+    }
+    metrics.inc("socket_auth_total", { result: v.ok ? "wrong_type" : v.reason, mode });
+    if (mode === "enforce") return next(new Error(v.reason === "expired" ? "TOKEN_EXPIRED" : "AUTH_REQUIRED"));
+    return next(); // warn: ปล่อยผ่าน (นับไว้ใน metrics)
+  });
 
   // Socket.IO connection tracking
   const activeSockets = new Map();

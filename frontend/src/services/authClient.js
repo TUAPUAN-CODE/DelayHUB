@@ -3,7 +3,10 @@
 //  - ส่งเฉพาะไปที่ API ของเรา (VITE_API_URL) ไม่ส่งให้โดเมนอื่น เช่น print agent
 //  - server ตอบ 401 (ไม่มี token / หมดอายุ) → ล้างข้อมูลผู้ใช้แล้วกลับหน้า login
 //  - token ใกล้หมดอายุ → ต่ออายุอัตโนมัติ (ต่อเนื่องได้ไม่เกิน 7 วัน)
+//  - Socket.IO: ทุก socket (187 จุดที่เรียก io(...) เอง) ส่ง token ใน auth.token ตอนเชื่อมต่อ โดยไม่ต้องแก้ทีละไฟล์
+//  - เปิดเว็บด้วยบัญชีที่ login ไว้ก่อนมีระบบ token (มีข้อมูลผู้ใช้แต่ไม่มี token) → พาไป login ใหม่ทันที เพื่อให้ได้ token ก่อนระบบเริ่มบังคับ
 import axios from "axios";
+import { Socket } from "socket.io-client";
 import { clearUserLocalStorage } from "./localStorageUtil";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -52,6 +55,8 @@ const handleUnauthorized = (raw) => {
 const addHeaders = (headersLike, url, method) => {
   const token = getToken();
   if (token && !headersLike.has("Authorization")) headersLike.set("Authorization", `Bearer ${token}`);
+  // Role ที่กำลังใช้งาน (ปุ่มสลับ Role) — server ใช้เรียนรู้ว่า route ไหนถูกใช้โดย Role ใด ไม่ได้ใช้เพิ่มสิทธิ์
+  try { const wp = localStorage.getItem("wp_id"); if (wp && !headersLike.has("X-Active-Role")) headersLike.set("X-Active-Role", wp); } catch { /* storage blocked */ }
   const unlock = getUnlockToken();
   if (unlock && String(method).toUpperCase() === "PUT" && pathOf(url).endsWith("/api/sheet/prefs") && !headersLike.has("X-Setting-Unlock")) {
     headersLike.set("X-Setting-Unlock", unlock);
@@ -86,6 +91,16 @@ if (typeof window !== "undefined" && typeof window.fetch === "function" && !wind
   window.fetch = patched;
 }
 
+// ── Socket.IO: ทุก socket ส่ง token ตอนเชื่อมต่อ (เป็นฟังก์ชัน = อ่าน token ล่าสุดทุกครั้งที่เชื่อมใหม่) ถ้าโค้ดส่ง opts.auth เองจะใช้ของโค้ดนั้น ──
+const socketAuth = (cb) => cb({ token: getToken() });
+if (!Object.getOwnPropertyDescriptor(Socket.prototype, "auth")) {
+  Object.defineProperty(Socket.prototype, "auth", {
+    configurable: true,
+    get() { return this.__pfcmAuth !== undefined ? this.__pfcmAuth : socketAuth; },
+    set(value) { this.__pfcmAuth = value; },
+  });
+}
+
 // ── ต่ออายุ token ──
 const REFRESH_WHEN_LEFT_MS = 3 * 3600 * 1000;
 const refreshIfNeeded = async () => {
@@ -103,4 +118,16 @@ const refreshIfNeeded = async () => {
 if (typeof window !== "undefined") {
   setTimeout(refreshIfNeeded, 5000);
   setInterval(refreshIfNeeded, 10 * 60 * 1000);
+}
+
+// บัญชีที่ login ไว้ก่อนมีระบบ token: ล้างแล้วไปหน้า login เพื่อรับ token
+if (typeof window !== "undefined") {
+  try {
+    const hasUser = !!localStorage.getItem("user_id");
+    if (hasUser && !getToken() && !PUBLIC_PAGES.includes(window.location.pathname)) {
+      redirecting = true;
+      clearUserLocalStorage();
+      window.location.assign("/login");
+    }
+  } catch { /* storage blocked */ }
 }

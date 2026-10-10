@@ -3,6 +3,7 @@
 // ส่ง LINE ได้เมื่อตั้ง OPS_ALERT_LINE_GROUP_ID + LINE_CHANNEL_ACCESS_TOKEN; ไม่ตั้ง = เขียน log (event "alert") อย่างเดียว
 const metrics = require("./metrics");
 const logger = require("./logger");
+const { getAuthMode, getEnforceAt, isAutoMode, readMissing } = require("./authMiddleware");
 
 const CHECK_MS = 30000;
 const COOLDOWN_SECONDS = 15 * 60;
@@ -54,6 +55,13 @@ const startAlerts = ({ redis, getPoolStats, ping }) => {
       const dTotal = total - prev.total; const dErr = err5 - prev.err;
       prev = { total, err: err5 };
       if (dTotal >= MIN_REQUESTS && dErr / dTotal > ERROR_RATE) await notify(redis, "http_5xx_spike", `ระบบตอบ error 5xx ${dErr}/${dTotal} คำขอ ใน ${CHECK_MS / 1000} วินาทีล่าสุด`);
+
+      // ก่อนโหมด auto เปลี่ยนเป็น enforce (ภายใน 2 ชั่วโมง): ถ้ายังมีผู้เรียกที่ไม่มี token ให้รู้ล่วงหน้า (ดูรายการที่ GET /api/auth/missing)
+      const at = getEnforceAt();
+      if (isAutoMode() && at && getAuthMode() === "warn" && at - Date.now() < 2 * 3600 * 1000) {
+        const clients = await readMissing(5);
+        if (clients.length) await notify(redis, "auth_enforce_soon", `อีกไม่เกิน 2 ชั่วโมงระบบจะเริ่มบังคับ login แต่ยังมีผู้เรียก API ที่ไม่มี token ${clients.length}+ ราย (เช่น ${clients[0].ip}, ${clients[0].requests} ครั้ง) — ดูที่ GET /api/auth/missing หรือตั้ง AUTH_MODE=warn เพื่อเลื่อน`);
+      }
 
       const lag = metrics.snapshot().gauges.eventloop_lag_ms_max || 0;
       if (lag > LAG_LIMIT_MS) await notify(redis, "event_loop_lag", `Node ตอบสนองช้า (ค้าง ${Math.round(lag)} ms) — อาจมีงานหนักบน process เดียว`);

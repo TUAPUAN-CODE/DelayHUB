@@ -1,7 +1,7 @@
 // Auth domain: ข้อมูลผู้ใช้จาก token, ต่ออายุ token, และปลดล็อกหน้า Setting (รหัสรายวัน) ฝั่ง server
 const express = require("express");
 const { signToken, verifyToken, bearerOf, issueUserToken, USER_TTL_SECONDS } = require("../lib/auth");
-const { AUTH_MODE } = require("../lib/authMiddleware");
+const { getAuthMode, getEnforceAt, isAutoMode, readMissing, readUsage } = require("../lib/authMiddleware");
 const logger = require("../lib/logger");
 
 const router = express.Router();
@@ -11,7 +11,52 @@ const UNLOCK_TTL_SECONDS = 8 * 3600;
 
 router.get("/auth/me", (req, res) => {
   if (!req.user) return res.status(401).json({ success: false, error: "กรุณาเข้าสู่ระบบ", code: "AUTH_REQUIRED" });
-  res.json({ success: true, mode: AUTH_MODE, user: req.user });
+  res.json({ success: true, mode: getAuthMode(), enforce_at: isAutoMode() && getEnforceAt() ? new Date(getEnforceAt()).toISOString() : null, user: req.user });
+});
+
+// ── สำหรับ admin: ผู้เรียก API ที่ยังไม่มี token (ดูก่อนโหมดจะเปลี่ยนเป็น enforce), และร่างตารางสิทธิ์จากการใช้งานจริง ──
+router.get("/auth/missing", async (req, res) => {
+  try {
+    res.json({ success: true, mode: getAuthMode(), enforce_at: isAutoMode() && getEnforceAt() ? new Date(getEnforceAt()).toISOString() : null, clients: await readMissing(200) });
+  } catch (err) {
+    console.error("❌ [Route /auth/missing] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+router.get("/auth/policy-draft", async (req, res) => {
+  try {
+    const min = Math.max(1, parseInt(req.query.min, 10) || 20); // route ที่เห็นการใช้งานน้อยกว่านี้ยังไม่พอจะสรุป
+    const usage = await readUsage();
+    const byRoute = new Map(); // "METHOD /route" -> { role: count }
+    Object.entries(usage).forEach(([key, n]) => {
+      const cut = key.lastIndexOf("|");
+      const route = key.slice(0, cut);
+      const role = key.slice(cut + 1);
+      if (!byRoute.has(route)) byRoute.set(route, {});
+      byRoute.get(route)[role] = (byRoute.get(route)[role] || 0) + parseInt(n, 10);
+    });
+    const rules = [];
+    let skipped = 0;
+    for (const [route, roles] of [...byRoute.entries()].sort()) {
+      const total = Object.values(roles).reduce((a, b) => a + b, 0);
+      if (total < min) { skipped += 1; continue; }
+      const sp = route.indexOf(" ");
+      const method = route.slice(0, sp);
+      const pattern = route.slice(sp + 1).split("/").map((seg) => (seg.startsWith(":") ? "[^/]+" : escapeRe(seg))).join("/");
+      rules.push({ method, path: `^${pattern}$`, roles: Object.keys(roles).map(Number).sort((a, b) => a - b), mode: "warn", observed: roles });
+    }
+    res.json({
+      success: true,
+      note: "ร่างจากการใช้งานจริง: ทุกกฎตั้ง mode=warn (log อย่างเดียว) ตรวจรายการ แล้วบันทึกเป็น backend/config/rolePolicy.json; ลบ field observed ได้; เอา mode ออกเมื่อมั่นใจ",
+      skipped_routes_with_few_calls: skipped,
+      policy: { version: 1, generated_at: new Date().toISOString(), rules },
+    });
+  } catch (err) {
+    console.error("❌ [Route /auth/policy-draft] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ต่ออายุ token (หน้าเว็บเรียกเมื่อใกล้หมดอายุ) — roles เป็นชุดเดิมจากตอน login; แก้ Role แล้วมีผลเมื่อ login ใหม่

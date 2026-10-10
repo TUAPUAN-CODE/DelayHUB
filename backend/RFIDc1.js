@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('./lib/processGuards').installProcessGuards('rfid-reader');
+const { issueServiceToken } = require('./lib/auth');
 
 const net = require('net');
 const sql = require('mssql');
@@ -102,6 +103,8 @@ if (WEB_SERVER_URL) {
         socketOptions.rejectUnauthorized = !insecureTls;
         socketOptions.agent = new https.Agent(agentOptions);
     }
+    // ยืนยันตัวตนกับ server ด้วย service token (ออกใหม่ทุกครั้งที่เชื่อม/เชื่อมใหม่; ต้องใช้ AUTH_JWT_SECRET / ค่า DB เดียวกับ backend ใน .env)
+    socketOptions.auth = (cb) => cb({ token: issueServiceToken('rfid-reader') });
     webSocket = ioClient(WEB_SERVER_URL, socketOptions);
     webSocket.on('connect', () => {
         console.log(`✅ เชื่อมต่อ WEB_SERVER_URL สำเร็จ: ${WEB_SERVER_URL}`);

@@ -976,10 +976,14 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 **ยืนยันตัวตน** (`backend/lib/auth.js`, `backend/lib/authMiddleware.js`)
 - `POST /api/login` คืน `token` (อายุ 12 ชม., ต่ออายุอัตโนมัติผ่าน `POST /api/auth/refresh` ได้ต่อเนื่องไม่เกิน 7 วัน) — ไม่ใช้ library เพิ่ม ใช้ `crypto` ของ Node
 - middleware กลางใน `server.js` (`authenticate` → `authorize`) ตั้ง `req.user = { user_id, username, name, wp_id, roles[] }` ให้ทุก route ใช้ได้ (เช่น `created_by`)
-- `AUTH_MODE` ใน `.env`: `off` | `warn` (ค่าเริ่มต้น: log เตือน ไม่ปฏิเสธ) | `enforce` (401/403จริง) — ดู `backend/AUTH_ENV_EXAMPLE.txt`
+- `AUTH_MODE` ใน `.env`: ไม่ตั้ง = **auto** (warn 24 ชม.แรก — `AUTH_GRACE_HOURS` — แล้ว enforce เอง) | `off` | `warn` | `enforce` — ดู `backend/AUTH_ENV_EXAMPLE.txt`
+- ช่วง warn: `GET /api/auth/missing` (Role 6/8) แสดงผู้เรียก API ที่ไม่มี token (IP + user-agent + จำนวน); ก่อน enforce 2 ชม. ระบบแจ้ง LINE ถ้ายังมี
+- ผู้ใช้ที่ login ไว้ก่อนมี token: เปิดหน้าเว็บใหม่แล้ว `authClient` พาไป login ทันที (ได้ token)
+- Socket.IO: server (`io.use`) ตรวจ `auth.token` ตอนเชื่อมต่อ; หน้าเว็บทุก socket ส่ง token ผ่าน `authClient`; `RFIDc1.js` ใช้ service token
 - endpoint สาธารณะ (ไม่ต้องมี token): `POST /api/login`, `PUT /api/signup`, `PUT /api/forgot-password`, `/health*`, `/metrics` (ตรวจ key/IP เอง), `/api-docs` (เครือข่ายภายใน)
 - worker ภายในเรียก API ด้วย service token (`issueServiceToken`) — ตัวอย่าง `delayAlertWorker.js`
-- route ใหม่ **ไม่ต้อง** ตรวจ token เอง; ถ้าต้องจำกัด Role ให้เพิ่มกฎใน `RULES` ของ `lib/authMiddleware.js`
+- route ใหม่ **ไม่ต้อง** ตรวจ token เอง; จำกัด Role ได้ 2 ทาง: กฎในโค้ด `RULES` (`lib/authMiddleware.js`) หรือไฟล์ `backend/config/rolePolicy.json` (hot reload ภายใน 30 วินาที ไม่ต้อง deploy; ใส่ `"mode": "warn"` ต่อกฎเพื่อทดลองแบบ log อย่างเดียว)
+- ตารางสิทธิ์ route ต่อ Role: ร่างจากโค้ด `node backend/scripts/derive-role-draft.js` → `config/rolePolicy.draft.json`; ร่างจากการใช้งานจริง `GET /api/auth/policy-draft` (หลังใช้งานจริง 1–2 สัปดาห์) — ตรวจแล้วบันทึกเป็น `rolePolicy.json`
 - Role ที่จัดการผู้ใช้ได้: wp_id 6 (Supervisor) และ 8 (Master) — ค่า `ADMIN_ROLES`
 
 **หน้า Setting (รหัสรายวัน)**: ตรวจที่ `POST /api/sheet/setting-unlock` (เวลาไทย) ได้ใบอนุญาต `x-setting-unlock` ที่ `authClient` แนบไปกับ `PUT /api/sheet/prefs`; server เทียบค่า colorMode/greenPct/yellowPct/statusZones/statusAreas/lineGroups ของเดิมกับใหม่ ถ้าเปลี่ยนโดยไม่มีใบอนุญาต → 403 `SETTING_LOCKED` (โหมด enforce)
@@ -988,7 +992,6 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 
 **Observability**: `lib/logger.js` (log JSON 1 บรรทัด: `http_5xx`, `http_slow`, `slow_query`, `sql_error`, `forbidden`, `alert`), `lib/metrics.js` (รวมทุก worker ผ่าน Redis → `GET /metrics` รูปแบบ Prometheus), `GET /health/ready` (ตรวจ DB+Redis), `lib/alerts.js` (pool เต็ม / DB ล่ม / 5xx พุ่ง / event loop ค้าง → log + LINE ถ้าตั้ง `OPS_ALERT_LINE_GROUP_ID`)
 - ทุก response มี header `x-request-id` — ขอจากผู้ใช้เมื่อแจ้งปัญหา แล้ว grep ใน log ได้เลย
-- Socket.IO ยังไม่ตรวจ token (client 187 จุดเชื่อม socket เอง) — event ที่ส่งเป็นแค่สัญญาณให้โหลดข้อมูลใหม่ผ่าน API ที่ตรวจสิทธิ์แล้ว
 
 *อัปเดตล่าสุด: พฤษภาคม 2026 — หลังการทำ naming consistency refactor ครั้งแรก*
 *ผู้ดูแลระบบ: ทีม PFCM Development, i-Tail Corporation*

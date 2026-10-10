@@ -2,6 +2,7 @@
 const crypto = require("crypto");
 const metrics = require("./metrics");
 const logger = require("./logger");
+const { recordUsage } = require("./authMiddleware");
 
 const SLOW_REQUEST_MS = parseInt(process.env.SLOW_REQUEST_MS, 10) || 3000;
 const LOG_ALL_4XX = process.env.LOG_ALL_4XX === "true";
@@ -23,6 +24,8 @@ const requestObserver = (req, res, next) => {
     const cls = `${Math.floor(status / 100)}xx`;
     metrics.inc("http_requests_total", { class: cls });
     metrics.observe("http_duration_ms", ms);
+
+    if (status < 400) recordUsage(routeLabel(req), req);
 
     const base = { id: req.id, method: req.method, route: routeLabel(req), status, ms: Math.round(ms), user_id: req.user ? req.user.user_id : null, ip: req.ip };
     if (status >= 500) {

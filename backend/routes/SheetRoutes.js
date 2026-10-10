@@ -5,7 +5,7 @@ const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 const { cached } = require("../lib/sheetCache");
 const { verifyToken } = require("../lib/auth");
-const { AUTH_MODE } = require("../lib/authMiddleware");
+const { getAuthMode } = require("../lib/authMiddleware");
 const metrics = require("../lib/metrics");
 const logger = require("../lib/logger");
 
@@ -443,7 +443,8 @@ router.put("/sheet/prefs", async (req, res) => {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
-    if (AUTH_MODE !== "off") {
+    const authMode = getAuthMode();
+    if (authMode !== "off") {
       const stored = await withPrefsTable(pool, () => pool.request()
         .input("user_id", sql.Int, key.userId)
         .input("sheet_key", sql.NVarChar(50), key.sheetKey)
@@ -451,9 +452,9 @@ router.put("/sheet/prefs", async (req, res) => {
       let oldCfg = null;
       try { oldCfg = stored.recordset[0]?.config ? JSON.parse(stored.recordset[0].config) : null; } catch { oldCfg = null; }
       if (protectedPart(oldCfg) !== protectedPart(JSON.parse(config)) && !hasSettingUnlock(req, key.userId)) {
-        metrics.inc("setting_locked_total", { mode: AUTH_MODE });
-        logger.warn("setting_locked", { id: req.id, user_id: key.userId, sheet_key: key.sheetKey, mode: AUTH_MODE, by: req.user ? req.user.user_id : null });
-        if (AUTH_MODE === "enforce") {
+        metrics.inc("setting_locked_total", { mode: authMode });
+        logger.warn("setting_locked", { id: req.id, user_id: key.userId, sheet_key: key.sheetKey, mode: authMode, by: req.user ? req.user.user_id : null });
+        if (authMode === "enforce") {
           return res.status(403).json({ success: false, code: "SETTING_LOCKED", error: "ต้องใส่รหัสปลดล็อกของหน้า Setting ก่อนจึงบันทึกการตั้งค่านี้ได้" });
         }
       }
