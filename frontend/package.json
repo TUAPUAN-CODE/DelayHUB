@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:unused": "node scripts/find-unused-files.mjs",
+    "test": "node --test tests/*.test.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",

@@ -169,7 +169,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       try {
         const firstName = localStorage.getItem("first_name") || "";
         if (firstName) setOperator(`${firstName}`.trim());
-      } catch (error) { }
+      } catch (error) { console.error('Modal2 อ่านชื่อผู้ใช้ไม่สำเร็จ:', error); }
     };
 
     const fetchProcessTypes = async () => {
@@ -183,7 +183,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           ];
           setEuOptions(numbers);
         }
-      } catch (error) { }
+      } catch (error) { console.error('Modal2 โหลดตัวเลือก EUไม่สำเร็จ:', error); }
     };
 
     fetchProcessTypes();
@@ -282,7 +282,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
         const [day, month, year] = datePart.split("/");
         const formattedDateTime = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${timePart}`;
         setCookedTime(formattedDateTime);
-      } catch (error) { }
+      } catch (error) { console.error('Modal2 แปลงเวลาต้มเสร็จไม่สำเร็จ:', error); }
     }
   }, [open, CookedDateTime]);
 

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import path from 'path';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     react({
       jsxImportSource: '@emotion/react', // ถ้าใช้ Emotion
@@ -11,12 +11,13 @@ export default defineConfig({
         plugins: ['@emotion/babel-plugin'], // ถ้าใช้ Emotion
       },
     }),
-    visualizer({ // วิเคราะห์ bundle size (เฉพาะ development)
+    // วิเคราะห์ bundle size เฉพาะเมื่อสั่ง ANALYZE=1 npm run build (เดิมเปิดเบราว์เซอร์ทุกครั้งที่ build)
+    ...(process.env.ANALYZE ? [visualizer({
       open: true,
       filename: 'bundle-analysis.html',
       gzipSize: true,
       brotliSize: true,
-    }),
+    })] : []),
   ],
   server: {
     host: '172.48.0.115',
@@ -58,6 +59,8 @@ export default defineConfig({
     jsxFactory: 'React.createElement',
     jsxFragment: 'React.Fragment',
     treeShaking: true,
+    // build production: ตัด console.log/info/debug ออก (console.error/warn ยังอยู่) — dev ไม่กระทบ
+    ...(command === 'build' ? { pure: ['console.log', 'console.info', 'console.debug'] } : {}),
   },
   build: {
     target: 'es2020',
@@ -99,4 +102,4 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
-});
+}));

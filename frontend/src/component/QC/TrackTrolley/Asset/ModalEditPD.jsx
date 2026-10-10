@@ -75,7 +75,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
       try {
         await scannerInstanceRef.current.stop();
         await scannerInstanceRef.current.clear();
-      } catch (e) {}
+      } catch (e) { console.error('ModalEditPD error:', e); }
       scannerInstanceRef.current = null;
     }
     setIsScanning(false);

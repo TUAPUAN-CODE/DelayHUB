@@ -83,7 +83,7 @@ if (typeof window !== "undefined" && typeof window.fetch === "function" && !wind
     const headers = new Headers((init && init.headers) || (typeof input !== "string" && input ? input.headers : undefined));
     addHeaders(headers, url, (init && init.method) || (typeof input !== "string" && input && input.method) || "GET");
     return nativeFetch(input, { ...(init || {}), headers }).then((res) => {
-      if (res.status === 401) res.clone().json().then(handleUnauthorized).catch(() => {});
+      if (res.status === 401) res.clone().json().then(handleUnauthorized).catch((e) => { console.error('authClient: อ่านผลตอบกลับ 401 ไม่ได้', e); });
       return res;
     });
   };
