@@ -13,7 +13,7 @@ const NUM_RE = /\d+(?:[.,]\d+)*/g;
 const ATTRS = ["placeholder", "title", "aria-label", "alt"];
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "CODE"]);
 
-let lang = "th";
+let lang = "en"; // the default language of the system is English
 let observer = null;
 const listeners = new Set();
 const textRec = new WeakMap(); // Text node -> { orig, out }
@@ -26,12 +26,14 @@ export const subscribe = (fn) => { listeners.add(fn); return () => listeners.del
 const lookupCore = (core, col) => {
   const hit = dictionary[core];
   if (hit && hit[col] != null) return hit[col];
+  if (hit && hit[0] != null && col > 0) return hit[0]; // no Burmese / Khmer text yet: show the English one
   const nums = core.match(NUM_RE);
   if (nums) {
     const t = dictionary[core.replace(NUM_RE, "{n}")];
-    if (t && t[col] != null) {
+    const text = t ? (t[col] != null ? t[col] : (col > 0 ? t[0] : null)) : null;
+    if (text != null) {
       let i = 0;
-      return t[col].replace(/\{n\}/g, () => nums[Math.min(i++, nums.length - 1)]);
+      return text.replace(/\{n\}/g, () => nums[Math.min(i++, nums.length - 1)]);
     }
   }
   return null;
@@ -146,9 +148,9 @@ export const setLang = (next) => {
 
 export const initI18n = () => {
   patchNative();
-  let saved = "th";
-  try { saved = localStorage.getItem(STORAGE_KEY) || "th"; } catch { /* ignore */ }
-  lang = LANGS.some((l) => l.code === saved) ? saved : "th";
+  let saved = "en";
+  try { saved = localStorage.getItem(STORAGE_KEY) || "en"; } catch { /* ignore */ }
+  lang = LANGS.some((l) => l.code === saved) ? saved : "en";
   document.documentElement.lang = lang;
   startObserver();
   if (lang !== "th") walk(document.body);

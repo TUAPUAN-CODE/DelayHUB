@@ -12,6 +12,7 @@
  *   DELAY_ALERT_GREEN_PCT       green while the remaining time is above this %   (default 50)
  *   DELAY_ALERT_YELLOW_PCT      yellow while the remaining time is above this %  (default 0; at or below = red)
  *   DELAY_ALERT_SUMMARY_MIN     minutes between the summaries (default 60; 0 = no summary)
+ *   DELAY_ALERT_DAYS            only rows that moved in the last N days are watched (default 7)
  *   DELAY_ALERT_IMMEDIATE_MIN   at most one "just got worse" message per this many minutes; rows that get worse in between wait and go in the next one (default 30; 0 = no limit)
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
  *   DELAY_ALERT_INTERVAL_SEC    how often to check (default 60)
@@ -32,6 +33,7 @@ const cfg = () => ({
   greenPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_GREEN_PCT)) ? parseFloat(process.env.DELAY_ALERT_GREEN_PCT) : 50,
   yellowPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_YELLOW_PCT)) ? parseFloat(process.env.DELAY_ALERT_YELLOW_PCT) : 0,
   immediateMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_IMMEDIATE_MIN)) ? parseFloat(process.env.DELAY_ALERT_IMMEDIATE_MIN) : 30) * 60000,
+  days: Math.max(1, parseInt(process.env.DELAY_ALERT_DAYS, 10) || 7),
   summaryMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN)) ? parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN) : 60) * 60000,
   intervalMs: Math.max(15, parseInt(process.env.DELAY_ALERT_INTERVAL_SEC, 10) || 60) * 1000,
   link: process.env.DELAY_ALERT_LINK || "",
@@ -105,7 +107,11 @@ const loadLib = () => { if (!libPromise) libPromise = import("./lib/dbs.mjs"); r
 const runOnce = async (now = Date.now()) => {
   const c = cfg();
   const { getDbs, stageDbsIndex } = await loadLib();
-  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: 7, include_open: 1 }, timeout: 60000 });
+  // only rows that moved in the last DELAY_ALERT_DAYS days: old forgotten rows are all red and would flood the group (tens of thousands of lines)
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const today = new Date();
+  const from = new Date(today.getTime() - c.days * 86400000);
+  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: c.days, open_from: ymd(from), open_to: ymd(today) }, timeout: 60000 });
   if (!res.data?.success) throw new Error(res.data?.error || "โหลดข้อมูลตารางไม่สำเร็จ");
 
   const prev = readState(c.stateFile);

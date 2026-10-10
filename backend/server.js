@@ -187,6 +187,9 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
+  // Real time for the Master Sheet: every successful write of the API tells the open sheets to reload (see sheetRealtime.js)
+  require("./sheetRealtime")(app, io);
+
   // Connect to database
   connectToDatabase()
     .then(() => console.log("Database connection successful"))

@@ -41,7 +41,9 @@ import { CHECKIN_DEST } from "./pack/checkinData";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
-const DAYS = 7; // HU rows (SAP) with no movement for longer than this are not loaded; open mappings are always loaded
+const DAYS = 7; // the work table shows the last 7 days by default; the user can pick another range or load everything
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const defaultRange = () => ({ from: ymd(new Date(Date.now() - DAYS * 86400000)), to: ymd(new Date()), all: false });
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
@@ -87,6 +89,8 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [data, setData] = useState({ hus: [], mappings: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [range, setRange] = useState(defaultRange); // the range that is loaded (and refreshed every minute)
+  const [pick, setPick] = useState(defaultRange);   // what is typed in the date boxes, loaded when the button is pressed
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
   const [cart, setCart] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -119,7 +123,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     lastLoadAt.current = Date.now();
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: { days: DAYS } });
+      const res = await axios.get(`${API_URL}/api/sheet/rows`, { params: range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to } });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       huRef.current = res.data.hus || [];
       // the table refreshes by itself every minute: when nothing changed keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
@@ -144,7 +148,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     } finally {
       setLoading(false);
     }
-  }, [role]);
+  }, [role, range]);
 
   // the work table refreshes by itself; the Done table is only read when the user presses its button
   useEffect(() => { if (view === "work") load(); }, [load, view]);
@@ -157,17 +161,20 @@ const ParentComponent = ({ role, view = "work" }) => {
     let timer = null;
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000 });
     const refresh = () => { if (Date.now() - lastLoadAt.current < 4000) return; clearTimeout(timer); timer = setTimeout(load, 800); }; // an event right after our own load is an echo: ignore it
+    // "sheetChanged": the server sends it after ANY successful write of any page, so a save on another device / Role shows here without a refresh (backend/sheetRealtime.js)
     // the server only sends these events to the rooms: join the ones that tell the table something changed.
     // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
-    ["QcCheckRoom", "trolleyUpdatesRoom"].forEach((room) => socket.emit("joinRoom", room));
-    socket.on("connect", () => ["QcCheckRoom", "trolleyUpdatesRoom"].forEach((room) => socket.emit("joinRoom", room)));
+    const ROOMS = ["QcCheckRoom", "trolleyUpdatesRoom", "sheetRoom"];
+    ROOMS.forEach((room) => socket.emit("joinRoom", room));
+    socket.on("connect", () => ROOMS.forEach((room) => socket.emit("joinRoom", room)));
+    socket.on("sheetChanged", refresh);
     socket.on("trolleyUpdated", refresh);
     socket.on("rawMaterialSaved", refresh);
     socket.on("qcDateTimeUpdated", refresh);
     socket.on("dataUpdated", refresh);
     socket.on("dataDelete", refresh);
     socket.on("connect_error", (err) => console.error("[Sheet] socket error:", err.message));
-    return () => { clearTimeout(timer); socket.off("dataUpdated", refresh); socket.off("trolleyUpdated", refresh); socket.off("rawMaterialSaved", refresh); socket.off("qcDateTimeUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
+    return () => { clearTimeout(timer); socket.off("sheetChanged", refresh); socket.off("dataUpdated", refresh); socket.off("trolleyUpdated", refresh); socket.off("rawMaterialSaved", refresh); socket.off("qcDateTimeUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
   }, [load, view]);
 
   const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload: load });
@@ -334,8 +341,21 @@ const ParentComponent = ({ role, view = "work" }) => {
   };
   const afterConfirm = () => { setSelected(new Set()); setWeights({}); load(); };
 
+  const applyRange = (next) => { setRange(next); setPick(next); };
+  const rangeBar = (
+    <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
+      <TextField size="small" type="date" value={pick.from} onChange={(e) => setPick((p) => ({ ...p, from: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+      <Typography variant="body2" color="text.secondary">-</Typography>
+      <TextField size="small" type="date" value={pick.to} onChange={(e) => setPick((p) => ({ ...p, to: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+      <Button size="small" variant="contained" disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
+      <Button size="small" variant={range.all ? "contained" : "outlined"} color="secondary" onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
+      {range.all && <Button size="small" onClick={() => applyRange(defaultRange())}>7 วัน</Button>}
+    </Box>
+  );
+
   const toolbarExtra = (
     <>
+      {rangeBar}
       {mixBar}
       {gatherBar}
       {role === "prep" && (

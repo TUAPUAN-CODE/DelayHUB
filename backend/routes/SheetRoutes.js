@@ -156,7 +156,12 @@ const buildMappingQuery = (scope = "open") => `
               OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
           ))` : `
           -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
-          NOT ${DONE_SQL}`}
+          NOT ${DONE_SQL}
+          -- date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet
+          AND (@open_from IS NULL OR (
+              COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
+              AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
+          ))`}
   ORDER BY rmm.mapping_id DESC
 `;
 
@@ -170,7 +175,9 @@ const buildHuQuery = () => `
       SELECT MAX(v.d) AS last_at
       FROM (VALUES ${SAP_DATES.map((c) => `(s.${c})`).join(",")}) AS v(d)
   ) la
-  WHERE s.status = 1 AND la.last_at >= DATEADD(DAY, -@days, GETDATE())
+  WHERE s.status = 1
+    AND la.last_at >= COALESCE(@open_from, DATEADD(DAY, -@days, GETDATE()))
+    AND (@open_to IS NULL OR la.last_at < DATEADD(DAY, 1, @open_to))
   ORDER BY la.last_at DESC, s.sap_re_id DESC
 `;
 
@@ -220,10 +227,19 @@ router.get("/sheet/rows", async (req, res) => {
       return res.status(503).json({ success: false, error: "Database unavailable" });
     }
 
+    // work-table date range (YYYY-MM-DD): open_from + open_to together, or none = everything that is still open
+    const okDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
+    const ranged = okDate(req.query.open_from) && okDate(req.query.open_to);
+    if (ranged && req.query.open_from > req.query.open_to) {
+      return res.status(400).json({ success: false, error: "วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด" });
+    }
+
     const bind = (request) => request
       .input("days", sql.Int, days)
       .input("limit", sql.Int, limit)
-      .input("mlimit", sql.Int, mlimit);
+      .input("mlimit", sql.Int, mlimit)
+      .input("open_from", sql.Date, ranged ? req.query.open_from : null)
+      .input("open_to", sql.Date, ranged ? req.query.open_to : null);
 
     const [mappings, hus, plans] = await Promise.all([
       bind(pool.request()).query(buildMappingQuery("open")),
@@ -231,7 +247,7 @@ router.get("/sheet/rows", async (req, res) => {
       bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error("[Route /sheet/rows] plans error:", err.message); return { recordset: [] }; }),
     ]);
 
-    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, days, limit });
+    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
   } catch (err) {
     console.error("[Route /sheet/rows] Error:", err);
     res.status(500).json({ success: false, error: err.message });
