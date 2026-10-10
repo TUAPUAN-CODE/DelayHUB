@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 const express = require("express");
 const { connectToDatabase } = require("../database/db");
 const sql = require("mssql");
@@ -579,7 +580,7 @@ router.post("/add/rawmat", async (req, res) => {
       await transaction.commit();
       res.status(201).json({ success: true, message: "เพิ่มวัตถุดิบใหม่พร้อมกลุ่มสำเร็จ" });
     } catch (txError) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("Transaction error:", txError);
       res.status(500).json({ success: false, error: "Transaction failed", details: txError.message });
     }
@@ -936,7 +937,7 @@ router.delete("/delete-rawmat/:mat", async (req, res) => {
       .query(`DELETE FROM RawMat WHERE mat = @mat`);
 
     if (result.rowsAffected[0] === 0) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       return res.status(400).json({
         success: false,
         error: "ไม่พบรหัสวัตถุดิบที่ต้องการลบ",
@@ -1736,7 +1737,7 @@ router.post('/save-materials', async (req, res) => {
   } catch (error) {
     if (transaction) {
       try {
-        await transaction.rollback();
+        await safeRollback(transaction);
       } catch (rollbackError) {
         console.error('Rollback failed:', rollbackError);
       }
@@ -1861,7 +1862,7 @@ router.delete('/materials/:mat', async (req, res) => {
   } catch (error) {
     if (transaction) {
       try {
-        await transaction.rollback();
+        await safeRollback(transaction);
       } catch (rollbackError) {
         console.error('Rollback failed:', rollbackError);
       }

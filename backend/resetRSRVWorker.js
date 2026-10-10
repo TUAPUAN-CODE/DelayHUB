@@ -1,9 +1,14 @@
+require("./lib/processGuards").installProcessGuards("reset-rsrv-worker");
 const { connectToDatabase } = require("./database/db"); 
 const cron = require("node-cron");
 
 async function resetRSRV() {
   try {
     const pool = await connectToDatabase();
+    if (!pool) {
+      console.error("❌ [resetRSRV] Database unavailable — ข้ามรอบนี้");
+      return;
+    }
 
     const result = await pool
       .request()

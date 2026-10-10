@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 
 module.exports = (io) => {
   const express = require("express");
@@ -10,6 +11,7 @@ module.exports = (io) => {
   router.get("/oven/main/fetchRMForProd", async (req, res) => {
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       const result = await pool
         .request()
         .query(`
@@ -61,6 +63,7 @@ WHERE
   router.get("/oven/main/fetchRMInTrolley", async (req, res) => {
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       const result = await pool
         .request()
         .query(`
@@ -155,6 +158,7 @@ WHERE
 
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       transaction = await pool.transaction();
       await transaction.begin();
 
@@ -162,7 +166,7 @@ WHERE
       timeoutHandle = setTimeout(async () => {
         if (transaction) {
           console.log("Transaction timeout - ทำการ rollback อัตโนมัติ");
-          try { await transaction.rollback(); } catch (err) { console.error(err); }
+          try { await safeRollback(transaction); } catch (err) { console.error(err); }
         }
       }, TIMEOUT_MS);
 
@@ -264,7 +268,7 @@ WHERE
 
     } catch (err) {
       if (transaction) {
-        try { await transaction.rollback(); console.log("Rollback transaction เนื่องจากเกิดข้อผิดพลาด"); }
+        try { await safeRollback(transaction); console.log("Rollback transaction เนื่องจากเกิดข้อผิดพลาด"); }
         catch (rollbackErr) { console.error("Error during rollback:", rollbackErr); }
       }
       if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -277,6 +281,7 @@ WHERE
   router.get("/oven/toCold/fetchRMForProd", async (req, res) => {
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       const result = await pool
         .request()
         .query(`
@@ -364,6 +369,7 @@ WHERE
 
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       transaction = await pool.transaction();
       await transaction.begin();
 
@@ -371,7 +377,7 @@ WHERE
       timeoutHandle = setTimeout(async () => {
         if (transaction) {
           console.log("Transaction timeout - ทำการ rollback อัตโนมัติ");
-          try { await transaction.rollback(); } catch (err) { console.error(err); }
+          try { await safeRollback(transaction); } catch (err) { console.error(err); }
         }
       }, TIMEOUT_MS);
 
@@ -438,7 +444,7 @@ WHERE
       res.json({ success: true, message: "บันทึกข้อมูลการสแกนเสร็จสิ้น" });
 
     } catch (err) {
-      if (transaction) { try { await transaction.rollback(); console.log("Rollback transaction"); } catch (e) { console.error(e); } }
+      if (transaction) { try { await safeRollback(transaction); console.log("Rollback transaction"); } catch (e) { console.error(e); } }
       if (timeoutHandle) clearTimeout(timeoutHandle);
       console.error(err);
       res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", error: err.message });
@@ -483,12 +489,13 @@ WHERE
 
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       transaction = await pool.transaction();
       await transaction.begin();
 
       const TIMEOUT_MS = 10000;
       timeoutHandle = setTimeout(async () => {
-        if (transaction) { try { await transaction.rollback(); } catch (e) { console.error(e); } }
+        if (transaction) { try { await safeRollback(transaction); } catch (e) { console.error(e); } }
       }, TIMEOUT_MS);
 
       const insertRMMixBatch = async (groupID, stayPlace) => {
@@ -553,7 +560,7 @@ WHERE
       res.json({ success: true, message: "บันทึกข้อมูลการสแกน Batch เสร็จสิ้น" });
 
     } catch (err) {
-      if (transaction) { try { await transaction.rollback(); } catch (e) { console.error(e); } }
+      if (transaction) { try { await safeRollback(transaction); } catch (e) { console.error(e); } }
       if (timeoutHandle) clearTimeout(timeoutHandle);
       console.error(err);
       res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", error: err.message });
@@ -566,6 +573,7 @@ WHERE
   router.post("/oven/toCold/saveTrolley", async (req, res) => {
     const { license_plate, rmfpID, ntray, weightTotal, recorder, userID, level_eu } = req.body;
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const transaction = new sql.Transaction(pool);
     let timeoutHandle;
 
@@ -605,7 +613,7 @@ WHERE
       const TIMEOUT_MS = 10000;
       timeoutHandle = setTimeout(async () => {
         console.log("Transaction timeout - ทำการ rollback อัตโนมัติ");
-        await transaction.rollback();
+        await safeRollback(transaction);
       }, TIMEOUT_MS);
 
       const dataRMForProd = await transaction.request()
@@ -722,7 +730,7 @@ WHERE
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       if (timeoutHandle) clearTimeout(timeoutHandle);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
@@ -734,6 +742,7 @@ WHERE
     try {
 
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
       const result = await pool.request()
         .query(`
@@ -1059,6 +1068,7 @@ WHERE
   router.get("/oven/mat/rework/fetchRMForProd", async (req, res) => {
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       const result = await pool
         .request()
         .query(`
@@ -1346,7 +1356,7 @@ WHERE
   //     return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error:", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -1500,7 +1510,7 @@ WHERE
   //     return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error:", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -1530,6 +1540,7 @@ WHERE
 
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
       transaction = await pool.transaction();
       await transaction.begin();
 
@@ -1673,7 +1684,7 @@ WHERE
       });
 
     } catch (err) {
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }

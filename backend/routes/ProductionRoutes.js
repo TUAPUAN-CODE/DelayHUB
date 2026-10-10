@@ -979,7 +979,7 @@ router.post("/import-prod-rawmat/CSV", async (req, res) => {
         const connectResult = await pool.request()
           .input("prod_id", prod_id)
           .input("mat", mat)
-          .query(`SELECT * FROM ProdRawMat WHERE prod_id = @prod_id AND mat = @mat`);
+          .query(`SELECT prod_id FROM ProdRawMat WHERE prod_id = @prod_id AND mat = @mat`);
 
         if (!connectResult.recordset.length) {
           await pool.request()

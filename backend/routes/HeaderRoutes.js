@@ -59,6 +59,7 @@ router.get("/header/pos/:pos_id", async (req, res) => {
     const pos_id = req.params.pos_id; // รับ pos_id จาก URL params
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
   
       const result = await pool.request()
         .input('pos_id', pos_id) // กำหนดชนิดข้อมูลให้เหมาะสมกับฐานข้อมูล
@@ -135,6 +136,7 @@ router.get("/header/wp/:wp_id", async (req, res) => {
     const wp_id = req.params.wp_id; // รับ pos_id จาก URL params
     try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
   
       const result = await pool.request()
         .input('wp_id', wp_id) // กำหนดชนิดข้อมูลให้เหมาะสมกับฐานข้อมูล
@@ -213,6 +215,7 @@ router.get("/rawmat/:rm_type_id", async (req, res) => {
 
   try {
       const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
       const result = await pool.request()
           .input("rm_type_id",  rm_type_id)

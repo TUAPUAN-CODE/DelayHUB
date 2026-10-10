@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const sql = require("mssql");
@@ -82,7 +83,7 @@ router.put("/user/roles", async (req, res) => {
       }
       await transaction.commit();
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       throw err;
     }
     res.json({ success: true, message: "บันทึก Role เพิ่มเติมสำเร็จ" });
@@ -185,10 +186,13 @@ router.post("/login", async (req, res) => {
       console.error("❌ [Route /login] roles error:", err.message);
     }
 
+    // ไม่ส่ง password hash กลับไปที่เบราว์เซอร์
+    const { password: _passwordHash, ...safeUser } = user;
+
     res.status(200).json({
       message: "เข้าสู่ระบบสำเร็จ",
       user: {
-        ...user,
+        ...safeUser,
         rm_type_id: rm_type_ids,
         roles,
       },

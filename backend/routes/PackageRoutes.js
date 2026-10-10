@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
   const express = require("express");
   const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
@@ -470,7 +471,7 @@ module.exports = (io) => {
   //     res.status(200).json(payload);
 
   //   } catch (error) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("checkin/pack error:", error);
   //     res.status(500).json({ error: error.message });
   //   }
@@ -603,7 +604,7 @@ module.exports = (io) => {
 
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("checkin/pack error:", error);
       res.status(500).json({ error: error.message });
     }
@@ -713,7 +714,7 @@ module.exports = (io) => {
         `);
 
         if (checkResult.recordset.length === 0) {
-          await transaction.rollback();
+          await safeRollback(transaction);
           return res.status(404).json({
             success: false,
             message: `ไม่พบ mapping_id: ${mapping_id}`
@@ -766,7 +767,7 @@ module.exports = (io) => {
 
     } catch (err) {
       if (transaction) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Patch time error:', err);
@@ -874,7 +875,7 @@ module.exports = (io) => {
       `);
 
       if (checkResult.recordset.length === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({
           success: false,
           message: `ไม่พบข้อมูล mapping_id: ${mapping_id}`
@@ -917,7 +918,7 @@ module.exports = (io) => {
       `);
 
       if (updateTrolley.rowsAffected[0] === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(400).json({
           success: false,
           message: "ไม่สามารถอัปเดตสถานะได้ (ไม่พบ mapping_id)"
@@ -950,7 +951,7 @@ module.exports = (io) => {
 
     } catch (err) {
       if (transaction) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Update error:', err);
@@ -1074,7 +1075,7 @@ module.exports = (io) => {
         `);
 
       if (prodResult.recordset.length === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ success: false, message: "ไม่พบ prod_rm_id สำหรับ product และ material นี้" });
       }
 
@@ -1197,7 +1198,7 @@ module.exports = (io) => {
       const production = prodInfoResult.recordset[0]?.production || null;
 
       if (!production) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(400).json({ success: false, message: "ไม่พบข้อมูล production" });
       }
 
@@ -1397,7 +1398,7 @@ module.exports = (io) => {
       });
 
     } catch (err) {
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       console.error("❌ SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -1576,7 +1577,7 @@ module.exports = (io) => {
   //   // `);
 
   //   //       if (checkResult.recordset.length === 0) {
-  //   //         await transaction.rollback();
+  //   //         await safeRollback(transaction);
   //   //         return res.status(404).json({
   //   //           success: false,
   //   //           message: `ไม่พบข้อมูล mapping_id: ${material.mapping_id}`
@@ -1589,7 +1590,7 @@ module.exports = (io) => {
   //   //       console.log(`  - mapping_id ${material.mapping_id} (${materialCode}): น้ำหนักปัจจุบัน ${currentWeight} กก., ต้องการใช้ ${material.weight} กก.`);
 
   //   //       if (currentWeight < material.weight) {
-  //   //         await transaction.rollback();
+  //   //         await safeRollback(transaction);
   //   //         return res.status(400).json({
   //   //           success: false,
   //   //           message: `น้ำหนักคงเหลือไม่เพียงพอสำหรับ ${materialCode} (mapping_id: ${material.mapping_id})\nน้ำหนักคงเหลือ: ${currentWeight} กก.\nต้องการใช้: ${material.weight} กก.`
@@ -1634,7 +1635,7 @@ module.exports = (io) => {
   //       `);
 
   //       if (prodResult.recordset.length === 0) {
-  //         await transaction.rollback();
+  //         await safeRollback(transaction);
   //         return res.status(404).json({
   //           success: false,
   //           message: "ไม่พบ prod_rm_id สำหรับ product และ material นี้"
@@ -1738,7 +1739,7 @@ module.exports = (io) => {
   //       const production = prodInfoResult.recordset[0]?.production || null;
 
   //       if (!production) {
-  //         await transaction.rollback();
+  //         await safeRollback(transaction);
   //         return res.status(400).json({
   //           success: false,
   //           message: "ไม่พบข้อมูล production"
@@ -1950,7 +1951,7 @@ module.exports = (io) => {
   //       });
 
   //     } catch (err) {
-  //       if (transaction) await transaction.rollback();
+  //       if (transaction) await safeRollback(transaction);
   //       console.error("❌ SQL error:", err);
   //       res.status(500).json({
   //         success: false,
@@ -2135,7 +2136,7 @@ module.exports = (io) => {
         res.status(200).json({ message: "Data updated successfully" });
 
       } catch (innerError) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.error("Transaction error:", innerError);
         res.status(500).json({ error: innerError.message });
       }
@@ -3205,7 +3206,7 @@ module.exports = (io) => {
       res.status(200).json(payload);
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("checkin/prep error:", error);
       res.status(500).json({ error: error.message });
     }
@@ -3315,7 +3316,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3536,7 +3537,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น และคืนน้ำหนักแล้ว" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3833,7 +3834,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3878,7 +3879,7 @@ module.exports = (io) => {
     } catch (err) {
       if (transaction._aborted !== true) {
         try {
-          await transaction.rollback();
+          await safeRollback(transaction);
         } catch (rollbackErr) {
           console.error("Rollback failed:", rollbackErr);
         }
@@ -3968,7 +3969,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4005,7 +4006,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4246,7 +4247,7 @@ module.exports = (io) => {
   //     return res.status(200).json({ success: true, message: "บันทึกและย้ายวัตถุเสร็จสิ้น" });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -4506,7 +4507,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({
         success: false,
@@ -4622,7 +4623,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น", batchId: batch_id });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4744,7 +4745,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4811,7 +4812,7 @@ module.exports = (io) => {
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -5074,7 +5075,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       return res.status(500).json({
         success: false,
@@ -5225,7 +5226,7 @@ module.exports = (io) => {
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     return res.status(500).json({
   //       success: false,
@@ -5421,13 +5422,13 @@ module.exports = (io) => {
           updatedItems
         });
       } else {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ message: "ไม่สามารถคำนวณหรือบันทึก Delay Time ได้" });
       }
 
     } catch (error) {
       console.error("SQL error:", error);
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       res.status(500).json({
         success: false,
         message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
@@ -5576,13 +5577,13 @@ module.exports = (io) => {
   //         updatedItems
   //       });
   //     } else {
-  //       await transaction.rollback();
+  //       await safeRollback(transaction);
   //       return res.status(404).json({ message: "ไม่สามารถคำนวณหรือบันทึก Delay Time ได้" });
   //     }
 
   //   } catch (error) {
   //     console.error("SQL error:", error);
-  //     if (transaction) await transaction.rollback();
+  //     if (transaction) await safeRollback(transaction);
   //     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", error: error.message });
   //   } finally {
   //     sql.close();
@@ -5962,13 +5963,13 @@ module.exports = (io) => {
           }
         });
       } else {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ message: "เพิ่มข้อมูลไม่สำเร็จ" });
       }
 
     } catch (error) {
       console.error("SQL error: ", error);
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล", error: error.message });
     } finally {
       await sql.close();
@@ -6138,7 +6139,7 @@ module.exports = (io) => {
       });
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error(error);
 
       return res.status(500).json({
@@ -6889,7 +6890,7 @@ WHERE
         // ดึงข้อมูลเดิม
         const result = await transaction.request()
           .input("mapping_id", sql.Int, mapping_id)
-          .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+          .query(`SELECT weight_RM, rmfp_id, mix_code, mix_time, prod_mix, rmm_line_name FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
         const oldData = result.recordset[0];
         if (!oldData) throw new Error("ไม่พบข้อมูล mapping เดิม");
@@ -6973,7 +6974,7 @@ WHERE
         });
 
       } catch (innerError) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.error("Transaction failed:", innerError);
         res.status(500).json({ message: "Internal Server Error", error: innerError.message });
       }
@@ -7232,7 +7233,7 @@ WHERE
 
       try {
         if (transaction && transaction._aborted !== true) {
-          await transaction.rollback();
+          await safeRollback(transaction);
         }
       } catch (rollbackError) {
         console.error("Rollback error:", rollbackError);
@@ -7687,7 +7688,7 @@ WHERE
       return res.status(200).json({ success: true, message: "บันทึกและย้ายวัตถุเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -7780,7 +7781,7 @@ WHERE
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error('DB Error:', err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -7905,7 +7906,7 @@ WHERE
       });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       return res.status(500).json({
         success: false,
@@ -7958,7 +7959,7 @@ WHERE
   //       `);
 
   //     if (!result.recordset.length) {
-  //       await transaction.rollback();
+  //       await safeRollback(transaction);
   //       return res.status(404).json({
   //         message: "ไม่พบข้อมูล mapping_id นี้"
   //       });
@@ -8012,7 +8013,7 @@ WHERE
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error(err);
   //     return res.status(500).json({
   //       message: "เกิดข้อผิดพลาด",
@@ -8052,7 +8053,7 @@ WHERE
       // ================= 1. GET SOURCE MAPPING =================
       const mapRes = await transaction.request()
         .input("mapping_id", sql.Int, mapping_id)
-        .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+        .query(`SELECT weight_RM, rmfp_id, tro_production_id, process_id, weight_in_trolley, rm_status, level_eu, mix_code, prod_mix, qc_id, status, production_batch, allocation_date, created_by, rmm_line_name, mix_time, tl_status FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
       if (!mapRes.recordset.length) {
         throw new Error("ไม่พบ mapping_id");
@@ -8423,7 +8424,7 @@ WHERE
       });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error(err);
       res.status(500).json({
         message: "เกิดข้อผิดพลาด",
@@ -9603,7 +9604,7 @@ FORMAT(
         await transaction.commit();
         res.json({ success: true, message: "บันทึกข้อมูล WONo/Basket สำเร็จ" });
       } catch (err) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         throw err;
       }
     } catch (err) {
@@ -10848,7 +10849,7 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
         await txn.commit();
         return res.json({ success: true, message: 'ลบสำเร็จ' });
       } catch (e) {
-        await txn.rollback();
+        await safeRollback(txn);
         throw e;
       }
     } catch (err) {

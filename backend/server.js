@@ -21,6 +21,7 @@ const rfidReaderConfigRoutes = require('./routes/rfidReaderConfig');
 
 // Load environment variables early
 dotenv.config();
+require("./lib/processGuards").installProcessGuards(`server:${process.pid}`);
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.DB_SERVER || '0.0.0.0';
 

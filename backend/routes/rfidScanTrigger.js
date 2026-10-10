@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 require('dotenv').config();
 const express = require('express');
 const net = require('net');
@@ -431,7 +432,7 @@ async function withTransaction(pool, work) {
     await transaction.commit();
     return result;
   } catch (err) {
-    try { await transaction.rollback(); } catch (rollbackErr) { console.error('[rfid bind] rollback error:', rollbackErr.message); }
+    try { await safeRollback(transaction); } catch (rollbackErr) { console.error('[rfid bind] rollback error:', rollbackErr.message); }
     throw err;
   }
 }

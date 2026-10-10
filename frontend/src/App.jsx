@@ -1,11 +1,12 @@
 import React, { useState, lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import RFIDSlipPrintService from "./component/ColdStorage/CheckOutWithRFID/Asset/RFIDSlipPrintService.jsx";
 
 import theme from "./theme/dochubTheme";
+import ErrorBoundary from "./component/Layout/ErrorBoundary.jsx";
 
 // Lazy-loaded components (ใส่ .jsx ให้ครบ)
 const AppSup = lazy(() => import("./component/Supervisor/AppSup.jsx"));
@@ -46,6 +47,7 @@ function Loading() {
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { pathname } = useLocation();
 
   const handleLogin = (status) => {
     setIsLoggedIn(status);
@@ -54,6 +56,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <RFIDSlipPrintService />
+      <ErrorBoundary resetKey={pathname}>
       <Suspense fallback={<Loading />}>
         <Routes>
           {/* Auth */}
@@ -81,6 +84,7 @@ function App() {
           <Route path="/master/*" element={<AppMaster />} /> {/* เพิ่ม Route สำหรับ Master */}
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

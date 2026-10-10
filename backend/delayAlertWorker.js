@@ -20,6 +20,7 @@
  * The first run only remembers the colours of the rows (no immediate messages), so starting the worker does not flood the group.
  */
 require("dotenv").config();
+require("./lib/processGuards").installProcessGuards("delay-alert-worker");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");

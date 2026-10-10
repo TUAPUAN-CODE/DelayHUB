@@ -81,6 +81,7 @@ router.get("/checkTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const result = await pool
       .request()
       .input("tro_id", tro)
@@ -121,6 +122,7 @@ router.post("/reserveTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool
       .request()
@@ -158,6 +160,7 @@ router.post("/re/reserveTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool
       .request()
@@ -194,6 +197,7 @@ router.put("/trolley/confirm-location", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     let ids = mapping_ids;
     if (!ids || ids.length === 0) {
@@ -239,6 +243,7 @@ router.put("/trolley/reset-location", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     let ids = mapping_ids;
     if (!ids || ids.length === 0) {
@@ -586,6 +591,7 @@ router.get("/cold/checkin/check/Trolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const sql = require("mssql");
 
 
@@ -757,6 +763,7 @@ router.put("/cold/clear/Trolley", async (req, res) => {
   const { tro_id } = req.body;
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool.request()
       .input("tro_id", sql.NVarChar(4), tro_id)

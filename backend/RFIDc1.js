@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./lib/processGuards').installProcessGuards('rfid-reader');
 
 const net = require('net');
 const sql = require('mssql');

@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
     const express = require("express");
     const { connectToDatabase } = require("../database/db");
@@ -389,7 +390,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
                 const diffMinutes = (now - reservedTime) / (10000 * 60);
 
                 if (diffMinutes < RESERVATION_TIMEOUT_MINUTES) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "Slot นี้ถูกจองอยู่แล้ว" });
                 }
             }
@@ -494,7 +495,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
       `);
 
             if (resultSlot.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({ success: false, message: "ไม่พบข้อมูล Slot หรือ CSID" });
             }
 
@@ -512,7 +513,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             // ตรวจสอบว่ามีแถวที่ถูกอัปเดตจริงหรือไม่
             if (updateResult.rowsAffected[0] === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(409).json({ success: false, message: "ไม่สามารถอัปเดต Slot ได้" });
             }
 
@@ -531,7 +532,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
         } catch (err) {
             if (transaction) {
                 try {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                 } catch (rollbackErr) {
                     console.error("❌ Rollback error:", rollbackErr);
                 }
@@ -571,7 +572,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
       `);
 
             if (checkResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({ error: "ไม่พบข้อมูล mapping_id ที่ระบุ" });
             }
 
@@ -580,7 +581,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             // 2. ตรวจสอบเงื่อนไขก่อนอัปเดต
             if (mixCode !== null) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(200).json({
                     success: true,
                     message: "ไม่ทำการอัปเดตเนื่องจากเป็นวัตถุดิบผสม",
@@ -589,7 +590,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
             }
 
             if (currentStatus === "รอกลับมาเตรียม" || currentStatus === "QcCheck รอ MD") {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(200).json({
                     success: true,
                     message: "ไม่ทำการอัปเดตเนื่องจากสถานะไม่อนุญาตให้เปลี่ยน",
@@ -598,7 +599,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
             }
 
             if (currentStatus === "QcCheck" && qcCheckCold !== null) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(200).json({
                     success: true,
                     message: "ไม่ทำการอัปเดตเนื่องจากวัตถุดิบผ่านการตรวจสอบ QC แล้ว",
@@ -619,7 +620,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             // ตรวจสอบว่ามีแถวถูกอัปเดตจริงหรือไม่
             if (updateResult.rowsAffected[0] === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(409).json({
                     success: false,
                     message: "ไม่สามารถอัปเดตสถานะได้",
@@ -637,7 +638,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
         } catch (error) {
             if (transaction) {
                 try {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                 } catch (rollbackErr) {
                     console.error("❌ Rollback error:", rollbackErr);
                 }
@@ -684,7 +685,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
     //             WHERE trm.mapping_id = @mapping_id
     //             `)
     //         if (checkResult.recordset[0].length === 0) {
-    //             await transaction.rollback();
+    //             await safeRollback(transaction);
     //             return res.status(404).json({
     //                 success: false,
     //                 message: `ไม่พบวัตถุดิบด้วย mapping_id: ${mapping_id}`
@@ -698,7 +699,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
     //         console.log("qcCheckCold :",qcCheckCold)
 
     //         if (currentStatus === "QcCheck" && qcCheckCold !== NULL) {
-    //             await transaction.rollback();
+    //             await safeRollback(transaction);
     //             return res.status(400).json({
     //                 success: false,
     //                 message: "วัตถุดิบนี้ตรวจสอบแล้ว ไม่สามารถเปลี่ยนสถานะเป็น 'รอแก้ไข' ได้"
@@ -723,7 +724,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
     //         });
 
     //     } catch (error) {
-    //         await transaction.rollback();
+    //         await safeRollback(transaction);
     //         return res.status(500).json({
     //             success: false,
     //             error: "เกิดข้อผิดพลาดในการอัปเดตสถานะวัตถุดิบ",
@@ -1560,7 +1561,7 @@ WHERE
                 });
 
             } catch (error) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error("Transaction error:", error);
                 res.status(500).json({ success: false, error: error.message });
             }
@@ -2447,7 +2448,7 @@ ORDER BY
                 res.status(200).json({ message: "Data updated successfully" });
 
             } catch (innerError) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error("Transaction error:", innerError);
                 res.status(500).json({ error: innerError.message });
             }
@@ -2537,7 +2538,7 @@ ORDER BY
                     }
                     // cs_id อยู่ใน list ที่ยกเว้น → ไม่ต่อ cold_time เลย
 
-                    await new sql.Request(transaction)
+                    const updateBigRmResult = await new sql.Request(transaction)
                         .input("mapping_id", mapping_id)
                         .input("dest", sql.VarChar, location)
                         .input("mix_time", mix_time)
@@ -2546,6 +2547,10 @@ ORDER BY
                         .input("stay_place", 'ออกห้องเย็นใหญ่')
                         .input("cold_to_pack_time", cold_to_pack_time)
                         .query(updateQuery + ` WHERE mapping_id = @mapping_id;`);
+
+                    if (updateBigRmResult.rowsAffected[0] === 0) {
+                        throw new Error(`Failed to update TrolleyRMMapping for mapping_id ${mapping_id}`);
+                    }
 
                     // ดึงข้อมูลล่าสุดหลัง update
                     const updatedRmDataResult = await new sql.Request(transaction)
@@ -2665,7 +2670,7 @@ ORDER BY
                 res.status(200).json({ message: "Data updated successfully" });
 
             } catch (innerError) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error("Transaction error:", innerError);
                 res.status(500).json({ error: innerError.message });
             }
@@ -2876,7 +2881,7 @@ ORDER BY
 
 
     //             } catch (innerError) {
-    //                 await transaction.rollback();
+    //                 await safeRollback(transaction);
     //                 console.error("Transaction error:", innerError);
     //                 res.status(500).json({ error: innerError.message });
     //             }
@@ -2921,7 +2926,7 @@ ORDER BY
       `);
 
             if (getTro.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.json({
                     success: false,
                     message: "ไม่พบ mapping_id"
@@ -2964,7 +2969,7 @@ ORDER BY
 
         } catch (error) {
             if (transaction) {
-                try { await transaction.rollback(); } catch (_) { }
+                try { await safeRollback(transaction); } catch (_) { }
             }
             console.error("❌ Update error:", error);
             res.status(500).json({
@@ -3303,14 +3308,14 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
                     const getMaterialData = await pool.request()
                         .input("tro_id", sql.VarChar, tro_id)
                         .input("rmfp_id", sql.VarChar, rmfp_id)
-                        .query(`SELECT * FROM RMInTrolley WHERE tro_id = @tro_id AND rmfp_id = @rmfp_id;`);
+                        .query(`SELECT weight_RM, batch, mat_name, [แผนการผลิต], cold, rmfp_id, mat, rm_status FROM RMInTrolley WHERE tro_id = @tro_id AND rmfp_id = @rmfp_id;`);
 
                     if (getMaterialData.recordset.length > 0) {
                         const materialData = getMaterialData.recordset[0];
                         const currentWeight = materialData.weight_RM || 0;
 
                         if (moveType === "ย้ายบางส่วน" && typeOutputValue > currentWeight) {
-                            await transaction.rollback();
+                            await safeRollback(transaction);
                             return res.status(400).json({ error: "น้ำหนักที่ต้องการย้ายมากกว่าน้ำหนักที่มีอยู่" });
                         }
 
@@ -3423,7 +3428,7 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
 
             } catch (error) {
                 console.error("Transaction error:", error.message, error.stack);
-                await transaction.rollback();
+                await safeRollback(transaction);
                 res.status(500).json({ error: "Transaction failed", details: error.message });
             }
 
@@ -3455,12 +3460,12 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
                     .query(`SELECT slot_id, cs_id, tro_id, slot_status FROM Slot WHERE slot_id = @slot_id;`);
 
                 if (oldSlot.recordset.length === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(404).json({ error: "Slot not found" });
                 }
 
                 if (!oldSlot.recordset[0].tro_id) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ error: "Cannot move slot. No trolley in the current slot." });
                 }
 
@@ -3470,12 +3475,12 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
                     .query(`SELECT slot_id, cs_id, tro_id, slot_status FROM Slot WHERE slot_id = @new_slot_id;`);
 
                 if (newSlot.recordset.length === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(404).json({ error: "New Slot not found" });
                 }
 
                 if (newSlot.recordset[0].tro_id) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ error: "Cannot move slot. The new slot is already occupied by another trolley." });
                 }
 
@@ -3497,7 +3502,7 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
 
             } catch (error) {
                 console.error("Transaction error:", error);
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(500).json({ error: "Transaction failed", details: error.message });
             }
 
@@ -3533,7 +3538,7 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
 
                 if (result.rowsAffected[0] === 0) {
                     // ไม่มี record ให้ update -> rollback
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(404).json({ error: "No record found to update" });
                 }
 
@@ -3542,7 +3547,7 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
 
             } catch (error) {
                 console.error("Transaction error:", error);
-                await transaction.rollback();
+                await safeRollback(transaction);
                 res.status(500).json({ error: "Transaction failed", details: error.message });
             }
 
@@ -5541,7 +5546,7 @@ ORDER BY rmm.mapping_id DESC
         } catch (err) {
             console.error("SQL Error:", err);
             if (transaction) {
-                await transaction.rollback();
+                await safeRollback(transaction);
             }
             res.status(500).json({
                 success: false,
@@ -5570,7 +5575,7 @@ ORDER BY rmm.mapping_id DESC
                 .query("SELECT tro_status, rsrv_timestamp FROM Trolley WHERE tro_id = @tro_id");
 
             if (trolleyResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "รถเข็นไม่พร้อมใช้งาน" });
             }
 
@@ -5581,7 +5586,7 @@ ORDER BY rmm.mapping_id DESC
                 .query("SELECT cs_id, slot_id FROM Slot WHERE tro_id = @tro_id");
 
             if (trolleyInColdResult.recordset.length > 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `รถเข็นนี้อยู่ในห้องเย็นอยู่แล้ว (ช่อง ${trolleyInColdResult.recordset[0].slot_id})`
@@ -5604,7 +5609,7 @@ ORDER BY rmm.mapping_id DESC
                     slotResult.recordset[0].tro_id !== tro_id
                 )
             ) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "Error" });
             }
 
@@ -5617,12 +5622,12 @@ ORDER BY rmm.mapping_id DESC
             // กรณีรถเข็นว่าง
             if (selectedOption === "รถเข็นว่าง") {
                 if (tro_status === false) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "รถเข็นคันนี้ถูกใช้งานแล้ว" });
                 }
 
                 if (rsrv_timestamp === null) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ไม่สามารถจองรถเข็นได้เนื่องจากเลยเวลาดำเนินการ 5 นาที"
@@ -5630,7 +5635,7 @@ ORDER BY rmm.mapping_id DESC
                 }
 
                 if (tro_status === 1 || tro_status === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ไม่สามารถจองรถเข็นได้เนื่องจากเลยเวลาดำเนินการ 5 นาที"
@@ -5645,7 +5650,7 @@ ORDER BY rmm.mapping_id DESC
                     .query("UPDATE Slot SET tro_id = @tro_id, reserved_at = NULL WHERE cs_id = @cs_id AND slot_id = @slot_id");
 
                 if (slotUpdateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ไม่สามารถอัปเดตช่องเก็บได้" });
                 }
 
@@ -5655,7 +5660,7 @@ ORDER BY rmm.mapping_id DESC
                     .query("UPDATE Trolley SET tro_status = 0, rsrv_timestamp = null WHERE tro_id = @tro_id");
 
                 if (trolleyUpdateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ไม่สามารถอัปเดตสถานะรถเข็นได้" });
                 }
 
@@ -5678,7 +5683,7 @@ ORDER BY rmm.mapping_id DESC
 
             // ⚠️ ตรวจสอบว่า Slot อัปเดตสำเร็จ ถ้าไม่สำเร็จแล้ว Rollback ทั้งหมด
             if (slotLockResult.rowsAffected[0] === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error(`❌ Slot update failed: cs_id=${cs_id}, slot_id=${slot_id}, tro_id=${tro_id}`);
                 return res.status(400).json({
                     success: false,
@@ -5692,10 +5697,10 @@ ORDER BY rmm.mapping_id DESC
             const rmResults = await transaction
                 .request()
                 .input("tro_id", sql.VarChar(4), tro_id)
-                .query("SELECT dest, rmm_line_name, rm_status, cold_time, prep_to_cold_time, rework_time, mix_time, rmfp_id, mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id");
+                .query("SELECT dest, rmm_line_name, rm_status, cold_time, prep_to_cold_time, rework_time, mix_time, rmfp_id, mapping_id FROM TrolleyRMMapping WITH (UPDLOCK, ROWLOCK) WHERE tro_id = @tro_id");
 
             if (rmResults.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "ไม่พบวัตถุดิบในรถเข็นนี้" });
             }
 
@@ -5705,7 +5710,7 @@ ORDER BY rmm.mapping_id DESC
             const invalidDestItems = rmResults.recordset.filter(item => !validDests.includes(item.dest));
 
             if (invalidDestItems.length > 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: "มีวัตถุดิบในรถเข็นที่ไม่ได้เตรียมเข้าห้องเย็น"
@@ -5721,7 +5726,7 @@ ORDER BY rmm.mapping_id DESC
             };
 
             if (!(selectedOption in statusMap)) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "ตัวเลือกไม่ถูกต้อง" });
             }
 
@@ -5731,7 +5736,7 @@ ORDER BY rmm.mapping_id DESC
             );
 
             if (invalidStatusItems.length > 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `ไม่ตรงเงื่อนไขรับเข้า ${selectedOption} มีวัตถุดิบที่มีสถานะไม่ตรงกับเงื่อนไข`
@@ -6021,7 +6026,7 @@ ORDER BY rmm.mapping_id DESC
                 `);
 
                 if (updateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: `ไม่สามารถอัปเดตข้อมูลวัตถุดิบ RMFP ID: ${rmfp_id} ได้`
@@ -6033,7 +6038,7 @@ ORDER BY rmm.mapping_id DESC
 
             // ตรวจสอบว่าอัปเดตครบทุก item หรือไม่
             if (successfulUpdates !== rmResults.recordset.length) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error(`❌ Partial update failed: updated=${successfulUpdates}, total=${rmResults.recordset.length}`);
                 return res.status(400).json({
                     success: false,
@@ -6084,7 +6089,7 @@ ORDER BY rmm.mapping_id DESC
                 }
 
                 if (historyUpdateCount !== mappingResults.recordset.length) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     console.error(`❌ History update incomplete: updated=${historyUpdateCount}, total=${mappingResults.recordset.length}`);
                     return res.status(400).json({
                         success: false,
@@ -6105,7 +6110,7 @@ ORDER BY rmm.mapping_id DESC
 
         } catch (err) {
             try {
-                await transaction.rollback();
+                await safeRollback(transaction);
             } catch (rollbackErr) {
                 console.error("Rollback error", rollbackErr);
             }
@@ -6257,7 +6262,7 @@ ORDER BY rmm.mapping_id DESC
             res.status(200).json({ message: "Data updated successfully" });
 
         } catch (innerError) {
-            await transaction.rollback();
+            await safeRollback(transaction);
             console.error("Transaction error:", innerError);
             res.status(500).json({ error: innerError.message });
         }
@@ -6286,7 +6291,7 @@ ORDER BY rmm.mapping_id DESC
                 .query("SELECT tro_status, rsrv_timestamp FROM Trolley WHERE tro_id = @tro_id");
 
             if (trolleyResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "รถเข็นไม่พบในระบบ" });
             }
 
@@ -6297,7 +6302,7 @@ ORDER BY rmm.mapping_id DESC
                 .query("SELECT cs_id, slot_id FROM Slot WHERE tro_id = @tro_id");
 
             if (trolleyInColdResult.recordset.length > 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `รถเข็นนี้อยู่ในห้องเย็นอยู่แล้ว (ช่อง ${trolleyInColdResult.recordset[0].slot_id})`
@@ -6316,7 +6321,7 @@ ORDER BY rmm.mapping_id DESC
             `);
 
             if (availableSlotResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({ success: false, message: "ไม่มีช่องว่างในห้องเย็นนี้" });
             }
 
@@ -6333,19 +6338,19 @@ ORDER BY rmm.mapping_id DESC
                 SELECT dest, rmm_line_name, rm_status, cold_time,
                        prep_to_cold_time, mix_time,
                        rmfp_id, mapping_id
-                FROM TrolleyRMMapping
+                FROM TrolleyRMMapping WITH (UPDLOCK, ROWLOCK)
                 WHERE tro_id = @tro_id
             `);
 
             // ── กรณีรถเข็นว่าง (ไม่มีวัตถุดิบ) ──────────────────────────────────
             if (rmResults.recordset.length === 0) {
                 if (tro_status === false) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "รถเข็นคันนี้ถูกใช้งานแล้ว" });
                 }
 
                 if (rsrv_timestamp === null || tro_status === 1 || tro_status === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ไม่ตรงข้อกำหนดการรับเข้า"
@@ -6361,7 +6366,7 @@ ORDER BY rmm.mapping_id DESC
                     .query("UPDATE Slot SET tro_id = @tro_id, reserved_at = NULL WHERE cs_id = @cs_id AND slot_id = @slot_id");
 
                 if (slotUpdateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ไม่สามารถอัปเดตช่องเก็บได้" });
                 }
 
@@ -6372,7 +6377,7 @@ ORDER BY rmm.mapping_id DESC
                     .query("UPDATE Trolley SET tro_status = 0, rsrv_timestamp = null WHERE tro_id = @tro_id");
 
                 if (trolleyUpdateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ไม่สามารถอัปเดตสถานะรถเข็นได้" });
                 }
 
@@ -6395,7 +6400,7 @@ ORDER BY rmm.mapping_id DESC
             `);
 
             if (slotLockResult.rowsAffected[0] === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: "ไม่สามารถอัปเดตช่องเก็บได้ - ช่องเก็บอาจถูกใช้งานโดยรถเข็นอื่น"
@@ -6555,7 +6560,7 @@ ORDER BY rmm.mapping_id DESC
                 `);
 
                 if (updateResult.rowsAffected[0] === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: `ไม่สามารถอัปเดตข้อมูลวัตถุดิบ RMFP ID: ${rmfp_id} ได้`
@@ -6566,7 +6571,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
             if (successfulUpdates !== rmResults.recordset.length) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `อัปเดตข้อมูลไม่ครบ (${successfulUpdates}/${rmResults.recordset.length})`
@@ -6647,7 +6652,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
             if (historyUpdateCount !== mappingResults.recordset.length) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `อัปเดตประวัติไม่ครบ (${historyUpdateCount}/${mappingResults.recordset.length})`
@@ -6668,7 +6673,7 @@ ORDER BY rmm.mapping_id DESC
             });
 
         } catch (err) {
-            try { await transaction.rollback(); } catch (e) { console.error("Rollback error", e); }
+            try { await safeRollback(transaction); } catch (e) { console.error("Rollback error", e); }
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -6736,7 +6741,7 @@ ORDER BY rmm.mapping_id DESC
                     .query(`SELECT tro_id FROM Trolley WITH (UPDLOCK, HOLDLOCK) WHERE tro_id = @tro_id`);
 
                 if (checkDestTrolley.recordset.length === 0) {
-                    await tx.rollback();
+                    await safeRollback(tx);
                     return res.status(404).json({ error: "Destination trolley not found", details: { new_tro_id } });
                 }
 
@@ -6769,7 +6774,7 @@ ORDER BY rmm.mapping_id DESC
 
                 const result = await bind.query(sourceQuery);
                 if (result.recordset.length === 0) {
-                    await tx.rollback();
+                    await safeRollback(tx);
                     return res.status(404).json({ error: "Source mapping not found" });
                 }
 
@@ -6782,7 +6787,7 @@ ORDER BY rmm.mapping_id DESC
 
                 // 5) ตรวจน้ำหนักพอไหม
                 if (currentTotalWeight < weightNum) {
-                    await tx.rollback();
+                    await safeRollback(tx);
                     return res.status(400).json({
                         error: "Not enough weight in the trolley",
                         details: { available: currentTotalWeight, requested: weightNum }
@@ -6793,7 +6798,7 @@ ORDER BY rmm.mapping_id DESC
                 const weightRatio = weightNum / currentTotalWeight;
                 const traysToMove = Math.ceil(existingTrayCount * weightRatio);
                 if (traysToMove > existingTrayCount) {
-                    await tx.rollback();
+                    await safeRollback(tx);
                     return res.status(400).json({
                         error: "Not enough trays in the trolley",
                         details: { available: existingTrayCount, required: traysToMove }
@@ -6808,7 +6813,7 @@ ORDER BY rmm.mapping_id DESC
                     .input("mapping_id", sourceMappingId)
                     .query(`SELECT TOP 1 * FROM History WITH (UPDLOCK, HOLDLOCK) WHERE mapping_id = @mapping_id ORDER BY hist_id DESC`);
                 if (historyRes.recordset.length === 0) {
-                    await tx.rollback();
+                    await safeRollback(tx);
                     return res.status(404).json({ error: `History record not found for mapping_id: ${sourceMappingId}` });
                 }
                 const historyData = historyRes.recordset[0];
@@ -7217,7 +7222,7 @@ ORDER BY rmm.mapping_id DESC
                     }
                 });
             } catch (err) {
-                try { await tx.rollback(); } catch (_) { }
+                try { await safeRollback(tx); } catch (_) { }
                 console.error("Transaction Error:", err);
                 return res.status(500).json({ error: "Transaction failed", message: err.message });
             }
@@ -7269,7 +7274,7 @@ ORDER BY rmm.mapping_id DESC
                     .query("SELECT tro_id, slot_status FROM Slot WITH (UPDLOCK, HOLDLOCK) WHERE slot_id = @new_slot_id");
 
                 if (slotResult.recordset.length === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ไม่พบช่องเก็บของในระบบ" });
                 }
 
@@ -7277,7 +7282,7 @@ ORDER BY rmm.mapping_id DESC
 
                 // ตรวจสอบว่าช่องนี้ว่าง (tro_id = NULL)
                 if (slot.tro_id !== null) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({ success: false, message: "ช่องเก็บของนี้ไม่ว่าง" });
                 }
 
@@ -7298,7 +7303,7 @@ ORDER BY rmm.mapping_id DESC
                 return res.status(200).json({ success: true, message: "ย้ายรถเข็นสำเร็จ" });
 
             } catch (err) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error("Transaction failed:", err);
                 return res.status(500).json({ success: false, message: "Transaction failed", error: err.message });
             }
@@ -7931,28 +7936,28 @@ ORDER BY rmm.mapping_id DESC
 
                 } else if (!row.input_cd_date) {
                     // ─── ยังไม่มี input_cd_date → ยังออกรอบ 2 ไม่ได้ ──────
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ยังไม่มีการรับเข้าห้องเย็น (input_cd_date) ไม่สามารถจ่ายรอบถัดไปได้",
                     });
 
                 } else if (!row.input_cd_date_two) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ยังไม่มีการรับเข้าห้องเย็นรอบ 2 (input_cd_date_two) ไม่สามารถจ่ายรอบถัดไปได้",
                     });
 
                 } else if (!row.input_cd_date_three) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "ยังไม่มีการรับเข้าห้องเย็นรอบ 3 (input_cd_date_three) ไม่สามารถจ่ายรอบถัดไปได้",
                     });
 
                 } else {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "HU นี้ครบ 4 รอบแล้ว ไม่สามารถเพิ่มได้อีก",
@@ -7971,7 +7976,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8019,7 +8024,7 @@ ORDER BY rmm.mapping_id DESC
                 summary: { batch, mat, hu, weight }, // ✅ ตัวอย่าง summary
             });
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8076,7 +8081,7 @@ ORDER BY rmm.mapping_id DESC
     //     } catch (err) {
 
     //         if (transaction) {
-    //             await transaction.rollback();
+    //             await safeRollback(transaction);
     //         }
 
     //         console.error("SQL error", err);
@@ -8153,14 +8158,14 @@ ORDER BY rmm.mapping_id DESC
                 if (!row.start_defrost_date_two) {
                     // ─── รอบที่ 2: start_defrost_date และ input_cd_date ต้องมีค่า ───
                     if (!row.start_defrost_date) {
-                        await transaction.rollback();
+                        await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
                             message: "ยังไม่มีการเริ่มละลายรอบที่ 1 (start_defrost_date)",
                         });
                     }
                     if (!row.input_cd_date) {
-                        await transaction.rollback();
+                        await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
                             message: "ยังไม่มีการรับเข้าห้องเย็นรอบที่ 1 (input_cd_date)",
@@ -8176,7 +8181,7 @@ ORDER BY rmm.mapping_id DESC
                 } else if (!row.start_defrost_date_three) {
                     // ─── รอบที่ 3: start_defrost_date_two และ input_cd_date_two ต้องมีค่า ───
                     if (!row.input_cd_date_two) {
-                        await transaction.rollback();
+                        await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
                             message: "ยังไม่มีการรับเข้าห้องเย็นรอบที่ 2 (input_cd_date_two)",
@@ -8192,7 +8197,7 @@ ORDER BY rmm.mapping_id DESC
                 } else if (!row.start_defrost_date_four) {
                     // ─── รอบที่ 4: start_defrost_date_three และ input_cd_date_three ต้องมีค่า ───
                     if (!row.input_cd_date_three) {
-                        await transaction.rollback();
+                        await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
                             message: "ยังไม่มีการรับเข้าห้องเย็นรอบที่ 3 (input_cd_date_three)",
@@ -8206,7 +8211,7 @@ ORDER BY rmm.mapping_id DESC
                     round = 4;
 
                 } else {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(400).json({
                         success: false,
                         message: "HU นี้ครบ 4 รอบแล้ว ไม่สามารถเพิ่มได้อีก",
@@ -8223,7 +8228,7 @@ ORDER BY rmm.mapping_id DESC
             }
 
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8261,7 +8266,7 @@ ORDER BY rmm.mapping_id DESC
             `);
 
             if (checkHU.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({
                     success: false,
                     message: `ไม่พบข้อมูล HU: ${hu} ในระบบ`,
@@ -8306,7 +8311,7 @@ ORDER BY rmm.mapping_id DESC
             `;
                 round = 4;
             } else {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: "ไม่พบรอบที่รอ end_defrost หรือครบทุกรอบแล้ว",
@@ -8327,7 +8332,7 @@ ORDER BY rmm.mapping_id DESC
             });
 
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8357,7 +8362,7 @@ ORDER BY rmm.mapping_id DESC
                 .query(`SELECT sap_re_id, start_defrost_date FROM SAP_Receive WHERE hu = @hu`);
 
             if (checkResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({
                     success: false,
                     message: `ไม่พบข้อมูล HU: ${hu} ในระบบ`,
@@ -8367,7 +8372,7 @@ ORDER BY rmm.mapping_id DESC
             // ✅ ตรวจสอบว่ามี start_defrost_date หรือยัง
             const row = checkResult.recordset[0];
             if (!row.start_defrost_date) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
                     message: `ยังไม่ได้บันทึกเวลาเริ่มละลาย สำหรับ HU: ${hu}`,
@@ -8396,7 +8401,7 @@ ORDER BY rmm.mapping_id DESC
             });
 
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8430,7 +8435,7 @@ ORDER BY rmm.mapping_id DESC
             `);
 
             if (result.rowsAffected[0] === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({
                     success: false,
                     message: "ไม่พบข้อมูลที่ต้องการแก้ไข",
@@ -8450,7 +8455,7 @@ ORDER BY rmm.mapping_id DESC
                 data: { sap_re_id, remark },
             });
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("SQL error", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8807,7 +8812,7 @@ ORDER BY rmm.mapping_id DESC
                 `);
 
             if (srcResult.recordset.length === 0) {
-                await transaction.rollback();
+                await safeRollback(transaction);
                 return res.status(404).json({ success: false, error: `ไม่พบข้อมูล HU: ${old_hu}` });
             }
 
@@ -8900,7 +8905,7 @@ ORDER BY rmm.mapping_id DESC
 
             res.json({ success: true, message: `คัดลอกข้อมูล HU ${old_hu} → ${newHuInt} สำเร็จ` });
         } catch (err) {
-            if (transaction) await transaction.rollback();
+            if (transaction) await safeRollback(transaction);
             console.error("[PUT /coldstorages/sap/update-hu] error:", err);
             res.status(500).json({ success: false, error: err.message });
         }
@@ -8930,7 +8935,7 @@ ORDER BY rmm.mapping_id DESC
                 `);
 
                 if (trolleyResult.recordset.length === 0) {
-                    await transaction.rollback();
+                    await safeRollback(transaction);
                     return res.status(404).json({ error: "รถเข็นไม่พร้อมใช้งาน", tro_id });
                 }
 
@@ -8950,7 +8955,7 @@ ORDER BY rmm.mapping_id DESC
 
             } catch (err) {
                 // Rollback ถ้ามี error
-                await transaction.rollback();
+                await safeRollback(transaction);
                 console.error("Transaction failed:", err);
                 res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัพเดตข้อมูล", detail: err.message });
             }
@@ -9118,7 +9123,7 @@ ORDER BY rmm.mapping_id DESC
             // 1. ดึง row เดิม
             const origResult = await pool.request()
                 .input("mapping_id", sql.Int, parseInt(mapping_id))
-                .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+                .query(`SELECT weight_RM, qc_id FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
             if (origResult.recordset.length === 0)
                 return res.status(404).json({ success: false, error: "ไม่พบ mapping_id ที่ระบุ" });
@@ -9343,7 +9348,7 @@ ORDER BY rmm.mapping_id DESC
         } catch (err) {
             console.error("[POST /coldstorage/transfer-mapping] Error:", err.message);
             if (began && transaction) {
-                try { await transaction.rollback(); } catch (rbErr) { console.error("rollback failed:", rbErr.message); }
+                try { await safeRollback(transaction); } catch (rbErr) { console.error("rollback failed:", rbErr.message); }
             }
             return res.status(500).json({ success: false, error: err.message });
         }

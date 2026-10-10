@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
   const express = require("express");
   const sql = require("mssql");
@@ -885,7 +886,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         errors: errors.slice(0, 50),
       });
     } catch (err) {
-      try { await transaction.rollback(); } catch (_) { /* ignore */ }
+      try { await safeRollback(transaction); } catch (_) { /* ignore */ }
       console.error("POST /PkgDgSupp/bulkImport error:", err);
       return res.status(500).json({
         success: false,
@@ -3374,7 +3375,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
           end_id: cartsToAdd[cartsToAdd.length - 1].tro_id
         });
       } catch (err) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         throw err;
       }
     } catch (err) {
