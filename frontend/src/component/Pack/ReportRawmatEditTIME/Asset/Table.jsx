@@ -26,7 +26,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 // ─────────────────────────────────────────────────────────────
 // REMAP HELPER
 // ─────────────────────────────────────────────────────────────
-const getRemappedRow = (row) => {
+const buildMappedRow = (row) => {
   const gid = Number(row.rm_group_id);
 
   if (gid === 55) {
@@ -76,6 +76,8 @@ const getRemappedRow = (row) => {
     _F: row.sc_pack_date,
   };
 };
+
+const getRemappedRow = (row) => { const m = buildMappedRow(row); ROW_OF.set(m, row); return m; };
 
 const isSpecialGroup = (row) => {
   const gid = Number(row.rm_group_id);
@@ -198,25 +200,8 @@ const calculateDBS2FromMapped = (mapped, isSpecial = false, row = null) => {
 
 const calculateDBS3FromMapped = (mapped, isSpecial = false) => {
   if (isSpecial) return '-';
-
-  // รวมเวลาในห้องเย็นทุกรอบที่มี (round 2 และ round 3)
-  let totalColdMinutes = 0;
-
-  if (mapped._D && mapped._D !== '-' && mapped._E && mapped._E !== '-') {
-    const cold2 = calculateMinutesDifference(mapped._D, mapped._E);
-    if (cold2 !== null) totalColdMinutes += cold2;
-  }
-
-  if (mapped._D3 && mapped._D3 !== '-' && mapped._E3 && mapped._E3 !== '-') {
-    const cold3 = calculateMinutesDifference(mapped._D3, mapped._E3);
-    if (cold3 !== null) totalColdMinutes += cold3;
-  }
-
-  const fc = calculateMinutesDifference(mapped._C, mapped._F);
-  if (fc === null) return '-';
-
-  const result = fc - totalColdMinutes;
-  return formatMinutesToTime(result >= 0 ? result : 0);
+  const min = calcDBS3Minutes(mapped, false);
+  return min === null ? '-' : formatMinutesToTime(min);
 };
 
 const calculateDBS4FromMapped = (mapped, isSpecial = false, row = null) => {
@@ -288,27 +273,38 @@ const calcDBS2Minutes = (mapped, isSpecial, row = null) => {
   return has ? total : null;
 };
 
+// DBS3 = time OUTSIDE the cold rooms after the first exit (DBS1 = prep -> first cold room is not part of it):
+//   (out 1 -> in 2) + (out 2 -> in 3) + ... + (last out -> packed).  Every cold stay counts (small + big cold rooms, sorted by time in).
+const ROW_OF = new WeakMap(); // mapped row -> the row it was made from
+const outsideColdMinutes = (mapped) => {
+  const row = ROW_OF.get(mapped);
+  if (!row) return null;
+  const pairs = [
+    { in: row.come_cold_date, out: row.out_cold_date },
+    { in: row.come_cold_date_two, out: row.out_cold_date_two },
+    { in: row.come_cold_date_three, out: row.out_cold_date_three },
+    { in: row.cs_come_cold_date, out: row.cs_out_cold_date },
+    { in: row.cs_come_cold_date_two, out: row.cs_out_cold_date_two },
+    { in: row.cs_come_cold_date_three, out: row.cs_out_cold_date_three },
+    { in: row.cs_come_cold_date_four, out: row.cs_out_cold_date_four },
+  ].filter((p) => p.in && p.in !== '-');
+  if (!pairs.length) return null;
+  pairs.sort((a, b) => { const da = new Date(a.in); const db = new Date(b.in); return (isNaN(da) ? 1 : 0) - (isNaN(db) ? 1 : 0) || da - db; });
+  let total = 0; let has = false;
+  for (let i = 0; i < pairs.length; i += 1) {
+    const out = pairs[i].out;
+    if (!out || out === '-') break; // still in a cold room: nothing is counted after it
+    const next = i + 1 < pairs.length ? pairs[i + 1].in : mapped._F;
+    const gap = calculateMinutesDifference(out, next);
+    if (gap !== null) { total += gap; has = true; }
+  }
+  return has ? total : null;
+};
+
 const calcDBS3Minutes = (mapped, isSpecial) => {
   if (isSpecial) return null;
-
-  // รวมเวลาในห้องเย็นทุกรอบที่มี (round 2 และ round 3)
-  let totalColdMinutes = 0;
-
-  if (mapped._D && mapped._D !== '-' && mapped._E && mapped._E !== '-') {
-    const cold2 = calculateMinutesDifference(mapped._D, mapped._E);
-    if (cold2 !== null) totalColdMinutes += cold2;
-  }
-
-  if (mapped._D3 && mapped._D3 !== '-' && mapped._E3 && mapped._E3 !== '-') {
-    const cold3 = calculateMinutesDifference(mapped._D3, mapped._E3);
-    if (cold3 !== null) totalColdMinutes += cold3;
-  }
-
-  const fc = calculateMinutesDifference(mapped._C, mapped._F);
-  if (fc === null) return null;
-
-  const result = fc - totalColdMinutes;
-  return result >= 0 ? result : 0;
+  const min = outsideColdMinutes(mapped);
+  return min === null ? null : (min >= 0 ? min : 0);
 };
 
 const parseStandardDBSToMinutes = (val) => {

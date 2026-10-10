@@ -23,7 +23,7 @@ axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-const getRemappedRow = (row) => {
+const buildMappedRow = (row) => {
   const gid = Number(row.rm_group_id);
   if (gid === 55) {
     return { _A: row.gm_date, _B: row.start_mixed_date, _C: row.rmit_date, _D: null, _E: null, _D3: null, _E3: null, _F: row.sc_pack_date };
@@ -39,6 +39,8 @@ const getRemappedRow = (row) => {
     _D3: row.come_cold_date_three, _E3: row.out_cold_date_three, _F: row.sc_pack_date,
   };
 };
+
+const getRemappedRow = (row) => { const m = buildMappedRow(row); ROW_OF.set(m, row); return m; };
 
 const isSpecialGroup = (row) => {
   const gid = Number(row.rm_group_id);
@@ -81,13 +83,38 @@ const calcDBS2Minutes = (mapped, isSpecial) => {
   if (mapped._D3 && mapped._E3) { const c3 = calculateMinutesDifference(mapped._D3, mapped._E3); if (c3 !== null) { total += c3; has = true; } }
   return has ? total : null;
 };
+// DBS3 = time OUTSIDE the cold rooms after the first exit (DBS1 = prep -> first cold room is not part of it):
+//   (out 1 -> in 2) + (out 2 -> in 3) + ... + (last out -> packed).  Every cold stay counts (small + big cold rooms, sorted by time in).
+const ROW_OF = new WeakMap(); // mapped row -> the row it was made from
+const outsideColdMinutes = (mapped) => {
+  const row = ROW_OF.get(mapped);
+  if (!row) return null;
+  const pairs = [
+    { in: row.come_cold_date, out: row.out_cold_date },
+    { in: row.come_cold_date_two, out: row.out_cold_date_two },
+    { in: row.come_cold_date_three, out: row.out_cold_date_three },
+    { in: row.cs_come_cold_date, out: row.cs_out_cold_date },
+    { in: row.cs_come_cold_date_two, out: row.cs_out_cold_date_two },
+    { in: row.cs_come_cold_date_three, out: row.cs_out_cold_date_three },
+    { in: row.cs_come_cold_date_four, out: row.cs_out_cold_date_four },
+  ].filter((p) => p.in && p.in !== '-');
+  if (!pairs.length) return null;
+  pairs.sort((a, b) => { const da = new Date(a.in); const db = new Date(b.in); return (isNaN(da) ? 1 : 0) - (isNaN(db) ? 1 : 0) || da - db; });
+  let total = 0; let has = false;
+  for (let i = 0; i < pairs.length; i += 1) {
+    const out = pairs[i].out;
+    if (!out || out === '-') break; // still in a cold room: nothing is counted after it
+    const next = i + 1 < pairs.length ? pairs[i + 1].in : mapped._F;
+    const gap = calculateMinutesDifference(out, next);
+    if (gap !== null) { total += gap; has = true; }
+  }
+  return has ? total : null;
+};
+
 const calcDBS3Minutes = (mapped, isSpecial) => {
   if (isSpecial) return null;
-  let lastOut = null;
-  if (mapped._E3 && mapped._E3 !== '-') lastOut = mapped._E3;
-  else if (mapped._E && mapped._E !== '-') lastOut = mapped._E;
-  else if (mapped._C && mapped._C !== '-') lastOut = mapped._C;
-  return calculateMinutesDifference(lastOut, mapped._F);
+  const min = outsideColdMinutes(mapped);
+  return min === null ? null : (min >= 0 ? min : 0);
 };
 const calcDBS4Minutes = (mapped, isSpecial) => {
   if (isSpecial) {
@@ -96,11 +123,7 @@ const calcDBS4Minutes = (mapped, isSpecial) => {
     return calculateMinutesDifference(mapped._A, mapped._F);
   }
   const d1 = calculateMinutesDifference(mapped._A, mapped._B);
-  let lastOut = null;
-  if (mapped._E3 && mapped._E3 !== '-') lastOut = mapped._E3;
-  else if (mapped._E && mapped._E !== '-') lastOut = mapped._E;
-  else if (mapped._C && mapped._C !== '-') lastOut = mapped._C;
-  const d3 = calculateMinutesDifference(lastOut, mapped._F);
+  const d3 = calcDBS3Minutes(mapped, false);
   if (d1 !== null && d3 !== null) return d1 + d3;
   return calculateMinutesDifference(mapped._A, mapped._F);
 };
@@ -115,9 +138,10 @@ const calculateDBS2FromMapped = (mapped, isSpecial) => {
   const min = calcDBS2Minutes(mapped, false);
   return formatMinutesToTime(min);
 };
-const calculateDBS3FromMapped = (mapped, isSpecial) => {
+const calculateDBS3FromMapped = (mapped, isSpecial = false) => {
   if (isSpecial) return '-';
-  return formatMinutesToTime(calcDBS3Minutes(mapped, false));
+  const min = calcDBS3Minutes(mapped, false);
+  return min === null ? '-' : formatMinutesToTime(min);
 };
 const calculateDBS4FromMapped = (mapped, isSpecial) => {
   return formatMinutesToTime(calcDBS4Minutes(mapped, isSpecial));
