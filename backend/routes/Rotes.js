@@ -3282,7 +3282,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const pool = await connectToDatabase();
       const checkQuery = `SELECT tro_id FROM Trolley WHERE tro_id = @tro_id`;
       const checkResult = await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(checkQuery);
 
       if (checkResult.recordset.length > 0) {
@@ -3295,7 +3295,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     `;
 
       await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .input('tro_status', tro_status)
         .query(insertQuery);
 
@@ -3362,7 +3362,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         for (const cart of cartsToAdd) {
           const request = new sql.Request(transaction);
           await request
-            .input('tro_id', cart.tro_id)
+            .input('tro_id', sql.VarChar, cart.tro_id)
             .input('tro_status', cart.tro_status)
             .query(insertQuery);
         }
@@ -3481,7 +3481,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const pool = await connectToDatabase();
       const checkQuery = `SELECT tro_id FROM Trolley WHERE tro_id = @tro_id`;
       const checkResult = await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(checkQuery);
 
       if (checkResult.recordset.length === 0) {
@@ -3491,7 +3491,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const deleteQuery = `DELETE FROM Trolley WHERE tro_id = @tro_id`;
 
       await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(deleteQuery);
 
       res.json({ message: 'ลบรถเข็นเรียบร้อย', tro_id: tro_id });

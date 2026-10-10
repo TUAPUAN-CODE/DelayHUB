@@ -530,7 +530,7 @@ module.exports = (io) => {
 
       // ✅ STEP 1: ดึง mapping ทั้งหมดของ trolley
       const mappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT mapping_id
         FROM TrolleyRMMapping
@@ -560,7 +560,7 @@ module.exports = (io) => {
 
       // ✅ 3. Update TrolleyRMMapping → dest = 'บรรจุ'
       const updateMappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         SET
@@ -577,7 +577,7 @@ module.exports = (io) => {
 
       // ✅ 4. Update Trolley status
       await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         SET tro_status = 1
@@ -1979,7 +1979,7 @@ module.exports = (io) => {
       try {
         // 1. อัปเดตสถานะของ slot
         const updateSlotResult = await new sql.Request(transaction)
-          .input("tro_id", tro_id)
+          .input("tro_id", sql.VarChar, tro_id)
           .query(`
           UPDATE Slot 
           SET tro_id = NULL,
@@ -2077,7 +2077,7 @@ module.exports = (io) => {
           // ถ้า dest = 'บรรจุ' อัปเดต Trolley.tro_status = 1
           if (dest === 'บรรจุ' || dest === 'จุดเตรียม') {
             await new sql.Request(transaction)
-              .input("tro_id", tro_id)
+              .input("tro_id", sql.VarChar, tro_id)
               .query(`
               UPDATE Trolley
               SET tro_status = 1
@@ -2816,7 +2816,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const result = await pool
         .request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
               SELECT
                   rmm.tro_id,
@@ -2922,7 +2922,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const result = await pool
         .request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
               SELECT
                 rmm.tro_id,
@@ -3047,7 +3047,7 @@ module.exports = (io) => {
 
       // 🔍 ดึงข้อมูลจาก TrolleyRMMapping ก่อน UPDATE
       const mappingDataResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT 
           mapping_id,
@@ -3165,7 +3165,7 @@ module.exports = (io) => {
 
       // 1️⃣ เปลี่ยน dest → ผสมเตรียม + เคลียร์รถเข็น
       const updateMappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         SET 
@@ -3180,7 +3180,7 @@ module.exports = (io) => {
 
       // 2️⃣ reset สถานะรถเข็น
       await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         SET tro_status = 1
@@ -3986,7 +3986,7 @@ module.exports = (io) => {
       await transaction.begin();
 
       const result = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("line_id", sql.Int, line_id)
         .input("pack_tro_status", '0')
         .query(`
@@ -3995,7 +3995,7 @@ module.exports = (io) => {
     `);
 
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
       UPDATE Trolley SET tro_status = 0 ,rsrv_timestamp = null WHERE tro_id = @tro_id
   `);
@@ -4601,7 +4601,7 @@ module.exports = (io) => {
       const pkhis = insertHis.recordset[0].hist_id; // เก็บค่า hist_id ที่ insert ใหม่
 
       const insertRMInTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("rmfp_id", sql.Int, rmfpID)
         .input("stay_place", sql.NVarChar, "บรรจุ")
         .input("dest", sql.NVarChar, "รถเข็นรอจัดส่ง")
@@ -4721,7 +4721,7 @@ module.exports = (io) => {
 
 
       const insertRMInTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("rmfp_id", sql.Int, rmfpID)
         .input("stay_place", sql.NVarChar, "บรรจุ")
         .input("dest", sql.NVarChar, "รถเข็นรอจัดส่ง")
@@ -4941,7 +4941,7 @@ module.exports = (io) => {
 
       // ตรวจสอบว่ามี trolley นี้ในระบบหรือไม่
       const rmTrolleyResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT tro_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
 
 
@@ -4955,7 +4955,7 @@ module.exports = (io) => {
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
       const rawMaterialsResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
                 SELECT
                     rmm.mapping_id,
@@ -5022,7 +5022,7 @@ module.exports = (io) => {
 
       // อัปเดต tro_id ในตาราง History สำหรับแต่ละ mapping_id ในรถเข็นนี้
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "เข้าห้องเย็น")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -5042,7 +5042,7 @@ module.exports = (io) => {
 
       // อัปเดตสถานะของวัตถุดิบในรถเข็น
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "เข้าห้องเย็น")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -5058,7 +5058,7 @@ module.exports = (io) => {
 
       // ลบรถเข็นออกจากตาราง PackTrolley
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
                 DELETE PackTrolley
                 WHERE tro_id = @tro_id
@@ -6571,7 +6571,7 @@ module.exports = (io) => {
 
       // ดึงข้อมูล mapping และเวลาต่างๆ
       const itemData = await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT
           rmm.mapping_id,
@@ -6661,18 +6661,18 @@ WHERE
       // --- เรียกใช้งานทั้งสอง query ---
       const result = await pool.request()
         .input("dest", sql.NVarChar, dest)
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(updateTrolleyQuery);
 
 
       await pool.request()
         .input("dest", sql.NVarChar, dest)
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(updateTroQuery);
 
       // อัปเดต tro_id ในตาราง History สำหรับทุก mapping_id ที่เกี่ยวข้อง
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.NVarChar, dest)
         .input("receiver_pack_edit", sql.NVarChar, receiver_pack_edit)
         .input("remark_rework", sql.NVarChar, remark_pack_edit)
@@ -6694,14 +6694,14 @@ WHERE
 
       // ลบข้อมูลจาก PackTrolley
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         DELETE PackTrolley
         WHERE tro_id = @tro_id
       `);
 
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         set tro_status = '1'
@@ -6709,7 +6709,7 @@ WHERE
       `);
 
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         set tro_id = NULL
@@ -6922,7 +6922,7 @@ WHERE
 
         // ✅ เพิ่มรายการใหม่ สำหรับรถเข็นที่ย้ายไป และดึง mapping_id ของรายการใหม่
         const insertNewMapping = await transaction.request()
-          .input("tro_id", sql.NVarChar, tro_id)
+          .input("tro_id", sql.VarChar, tro_id)
           .input("rmfp_id", sql.Float, oldData.rmfp_id)
           .input("weight_RM", sql.Float, moveWeight)
           .input("tray_count", sql.Int, trayCount)
@@ -7000,7 +7000,7 @@ WHERE
 
       // ตรวจสอบว่ามีวัตถุดิบในรถเข็นหรือไม่
       const haverawmat = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           SELECT mapping_id
           FROM TrolleyRMMapping
@@ -7014,7 +7014,7 @@ WHERE
 
       // ตรวจสอบว่ารถเข็นมีอยู่จริงในฐานข้อมูล
       const trolleyExists = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           SELECT tro_id 
           FROM Trolley 
@@ -7027,7 +7027,7 @@ WHERE
 
       // อัปเดต Trolley
       const result2 = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           UPDATE Trolley
           SET tro_status = '1',status = '2.2'
@@ -7039,7 +7039,7 @@ WHERE
       }
 
       const result1 = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           DELETE PackTrolley
           WHERE tro_id = @tro_id
@@ -7081,7 +7081,7 @@ WHERE
 
       // อัปเดตข้อมูล
       const result = await pool.request()
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", "เข้าห้องเย็น")
         .query(`UPDATE TrolleyRMMapping 
                     SET dest = @dest
@@ -7800,7 +7800,7 @@ WHERE
 
       // ตรวจสอบว่ามี trolley นี้ในระบบหรือไม่
       const rmTrolleyResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT tro_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
 
       if (rmTrolleyResult.recordset.length === 0) {
@@ -7811,7 +7811,7 @@ WHERE
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
       const rawMaterialsResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT
           rmm.mapping_id,
@@ -7860,7 +7860,7 @@ WHERE
 
       // อัปเดต tro_id ในตาราง History
       const updateHistory = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "ไปบรรจุ")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -7877,7 +7877,7 @@ WHERE
 
       // อัปเดตสถานะของวัตถุดิบในรถเข็น
       const updateMapping = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "ไปบรรจุ")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -7893,7 +7893,7 @@ WHERE
 
       // ลบรถเข็นออกจากตาราง PackTrolley
       const deletePackTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`DELETE PackTrolley WHERE tro_id = @tro_id`);
 
       if (deletePackTrolley.rowsAffected[0] === 0) throw new Error("ลบ PackTrolley ไม่สำเร็จ");
@@ -8178,7 +8178,7 @@ WHERE
 
       for (const h of histRes.recordset) {
         await transaction.request()
-          .input("tro_id", h.tro_id)
+          .input("tro_id", sql.VarChar, h.tro_id)
           .input("mapping_id", sql.Int, newMappingId) // ✅ mapping ใหม่
           .input("withdraw_date", h.withdraw_date)
           .input("cooked_date", h.cooked_date)

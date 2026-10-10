@@ -3305,7 +3305,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       step("check trolley status");
       const checkTrolley = await pool
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(
           `SELECT tro_status, rsrv_timestamp FROM Trolley WHERE tro_id = @tro_id`,
         );
@@ -3342,7 +3342,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       step("update Trolley");
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(
           `UPDATE Trolley SET tro_status = '0', rsrv_timestamp = NULL WHERE tro_id = @tro_id`,
         );
@@ -3351,7 +3351,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       step("update TrolleyRMMapping (clear tro_id)");
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(
           `UPDATE TrolleyRMMapping SET tro_id = NULL, tl_status = '1707' WHERE tro_id = @tro_id`,
         );
@@ -3359,7 +3359,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       step("update Slot (clear tro_id)");
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(
           `UPDATE Slot SET tro_id = NULL, status = '1708' WHERE tro_id = @tro_id`,
         );
@@ -3462,7 +3462,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       step("insert TrolleyRMMapping");
       const mappingResult = await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("rmfp_id", rmfpID)
         .input("tro_production_id", prod_rm_id)
         .input("rm_status", rm_status)
@@ -3539,7 +3539,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       const historyInsertResult = await transaction
         .request()
         .input("mapping_id", mapping_id)
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("cooked_date", cookedDateTimeNew)
         .input("prepared_date", preparedDateTimeNew)
         .input("start_mixed_date", mixtimeNew ? mixtimeNew : null)
@@ -3736,7 +3736,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       // 1️⃣ ตรวจสอบ trolley
       const checkTrolley = await pool
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`SELECT tro_status, rsrv_timestamp FROM Trolley WHERE tro_id = @tro_id`);
 
       if (checkTrolley.recordset.length === 0)
@@ -3757,18 +3757,18 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       // 3️⃣ ปรับสถานะ trolley เป็นใช้งาน
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`UPDATE Trolley SET tro_status = '0', rsrv_timestamp = NULL WHERE tro_id = @tro_id`);
 
       // 4️⃣ ลบ tro_id ใน TrolleyRMMapping และ Slot
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`UPDATE TrolleyRMMapping SET tro_id = NULL, tl_status = '1707' WHERE tro_id = @tro_id`);
 
       await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`UPDATE Slot SET tro_id = NULL, status = '1708' WHERE tro_id = @tro_id`);
 
       // 5️⃣ ดึงข้อมูล RMForProd
@@ -3821,7 +3821,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       // 9️⃣ Insert TrolleyRMMapping ก่อน
       const mappingResult = await transaction
         .request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("rmfp_id", rmfpID)
         .input("tro_production_id", prod_rm_id)
         .input("rm_status", rm_status)
@@ -3883,7 +3883,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       await transaction
         .request()
         .input("mapping_id", mapping_id)
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("cooked_date", cookedDateTimeNew)
         .input("prepared_date", preparedDateTimeNew)
         .input("withdraw_date", dataHisRMForProd.recordset[0].withdraw_date)
@@ -6606,7 +6606,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // 📌 แทรกข้อมูลใน TrolleyRMMapping
       const insertResult = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("rmfp_id", rmfpID)
         .input("tro_production_id", dataRMForProd.recordset[0].prod_rm_id)
         .input("rm_status", rm_status)
@@ -6632,7 +6632,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // 📌 แทรกข้อมูลลง History
       const historyResult = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("mapping_id", mapping_id)
         .input("cooked_date", dataHisRMForProd.recordset[0].cooked_date)
         .input("withdraw_date", dataHisRMForProd.recordset[0].withdraw_date)
@@ -6659,7 +6659,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // 📌 อัปเดตสถานะ Trolley
       await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`
         UPDATE Trolley
         SET tro_status = '0', rsrv_timestamp = NULL
@@ -7022,7 +7022,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // update Trolley
       const clearStatus = await transaction.request()
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("tro_status", 1) // 1 = ว่าง
         .query(`
         UPDATE Trolley
@@ -7643,7 +7643,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // ตรวจสอบสถานะ Trolley ก่อน
       const checkTrolley = await pool.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`
         SELECT tro_status, rsrv_timestamp
         FROM Trolley
@@ -7670,7 +7670,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // update Trolley status เป็น '1'
       const updateTrolley = await transaction.request()
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         SET tro_status = '1', status = '1.4',rsrv_timestamp = NULL
@@ -7712,7 +7712,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       // update TrolleyRMMapping
       const updateRM = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("weight_RM", weightTotal)
         .input("tray_count", ntray)
         .input("dest", destination)
@@ -8745,7 +8745,7 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
       // ✅ ตรวจสอบ Trolley
       if (license_plate) {
         const checkTrolley = await pool.request()
-          .input("tro_id", license_plate)
+          .input("tro_id", sql.VarChar, license_plate)
           .query(`
             SELECT tro_status, rsrv_timestamp
             FROM Trolley
@@ -8808,7 +8808,7 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
 
       // ✅ Insert Mapping ใหม่
       const insertNew = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("weight_RM", weightTotal)
         .input("tray_count", ntray)
         .input("dest", 'รอCheckin')
@@ -8896,7 +8896,7 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
       // ✅ คืนสถานะ trolley
       if (license_plate) {
         await transaction.request()
-          .input("tro_id", license_plate)
+          .input("tro_id", sql.VarChar, license_plate)
           .query(`
             UPDATE Trolley
             SET tro_status = '0', rsrv_timestamp = NULL
@@ -9470,7 +9470,7 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
       // 3️⃣ อัปเดต Trolley หาก tro_id มีค่า
       if (tro_id) {
         const updateTrolley = await transaction.request()
-          .input("tro_id", tro_id)
+          .input("tro_id", sql.VarChar, tro_id)
           .input("tro_status", 1)
           .query(`
           UPDATE Trolley
@@ -10349,7 +10349,7 @@ OPTION (RECOMPILE)
 
       // 2️⃣ ตรวจสอบ Trolley
       const checkTrolley = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`SELECT tro_status, rsrv_timestamp FROM Trolley WHERE tro_id = @tro_id`);
 
       if (checkTrolley.recordset.length === 0) {
@@ -10408,7 +10408,7 @@ OPTION (RECOMPILE)
 
       // 6️⃣ อัปเดต TrolleyRMMapping
       const updateRM = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("weight_RM", weightTotal)
         .input("tray_count", ntray)
         .input("dest", destination)
@@ -10431,7 +10431,7 @@ OPTION (RECOMPILE)
 
       // 7️⃣ อัปเดต Trolley status เป็น 0
       await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`UPDATE Trolley SET tro_status = '0' WHERE tro_id = @tro_id`);
 
       // 8️⃣ อัปเดต History

@@ -580,7 +580,7 @@ WHERE
     try {
       // ตรวจสอบสถานะก่อนทำรายการ
       const checkTrolley = await pool.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`
         SELECT tro_status, rsrv_timestamp
         FROM Trolley
@@ -649,7 +649,7 @@ WHERE
 
       // Insert TrolleyRMMapping
       const result = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .input("rmfp_id", rmfpID)
         .input("tro_production_id", dataRMForProd.recordset[0].prod_rm_id)
         .input("rm_status", "รอกลับมาเตรียม")
@@ -701,7 +701,7 @@ WHERE
 
       // Update Trolley
       const updateTrolley = await transaction.request()
-        .input("tro_id", license_plate)
+        .input("tro_id", sql.VarChar, license_plate)
         .query(`
         UPDATE Trolley
         SET tro_status = '0', rsrv_timestamp = NULL

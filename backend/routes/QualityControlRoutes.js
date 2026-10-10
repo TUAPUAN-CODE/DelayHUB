@@ -501,7 +501,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					.request()
 					.input("mapping_id", sql.Int, mapping_id)
 					.input("receiver", sql.NVarChar, operator)
-					.input("tro_id", sql.NVarChar, tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.input("Moisture", sql.NVarChar, Moisture)
 					.input("percent_fine", sql.NVarChar, percent_fine)
 					.input("Temp", sql.NVarChar, Temp)
@@ -536,7 +536,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 				if (tro_id) {
 					await transaction
 						.request()
-						.input("tro_id", sql.NVarChar, tro_id)
+						.input("tro_id", sql.VarChar, tro_id)
 						.query(`
 					UPDATE [PFCMv2].[dbo].[Trolley]
 					SET tro_status = 1
@@ -559,7 +559,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					.request()
 					.input("mapping_id", sql.Int, mapping_id)
 					.input("receiver", sql.NVarChar, operator)
-					.input("tro_id", sql.NVarChar, tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.input("Moisture", sql.NVarChar, Moisture)
 					.input("percent_fine", sql.NVarChar, percent_fine)
 					.input("Temp", sql.NVarChar, Temp)
@@ -708,7 +708,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					if (old_tro_id) {
 						await transaction
 							.request()
-							.input("tro_id", sql.NVarChar, old_tro_id)
+							.input("tro_id", sql.VarChar, old_tro_id)
 							.query(`
 					UPDATE [PFCMv2].[dbo].[Trolley]
 					SET tro_status = 1
@@ -1159,7 +1159,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// 1. อัปเดตสถานะ, ปลายทาง และ stay_place ในตาราง RMInTrolley
 			const updateRMResult = await pool.request()
-				.input("tro_id", tro_id)
+				.input("tro_id", sql.VarChar, tro_id)
 				.input("dest", dest)
 				.input("cold_time", cold_time)
 				.input("rm_status", rm_status)
@@ -1180,7 +1180,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// 2. ค้นหา tro_id ที่เกี่ยวข้องกับ rmfp_id ที่กำลังอัปเดต
 			const findTrolleyResult = await pool.request()
-				.input("tro_id", tro_id)
+				.input("tro_id", sql.VarChar, tro_id)
 				.query(`
 					SELECT tro_id 
 					FROM RMInTrolley
@@ -1193,7 +1193,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 				// อัปเดต tro_id เป็น NULL ในตาราง Slot
 				const updateSlotResult = await pool.request()
-					.input("tro_id", tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.query(`
 						UPDATE Slot
 						SET tro_id = NULL

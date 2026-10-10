@@ -371,7 +371,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
             await transaction.begin();
 
             const resultSlot = await transaction.request()
-                .input("slot_id", slot_id)
+                .input("slot_id", sql.VarChar, slot_id)
                 .input("cs_id", cs_id)
                 .query(`
           SELECT slot_id, cs_id, reserved_at FROM Slot WHERE slot_id = @slot_id AND cs_id = @cs_id
@@ -397,7 +397,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
 
             await transaction.request()
-                .input("slot_id", slot_id)
+                .input("slot_id", sql.VarChar, slot_id)
                 .input("cs_id", cs_id)
                 .query(`
           UPDATE Slot SET tro_id = 'rsrv',status ='339', reserved_at = GETDATE() WHERE slot_id = @slot_id AND cs_id = @cs_id AND tro_id IS NULL
@@ -486,7 +486,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             // 1. ตรวจสอบ Slot ก่อน
             const resultSlot = await transaction.request()
-                .input("slot_id", slot_id)
+                .input("slot_id", sql.VarChar, slot_id)
                 .input("cs_id", cs_id)
                 .query(`
         SELECT slot_id, cs_id, tro_id, reserved_at
@@ -501,7 +501,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             // 2. อัปเดตค่า tro_id และ reserved_at ให้เป็น NULL
             const updateResult = await transaction.request()
-                .input("slot_id", slot_id)
+                .input("slot_id", sql.VarChar, slot_id)
                 .input("cs_id", cs_id)
                 .query(`
        UPDATE Slot
@@ -825,7 +825,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
             }
 
             const result = await pool.request()
-                .input('slot_id', slot_id)
+                .input('slot_id', sql.VarChar, slot_id)
                 .query(`
                 SELECT 
                     s.slot_id,
@@ -950,7 +950,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
 
             const result = await pool
                 .request()
-                .input('slot_id', slot_id)
+                .input('slot_id', sql.VarChar, slot_id)
                 .query(`
                     SELECT
                         rmm.mapping_id,
@@ -1406,7 +1406,7 @@ WHERE
                         .input('tray_count', traysToMove)
                         .input('weight_RM', weightNum)
                         .input('md_time', historyData.md_time)
-                        .input('tro_id', target_tro_id)
+                        .input('tro_id', sql.VarChar, target_tro_id)
                         .input('rmm_line_name', sourceRecord.rmm_line_name)
                         .input('dest', sourceRecord.dest)
                         .input('name_edit_prod_two', historyData.name_edit_prod_two)
@@ -1799,8 +1799,8 @@ WHERE
 
             // 🔄 Query ทั้ง normal และ mixed พร้อมกัน
             const [normalResult, mixedResult] = await Promise.all([
-                pool.request().input('tro_id', tro_id).query(normalMaterialsQuery),
-                pool.request().input('tro_id', tro_id).query(mixedMaterialsQuery)
+                pool.request().input('tro_id', sql.VarChar, tro_id).query(normalMaterialsQuery),
+                pool.request().input('tro_id', sql.VarChar, tro_id).query(mixedMaterialsQuery)
             ]);
 
             // 🧩 รวมข้อมูล
@@ -2226,7 +2226,7 @@ ORDER BY
             try {
                 // ── 1. อัปเดตสถานะของ slot ────────────────────────────────────────────
                 const updateSlotResult = await new sql.Request(transaction)
-                    .input("tro_id", tro_id)
+                    .input("tro_id", sql.VarChar, tro_id)
                     .query(`
                     UPDATE Slot
                     SET tro_id = NULL, status = '1791'
@@ -2304,7 +2304,7 @@ ORDER BY
                     // ── อัปเดต Trolley status ────────────────────────────────────────
                     if (dest === 'จุดเตรียม' || dest === 'บรรจุ') {
                         await new sql.Request(transaction)
-                            .input("tro_id", tro_id)
+                            .input("tro_id", sql.VarChar, tro_id)
                             .query(`UPDATE Trolley SET tro_status = 1 WHERE tro_id = @tro_id;`);
                     }
 
@@ -2476,7 +2476,7 @@ ORDER BY
             try {
                 // 1. อัปเดต Slot
                 const updateSlotResult = await new sql.Request(transaction)
-                    .input("tro_id", tro_id)
+                    .input("tro_id", sql.VarChar, tro_id)
                     .query(`UPDATE Slot SET tro_id = NULL, status = '1791' WHERE tro_id = @tro_id;`);
 
                 if (updateSlotResult.rowsAffected[0] === 0) {
@@ -2487,7 +2487,7 @@ ORDER BY
                 const CS_IDS_NO_COLD_TIME = [10, 14, 21, 25, 26, 37, 38];
 
                 const slotResult = await new sql.Request(transaction)
-                    .input("slot_id", slot_id)
+                    .input("slot_id", sql.VarChar, slot_id)
                     .query(`SELECT cs_id FROM Slot WHERE slot_id = @slot_id`);
 
                 const cs_id = slotResult.recordset[0]?.cs_id ?? null;
@@ -2940,7 +2940,7 @@ ORDER BY
             if (tro_id) {
                 const req2 = new sql.Request(transaction); // ✅ Request ใหม่
                 await req2
-                    .input("tro_id", sql.NVarChar, String(tro_id)) // ✅ tro_id เป็น string "0691"
+                    .input("tro_id", sql.VarChar, String(tro_id)) // ✅ tro_id เป็น string "0691"
                     .query(`
           UPDATE Trolley
           SET tro_status = '1'
@@ -3456,7 +3456,7 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
             try {
                 // --- ตรวจสอบ slot เดิม ---
                 const oldSlot = await pool.request()
-                    .input("slot_id", slot_id)
+                    .input("slot_id", sql.VarChar, slot_id)
                     .query(`SELECT slot_id, cs_id, tro_id, slot_status FROM Slot WHERE slot_id = @slot_id;`);
 
                 if (oldSlot.recordset.length === 0) {
@@ -3486,15 +3486,15 @@ router.get("/coldstorage/history/test/:mapping_id", async (req, res) => {
 
                 // --- อัปเดต slot ใหม่ ---
                 await pool.request()
-                    .input("slot_id", new_slot_id)
-                    .input("tro_id", tro_id)
+                    .input("slot_id", sql.VarChar, new_slot_id)
+                    .input("tro_id", sql.VarChar, tro_id)
                     .query(`UPDATE Slot SET tro_id = @tro_id ,
                      status = '/coldstorage/moveslot'
                     WHERE slot_id = @slot_id;`);
 
                 // --- ลบ tro_id จาก slot เก่า ---
                 await pool.request()
-                    .input("slot_id", slot_id)
+                    .input("slot_id", sql.VarChar, slot_id)
                     .query(`UPDATE Slot SET tro_id = NULL ,status ='16' WHERE slot_id = @slot_id;`);
 
                 await transaction.commit();
@@ -6737,7 +6737,7 @@ ORDER BY rmm.mapping_id DESC
             try {
                 // ตรวจว่ามีรถเข็นปลายทาง
                 const checkDestTrolley = await t()
-                    .input("tro_id", new_tro_id)
+                    .input("tro_id", sql.VarChar, new_tro_id)
                     .query(`SELECT tro_id FROM Trolley WITH (UPDLOCK, HOLDLOCK) WHERE tro_id = @tro_id`);
 
                 if (checkDestTrolley.recordset.length === 0) {
@@ -6769,7 +6769,7 @@ ORDER BY rmm.mapping_id DESC
           WHERE tro_id = @tro_id AND rmfp_id = @rmfp_id
           ORDER BY mapping_id
         `;
-                    bind.input("tro_id", tro_id).input("rmfp_id", rmfp_id);
+                    bind.input("tro_id", sql.VarChar, tro_id).input("rmfp_id", rmfp_id);
                 }
 
                 const result = await bind.query(sourceQuery);
@@ -6836,7 +6836,7 @@ ORDER BY rmm.mapping_id DESC
           `);
                 } else {
                     await t()
-                        .input("tro_id", tro_id)
+                        .input("tro_id", sql.VarChar, tro_id)
                         .input("rmfp_id", rmfp_id)
                         .input("weight_RM", weightNum)
                         .input("tray_count_decrease", traysToMove)
@@ -6884,7 +6884,7 @@ ORDER BY rmm.mapping_id DESC
           `);
                 } else {
                     await t()
-                        .input("tro_id", tro_id)
+                        .input("tro_id", sql.VarChar, tro_id)
                         .input("rmfp_id", rmfp_id)
                         .input("removal_date", currentDateTime)
                         .input("updated_at", currentDateTime)
@@ -6901,7 +6901,7 @@ ORDER BY rmm.mapping_id DESC
 
                 // 9) จัดการปลายทาง: มีอยู่แล้วหรือยัง
                 const existDest = await t()
-                    .input("tro_id", new_tro_id)
+                    .input("tro_id", sql.VarChar, new_tro_id)
                     .input("rmfp_id", sourceRecord.rmfp_id ?? rmfp_id ?? null)
                     .query(`
           SELECT TOP 1 * FROM TrolleyRMMapping WITH (UPDLOCK, HOLDLOCK)
@@ -6917,7 +6917,7 @@ ORDER BY rmm.mapping_id DESC
                     const existingTray = existDest.recordset[0].tray_count || 0;
 
                     await t()
-                        .input("tro_id", new_tro_id)
+                        .input("tro_id", sql.VarChar, new_tro_id)
                         .input("rmfp_id", sourceRecord.rmfp_id ?? rmfp_id)
                         .input("weight_RM_add", weightNum)
                         .input("tray_count_add", traysToMove)
@@ -6965,7 +6965,7 @@ ORDER BY rmm.mapping_id DESC
                             .input("tray_count", (existDest.recordset[0].tray_count || 0) + traysToMove)
                             .input("weight_RM", (existDest.recordset[0].weight_RM || 0) + weightNum)
                             .input("md_time", historyData.md_time)
-                            .input("tro_id", new_tro_id)
+                            .input("tro_id", sql.VarChar, new_tro_id)
                             .input("rmm_line_name", sourceRecord.rmm_line_name)
                             .input("dest", sourceRecord.dest)
                             .input("name_edit_prod_two", historyData.name_edit_prod_two)
@@ -7020,7 +7020,7 @@ ORDER BY rmm.mapping_id DESC
                 } else {
                     // 9.2 ไม่มีรายการปลายทาง → สร้างใหม่
                     const insMap = await t()
-                        .input("tro_id", new_tro_id)
+                        .input("tro_id", sql.VarChar, new_tro_id)
                         .input("rmfp_id", sourceRecord.rmfp_id ?? rmfp_id)
                         .input("batch_id", sourceRecord.batch_id ?? null)
                         .input("tro_production_id", sourceRecord.tro_production_id ?? null)
@@ -7101,7 +7101,7 @@ ORDER BY rmm.mapping_id DESC
                         .input("tray_count", traysToMove)
                         .input("weight_RM", weightNum)
                         .input("md_time", historyData.md_time)
-                        .input("tro_id", new_tro_id)
+                        .input("tro_id", sql.VarChar, new_tro_id)
                         .input("rmm_line_name", sourceRecord.rmm_line_name)
                         .input("dest", sourceRecord.dest)
                         .input("name_edit_prod_two", historyData.name_edit_prod_two)
@@ -7179,7 +7179,7 @@ ORDER BY rmm.mapping_id DESC
 
                 // 10) เช็คน้ำหนักรวมต้นทาง
                 const sourceWeightRes = await t()
-                    .input("tro_id", tro_id)
+                    .input("tro_id", sql.VarChar, tro_id)
                     .query(`
           SELECT SUM(weight_RM) AS total_weight
           FROM TrolleyRMMapping WITH (HOLDLOCK)
@@ -7190,17 +7190,17 @@ ORDER BY rmm.mapping_id DESC
                 if (sourceTotalWeight === 0) {
                     // 10.1 ปลดช่องจอด
                     await t()
-                        .input("slot_id", slot_id)
+                        .input("slot_id", sql.VarChar, slot_id)
                         .query(`UPDATE Slot SET tro_id = NULL ,status ='3867' WHERE slot_id = @slot_id`);
                     // 10.2 set รถเข็นว่าง
                     await t()
-                        .input("tro_id", tro_id)
+                        .input("tro_id", sql.VarChar, tro_id)
                         .query(`UPDATE Trolley SET tro_status = '1',status = '2.0' WHERE tro_id = @tro_id`);
                 }
 
                 // 11) น้ำหนักรวมปลายทาง
                 const destWeightRes = await t()
-                    .input("tro_id", new_tro_id)
+                    .input("tro_id", sql.VarChar, new_tro_id)
                     .query(`
           SELECT SUM(weight_RM) AS total_weight
           FROM TrolleyRMMapping WITH (HOLDLOCK)
