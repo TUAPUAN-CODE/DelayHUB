@@ -98,6 +98,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [toast, setToast] = useState("");
   const [mix, setMix] = useState({});
   const [plans, setPlans] = useState([]);
+  const [mixed, setMixed] = useState([]); // mixed lots that are not in a trolley yet
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
@@ -129,6 +130,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       // the table refreshes by itself every minute: when nothing changed keep the same data, so thousands of rows are not rebuilt and rendered again for nothing
       const sig = `${res.data.hus?.length}|${res.data.mappings?.length}|${JSON.stringify(res.data)}`;
       if (sig !== lastSig.current) { lastSig.current = sig; setData({ hus: res.data.hus || [], mappings: res.data.mappings || [] }); }
+      setMixed(res.data.mixed || []);
       setError("");
       if (role === "prep") {
         // lists of the old mixing pages (a failing list must not break the sheet)
@@ -257,7 +259,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   // a row only has to render again when what its cells show changed: the weight input of the Pack confirm
   const rowSig = useCallback((r) => (role === "pack" ? `${weights[r.mapping_id] ?? ""}|${selected.has(r.__key) ? 1 : 0}` : ""), [role, weights, selected]);
 
-  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans, now), [data, mix, plans, now]);
+  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans, now, mixed), [data, mix, plans, now, mixed]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const rows = useMemo(() => {

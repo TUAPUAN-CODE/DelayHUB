@@ -6,7 +6,6 @@ import HistoryCookedPage from "./HistoryCooked/HistoryCookedPage";
 import HistoryTranform from "./HistoryTransform/HistoryTransformPage";
 import ManageSelect from "../User/ManageSelect";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
-import RM_EMU from "./RMEmu/MainPage.jsx";
 import EditDataTrolley from "./EditDataTrolley/EditDataTrolley.jsx";
 import CheckInPagePrep from "./CheckIn/CheckInPage.jsx";
 
@@ -34,7 +33,8 @@ function AppPrep() {
         <Route path="/WorkplaceSelector" element={<WorkplaceSelector />} />
         <Route path="/HistoryTranform/HistoryTranformPage"element={<HistoryTranform />}/>
         <Route path="/User/SelectWP" element={<ManageSelect />} />
-        <Route path="/RM_EMU" element={<RM_EMU/>} />
+        {/* the mixed lots are rows of the "In Process" table now (status "ผสมแล้ว", column "Emulsion ที่ผสม") */}
+        <Route path="/RM_EMU" element={<Navigate to="/prep/Sheet" replace />} />
         <Route path="/EditDataTrolley" element={<EditDataTrolley />} />
         <Route path="/checkinpage" element={<CheckInPagePrep />} />
         {/* รอแก้ไข / กลับมาเตรียม / ผสมวัตถุดิบ ทั้ง 4 หน้า รวมอยู่ในตารางรวมวัตถุดิบแล้ว (tool ในตาราง) — ลิงก์เดิมพาไปที่ Sheet */}

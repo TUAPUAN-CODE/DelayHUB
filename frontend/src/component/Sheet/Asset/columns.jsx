@@ -122,6 +122,7 @@ export const COLUMNS = [
   x("tray_count", "ถาด", "info", 60, { align: "right", type: "number" }),
   x("rm_status", "สถานะวัตถุดิบ", "info", 130),
   x("remark", "หมายเหตุ", "info", 140),
+  x("emulsion_text", "Emulsion ที่ผสม", "info", 220),
   x("dest", "ปลายทาง", "info", 110),
   x("cs_name", "ห้อง", "info", 90),
   x("slot_id", "ช่อง", "info", 70),

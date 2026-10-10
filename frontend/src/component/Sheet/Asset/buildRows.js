@@ -47,6 +47,7 @@ export const packStage = (r) => {
 export const statusOf = (r) => withZone(baseStatusOf(r));
 
 const baseStatusOf = (r) => {
+  if (r.__kind === "mixed") return { label: "ผสมแล้ว", color: "#6B21A8", bg: "#E9D5FF" }; // mixed with emulsions, not in a trolley yet (the old "รายการผสมวัตถุดิบ" page)
   if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
   if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
@@ -117,7 +118,7 @@ const FIXED_STATUS = (r) => {
 
 const cleanText = (v) => v.normalize("NFC").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/\s+/g, " ").trim();
 
-export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now()) => {
+export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(), mixed = []) => {
   // production-plan rows (RMForProd) of "จัดการวัตถุดิบ", joined to a HU by MAT|BATCH
   const planByKey = new Map();
   (plans || []).forEach((p) => planBatches(p).forEach((b) => {
@@ -169,6 +170,12 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now())
     consumed.add(p.rmfp_id);
     rows.push({
       ...p, weight_RM: p.weight, code: p.production, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
+    });
+  });
+  // mixed lots (emulsions mixed into a production-plan row) that are not in a trolley yet: rows of their own, with the emulsion text
+  (mixed || []).forEach((m) => {
+    rows.push({
+      ...m, weight_RM: m.weight, code: m.production, rmm_line_name: m.rmfp_line_name, __key: `mixed:${m.rmfp_id}`, __kind: "mixed", __dbs: [], __hu: null,
     });
   });
   // Prep mixing lists (materials waiting to be mixed). A "loaf" item is a real mapping: the tool is attached to that row instead of a new row.

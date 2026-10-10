@@ -141,4 +141,6 @@ export default {
   "บันทึกไม่สำเร็จ": ["Could not save"],
   "โหลดข้อมูลไม่สำเร็จ": ["Could not load the data"],
   "ปิดรายการ": ["Close item"],
+  "ผสมแล้ว": ["Mixed"],
+  "Emulsion ที่ผสม": ["Mixed emulsions"],
 };

@@ -37,6 +37,15 @@ const SAP_DATES = [
 
 const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col}`;
 
+// The emulsions that were mixed into a production-plan row (RM_EmuMixed), one text per rmfp_id: "Emulsion name (batch) 12 kg; ..."
+const EMULSION_TEXT_SQL = `
+  SELECT rmem.rmfp_id,
+         STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
+  FROM RM_EmuMixed rmem WITH (NOLOCK)
+  JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+  JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+  GROUP BY rmem.rmfp_id`;
+
 const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')";
 // the date a mapping counts for in the Done table (last thing that happened to it)
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
@@ -81,6 +90,7 @@ const buildMappingQuery = (scope = "open") => `
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
       -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch
       COALESCE(NULLIF(b.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_after,
+      emx.emulsion_text,
       sl.slot_id,
       cs.cs_id,
       cs.cs_name,
@@ -107,6 +117,7 @@ const buildMappingQuery = (scope = "open") => `
       ORDER BY s2.cs_id, s2.slot_id
   ) sl
   LEFT JOIN ColdStorage cs WITH (NOLOCK) ON cs.cs_id = sl.cs_id
+  LEFT JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmm.rmfp_id
   OUTER APPLY (
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
@@ -216,6 +227,35 @@ const buildPlanQuery = () => `
   ORDER BY htr.cooked_date DESC
 `;
 
+// Mixed lots (the old page "รายการผสมวัตถุดิบ"): production-plan rows that have emulsions mixed into them. Only the ones that are NOT in a trolley yet get a row of their own
+// (once they are in a trolley they are mapping rows, which carry the emulsion text).
+const buildMixedQuery = () => `
+  SELECT TOP (@limit)
+      rmfp.rmfp_id,
+      rmfp.batch,
+      pdrm.mat,
+      rm2.mat_name,
+      rmfp.weight,
+      CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
+      rmfp.rmfp_line_name,
+      rmfp.level_eu,
+      CONVERT(VARCHAR(19), his.withdraw_date, 120) AS withdraw_date,
+      CONVERT(VARCHAR(19), his.cooked_date, 120) AS cooked_date,
+      emx.emulsion_text
+  FROM RMForProd rmfp WITH (NOLOCK)
+  JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmfp.rmfp_id
+  JOIN ProdRawMat pdrm WITH (NOLOCK) ON rmfp.prod_rm_id = pdrm.prod_rm_id
+  JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
+  JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
+  LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
+  WHERE NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
+    AND (@open_from IS NULL OR (
+        COALESCE(his.cooked_date, his.withdraw_date) >= @open_from
+        AND COALESCE(his.cooked_date, his.withdraw_date) < DATEADD(DAY, 1, @open_to)
+    ))
+  ORDER BY rmfp.rmfp_id DESC
+`;
+
 router.get("/sheet/rows", async (req, res) => {
   try {
     const days = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 365);
@@ -241,13 +281,14 @@ router.get("/sheet/rows", async (req, res) => {
       .input("open_from", sql.Date, ranged ? req.query.open_from : null)
       .input("open_to", sql.Date, ranged ? req.query.open_to : null);
 
-    const [mappings, hus, plans] = await Promise.all([
+    const [mappings, hus, plans, mixed] = await Promise.all([
       bind(pool.request()).query(buildMappingQuery("open")),
       bind(pool.request()).query(buildHuQuery()),
       bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error("[Route /sheet/rows] plans error:", err.message); return { recordset: [] }; }),
+      bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error("[Route /sheet/rows] mixed error:", err.message); return { recordset: [] }; }),
     ]);
 
-    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
+    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
   } catch (err) {
     console.error("[Route /sheet/rows] Error:", err);
     res.status(500).json({ success: false, error: err.message });
