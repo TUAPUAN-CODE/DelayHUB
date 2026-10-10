@@ -118,31 +118,19 @@ const getCsWaitMinutes = (row) => {
   return total;
 };
 
-const calculateDBS2FromMapped = (mapped, isSpecial = false, row = null) => {
+const calculateDBS2FromMapped = (mapped, isSpecial = false) => {
   if (isSpecial) return '-';
-  let totalMinutes = 0;
-  let hasData = false;
-  const cold1 = calculateMinutesDifference(mapped._B, mapped._C);
-  if (cold1 !== null) { totalMinutes += cold1; hasData = true; }
-  if (mapped._D && mapped._E) {
-    const cold2 = calculateMinutesDifference(mapped._D, mapped._E);
-    if (cold2 !== null) { totalMinutes += cold2; hasData = true; }
-  }
-  if (mapped._D3 && mapped._E3) {
-    const cold3 = calculateMinutesDifference(mapped._D3, mapped._E3);
-    if (cold3 !== null) { totalMinutes += cold3; hasData = true; }
-  }
-  const csMin = getCsWaitMinutes(row);
-  if (csMin > 0) { totalMinutes += csMin; hasData = true; }
-  return hasData ? formatMinutesToTime(totalMinutes) : '-';
+  const min = insideColdMinutes(mapped);
+  return min === null ? '-' : formatMinutesToTime(min);
 };
 
-// DBS3 = time OUTSIDE the cold rooms after the first exit (DBS1 = prep -> first cold room is not part of it):
-//   (out 1 -> in 2) + (out 2 -> in 3) + ... + (last out -> packed).  Every cold stay counts (small + big cold rooms, sorted by time in).
+// Cold rooms (small + big, up to 7 stays) sorted by time in. DBS2 = the time spent IN them, DBS3 = the time OUTSIDE them after the first exit:
+//   DBS2 = (in 1 -> out 1) + (in 2 -> out 2) + ...      DBS3 = (out 1 -> in 2) + (out 2 -> in 3) + ... + (last out -> packed)
+// so DBS1 + DBS2 + DBS3 = the whole time from "prep finished" to "packed". A stay that is still open counts up to now only on a live row (mapped._now).
 const ROW_OF = new WeakMap(); // mapped row -> the row it was made from
-const outsideColdMinutes = (mapped) => {
+const sortedColdStays = (mapped) => {
   const row = ROW_OF.get(mapped);
-  if (!row) return null;
+  if (!row) return [];
   const pairs = [
     { in: row.come_cold_date, out: row.out_cold_date },
     { in: row.come_cold_date_two, out: row.out_cold_date_two },
@@ -152,8 +140,21 @@ const outsideColdMinutes = (mapped) => {
     { in: row.cs_come_cold_date_three, out: row.cs_out_cold_date_three },
     { in: row.cs_come_cold_date_four, out: row.cs_out_cold_date_four },
   ].filter((p) => p.in && p.in !== '-');
-  if (!pairs.length) return null;
   pairs.sort((a, b) => { const da = new Date(a.in); const db = new Date(b.in); return (isNaN(da) ? 1 : 0) - (isNaN(db) ? 1 : 0) || da - db; });
+  return pairs;
+};
+const insideColdMinutes = (mapped) => {
+  let total = 0; let has = false;
+  sortedColdStays(mapped).forEach((p) => {
+    const out = p.out && p.out !== '-' ? p.out : mapped._now;
+    const d = out ? calculateMinutesDifference(p.in, out) : null;
+    if (d !== null) { total += d; has = true; }
+  });
+  return has ? total : null;
+};
+const outsideColdMinutes = (mapped) => {
+  const pairs = sortedColdStays(mapped);
+  if (!pairs.length) return null;
   let total = 0; let has = false;
   for (let i = 0; i < pairs.length; i += 1) {
     const out = pairs[i].out;
@@ -231,22 +232,9 @@ const calcDBS1Minutes = (mapped, row) => {
   return calculateMinutesDifference(mapped._A, mapped._B);
 };
 
-const calcDBS2Minutes = (mapped, isSpecial, row = null) => {
+const calcDBS2Minutes = (mapped, isSpecial) => {
   if (isSpecial) return null;
-  let total = 0; let has = false;
-  const c1 = calculateMinutesDifference(mapped._B, mapped._C);
-  if (c1 !== null) { total += c1; has = true; }
-  if (mapped._D && mapped._E) {
-    const c2 = calculateMinutesDifference(mapped._D, mapped._E);
-    if (c2 !== null) { total += c2; has = true; }
-  }
-  if (mapped._D3 && mapped._E3) {
-    const c3 = calculateMinutesDifference(mapped._D3, mapped._E3);
-    if (c3 !== null) { total += c3; has = true; }
-  }
-  const csMin = getCsWaitMinutes(row);
-  if (csMin > 0) { total += csMin; has = true; }
-  return has ? total : null;
+  return insideColdMinutes(mapped);
 };
 
 const calcDBS3Minutes = (mapped, isSpecial) => {
@@ -299,7 +287,7 @@ const applyLive = (m, row, nowD) => {
 /** [{text, minutes, std, over}] for DBS1..DBS4 of a mapping row (over = longer than the standard of its raw material group). `now` (ms or Date) makes the running stage count up to the present. */
 export const getDbs = (row, now = null) => {
   const mapped = getRemappedRow(row);
-  if (now) applyLive(mapped, row, new Date(now));
+  if (now) { applyLive(mapped, row, new Date(now)); if (!isFinished(row)) mapped._now = new Date(now); }
   const special = isSpecialGroup(row);
   const std = [row.DBS1, row.DBS2, row.DBS3, row.DBS4].map(parseStandardDBSToMinutes);
   const mins = [
