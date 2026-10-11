@@ -4589,10 +4589,10 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         rm.mat_name,
         rmm.weight_RM,
         rmm.level_eu,
-        CONVERT(VARCHAR, htr.rmit_date, 120) AS rmit_date,
-        CONVERT(VARCHAR, htr.out_cold_date, 120) AS out_cold_date,
-        CONVERT(VARCHAR, htr.out_cold_date_two, 120) AS out_cold_date_two,
-        CONVERT(VARCHAR, htr.out_cold_date_three, 120) AS out_cold_date_three,
+        CONVERT(VARCHAR, h.rmit_date, 120) AS rmit_date,
+        CONVERT(VARCHAR, h.out_cold_date, 120) AS out_cold_date,
+        CONVERT(VARCHAR, h.out_cold_date_two, 120) AS out_cold_date_two,
+        CONVERT(VARCHAR, h.out_cold_date_three, 120) AS out_cold_date_three,
         
         -- ✅ รวม doc_no กับ rmm_line_name
         CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
