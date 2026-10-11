@@ -115,6 +115,8 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
         `http://${process.env.DB_SERVER}:5173`,
         "http://172.48.0.115:5173",
         "http://pfcm.thaiunion.co.th",
+        // origin เพิ่มเติมของเครื่องอื่น (เช่น server เครื่องที่ 2) คั่นด้วย , ใน .env: CORS_EXTRA_ORIGINS=http://172.48.0.116:5173,http://172.48.0.116
+        ...String(process.env.CORS_EXTRA_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
       ],
       credentials: true,
       methods: ["GET", "POST"]
