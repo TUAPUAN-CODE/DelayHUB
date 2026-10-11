@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
   const express = require("express");
   const sql = require("mssql");
@@ -885,7 +886,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         errors: errors.slice(0, 50),
       });
     } catch (err) {
-      try { await transaction.rollback(); } catch (_) { /* ignore */ }
+      try { await safeRollback(transaction); } catch (_) { /* ignore */ }
       console.error("POST /PkgDgSupp/bulkImport error:", err);
       return res.status(500).json({
         success: false,
@@ -1365,7 +1366,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const io = req.app.get("io");  // ดึง io object สำหรับ socket.io
 
 
-    console.log("body :", req.body);
 
 
     try {
@@ -1686,7 +1686,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
     const io = req.app.get("io");
 
-    console.log("📥 Request body:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -1951,7 +1950,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const io = req.app.get("io");  // ดึง io object สำหรับ socket.io
 
 
-    console.log("body :", req.body);
 
 
     try {
@@ -2132,7 +2130,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
     const io = req.app.get("io");
 
-    console.log("BODY:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -2291,7 +2288,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
     const io = req.app.get("io");
 
-    console.log("BODY:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -2451,7 +2447,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     const { tro_id, mapping_id, ProdID, mat, line_name, name_edit_prod } = req.body;
     const io = req.app.get("io");
 
-    console.log("Update request body:", req.body);
 
     try {
       const pool = await connectToDatabase();
@@ -3281,7 +3276,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const pool = await connectToDatabase();
       const checkQuery = `SELECT tro_id FROM Trolley WHERE tro_id = @tro_id`;
       const checkResult = await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(checkQuery);
 
       if (checkResult.recordset.length > 0) {
@@ -3294,7 +3289,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     `;
 
       await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .input('tro_status', tro_status)
         .query(insertQuery);
 
@@ -3361,7 +3356,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         for (const cart of cartsToAdd) {
           const request = new sql.Request(transaction);
           await request
-            .input('tro_id', cart.tro_id)
+            .input('tro_id', sql.VarChar, cart.tro_id)
             .input('tro_status', cart.tro_status)
             .query(insertQuery);
         }
@@ -3374,7 +3369,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
           end_id: cartsToAdd[cartsToAdd.length - 1].tro_id
         });
       } catch (err) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         throw err;
       }
     } catch (err) {
@@ -3480,7 +3475,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const pool = await connectToDatabase();
       const checkQuery = `SELECT tro_id FROM Trolley WHERE tro_id = @tro_id`;
       const checkResult = await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(checkQuery);
 
       if (checkResult.recordset.length === 0) {
@@ -3490,7 +3485,7 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const deleteQuery = `DELETE FROM Trolley WHERE tro_id = @tro_id`;
 
       await pool.request()
-        .input('tro_id', tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(deleteQuery);
 
       res.json({ message: 'ลบรถเข็นเรียบร้อย', tro_id: tro_id });

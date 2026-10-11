@@ -40,7 +40,7 @@ const DefaultCell = ({ col, row }) => {
 // Body cells are plain <td> (with the MUI class names, so the table-level border / hover rules still apply) and the tick box is a native input:
 // a MUI TableCell + Checkbox per cell made every render of a few hundred rows take seconds. Rows are memoised: every prop is a primitive or a stable reference.
 const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#1B2333", padding: "3px 8px", verticalAlign: "inherit", display: "table-cell" };
-const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick }) => (
+const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
   <TableRow
     hover onClick={onPick ? () => onPick(row) : undefined}
     sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
@@ -56,6 +56,7 @@ const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, c
       return (
         <td
           key={c.key} className={`MuiTableCell-root MuiTableCell-body${c.lastFrozen ? " frozen-edge" : ""}`}
+          onDoubleClick={onCell && c.editable ? () => onCell(row, c) : undefined} title={onCell && c.editable ? "ดับเบิลคลิกเพื่อแก้ไข" : undefined}
           style={{
             ...CELL, background: bg, textAlign: c.align || "left",
             ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { width: c.width, maxWidth: c.width, overflow: "hidden", wordBreak: "break-word" }),
@@ -84,6 +85,8 @@ const DataGrid = ({
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
+  // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
+  onCellEdit,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   // prepareRows(rows, ext): lets a page re-derive row fields from the account's own settings (ext) — it must return the same array when nothing changes
@@ -197,6 +200,9 @@ const DataGrid = ({
   selRef.current = selSet;
   const pickRef = useRef(onRowClick);
   pickRef.current = onRowClick;
+  const cellRef = useRef(onCellEdit);
+  cellRef.current = onCellEdit;
+  const stableCell = useMemo(() => (onCellEdit ? (r, c) => cellRef.current?.(r, c) : undefined), [!!onCellEdit]); // eslint-disable-line react-hooks/exhaustive-deps
   const stablePick = useMemo(() => (onRowClick ? (r) => pickRef.current?.(r) : undefined), [!!onRowClick]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectableRows = useMemo(() => (selectable ? sorted.filter((r) => (isSelectable ? isSelectable(r) : true)) : []), [sorted, selectable, isSelectable]); // eslint-disable-line react-hooks/exhaustive-deps
   const allChecked = useMemo(() => selectableRows.length > 0 && selectableRows.every((r) => selSet.has(rowKey(r))), [selectableRows, selSet, rowKey]);
@@ -337,7 +343,7 @@ const DataGrid = ({
                   <GridRow
                     key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
-                    active={activeKey !== null && activeKey === key} onPick={stablePick}
+                    active={activeKey !== null && activeKey === key} onPick={stablePick} onCell={stableCell}
                   />
                 );
               })}

@@ -81,9 +81,10 @@ router.get("/checkTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const result = await pool
       .request()
-      .input("tro_id", tro)
+      .input("tro_id", sql.VarChar, tro)
       .query(`
         SELECT tro_status
         FROM Trolley
@@ -121,10 +122,11 @@ router.post("/reserveTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool
       .request()
-      .input("tro_id", tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`
         UPDATE Trolley
         SET tro_status = 'rsrv', rsrv_timestamp = GETDATE()
@@ -158,10 +160,11 @@ router.post("/re/reserveTrolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool
       .request()
-      .input("tro_id", tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .input("tro_status", "1")
       .query(`
         UPDATE Trolley
@@ -194,12 +197,13 @@ router.put("/trolley/confirm-location", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     let ids = mapping_ids;
     if (!ids || ids.length === 0) {
       const lookup = await pool
         .request()
-        .input("tro_id", sql.NVarChar(4), tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
       ids = lookup.recordset.map(r => r.mapping_id);
     }
@@ -239,12 +243,13 @@ router.put("/trolley/reset-location", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     let ids = mapping_ids;
     if (!ids || ids.length === 0) {
       const lookup = await pool
         .request()
-        .input("tro_id", sql.NVarChar(4), tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
       ids = lookup.recordset.map(r => r.mapping_id);
     }
@@ -586,6 +591,7 @@ router.get("/cold/checkin/check/Trolley", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const sql = require("mssql");
 
 
@@ -757,9 +763,10 @@ router.put("/cold/clear/Trolley", async (req, res) => {
   const { tro_id } = req.body;
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
     const mappingIds = result.recordset.map(row => row.mapping_id);
 
@@ -785,17 +792,17 @@ router.put("/cold/clear/Trolley", async (req, res) => {
 
     // ลบข้อมูลจาก PackTrolley ที่มี tro_id ตรงกัน
     await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`DELETE FROM PackTrolley WHERE tro_id = @tro_id`);
 
       
 
     await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`UPDATE Slot SET tro_status = null WHERE tro_id = @tro_id`);
 
     await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`UPDATE Trolley SET tro_status = 1,status = '2.3' WHERE tro_id = @tro_id`);
 
     return res.status(200).json({ success: true, message: 'รถเข็นถูกเคลียร์เรียบร้อยแล้ว' });
@@ -821,7 +828,7 @@ router.put('/trolley/status/reset/return/rawmat', async (req, res) => {
 
     // หา mapping_id ทั้งหมดที่ผูกกับ tro_id
     const result = await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`SELECT mapping_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
 
     const mappingIds = result.recordset.map(row => row.mapping_id);
@@ -846,13 +853,13 @@ router.put('/trolley/status/reset/return/rawmat', async (req, res) => {
 
  // รีเซ็ตสถานะ trolley
     await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`UPDATE Slot SET tro_status = 1 WHERE tro_id = @tro_id`);
 
     
     // รีเซ็ตสถานะ trolley
     await pool.request()
-      .input("tro_id", sql.NVarChar(4), tro_id)
+      .input("tro_id", sql.VarChar, tro_id)
       .query(`UPDATE Trolley SET tro_status = 1,status = '2.5' WHERE tro_id = @tro_id`);
 
     return res.status(200).json({

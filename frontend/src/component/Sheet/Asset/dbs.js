@@ -63,11 +63,6 @@ const isSpecialGroup = (row) => {
 // ─────────────────────────────────────────────────────────────
 // DATE HELPERS
 // ─────────────────────────────────────────────────────────────
-const formatDateOnly = (dateTime) => {
-  if (!dateTime || dateTime === '-') return '';
-  return dateTime.split(' ')[0];
-};
-
 const calculateMinutesDifference = (startDate, endDate) => {
   if (!startDate || startDate === '-' || !endDate || endDate === '-') return null;
   const start = new Date(startDate);
@@ -97,25 +92,6 @@ const calculateDBS1FromMapped = (mapped, row) => {
   const gid = Number(row.rm_group_id);
   if (gid === 49 || gid === 85 || gid === 46 || gid === 82) return '-';
   return formatMinutesToTime(calculateMinutesDifference(mapped._A, mapped._B));
-};
-
-const CS_WAIT_ROUNDS = [
-  { come: 'cs_come_cold_date',       out: 'cs_out_cold_date',       p1: 'at_pd_storage_purpose',   p2: 'storage_purpose'   },
-  { come: 'cs_come_cold_date_two',   out: 'cs_out_cold_date_two',   p1: 'at_pd_storage_purpose_2', p2: 'storage_purpose_2' },
-  { come: 'cs_come_cold_date_three', out: 'cs_out_cold_date_three', p1: 'at_pd_storage_purpose_3', p2: 'storage_purpose_3' },
-];
-const CS_WAIT_PURPOSE = 'ฝากเก็บเพื่อรอผลิต';
-
-const getCsWaitMinutes = (row) => {
-  if (!row) return 0;
-  let total = 0;
-  CS_WAIT_ROUNDS.forEach(({ come, out, p1, p2 }) => {
-    if (row[p1] === CS_WAIT_PURPOSE || row[p2] === CS_WAIT_PURPOSE) {
-      const mins = calculateMinutesDifference(row[come], row[out]);
-      if (mins !== null) total += mins;
-    }
-  });
-  return total;
 };
 
 const calculateDBS2FromMapped = (mapped, isSpecial = false) => {

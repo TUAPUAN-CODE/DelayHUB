@@ -46,6 +46,7 @@ router.get("/fetchProcess", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     const result = await pool.request()
       .query(`
@@ -73,6 +74,7 @@ router.post("/addProcess", async (req, res) => {
     }
 
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
     await pool.request()
       .input('process_name', sql.NVarChar, process_name)
@@ -109,6 +111,7 @@ router.delete("/deleteProcess", async (req, res) => {
     }
 
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const result = await pool.request()
       .input('process_id', sql.Int, id)
       .query(`
@@ -136,6 +139,7 @@ router.put("/updateProcess", async (req, res) => {
     }
 
     const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const result = await pool.request()
       .input('process_id', sql.Int, id)
       .input('process_name', sql.NVarChar, process_name)

@@ -1,3 +1,5 @@
+const { placeholders, bindList } = require("../lib/sqlParams");
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
   const express = require("express");
   const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
@@ -6,7 +8,8 @@ module.exports = (io) => {
   // const { Line } = require("recharts");
   const router = express.Router();
   const multer = require('multer');
-  const upload = multer({ storage: multer.memoryStorage() });
+  // เก็บไฟล์ในหน่วยความจำ → ต้องจำกัดขนาด (ไม่งั้นไฟล์ใหญ่ไฟล์เดียวทำให้ worker หน่วยความจำเต็ม); ปรับด้วย UPLOAD_MAX_MB ใน .env
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: (parseInt(process.env.UPLOAD_MAX_MB, 10) || 20) * 1024 * 1024, files: 5 } });
 
   const DEBUG_LOGS = process.env.DEBUG_LOGS === 'true';
   function debugLog(...args) { if (DEBUG_LOGS) console.log(...args); }
@@ -470,7 +473,7 @@ module.exports = (io) => {
   //     res.status(200).json(payload);
 
   //   } catch (error) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("checkin/pack error:", error);
   //     res.status(500).json({ error: error.message });
   //   }
@@ -529,7 +532,7 @@ module.exports = (io) => {
 
       // ✅ STEP 1: ดึง mapping ทั้งหมดของ trolley
       const mappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT mapping_id
         FROM TrolleyRMMapping
@@ -559,7 +562,7 @@ module.exports = (io) => {
 
       // ✅ 3. Update TrolleyRMMapping → dest = 'บรรจุ'
       const updateMappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         SET
@@ -576,7 +579,7 @@ module.exports = (io) => {
 
       // ✅ 4. Update Trolley status
       await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         SET tro_status = 1
@@ -603,7 +606,7 @@ module.exports = (io) => {
 
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("checkin/pack error:", error);
       res.status(500).json({ error: error.message });
     }
@@ -713,7 +716,7 @@ module.exports = (io) => {
         `);
 
         if (checkResult.recordset.length === 0) {
-          await transaction.rollback();
+          await safeRollback(transaction);
           return res.status(404).json({
             success: false,
             message: `ไม่พบ mapping_id: ${mapping_id}`
@@ -766,7 +769,7 @@ module.exports = (io) => {
 
     } catch (err) {
       if (transaction) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Patch time error:', err);
@@ -874,7 +877,7 @@ module.exports = (io) => {
       `);
 
       if (checkResult.recordset.length === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({
           success: false,
           message: `ไม่พบข้อมูล mapping_id: ${mapping_id}`
@@ -917,7 +920,7 @@ module.exports = (io) => {
       `);
 
       if (updateTrolley.rowsAffected[0] === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(400).json({
           success: false,
           message: "ไม่สามารถอัปเดตสถานะได้ (ไม่พบ mapping_id)"
@@ -950,7 +953,7 @@ module.exports = (io) => {
 
     } catch (err) {
       if (transaction) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.warn("❌ Transaction rolled back");
       }
       console.error('❌ Update error:', err);
@@ -1074,7 +1077,7 @@ module.exports = (io) => {
         `);
 
       if (prodResult.recordset.length === 0) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ success: false, message: "ไม่พบ prod_rm_id สำหรับ product และ material นี้" });
       }
 
@@ -1197,7 +1200,7 @@ module.exports = (io) => {
       const production = prodInfoResult.recordset[0]?.production || null;
 
       if (!production) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(400).json({ success: false, message: "ไม่พบข้อมูล production" });
       }
 
@@ -1397,7 +1400,7 @@ module.exports = (io) => {
       });
 
     } catch (err) {
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       console.error("❌ SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -1576,7 +1579,7 @@ module.exports = (io) => {
   //   // `);
 
   //   //       if (checkResult.recordset.length === 0) {
-  //   //         await transaction.rollback();
+  //   //         await safeRollback(transaction);
   //   //         return res.status(404).json({
   //   //           success: false,
   //   //           message: `ไม่พบข้อมูล mapping_id: ${material.mapping_id}`
@@ -1589,7 +1592,7 @@ module.exports = (io) => {
   //   //       console.log(`  - mapping_id ${material.mapping_id} (${materialCode}): น้ำหนักปัจจุบัน ${currentWeight} กก., ต้องการใช้ ${material.weight} กก.`);
 
   //   //       if (currentWeight < material.weight) {
-  //   //         await transaction.rollback();
+  //   //         await safeRollback(transaction);
   //   //         return res.status(400).json({
   //   //           success: false,
   //   //           message: `น้ำหนักคงเหลือไม่เพียงพอสำหรับ ${materialCode} (mapping_id: ${material.mapping_id})\nน้ำหนักคงเหลือ: ${currentWeight} กก.\nต้องการใช้: ${material.weight} กก.`
@@ -1634,7 +1637,7 @@ module.exports = (io) => {
   //       `);
 
   //       if (prodResult.recordset.length === 0) {
-  //         await transaction.rollback();
+  //         await safeRollback(transaction);
   //         return res.status(404).json({
   //           success: false,
   //           message: "ไม่พบ prod_rm_id สำหรับ product และ material นี้"
@@ -1738,7 +1741,7 @@ module.exports = (io) => {
   //       const production = prodInfoResult.recordset[0]?.production || null;
 
   //       if (!production) {
-  //         await transaction.rollback();
+  //         await safeRollback(transaction);
   //         return res.status(400).json({
   //           success: false,
   //           message: "ไม่พบข้อมูล production"
@@ -1950,7 +1953,7 @@ module.exports = (io) => {
   //       });
 
   //     } catch (err) {
-  //       if (transaction) await transaction.rollback();
+  //       if (transaction) await safeRollback(transaction);
   //       console.error("❌ SQL error:", err);
   //       res.status(500).json({
   //         success: false,
@@ -1978,7 +1981,7 @@ module.exports = (io) => {
       try {
         // 1. อัปเดตสถานะของ slot
         const updateSlotResult = await new sql.Request(transaction)
-          .input("tro_id", tro_id)
+          .input("tro_id", sql.VarChar, tro_id)
           .query(`
           UPDATE Slot 
           SET tro_id = NULL,
@@ -2076,7 +2079,7 @@ module.exports = (io) => {
           // ถ้า dest = 'บรรจุ' อัปเดต Trolley.tro_status = 1
           if (dest === 'บรรจุ' || dest === 'จุดเตรียม') {
             await new sql.Request(transaction)
-              .input("tro_id", tro_id)
+              .input("tro_id", sql.VarChar, tro_id)
               .query(`
               UPDATE Trolley
               SET tro_status = 1
@@ -2135,7 +2138,7 @@ module.exports = (io) => {
         res.status(200).json({ message: "Data updated successfully" });
 
       } catch (innerError) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.error("Transaction error:", innerError);
         res.status(500).json({ error: innerError.message });
       }
@@ -2663,9 +2666,10 @@ module.exports = (io) => {
 
         // Update trolley status for each trolley
         if (item.tro_id) {
-          pool.request().query(`
-          UPDATE Trolley SET tro_status = '1', status = '1.2' WHERE tro_id = '${item.tro_id}'
-        `);
+          pool.request()
+            .input("tro_id", sql.VarChar, item.tro_id)
+            .query(`UPDATE Trolley SET tro_status = '1', status = '1.2' WHERE tro_id = @tro_id`)
+            .catch((e) => console.error("❌ [pack] update trolley status error:", e.message));
         }
       });
 
@@ -2815,7 +2819,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const result = await pool
         .request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
               SELECT
                   rmm.tro_id,
@@ -2921,7 +2925,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const result = await pool
         .request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
               SELECT
                 rmm.tro_id,
@@ -3046,7 +3050,7 @@ module.exports = (io) => {
 
       // 🔍 ดึงข้อมูลจาก TrolleyRMMapping ก่อน UPDATE
       const mappingDataResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT 
           mapping_id,
@@ -3164,7 +3168,7 @@ module.exports = (io) => {
 
       // 1️⃣ เปลี่ยน dest → ผสมเตรียม + เคลียร์รถเข็น
       const updateMappingResult = await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         SET 
@@ -3179,7 +3183,7 @@ module.exports = (io) => {
 
       // 2️⃣ reset สถานะรถเข็น
       await new sql.Request(transaction)
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         SET tro_status = 1
@@ -3205,7 +3209,7 @@ module.exports = (io) => {
       res.status(200).json(payload);
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("checkin/prep error:", error);
       res.status(500).json({ error: error.message });
     }
@@ -3270,7 +3274,7 @@ module.exports = (io) => {
       const data = await new sql.Request(transaction)
         .input("tro_id", sql.VarChar(20), tro_id)
         .query(`
-        SELECT * FROM TrolleyRMMapping
+        SELECT mapping_id FROM TrolleyRMMapping
         WHERE tro_id = @tro_id
       `);
 
@@ -3315,7 +3319,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3356,7 +3360,7 @@ module.exports = (io) => {
             const old = await request
               .input("mapping_id", sql.Int, from_mapping_id)
               .query(`
-              SELECT * 
+              SELECT weight_RM
               FROM TrolleyRMMapping
               WHERE mapping_id = @mapping_id
             `);
@@ -3536,7 +3540,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น และคืนน้ำหนักแล้ว" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3833,7 +3837,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3878,7 +3882,7 @@ module.exports = (io) => {
     } catch (err) {
       if (transaction._aborted !== true) {
         try {
-          await transaction.rollback();
+          await safeRollback(transaction);
         } catch (rollbackErr) {
           console.error("Rollback failed:", rollbackErr);
         }
@@ -3968,7 +3972,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error:", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -3985,7 +3989,7 @@ module.exports = (io) => {
       await transaction.begin();
 
       const result = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("line_id", sql.Int, line_id)
         .input("pack_tro_status", '0')
         .query(`
@@ -3994,7 +3998,7 @@ module.exports = (io) => {
     `);
 
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
       UPDATE Trolley SET tro_status = 0 ,rsrv_timestamp = null WHERE tro_id = @tro_id
   `);
@@ -4005,7 +4009,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4017,6 +4021,7 @@ module.exports = (io) => {
       const pool = await connectToDatabase();
       const packtrolley = await pool
         .request()
+        .input("line_id", sql.VarChar, line_id)
         .query(`
                 SELECT
                    ptl.tro_id
@@ -4024,7 +4029,7 @@ module.exports = (io) => {
                     PackTrolley ptl
                 WHERE 
                     ptl.pack_tro_status = '0' 
-                    AND ptl.line_tro = '${line_id}'
+                    AND ptl.line_tro = @line_id
             `);
 
       res.json({ success: true, data: packtrolley.recordset });
@@ -4246,7 +4251,7 @@ module.exports = (io) => {
   //     return res.status(200).json({ success: true, message: "บันทึกและย้ายวัตถุเสร็จสิ้น" });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -4345,7 +4350,7 @@ module.exports = (io) => {
       // ===============================
       const selectHis = await transaction.request()
         .input("mapping_id", sql.Int, mapping_id)
-        .query(`SELECT * FROM History WHERE mapping_id = @mapping_id`);
+        .query(`SELECT come_cold_date, come_cold_date_three, come_cold_date_two, cooked_date, location, out_cold_date, out_cold_date_three, out_cold_date_two, qc_date, receiver, receiver_out_cold, receiver_out_cold_three, receiver_out_cold_two, receiver_oven_edit, receiver_pack_edit, receiver_prep_two, receiver_qc, remark_rework, rework_date, rmit_date, sc_pack_date, withdraw_date FROM History WHERE mapping_id = @mapping_id`);
 
 
       if (selectHis.recordset.length === 0) {
@@ -4506,7 +4511,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({
         success: false,
@@ -4600,7 +4605,7 @@ module.exports = (io) => {
       const pkhis = insertHis.recordset[0].hist_id; // เก็บค่า hist_id ที่ insert ใหม่
 
       const insertRMInTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("rmfp_id", sql.Int, rmfpID)
         .input("stay_place", sql.NVarChar, "บรรจุ")
         .input("dest", sql.NVarChar, "รถเข็นรอจัดส่ง")
@@ -4622,7 +4627,7 @@ module.exports = (io) => {
       return res.status(200).json({ success: true, message: "บันทึกข้อมูลเสร็จสิ้น", batchId: batch_id });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4720,7 +4725,7 @@ module.exports = (io) => {
 
 
       const insertRMInTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("rmfp_id", sql.Int, rmfpID)
         .input("stay_place", sql.NVarChar, "บรรจุ")
         .input("dest", sql.NVarChar, "รถเข็นรอจัดส่ง")
@@ -4744,7 +4749,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -4811,7 +4816,7 @@ module.exports = (io) => {
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     res.status(500).json({ success: false, error: err.message });
   //   }
@@ -4940,7 +4945,7 @@ module.exports = (io) => {
 
       // ตรวจสอบว่ามี trolley นี้ในระบบหรือไม่
       const rmTrolleyResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT tro_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
 
 
@@ -4954,7 +4959,7 @@ module.exports = (io) => {
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
       const rawMaterialsResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
                 SELECT
                     rmm.mapping_id,
@@ -5021,7 +5026,7 @@ module.exports = (io) => {
 
       // อัปเดต tro_id ในตาราง History สำหรับแต่ละ mapping_id ในรถเข็นนี้
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "เข้าห้องเย็น")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -5041,7 +5046,7 @@ module.exports = (io) => {
 
       // อัปเดตสถานะของวัตถุดิบในรถเข็น
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "เข้าห้องเย็น")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -5057,7 +5062,7 @@ module.exports = (io) => {
 
       // ลบรถเข็นออกจากตาราง PackTrolley
       await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
                 DELETE PackTrolley
                 WHERE tro_id = @tro_id
@@ -5074,7 +5079,7 @@ module.exports = (io) => {
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       return res.status(500).json({
         success: false,
@@ -5225,7 +5230,7 @@ module.exports = (io) => {
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error("SQL error", err);
   //     return res.status(500).json({
   //       success: false,
@@ -5421,13 +5426,13 @@ module.exports = (io) => {
           updatedItems
         });
       } else {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ message: "ไม่สามารถคำนวณหรือบันทึก Delay Time ได้" });
       }
 
     } catch (error) {
       console.error("SQL error:", error);
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       res.status(500).json({
         success: false,
         message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
@@ -5576,13 +5581,13 @@ module.exports = (io) => {
   //         updatedItems
   //       });
   //     } else {
-  //       await transaction.rollback();
+  //       await safeRollback(transaction);
   //       return res.status(404).json({ message: "ไม่สามารถคำนวณหรือบันทึก Delay Time ได้" });
   //     }
 
   //   } catch (error) {
   //     console.error("SQL error:", error);
-  //     if (transaction) await transaction.rollback();
+  //     if (transaction) await safeRollback(transaction);
   //     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", error: error.message });
   //   } finally {
   //     sql.close();
@@ -5667,10 +5672,10 @@ module.exports = (io) => {
       JOIN History AS htr ON htr.mapping_id = rmm.mapping_id
       LEFT JOIN batch AS b ON b.mapping_id = rmm.mapping_id
       LEFT JOIN RMForProd AS rfp ON rfp.rmfp_id = rmm.rmfp_id
-      WHERE rmm.mapping_id IN (${mapping_id.map(id => `'${id}'`).join(',')})
+      WHERE rmm.mapping_id IN (${placeholders("map_", mapping_id)})
     `;
 
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request(), "map_", mapping_id, sql.Int).query(query);
 
       if (result.recordset.length === 0) {
         return res.status(404).json({ message: "ไม่พบวัตถุดิบในรถเข็นที่เลือก" });
@@ -5680,10 +5685,10 @@ module.exports = (io) => {
       const batchQuery = `
         SELECT batch_id, batch_before, batch_after, mapping_id
         FROM Batch
-        WHERE mapping_id IN (${mapping_id.map(id => `'${id}'`).join(',')})
+        WHERE mapping_id IN (${placeholders("map_", mapping_id)})
       `;
 
-      const batchResult = await pool.request().query(batchQuery);
+      const batchResult = await bindList(pool.request(), "map_", mapping_id, sql.Int).query(batchQuery);
 
       // จัดกลุ่ม Batch ตาม mapping_id
       const batchByMappingId = {};
@@ -5962,13 +5967,13 @@ module.exports = (io) => {
           }
         });
       } else {
-        await transaction.rollback();
+        await safeRollback(transaction);
         return res.status(404).json({ message: "เพิ่มข้อมูลไม่สำเร็จ" });
       }
 
     } catch (error) {
       console.error("SQL error: ", error);
-      if (transaction) await transaction.rollback();
+      if (transaction) await safeRollback(transaction);
       res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล", error: error.message });
     } finally {
       await sql.close();
@@ -6053,10 +6058,10 @@ module.exports = (io) => {
 
       const query = `
       UPDATE [PFCMv2].[dbo].[RMInTrolley] 
-      SET status = '${status}' 
-      WHERE tro_id IN (${tro_ids.join(",")})
+      SET status = @status 
+      WHERE tro_id IN (${placeholders("tro_", tro_ids)})
     `;
-      const result = await pool.request().query(query);
+      const result = await bindList(pool.request().input("status", status), "tro_", tro_ids, sql.VarChar).query(query);
 
       return res.status(200).json(result.rowsAffected);
     } catch (error) {
@@ -6138,7 +6143,7 @@ module.exports = (io) => {
       });
 
     } catch (error) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error(error);
 
       return res.status(500).json({
@@ -6570,7 +6575,7 @@ module.exports = (io) => {
 
       // ดึงข้อมูล mapping และเวลาต่างๆ
       const itemData = await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT
           rmm.mapping_id,
@@ -6660,18 +6665,18 @@ WHERE
       // --- เรียกใช้งานทั้งสอง query ---
       const result = await pool.request()
         .input("dest", sql.NVarChar, dest)
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(updateTrolleyQuery);
 
 
       await pool.request()
         .input("dest", sql.NVarChar, dest)
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(updateTroQuery);
 
       // อัปเดต tro_id ในตาราง History สำหรับทุก mapping_id ที่เกี่ยวข้อง
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.NVarChar, dest)
         .input("receiver_pack_edit", sql.NVarChar, receiver_pack_edit)
         .input("remark_rework", sql.NVarChar, remark_pack_edit)
@@ -6693,14 +6698,14 @@ WHERE
 
       // ลบข้อมูลจาก PackTrolley
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         DELETE PackTrolley
         WHERE tro_id = @tro_id
       `);
 
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE Trolley
         set tro_status = '1'
@@ -6708,7 +6713,7 @@ WHERE
       `);
 
       await pool.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         set tro_id = NULL
@@ -6889,7 +6894,7 @@ WHERE
         // ดึงข้อมูลเดิม
         const result = await transaction.request()
           .input("mapping_id", sql.Int, mapping_id)
-          .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+          .query(`SELECT weight_RM, rmfp_id, mix_code, mix_time, prod_mix, rmm_line_name FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
         const oldData = result.recordset[0];
         if (!oldData) throw new Error("ไม่พบข้อมูล mapping เดิม");
@@ -6921,7 +6926,7 @@ WHERE
 
         // ✅ เพิ่มรายการใหม่ สำหรับรถเข็นที่ย้ายไป และดึง mapping_id ของรายการใหม่
         const insertNewMapping = await transaction.request()
-          .input("tro_id", sql.NVarChar, tro_id)
+          .input("tro_id", sql.VarChar, tro_id)
           .input("rmfp_id", sql.Float, oldData.rmfp_id)
           .input("weight_RM", sql.Float, moveWeight)
           .input("tray_count", sql.Int, trayCount)
@@ -6973,7 +6978,7 @@ WHERE
         });
 
       } catch (innerError) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         console.error("Transaction failed:", innerError);
         res.status(500).json({ message: "Internal Server Error", error: innerError.message });
       }
@@ -6999,9 +7004,9 @@ WHERE
 
       // ตรวจสอบว่ามีวัตถุดิบในรถเข็นหรือไม่
       const haverawmat = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
-          SELECT * 
+          SELECT mapping_id
           FROM TrolleyRMMapping
           WHERE tro_id = @tro_id
         `);
@@ -7013,7 +7018,7 @@ WHERE
 
       // ตรวจสอบว่ารถเข็นมีอยู่จริงในฐานข้อมูล
       const trolleyExists = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           SELECT tro_id 
           FROM Trolley 
@@ -7026,7 +7031,7 @@ WHERE
 
       // อัปเดต Trolley
       const result2 = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           UPDATE Trolley
           SET tro_status = '1',status = '2.2'
@@ -7038,7 +7043,7 @@ WHERE
       }
 
       const result1 = await pool.request()
-        .input('tro_id', sql.NVarChar, tro_id)
+        .input('tro_id', sql.VarChar, tro_id)
         .query(`
           DELETE PackTrolley
           WHERE tro_id = @tro_id
@@ -7080,7 +7085,7 @@ WHERE
 
       // อัปเดตข้อมูล
       const result = await pool.request()
-        .input("tro_id", tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", "เข้าห้องเย็น")
         .query(`UPDATE TrolleyRMMapping 
                     SET dest = @dest
@@ -7232,7 +7237,7 @@ WHERE
 
       try {
         if (transaction && transaction._aborted !== true) {
-          await transaction.rollback();
+          await safeRollback(transaction);
         }
       } catch (rollbackError) {
         console.error("Rollback error:", rollbackError);
@@ -7687,7 +7692,7 @@ WHERE
       return res.status(200).json({ success: true, message: "บันทึกและย้ายวัตถุเสร็จสิ้น" });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -7780,7 +7785,7 @@ WHERE
 
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error('DB Error:', err);
       res.status(500).json({ success: false, error: err.message });
     }
@@ -7799,7 +7804,7 @@ WHERE
 
       // ตรวจสอบว่ามี trolley นี้ในระบบหรือไม่
       const rmTrolleyResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`SELECT tro_id FROM TrolleyRMMapping WHERE tro_id = @tro_id`);
 
       if (rmTrolleyResult.recordset.length === 0) {
@@ -7810,7 +7815,7 @@ WHERE
 
       // ดึงข้อมูลวัตถุดิบในรถเข็นเพื่อคำนวณเวลา delay
       const rawMaterialsResult = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`
         SELECT
           rmm.mapping_id,
@@ -7859,7 +7864,7 @@ WHERE
 
       // อัปเดต tro_id ในตาราง History
       const updateHistory = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "ไปบรรจุ")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -7876,7 +7881,7 @@ WHERE
 
       // อัปเดตสถานะของวัตถุดิบในรถเข็น
       const updateMapping = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .input("dest", sql.VarChar, "ไปบรรจุ")
         .input("rm_status", sql.VarChar, "เหลือจากไลน์ผลิต")
         .input("stay_place", sql.VarChar, "บรรจุ")
@@ -7892,7 +7897,7 @@ WHERE
 
       // ลบรถเข็นออกจากตาราง PackTrolley
       const deletePackTrolley = await transaction.request()
-        .input("tro_id", sql.NVarChar, tro_id)
+        .input("tro_id", sql.VarChar, tro_id)
         .query(`DELETE PackTrolley WHERE tro_id = @tro_id`);
 
       if (deletePackTrolley.rowsAffected[0] === 0) throw new Error("ลบ PackTrolley ไม่สำเร็จ");
@@ -7905,7 +7910,7 @@ WHERE
       });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("SQL error", err);
       return res.status(500).json({
         success: false,
@@ -7958,7 +7963,7 @@ WHERE
   //       `);
 
   //     if (!result.recordset.length) {
-  //       await transaction.rollback();
+  //       await safeRollback(transaction);
   //       return res.status(404).json({
   //         message: "ไม่พบข้อมูล mapping_id นี้"
   //       });
@@ -8012,7 +8017,7 @@ WHERE
   //     });
 
   //   } catch (err) {
-  //     await transaction.rollback();
+  //     await safeRollback(transaction);
   //     console.error(err);
   //     return res.status(500).json({
   //       message: "เกิดข้อผิดพลาด",
@@ -8052,7 +8057,7 @@ WHERE
       // ================= 1. GET SOURCE MAPPING =================
       const mapRes = await transaction.request()
         .input("mapping_id", sql.Int, mapping_id)
-        .query(`SELECT * FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+        .query(`SELECT weight_RM, rmfp_id, tro_production_id, process_id, weight_in_trolley, rm_status, level_eu, mix_code, prod_mix, qc_id, status, production_batch, allocation_date, created_by, rmm_line_name, mix_time, tl_status FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
       if (!mapRes.recordset.length) {
         throw new Error("ไม่พบ mapping_id");
@@ -8177,7 +8182,7 @@ WHERE
 
       for (const h of histRes.recordset) {
         await transaction.request()
-          .input("tro_id", h.tro_id)
+          .input("tro_id", sql.VarChar, h.tro_id)
           .input("mapping_id", sql.Int, newMappingId) // ✅ mapping ใหม่
           .input("withdraw_date", h.withdraw_date)
           .input("cooked_date", h.cooked_date)
@@ -8423,7 +8428,7 @@ WHERE
       });
 
     } catch (err) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error(err);
       res.status(500).json({
         message: "เกิดข้อผิดพลาด",
@@ -9603,7 +9608,7 @@ FORMAT(
         await transaction.commit();
         res.json({ success: true, message: "บันทึกข้อมูล WONo/Basket สำเร็จ" });
       } catch (err) {
-        await transaction.rollback();
+        await safeRollback(transaction);
         throw err;
       }
     } catch (err) {
@@ -10848,7 +10853,7 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
         await txn.commit();
         return res.json({ success: true, message: 'ลบสำเร็จ' });
       } catch (e) {
-        await txn.rollback();
+        await safeRollback(txn);
         throw e;
       }
     } catch (err) {

@@ -1,7 +1,14 @@
 // Master Delay Sheet — read-only data for the combined table + per-user column settings.
 const express = require("express");
+const crypto = require("crypto");
 const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
+const { cached, invalidateSheetCache } = require("../lib/sheetCache");
+const { safeRollback } = require("../lib/safeRollback");
+const { verifyToken } = require("../lib/auth");
+const { getAuthMode } = require("../lib/authMiddleware");
+const metrics = require("../lib/metrics");
+const logger = require("../lib/logger");
 
 const router = express.Router();
 
@@ -282,14 +289,26 @@ router.get("/sheet/rows", async (req, res) => {
       .input("open_from", sql.Date, ranged ? req.query.open_from : null)
       .input("open_to", sql.Date, ranged ? req.query.open_to : null);
 
-    const [mappings, hus, plans, mixed] = await Promise.all([
-      bind(pool.request()).query(buildMappingQuery("open")),
-      bind(pool.request()).query(buildHuQuery()),
-      bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-      bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-    ]);
+    // เหมือนกัน + พร้อมกัน = query ชุดเดียว (ดู lib/sheetCache.js); rev = ลายเซ็นของข้อมูล ให้หน้าเว็บเทียบได้โดยไม่ต้องรับ/แปลงข้อมูลทั้งก้อนซ้ำ
+    const cacheKey = JSON.stringify([days, limit, mlimit, ranged ? req.query.open_from : null, ranged ? req.query.open_to : null]);
+    const payload = await cached(cacheKey, async () => {
+      const [mappings, hus, plans, mixed] = await Promise.all([
+        bind(pool.request()).query(buildMappingQuery("open")),
+        bind(pool.request()).query(buildHuQuery()),
+        bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+      ]);
+      const rev = crypto.createHash("md5").update(JSON.stringify([mappings.recordset, hus.recordset, plans.recordset, mixed.recordset])).digest("hex");
+      // แปลงเป็น JSON ครั้งเดียวต่อรอบ cache — ทุกคำขอที่ได้ชุดเดียวกันส่งข้อความเดิมออกไปเลย
+      const json = JSON.stringify({ success: true, rev, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
+      return { rev, json };
+    });
 
-    res.json({ success: true, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
+    // หน้าเว็บส่ง ?rev= ของข้อมูลที่ถืออยู่ ถ้าตรงกัน = ไม่ส่งข้อมูลซ้ำ
+    if (req.query.rev && req.query.rev === payload.rev) {
+      return res.json({ success: true, unchanged: true, rev: payload.rev });
+    }
+    res.type("application/json").send(payload.json);
   } catch (err) {
     console.error(`[Route /sheet/rows] Error: ${err.message} (SQL error ${err.number ?? "-"}, line ${err.lineNumber ?? "-"})`, err.precedingErrors?.map((e) => e.message) || "");
     res.status(500).json({ success: false, error: err.message });
@@ -391,6 +410,25 @@ router.get("/sheet/prefs", async (req, res) => {
   }
 });
 
+// ── ค่าตั้งที่ต้องปลดล็อกด้วยรหัสรายวันของหน้า Setting (แท็บสีแถว / พื้นที่สถานะ / ผู้ดูแลไลน์) ──
+// เดิมล็อกที่หน้าเว็บอย่างเดียว ใครยิง API ตรงก็แก้ได้ ตอนนี้ server เทียบค่าเดิมกับค่าใหม่ และต้องมี header x-setting-unlock (ได้จาก POST /api/sheet/setting-unlock)
+const PROTECTED_EXT_DEFAULTS = { colorMode: "stage", greenPct: 50, yellowPct: 0, statusZones: {}, statusAreas: [], lineGroups: [] };
+const sortKeys = (_k, val) => (val && typeof val === "object" && !Array.isArray(val)
+  ? Object.keys(val).sort().reduce((o, kk) => { o[kk] = val[kk]; return o; }, {})
+  : val);
+const protectedPart = (cfg) => {
+  const ext = (cfg && cfg.ext) || {};
+  const out = {};
+  Object.keys(PROTECTED_EXT_DEFAULTS).forEach((k) => { out[k] = ext[k] === undefined ? PROTECTED_EXT_DEFAULTS[k] : ext[k]; });
+  return JSON.stringify(out, sortKeys);
+};
+const hasSettingUnlock = (req, userId) => {
+  const t = req.headers["x-setting-unlock"];
+  if (typeof t !== "string") return false;
+  const v = verifyToken(t);
+  return v.ok && v.payload.typ === "setting" && v.payload.user_id === userId;
+};
+
 router.put("/sheet/prefs", async (req, res) => {
   const key = parsePrefsKey(req.body || {});
   const config = typeof req.body?.config === "string" ? req.body.config : null;
@@ -405,6 +443,24 @@ router.put("/sheet/prefs", async (req, res) => {
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+    const authMode = getAuthMode();
+    if (authMode !== "off") {
+      const stored = await withPrefsTable(pool, () => pool.request()
+        .input("user_id", sql.Int, key.userId)
+        .input("sheet_key", sql.NVarChar(50), key.sheetKey)
+        .query("SELECT config FROM SheetUserPrefs WHERE user_id = @user_id AND sheet_key = @sheet_key"));
+      let oldCfg = null;
+      try { oldCfg = stored.recordset[0]?.config ? JSON.parse(stored.recordset[0].config) : null; } catch { oldCfg = null; }
+      if (protectedPart(oldCfg) !== protectedPart(JSON.parse(config)) && !hasSettingUnlock(req, key.userId)) {
+        metrics.inc("setting_locked_total", { mode: authMode });
+        logger.warn("setting_locked", { id: req.id, user_id: key.userId, sheet_key: key.sheetKey, mode: authMode, by: req.user ? req.user.user_id : null });
+        if (authMode === "enforce") {
+          return res.status(403).json({ success: false, code: "SETTING_LOCKED", error: "ต้องใส่รหัสปลดล็อกของหน้า Setting ก่อนจึงบันทึกการตั้งค่านี้ได้" });
+        }
+      }
+    }
+
     await withPrefsTable(pool, () => pool.request()
       .input("user_id", sql.Int, key.userId)
       .input("sheet_key", sql.NVarChar(50), key.sheetKey)
@@ -421,6 +477,244 @@ router.put("/sheet/prefs", async (req, res) => {
       return res.status(503).json({ success: false, code: "PREFS_TABLE_MISSING", error: "ยังไม่ได้สร้างตาราง SheetUserPrefs" });
     }
     console.error("[Route PUT /sheet/prefs] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── Supervisor edit of a table row (in-process / done) ────────────────────
+// Only role 6 / 8 (rule in lib/authMiddleware.js). Every column that may be edited is listed here — the column name never comes from the request,
+// only from this list, so it can be put in the statement; the value is always a parameter. One request = one mapping, all changes in one transaction.
+// The client sends the value it saw (expected): when somebody changed it meanwhile the whole request is refused (409) so nobody overwrites a newer value.
+const EDIT_MAP = {
+  dest: { t: "map", sql: () => sql.NVarChar(100) },
+  stay_place: { t: "map", sql: () => sql.NVarChar(100) },
+  rm_status: { t: "map", sql: () => sql.NVarChar(100) },
+  tro_id: { t: "map", sql: () => sql.VarChar(4), max: 4 },
+  mix_code: { t: "map", sql: () => sql.NVarChar(100) },
+  rmm_line_name: { t: "map", sql: () => sql.NVarChar(100) },
+  tray_count: { t: "map", kind: "int" },
+  weight_RM: { t: "map", kind: "num" },
+};
+HIST_DATES.forEach((c) => { EDIT_MAP[c] = { t: "hist", kind: "date" }; });
+HIST_TEXT.forEach((c) => { EDIT_MAP[c] = { t: "hist", sql: () => sql.NVarChar(500) }; });
+const EDIT_TEXT_MAX = 500;
+const EDIT_BATCH_MAX = 60;
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
+
+let editLogChecked = false;
+const ensureEditLogTable = async (pool) => {
+  if (editLogChecked) return;
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.SheetEditLog', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SheetEditLog (
+            edit_id      BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SheetEditLog PRIMARY KEY,
+            mapping_id   INT           NOT NULL,
+            hist_id      INT           NULL,
+            table_name   NVARCHAR(40)  NOT NULL,
+            column_name  NVARCHAR(60)  NOT NULL,
+            old_value    NVARCHAR(600) NULL,
+            new_value    NVARCHAR(600) NULL,
+            reason       NVARCHAR(300) NULL,
+            user_id      INT           NULL,
+            username     NVARCHAR(100) NULL,
+            edited_at    DATETIME      NOT NULL CONSTRAINT DF_SheetEditLog_at DEFAULT (GETDATE())
+        );
+        CREATE INDEX IX_SheetEditLog_mapping ON dbo.SheetEditLog (mapping_id, edit_id DESC);
+    END
+  `);
+  editLogChecked = true;
+};
+
+// History date columns are datetime in most databases but text in some (see buildPlanQuery): look at the real type once and write the matching form
+const histTypeCache = new Map();
+const histColumnType = async (pool, col) => {
+  if (histTypeCache.has(col)) return histTypeCache.get(col);
+  const r = await pool.request().input("c", sql.NVarChar(128), col)
+    .query("SELECT DATA_TYPE AS dt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'History' AND COLUMN_NAME = @c");
+  const dt = r.recordset[0] ? String(r.recordset[0].dt).toLowerCase() : null;
+  histTypeCache.set(col, dt);
+  return dt;
+};
+const isDateType = (dt) => ["datetime", "datetime2", "smalldatetime", "date"].includes(dt);
+
+/** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason } */
+router.patch("/sheet/edit", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const mappingId = parseInt(body.mapping_id, 10);
+    const changes = body.changes && typeof body.changes === "object" && !Array.isArray(body.changes) ? body.changes : null;
+    const expected = body.expected && typeof body.expected === "object" ? body.expected : {};
+    const reason = String(body.reason || "").trim().slice(0, 300);
+    if (Number.isNaN(mappingId) || mappingId <= 0 || !changes) {
+      return res.status(400).json({ success: false, error: "ข้อมูลไม่ครบ (mapping_id / changes)" });
+    }
+    const cols = Object.keys(changes);
+    if (!cols.length || cols.length > EDIT_BATCH_MAX) {
+      return res.status(400).json({ success: false, error: `แก้ไขได้ครั้งละ 1-${EDIT_BATCH_MAX} ช่อง` });
+    }
+    const bad = cols.find((c) => !Object.prototype.hasOwnProperty.call(EDIT_MAP, c));
+    if (bad) return res.status(400).json({ success: false, error: `ไม่อนุญาตให้แก้ไขคอลัมน์ ${bad}` });
+
+    // validate + normalise every value before touching the database
+    const todo = [];
+    for (const c of cols) {
+      const def = EDIT_MAP[c];
+      let v = changes[c];
+      if (v === undefined) continue;
+      if (v === "" || v === null) v = null;
+      else if (def.kind === "date") {
+        v = String(v).trim().replace("T", " ");
+        if (!DATETIME_RE.test(v)) return res.status(400).json({ success: false, error: `วันที่ของ ${c} ต้องเป็นรูป yyyy-MM-dd HH:mm` });
+        if (v.length === 16) v += ":00";
+        if (Number.isNaN(new Date(v.replace(" ", "T")).getTime())) return res.status(400).json({ success: false, error: `วันที่ของ ${c} ไม่ถูกต้อง` });
+      } else if (def.kind === "int") {
+        const n = Number(v);
+        if (!Number.isInteger(n) || n < 0 || n > 100000) return res.status(400).json({ success: false, error: `${c} ต้องเป็นจำนวนเต็ม 0-100000` });
+        v = n;
+      } else if (def.kind === "num") {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n < 0 || n > 10000000) return res.status(400).json({ success: false, error: `${c} ต้องเป็นตัวเลข 0-10,000,000` });
+        v = n;
+      } else {
+        v = String(v).trim();
+        if (v.length > (def.max || EDIT_TEXT_MAX)) return res.status(400).json({ success: false, error: `${c} ยาวเกิน ${def.max || EDIT_TEXT_MAX} ตัวอักษร` });
+        if (v === "") v = null;
+      }
+      todo.push({ col: c, def, value: v });
+    }
+    if (!todo.length) return res.status(400).json({ success: false, error: "ไม่มีค่าที่จะแก้ไข" });
+
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    try { await ensureEditLogTable(pool); } catch (err) {
+      console.error("❌ [Sheet] สร้างตาราง SheetEditLog ไม่สำเร็จ (ให้ DBA รัน migrations/create_SheetEditLog.sql):", err.message);
+      return res.status(503).json({ success: false, code: "EDIT_LOG_TABLE_MISSING", error: "ยังไม่มีตาราง SheetEditLog สำหรับบันทึกประวัติการแก้ไข" });
+    }
+
+    // the column types of History (before the transaction, they do not change)
+    const histTypes = {};
+    for (const it of todo.filter((x) => x.def.t === "hist")) histTypes[it.col] = await histColumnType(pool, it.col);
+    const missingCol = todo.find((x) => x.def.t === "hist" && !histTypes[x.col]);
+    if (missingCol) return res.status(400).json({ success: false, error: `ฐานข้อมูลนี้ไม่มีคอลัมน์ ${missingCol.col} ใน History` });
+
+    const tx = new sql.Transaction(pool);
+    await tx.begin();
+    try {
+      const cur = await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
+        SELECT rmm.mapping_id, rmm.dest, rmm.stay_place, rmm.rm_status, rmm.tro_id, rmm.mix_code, rmm.rmm_line_name, rmm.tray_count, rmm.weight_RM
+        FROM TrolleyRMMapping rmm WITH (UPDLOCK, ROWLOCK) WHERE rmm.mapping_id = @id`);
+      if (!cur.recordset.length) { await safeRollback(tx); return res.status(404).json({ success: false, error: "ไม่พบรายการนี้" }); }
+      const mapRow = cur.recordset[0];
+
+      let histId = null;
+      let histRow = null;
+      if (todo.some((x) => x.def.t === "hist")) {
+        const histCols = todo.filter((x) => x.def.t === "hist").map((x) => `CONVERT(NVARCHAR(600), hh.[${x.col}], ${isDateType(histTypes[x.col]) ? 120 : 0}) AS [${x.col}]`);
+        const hr = await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
+          SELECT TOP 1 hh.hist_id, ${histCols.join(", ")}
+          FROM History hh WITH (UPDLOCK, ROWLOCK) WHERE hh.mapping_id = @id ORDER BY hh.hist_id DESC`);
+        if (!hr.recordset.length) { await safeRollback(tx); return res.status(404).json({ success: false, error: "รายการนี้ยังไม่มีแถว History (แก้ไขเวลาไม่ได้)" }); }
+        histRow = hr.recordset[0];
+        histId = histRow.hist_id;
+      }
+
+      const same = (a, b) => {
+        const x = a === null || a === undefined || a === "" ? null : String(a).replace("T", " ").trim();
+        const y = b === null || b === undefined || b === "" ? null : String(b).replace("T", " ").trim();
+        if (x === null || y === null) return x === y;
+        if (x === y) return true;
+        const nx = Number(x); const ny = Number(y);
+        return !Number.isNaN(nx) && !Number.isNaN(ny) && nx === ny;
+      };
+
+      const conflicts = [];
+      const applied = [];
+      for (const it of todo) {
+        const oldVal = it.def.t === "map" ? mapRow[it.col] : histRow[it.col];
+        if (Object.prototype.hasOwnProperty.call(expected, it.col) && !same(expected[it.col], oldVal)) {
+          conflicts.push({ column: it.col, current: oldVal ?? null });
+          continue;
+        }
+        if (same(oldVal, it.value)) continue; // nothing changes
+        applied.push({ ...it, oldVal });
+      }
+      if (conflicts.length) {
+        await safeRollback(tx);
+        return res.status(409).json({ success: false, code: "EDIT_CONFLICT", error: "มีคนอื่นแก้ไขข้อมูลนี้ไปก่อนแล้ว กรุณารีเฟรชแล้วแก้ใหม่", conflicts });
+      }
+      if (!applied.length) { await safeRollback(tx); return res.json({ success: true, changed: 0, message: "ไม่มีการเปลี่ยนแปลง" }); }
+
+      const mapSets = applied.filter((x) => x.def.t === "map");
+      if (mapSets.length) {
+        const r = new sql.Request(tx).input("id", sql.Int, mappingId);
+        const sets = mapSets.map((x, i) => {
+          const name = `m${i}`;
+          if (x.def.kind === "int") r.input(name, sql.Int, x.value);
+          else if (x.def.kind === "num") r.input(name, sql.Float, x.value);
+          else r.input(name, x.def.sql(), x.value);
+          return `[${x.col}] = @${name}`;
+        });
+        await r.query(`UPDATE TrolleyRMMapping SET ${sets.join(", ")} WHERE mapping_id = @id`);
+      }
+      const histSets = applied.filter((x) => x.def.t === "hist");
+      if (histSets.length) {
+        const r = new sql.Request(tx).input("hid", sql.Int, histId);
+        const sets = histSets.map((x, i) => {
+          const name = `h${i}`;
+          if (x.def.kind === "date") {
+            r.input(name, sql.VarChar(19), x.value);
+            return isDateType(histTypes[x.col])
+              ? `[${x.col}] = TRY_CONVERT(DATETIME, @${name}, 120)`
+              : `[${x.col}] = CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, @${name}, 120), 120)`;
+          }
+          r.input(name, x.def.sql(), x.value);
+          return `[${x.col}] = @${name}`;
+        });
+        await r.query(`UPDATE History SET ${sets.join(", ")} WHERE hist_id = @hid`);
+      }
+
+      const user = req.user || {};
+      for (const it of applied) {
+        await new sql.Request(tx)
+          .input("mid", sql.Int, mappingId).input("hid", sql.Int, it.def.t === "hist" ? histId : null)
+          .input("tn", sql.NVarChar(40), it.def.t === "map" ? "TrolleyRMMapping" : "History").input("cn", sql.NVarChar(60), it.col)
+          .input("ov", sql.NVarChar(600), it.oldVal === null || it.oldVal === undefined ? null : String(it.oldVal).slice(0, 600))
+          .input("nv", sql.NVarChar(600), it.value === null ? null : String(it.value).slice(0, 600))
+          .input("rs", sql.NVarChar(300), reason || null)
+          .input("uid", sql.Int, Number.isInteger(user.user_id) ? user.user_id : null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
+          .query(`INSERT INTO SheetEditLog (mapping_id, hist_id, table_name, column_name, old_value, new_value, reason, user_id, username)
+                  VALUES (@mid, @hid, @tn, @cn, @ov, @nv, @rs, @uid, @un)`);
+      }
+      await tx.commit();
+      invalidateSheetCache();
+      console.log(`✅ [Sheet edit] mapping ${mappingId} โดย user ${user.user_id ?? "-"}: ${applied.map((x) => x.col).join(", ")}`);
+      res.json({ success: true, changed: applied.length, message: `แก้ไขข้อมูล ${applied.length} ช่องสำเร็จ` });
+    } catch (err) {
+      await safeRollback(tx);
+      throw err;
+    }
+  } catch (err) {
+    console.error("❌ [Route PATCH /sheet/edit] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// edit history of one mapping (newest first)
+router.get("/sheet/edit-log", async (req, res) => {
+  try {
+    const mappingId = parseInt(req.query.mapping_id, 10);
+    if (Number.isNaN(mappingId)) return res.status(400).json({ success: false, error: "ต้องระบุ mapping_id" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const r = await pool.request().input("mid", sql.Int, mappingId).query(`
+      SELECT TOP 200 el.edit_id, el.mapping_id, el.table_name, el.column_name, el.old_value, el.new_value, el.reason, el.user_id, el.username,
+             CONVERT(VARCHAR(19), el.edited_at, 120) AS edited_at
+      FROM SheetEditLog el WITH (NOLOCK) WHERE el.mapping_id = @mid ORDER BY el.edit_id DESC`)
+      .catch((err) => { if (isMissingTable(err)) return { recordset: [] }; throw err; });
+    res.json({ success: true, data: r.recordset });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/edit-log] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

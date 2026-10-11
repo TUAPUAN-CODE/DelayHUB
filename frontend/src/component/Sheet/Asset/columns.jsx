@@ -181,6 +181,20 @@ export const COLUMNS = [
   dbs(3, "DBS4", "DBS4 รวม"),
 ];
 
+// Columns the Supervisor may edit (double-click while "โหมดแก้ไข" is on). The server has its own whitelist (SheetRoutes EDIT_MAP) — keep both in step.
+const EDITABLE = new Set([
+  "hu", "mix_code", "tro_id", "rmm_line_name", "weight_RM", "tray_count", "rm_status", "remark", "dest", "remark_dalay",
+  "cooked_date", "rmit_date", "start_mixed_date", "start_gravy_date", "gm_date", "qc_date",
+  "come_cold_date", "out_cold_date", "come_cold_date_two", "out_cold_date_two", "come_cold_date_three", "out_cold_date_three",
+  "cs_come_cold_date", "cs_out_cold_date", "cs_come_cold_date_two", "cs_out_cold_date_two", "cs_come_cold_date_three", "cs_out_cold_date_three",
+  "cs_come_cold_date_four", "cs_out_cold_date_four", "sc_pack_date",
+  "withdraw_date", "start_defrost_date", "end_defrost_date", "input_pd_date", "output_pd_date", "input_cd_date",
+  "withdraw_date_two", "start_defrost_date_two", "end_defrost_date_two", "input_pd_date_two", "output_pd_date_two", "input_cd_date_two",
+  "withdraw_date_three", "start_defrost_date_three", "end_defrost_date_three", "input_pd_date_three", "output_pd_date_three", "input_cd_date_three",
+  "withdraw_date_four", "start_defrost_date_four", "end_defrost_date_four",
+]);
+COLUMNS.forEach((c) => { if (c.kind === "data" && EDITABLE.has(c.key)) c.editable = true; });
+
 /** columns a Role can see: its own tools + every data column */
 // The tool (action) columns are not in the table any more: the buttons are above the table and work on the chosen row (ParentComponent).
 // Only the weight input of the Pack confirm (t_kg) stays in the row, because every ticked row needs its own weight.

@@ -1,32 +1,43 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const { connectToDatabase } = require("./database/db");
+const { connectToDatabase, getPoolStats } = require("./database/db");
 const swaggerUI = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
 const helmet = require("helmet");
 const compression = require("compression");
-const rateLimit = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
 const cluster = require("cluster");
 const os = require("os");
-const { createClient } = require("redis");
+const { createRedis, duplicateRedis } = require("./lib/redisClient");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { setupPrimary } = require("@socket.io/cluster-adapter");
+const { authenticate, authorize, isPrivateIp, initAuth, getAuthMode } = require("./lib/authMiddleware");
+const { createLimiters, resolveTrustProxy } = require("./lib/rateLimiters");
+const { verifyToken } = require("./lib/auth");
+const requestObserver = require("./lib/requestObserver");
+const metrics = require("./lib/metrics");
+const logger = require("./lib/logger");
+const { startAlerts } = require("./lib/alerts");
 const rfidScanTriggerRoutes = require('./routes/rfidScanTrigger');
 const rfidReaderConfigRoutes = require('./routes/rfidReaderConfig');
 // const { getLatestData } = require("./autofetch");
 
 // Load environment variables early
 dotenv.config();
+require("./lib/processGuards").installProcessGuards(`server:${process.pid}`);
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.DB_SERVER || '0.0.0.0';
 
 // ✅ Idle Timeout Configuration
-const IDLE_TIMEOUT = 20 * 60 * 1000;       // 20 นาที = ตัดการเชื่อมต่อ
-const WARNING_TIME = 18 * 60 * 1000;       // 18 นาที = แจ้งเตือนล่วงหน้า
+// เดิมตัด socket ที่ไม่ส่ง event เองนาน 20 นาที แต่หน้าเว็บไม่มีตัวจัดการ "idle_disconnect"/ไม่เชื่อมใหม่ ทำให้จอที่เปิดทิ้งไว้ (wallboard) เงียบไปเฉยๆ
+// จึงปิดเป็นค่าเริ่มต้น (engine.io ping/pong ด้านล่างตรวจจับการเชื่อมต่อที่ตายอยู่แล้ว) — เปิดได้ด้วย SOCKET_IDLE_TIMEOUT_MIN=20 ใน .env
+const IDLE_TIMEOUT = (parseInt(process.env.SOCKET_IDLE_TIMEOUT_MIN, 10) || 0) * 60 * 1000;
+const WARNING_TIME = Math.max(IDLE_TIMEOUT - 2 * 60 * 1000, 0);   // เตือนล่วงหน้า 2 นาที
+const SOCKET_DEBUG_LOGS = process.env.SOCKET_DEBUG_LOGS === "true";
+const socketDebug = (...args) => { if (SOCKET_DEBUG_LOGS) console.log(...args); };
 
 // Cluster setup for production
 if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
@@ -61,19 +72,11 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const app = express();
   const port = process.env.PORT || 3000;
 
-  // Enhanced rate limiting
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 3000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => {
-      return req.ip.startsWith('192.168.') ||
-        req.ip.startsWith('10.') ||
-        req.ip.startsWith('172.') ||
-        req.path === '/health';
-    }
-  });
+  // อยู่หลัง nginx: ดู lib/rateLimiters.js (TRUST_PROXY, RATE_LIMIT_MAX, LOGIN_RATE_LIMIT ใน .env)
+  const trustProxy = resolveTrustProxy();
+  app.set("trust proxy", trustProxy);
+  let sharedRedis = null; // ตั้งค่าเมื่อสร้าง Redis client ด้านล่าง — ตัวนับ rate limit ใช้ Redis ร่วมกันทุก worker/เครื่อง (ไม่พร้อม = นับใน process)
+  const { limiter, loginLimiter, publicAuthLimiter } = createLimiters({ getRedis: () => sharedRedis });
 
   // Security middleware
   app.use(helmet({
@@ -99,6 +102,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     }
   }));
 
+  app.use(requestObserver); // นับ/จับเวลา/log request (ไม่ตัดสินใจอะไร) — ต้องอยู่ก่อน limiter เพื่อเห็น 429 ด้วย
   app.use(limiter);
 
   // Create HTTP server
@@ -111,6 +115,8 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
         `http://${process.env.DB_SERVER}:5173`,
         "http://172.48.0.115:5173",
         "http://pfcm.thaiunion.co.th",
+        // origin เพิ่มเติมของเครื่องอื่น (เช่น server เครื่องที่ 2) คั่นด้วย , ใน .env: CORS_EXTRA_ORIGINS=http://172.48.0.116:5173,http://172.48.0.116
+        ...String(process.env.CORS_EXTRA_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
       ],
       credentials: true,
       methods: ["GET", "POST"]
@@ -133,19 +139,25 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     setupWorker(io);
   }
 
-  // Enhanced Redis configuration
-  const pubClient = createClient({
-    socket: {
-      host: '127.0.0.1',
-      port: 6379,
-      tls: {
-        servername: undefined
-      }
-    },
-    disableClientInfo: true
-  });
+  // Redis (socket adapter + ข้อมูลร่วมของทุก worker/ทุกเครื่อง) — ตั้งค่าที่ .env (REDIS_HOST/PORT/PASSWORD/TLS) ดู lib/redisClient.js
+  // Redis สะดุด/ยังไม่ขึ้น = ไม่ทำให้ API ล่ม (เชื่อมต่อใหม่เอง); ระหว่างนั้น realtime ข้าม worker/เครื่องอาจขาดชั่วคราว
+  const pubClient = createRedis("pub");
+  const subClient = duplicateRedis(pubClient, "sub");
+  sharedRedis = pubClient;
 
-  const subClient = pubClient.duplicate();
+  // ตัวชี้วัดและแจ้งเตือนเริ่มทันที ไม่ต้องรอ Redis (ส่วนที่ใช้ Redis จะข้ามเมื่อยังไม่พร้อม)
+  metrics.registerGauge("db_pool", getPoolStats);
+  metrics.registerGauge("sockets_connected", () => io.engine.clientsCount);
+  metrics.startFlush(pubClient);
+  startAlerts({
+    redis: pubClient,
+    getPoolStats,
+    ping: async () => {
+      const pool = await connectToDatabase();
+      if (!pool) throw new Error("ไม่มี connection pool");
+      await pool.request().query("SELECT 1 AS ok");
+    },
+  });
 
   Promise.all([pubClient.connect(), subClient.connect()])
     .then(() => {
@@ -154,10 +166,12 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
         publishOnSpecificResponseChannel: true
       }));
       console.log("✅ Redis adapter connected");
+      initAuth(pubClient); // เริ่มนับช่วงเปลี่ยนผ่านของ AUTH_MODE อัตโนมัติ + ส่งสถิติผู้เรียกที่ไม่มี token / การใช้งานต่อ Role เข้า Redis
+      logger.info("server_ready", { mode: getAuthMode(), trustProxy });
     })
     .catch((err) => {
-      console.error("❌ Redis connection error:", err);
-      process.exit(1);
+      // ไม่ออกจาก process: reconnectStrategy ของ client ลองเชื่อมต่อต่อเอง
+      logger.error("redis_connect_failed", { error: err && err.message });
     });
 
   app.set("io", io);
@@ -174,7 +188,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       ];
 
       const isAllowed = allowedOrigins.includes(origin) ||
-        /^(http:\/\/)?(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|172\.48\.\d+\.\d+)/.test(origin);
+        /^(http:\/\/)?(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|172\.48\.\d+\.\d+)(:\d{1,5})?$/.test(origin);
 
       callback(null, isAllowed);
     },
@@ -186,6 +200,13 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   // Body parsing middleware
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
+  // ตัวจำกัดของ endpoint สาธารณะ (ต้องอยู่หลัง body parser เพราะใช้ user_id ใน body) แล้วจึงตรวจตัวตน + สิทธิ์ Role ของทุก route ที่เหลือ
+  app.use("/api/login", loginLimiter);
+  app.use("/api/signup", publicAuthLimiter);
+  app.use("/api/forgot-password", publicAuthLimiter);
+  app.use(authenticate); // AUTH_MODE = off | warn | enforce | (ไม่ตั้ง = warn 24 ชม.แรกแล้ว enforce เอง) — ดู lib/authMiddleware.js
+  app.use(authorize);
 
   // Real time for the Master Sheet: every successful write of the API tells the open sheets to reload (see sheetRealtime.js)
   require("./sheetRealtime")(app, io);
@@ -220,6 +241,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const QualityControlRoutes = require("./routes/QualityControlRoutes")(io);
   const SheetRoutes = require("./routes/SheetRoutes");
   const OtherRoutes = require("./routes/OtherRoutes");
+  const AuthRoutes = require("./routes/AuthRoutes");
 
   // Route registration
   app.use("/api", OvenRoutes);
@@ -237,6 +259,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api", QualityControlRoutes);
   app.use("/api", SheetRoutes);
   app.use("/api", OtherRoutes);
+  app.use("/api", AuthRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);
 
@@ -247,6 +270,31 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       worker: process.pid,
       memoryUsage: process.memoryUsage()
     });
+  });
+
+  // พร้อมรับงานจริงหรือไม่ (ตรวจ DB + Redis) — ใช้กับ load balancer / monitor; /health ด้านบนบอกแค่ว่า process ยังมีชีวิต
+  app.get("/health/ready", async (req, res) => {
+    const checks = { db: false, redis: !!(pubClient && pubClient.isReady) };
+    try {
+      const pool = await connectToDatabase();
+      if (pool) { await pool.request().query("SELECT 1 AS ok"); checks.db = true; }
+    } catch (err) {
+      logger.warn("ready_db_failed", { error: err.message });
+    }
+    // พร้อม = ต่อ DB ได้เท่านั้น (Redis ล่มแล้ว API ยังทำงานได้ — ถ้านับ Redis ด้วย load balancer จะถอดทุกเครื่องออกจากระบบพร้อมกัน); redis แสดงไว้เป็นข้อมูล
+    const ok = checks.db;
+    res.status(ok ? 200 : 503).json({ status: ok ? "ready" : "not_ready", worker: process.pid, checks, pool: getPoolStats() });
+  });
+
+  // ตัวชี้วัดรวมทุก worker (รูปแบบ Prometheus; เติม ?format=json เพื่อดู snapshot ดิบ)
+  // ป้องกันด้วย header x-metrics-key = METRICS_KEY ถ้าตั้งไว้ ไม่เช่นนั้นเปิดเฉพาะเครือข่ายภายใน
+  app.get("/metrics", async (req, res) => {
+    const key = process.env.METRICS_KEY;
+    const allowed = key ? req.headers["x-metrics-key"] === key : isPrivateIp(req.ip);
+    if (!allowed) return res.status(403).json({ success: false, error: "forbidden" });
+    const snaps = await metrics.readAll(pubClient);
+    if (req.query.format === "json") return res.json({ success: true, workers: snaps });
+    res.type("text/plain; version=0.0.4").send(metrics.renderPrometheus(snaps));
   });
 
   // Swagger setup
@@ -265,12 +313,26 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
   app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
+  // Socket.IO: ตรวจ token ตอนเชื่อมต่อ (client ส่งใน auth.token — authClient.js แนบให้ทุก socket; RFIDc1 ใช้ service token)
+  io.use((socket, next) => {
+    const mode = getAuthMode();
+    if (mode === "off") return next();
+    const v = verifyToken(socket.handshake.auth && socket.handshake.auth.token);
+    if (v.ok && (v.payload.typ === "user" || v.payload.typ === "service")) {
+      socket.data.user = { user_id: v.payload.typ === "service" ? 0 : v.payload.user_id, service: v.payload.typ === "service" };
+      return next();
+    }
+    metrics.inc("socket_auth_total", { result: v.ok ? "wrong_type" : v.reason, mode });
+    if (mode === "enforce") return next(new Error(v.reason === "expired" ? "TOKEN_EXPIRED" : "AUTH_REQUIRED"));
+    return next(); // warn: ปล่อยผ่าน (นับไว้ใน metrics)
+  });
+
   // Socket.IO connection tracking
   const activeSockets = new Map();
 
   // Enhanced Socket.IO connection handler
   io.on("connection", (socket) => {
-    console.log(`✅ New connection: ${socket.id}`);
+    socketDebug(`✅ New connection: ${socket.id}`);
     activeSockets.set(socket.id, socket);
 
     // ====================================================================
@@ -280,6 +342,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     let warningTimer = null;
 
     const resetIdleTimer = () => {
+      if (IDLE_TIMEOUT <= 0) return;
       if (idleTimer) clearTimeout(idleTimer);
       if (warningTimer) clearTimeout(warningTimer);
 
@@ -310,26 +373,14 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
     // ✅ Reset timer ทุกครั้งที่มี event จาก client (= มี activity)
     socket.onAny((eventName, ...args) => {
       if (eventName !== 'ping' && eventName !== 'pong') {
-        console.log(`🔄 Activity from ${socket.id}: ${eventName}`);
         resetIdleTimer();
       }
     });
     // ====================================================================
 
-    // Heartbeat monitoring (network-level)
-    let missedPings = 0;
-    const heartbeatInterval = setInterval(() => {
-      if (missedPings > 2) {
-        console.log(`♻️ Terminating stale connection: ${socket.id}`);
-        socket.disconnect(true);
-      }
-      missedPings++;
-      socket.emit("ping");
-    }, 20000);
-
-    socket.on("pong", () => {
-      missedPings = 0;
-    });
+    // Heartbeat: เดิมมี heartbeat ระดับแอป (emit "ping" ทุก 20 วินาที แล้วตัด socket ที่ไม่ตอบ "pong" ใน ~80 วินาที) แต่หน้าเว็บเกือบทั้งหมดไม่ตอบ "pong"
+    // ทำให้ socket ถูกตัดแล้วไม่เชื่อมใหม่ (server disconnect ไม่ auto-reconnect) → realtime หยุดเงียบๆ
+    // การตรวจ connection ที่ตายใช้ engine.io pingInterval/pingTimeout (ตั้งไว้ที่ new Server ด้านบน) ซึ่ง client ตอบเองอัตโนมัติ
 
     // Room management
     socket.on("joinRoom", (roomName, callback) => {
@@ -428,24 +479,20 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
 
     // ✅ Cleanup on disconnect
     socket.on("disconnect", (reason) => {
-      console.log(`⚠️ ${socket.id} disconnected: ${reason}`);
-      clearInterval(heartbeatInterval);
+      socketDebug(`⚠️ ${socket.id} disconnected: ${reason}`);
       clearTimeout(idleTimer);
       clearTimeout(warningTimer);
       activeSockets.delete(socket.id);
-      io.emit("userDisconnected", {
-        userId: socket.id,
-        timestamp: new Date().toISOString()
-      });
     });
 
   }); // ✅ ปิด io.on("connection") ตรงนี้
 
   // Error handling middleware
   app.use((err, req, res, next) => {
-    console.error(err.stack);
+    logger.error("unhandled_route_error", { id: req.id, method: req.method, path: req.path, user_id: req.user ? req.user.user_id : null, error: err.message, stack: err.stack });
     res.status(500).json({
       error: "Internal Server Error",
+      requestId: req.id,
       message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   });
@@ -465,7 +512,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       }
 
       console.log(`Worker ${process.pid} started on port ${PORT}`);
-      console.log(`⏰ Idle timeout: ${IDLE_TIMEOUT / 60000} นาที`);
+      if (IDLE_TIMEOUT > 0) console.log(`⏰ Idle timeout: ${IDLE_TIMEOUT / 60000} นาที`);
       console.log(`Accessible on:`);
       addresses.forEach(ip => {
         console.log(`  http://${ip}:${PORT}`);

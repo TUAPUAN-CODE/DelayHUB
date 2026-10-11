@@ -7,8 +7,6 @@
 let port = null;
 let writer = null;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * ขอสิทธิ์เชื่อมต่อกับเครื่องพิมพ์ผ่าน Web Serial API
  * ⚠️ ต้องเรียกจาก user gesture (เช่น onClick ของปุ่ม "เชื่อมต่อปริ้นเตอร์") อย่างน้อยครั้งแรก

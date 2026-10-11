@@ -35,10 +35,8 @@ const WorkplaceSelector = lazy(() => import("../User/WorkplaceSelector.jsx"));
 
 const WorkplacePage = lazy(() => import("./Workplace/WorkplacePage"));
 
-const DelayTimepercentage_tie = lazy(() => import("./DelayTimeTrackingByPercentage/DelayTimeTrackingPage.jsx"));
-const DelayTimeTrackingRM = lazy(() => import("./DelayTimeTrackingRM/DelayTimeTrackingPage"));
 const TrackTrolleyQC = lazy(() => import("./TrackTrolley/TrackTrolleyQC.jsx"));
-const DelayTimeTrackingIP = lazy(() => import("./DelayTimeTrackingIP/DelayTimeTrackingPage.jsx")); // in process: rows with no sc_pack_date yet
+const ReportPage = lazy(() => import("./Report/ReportPage")); // one report: %Tie / Pareto / trend / table (replaces Delay %, Delay SC, Delay IP)
 
 
 // เก็บเส้นทางทั้งหมดไว้ใน Array เพื่อลดโค้ดซ้ำซ้อน
@@ -75,10 +73,8 @@ const routes = [
 
 { path: "/WorkplaceSelector", element: <WorkplaceSelector /> },
 { path: "/WorkplacePage", element: <WorkplacePage /> },
-{ path: "/DelayTimepercentage_tie", element: <DelayTimepercentage_tie/> },
-{ path: "/DelayTimeTrackingRM", element: <DelayTimeTrackingRM/> },
 { path: "/TrackTrolley", element: <TrackTrolleyQC/> },
-{ path: "/TrackTrolley/inprocess", element: <DelayTimeTrackingIP/> },
+{ path: "/Report", element: <ReportPage /> },
   // // จัดการการทำงาน
   // { path: "/Table/WorkPlace", element: <TableWorkPlaceSup /> },
   // { path: "/Table/Role", element: <TableRoleSup /> },
@@ -105,6 +101,10 @@ function AppSup() {
       >
         <Routes>
           <Route path="/Sheet" element={<SheetPage role="sup" />} />
+          {/* the three old delay reports became one: old links go to the report */}
+          {["/DelayTimepercentage_tie", "/DelayTimeTrackingRM", "/TrackTrolley/inprocess"].map((p) => (
+            <Route key={p} path={p} element={<Navigate to="/sup/Report" replace />} />
+          ))}
           {/* pages that were removed: old links go to the sheet */}
           {["/", "/TableMainSupv", "/TableToCold", "/HisInput", "/ipscvF", "/AddPKG", "/AddIGD", "/DelayTraking", "/import/rm/csv", "/delay/report", "/delay/report/line", "/DelayTimeTrackingRMinprocess"].map((p) => (
             <Route key={p} path={p} element={<Navigate to="/sup/Sheet" replace />} />

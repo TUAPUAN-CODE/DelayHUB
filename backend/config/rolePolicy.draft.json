@@ -1,0 +1,3550 @@
+{
+  "version": 1,
+  "note": "ร่างจากการวิเคราะห์โค้ด ไม่ได้บังคับ — ตรวจแล้วเปลี่ยนชื่อเป็น rolePolicy.json (ทุกกฎ mode=warn = log อย่างเดียว ลบ mode เมื่อมั่นใจ); ผู้ดูแล Role 6/8 ผ่านทุกกฎอยู่แล้ว",
+  "generated_at": "2026-10-10T14:34:17.576Z",
+  "rules": [
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/main/md/fetchSlotRawMat$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/main/mix/fetchSlotRawMat$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/main/fetchSlotRawMat$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/room$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckIn",
+        "ColdStorages/Move",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/update-rsrv-slot$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckIn",
+        "ColdStorages/Move",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/clodstorage/update-NULL-slot$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckIn",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/clodstorage/rmInTrolley$",
+      "roles": [
+        2,
+        5,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/RoomTable",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckOut",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/fetchSlotRawMat$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/mixed/fetchSlotRawMat$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/fetchAvailableRawMaterials$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/addRawMatToTrolley$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/fetchTrolleyMaterials$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/export/fetchSlotRawMat$",
+      "roles": [
+        5,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "Master/CheckOut"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/mix/export/fetchSlotRawMat$",
+      "roles": [
+        5,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "Master/CheckOut"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/outcoldstorage$",
+      "roles": [
+        2,
+        4,
+        5,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/RoomTableSupervisor",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Master/Main",
+        "Master/PackTro",
+        "Pack/CheckIn",
+        "Pack/Main",
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorages/outcoldstorage$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/CheckOut"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/update/[^/]+$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/history/[^/]+$",
+      "roles": [
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/Room",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckOut",
+        "ColdStorages/Room",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Pack/CheckIn",
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/history/test/[^/]+$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckOut"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/incold/fetchSlotRawMat$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTable"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/table/out$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Dashboardrmoutprocess"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/sap/unified$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/incold/fetchSlotRawMat$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/RoomTablerminprocess"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/pending/checkin$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/RoomMonitor"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/incold/fetchSlotRawMatsend$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/RoomMonitor"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/all/delay/tracking/rm$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/DelayTimeTrackingRM"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/all/delay/tracking/rm/inprocess$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/DelayTimeTrackingIP"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/incold/mix/fetchSlotRawMat$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTable"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/qc/cold/check$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTable",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/cold/checkin/update/Trolley$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTableSupervisor"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/input/coldstorage$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Cs2"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/largecold/checkin/update/Trolley$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/CheckIn",
+        "ColdStorages/RoomMonitor"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/moveRawmatintolley$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/moveTrolley$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTableSupervisor"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/history$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/HisInput"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/EmptyTrolley$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/EmptyTrolley"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap/out/cs$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPOutCS"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap/start/defrost$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap/end/defrost$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap/come/cs$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPComeAnti"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorages/remark/sap$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/scan/sap$",
+      "roles": [
+        1,
+        4,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Main",
+        "ColdStorages/SapSheet",
+        "ColdStorages/ScanSAPComeAnti",
+        "ColdStorages/ScanSAPOutCS",
+        "Master/ScanSAP",
+        "Oven/BatchSAP",
+        "Pack/ScanSAP"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/scan/sap/end/defrost$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/scan/sap/come/cs$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPComeAnti"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/scan/sap/start/defrost$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorages/scan/sap/out/cs$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPOutCS"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorages/sap/update-hu$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Dashboardrmoutprocess"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/clearTrolley$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/EmptyTrolley"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorage/transfer-mapping$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/RoomMonitor"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/rawmat/[^/]+$",
+      "roles": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPComeAnti",
+        "ColdStorages/ScanSAPOutCS",
+        "Master/IncludeRawmatPack",
+        "Oven/ScanSAP",
+        "Pack/IncludeRawmatPack",
+        "Pack/PullHistory",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/ScanSAP",
+        "Prep/Timestampbroth",
+        "Supervisor/TableProduction",
+        "Supervisor/TableRawmat",
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/other/lots$",
+      "roles": [
+        9
+      ],
+      "mode": "warn",
+      "callers": [
+        "Other/DelayControl"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/other/lots$",
+      "roles": [
+        9
+      ],
+      "mode": "warn",
+      "callers": [
+        "Other/DelayControl"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/other/lots/[^/]+/move$",
+      "roles": [
+        9
+      ],
+      "mode": "warn",
+      "callers": [
+        "Other/DelayControl"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/other/lots/[^/]+/close$",
+      "roles": [
+        9
+      ],
+      "mode": "warn",
+      "callers": [
+        "Other/DelayControl"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/oven/main/fetchRMForProd$",
+      "roles": [
+        1
+      ],
+      "mode": "warn",
+      "callers": [
+        "Oven/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/oven/main/fetchRMInTrolley$",
+      "roles": [
+        1
+      ],
+      "mode": "warn",
+      "callers": [
+        "Oven/Main"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/oven/saveRMForProd$",
+      "roles": [
+        1,
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ScanSAP",
+        "Oven/ScanSAP",
+        "Pack/ScanSAP"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/oven/toCold/fetchRMForProd$",
+      "roles": [
+        1,
+        2,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/HistoryBaking",
+        "ColdStorages/MatCold",
+        "Oven/HistoryBaking",
+        "Oven/MatCold",
+        "Prep/HistoryCooked",
+        "Prep/HistoryTransform"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/oven/toCold/saveTrolley$",
+      "roles": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/Main",
+        "ColdStorage/Room",
+        "ColdStorage/RoomTable",
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/MatCold",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Master/Main",
+        "Master/PackTro",
+        "Master/TrackTrolley",
+        "Oven/MatCold",
+        "Pack/Main",
+        "Prep/CheckIn",
+        "Prep/EditDataTrolley",
+        "Prep/HistoryCooked",
+        "Prep/HistoryTransform",
+        "Prep/Main",
+        "QC/MainQC",
+        "QC/TrackTrolley",
+        "Supervisor/TrackTrolley"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/oven/sap/saveRMForProd$",
+      "roles": [
+        1
+      ],
+      "mode": "warn",
+      "callers": [
+        "Oven/BatchSAP"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkin/pack/mappingTrolley$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/CheckIn"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/checkin/pack$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/CheckIn",
+        "Pack/CheckIn"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "^/api/pack/data/time$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Report",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/delete/mixpack$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/manage/insert$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Pack/IncludeRawmatPack"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/main/fetchRawMat/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Main",
+        "Pack/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/main/fetchMixedRawMat/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Main",
+        "Pack/Main"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/main/modal/fetchRawMat$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Main",
+        "Master/PackTro",
+        "Pack/Main",
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/main/modal/fetchRawMatMix$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro",
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/checkin/prep$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/input/Trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Main",
+        "Pack/Main"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/getout/Trolley$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/manage/fetchRM/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/manage",
+        "Pack/Manage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/success/packing$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/OrderRequestrawmat",
+        "Master/Report",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Pack/Manage",
+        "Pack/ManageRawmat",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/rework/saveTrolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Master/Report",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Pack/Manage",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/Add/Trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro",
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/Trolley/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ManageRequestOrder",
+        "Master/MixRM",
+        "Master/OrderRequestrawmat",
+        "Master/PackTro",
+        "Master/Report",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Pack/Manage",
+        "Pack/ManageRawmat",
+        "Pack/ManageRequestOrder",
+        "Pack/MixRM",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/matmanage/Add/rm/TrolleyMapping$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Report",
+        "Master/manage",
+        "Pack/Manage",
+        "Pack/ManageRawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/export/Trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro",
+        "Pack/PackTro"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/mixed/delay-time$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/mixed/trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/mix/trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/prep/clear/trolley$",
+      "roles": [
+        3,
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/TrackTrolley",
+        "Supervisor/TrackTrolley"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/mixed/trolley/head/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/mixed/history$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/production-plans$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/history/All/[^/]+$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/History"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/history/All/mix/[^/]+$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/History"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/export/to/rework/Trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro",
+        "Pack/PackTro"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/time-variables$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/History",
+        "Pack/History"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/mixtrolley/Add/rm/TrolleyMapping$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/MixRM",
+        "Pack/MixRM"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/Trolley/del$",
+      "roles": [
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/sendback$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Main",
+        "Pack/Main"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/Add/request/rm/TrolleyMapping$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/OrderRequestrawmat",
+        "Master/requestrawmat",
+        "Pack/OrderRequestrawmat",
+        "Pack/RequestRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/request/rawmat/fetchRM/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/OrderRequestrawmat",
+        "Pack/OrderRequestrawmat"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete/request/RM/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/manage/order/fetchRM/[^/]+$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ManageRequestOrder",
+        "Pack/ManageRequestOrder"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/matmanage/Add/rm/request/TrolleyMapping$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/ManageRequestOrder",
+        "Pack/ManageRequestOrder"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/data/pdf$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Report",
+        "Pack/ReportDelay",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/export/topack/Trolley$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/PackTro",
+        "Pack/PackTro"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/mixed/delay-time/test$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Master/Report",
+        "Master/ScanSAP",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/ScanSAP",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkin/fetchCheckInData$",
+      "roles": [
+        2,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/CheckIn",
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/manage/all/line$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Pack/IncludeRawmatPack",
+        "Pack/PullHistory"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/manage/mixed/all/line$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Pack/IncludeRawmatPack",
+        "Pack/PullHistory"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/report/fetchRM/all/line$",
+      "roles": [
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/Report",
+        "Pack/ReportDelay",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/ingredient/wo-mapping$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/ingredient/wo-mapping/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/ingredient/fetch-wo$",
+      "roles": [
+        4,
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatNotEditTIME",
+        "Supervisor/DelayTimeTrackingRM"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/printmaster/by-id$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/get/line$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/get/doc_no$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/get/sc_pack_date$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/get/mat_name$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/paper/list$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/PullHistory"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/data/pdf/history$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ReportPull"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/traceback/mat-batch$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/DelayTimeTrackingRM"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/traceback/packaging$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/DelayTimeTrackingRM"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/saveRMMixBatch/for/BatchMIX$",
+      "roles": [
+        2,
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageDelay",
+        "Pack/PullHistory",
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/saveRMForProd$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/fetchRawMat2XByMat$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/saveRMForEmu/for/emulsion$",
+      "roles": [
+        2,
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageDelay",
+        "Pack/PullHistory",
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/mix/emulsion$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Emulsion"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/mix/batch$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/BatchMIX"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/getRMMixBatch$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/BatchMIX",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/getRMForEmuList$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Emulsion",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/manage/saveTrolleyV2$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/manage/saveTrolley$",
+      "roles": [
+        1,
+        2,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Oven/BatchSAP",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/manage/PrintMapping$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/manage/fetchTrolleyRMMapping$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkin/fetchCheckInData$",
+      "roles": [
+        2,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/CheckIn",
+        "Prep/CheckIn"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/getMixToPack$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/IncludeRawmat",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/getMixToPack/loaf$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/IncludeRawmatOtherPlant",
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/delete/MixToPack$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/mix/MixToPack$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/IncludeRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/create/rm/forprod$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageDelay",
+        "Pack/PullHistory"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/mix/MixToPack/loaf$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/IncludeRawmatOtherPlant"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/matimport/fetchRMForProd$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/fetchRMForProd$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/fetchRMForProdNoBatchAfter$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/getTrolleyData/[^/]+$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/MatRework"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/matimport/add/saveTrolley$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/MatImport"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/checkout/sap$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/rawmat2x/list$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/BatchMIX"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/timestamp-ck$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/timestamp-ck/start$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/prep/timestamp-ck/cooling$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/checkin/sap$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/cs/checkin/rm$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/main/fetchAllTrolleys$",
+      "roles": [
+        2,
+        3,
+        6,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/TrackTrolley",
+        "Prep/Main",
+        "QC/TrackTrolley",
+        "Supervisor/TrackTrolley"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/EditDataTrolley/fetchAllTrolleys$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/EditDataTrolley"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/fetchRMForProd$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/fetchRMForProdNoBatchAfter$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Sheet/Asset"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/prep/mat/rework/saveTrolley$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/MatRework"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prep/mat/rework/getTrolleyData/[^/]+$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/MatRework"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/delete/batchmix$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/BatchMIX"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete/batch/cold/storage$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Main"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/delete/rmforemu$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Emulsion"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/delete/rmforemu$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/Emulsion"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/fetchProcess$",
+      "roles": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Master/IncludeRawmatPack",
+        "Oven/BatchSAP",
+        "Oven/MatCold",
+        "Pack/IncludeRawmatPack",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/TimeStampMain",
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/addProcess$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/deleteProcess$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/updateProcess$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/fetchProduction$",
+      "roles": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Main",
+        "ColdStorage/Room",
+        "ColdStorage/RoomTable",
+        "ColdStorages/CheckOut",
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/HistoryBaking",
+        "ColdStorages/Main",
+        "ColdStorages/MatCold",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Master/IncludeRawmatPack",
+        "Master/Main",
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Master/PackTro",
+        "Master/Report",
+        "Master/ScanSAP",
+        "Master/TrackTrolley",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Oven/BatchSAP",
+        "Oven/HistoryBaking",
+        "Oven/Main",
+        "Oven/MatCold",
+        "Oven/ScanSAP",
+        "Pack/CheckIn",
+        "Pack/IncludeRawmatPack",
+        "Pack/Main",
+        "Pack/Manage",
+        "Pack/ManageDelay",
+        "Pack/ManageRawmat",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat",
+        "Pack/ScanSAP",
+        "Prep/BatchMIX",
+        "Prep/CheckIn",
+        "Prep/EditDataTrolley",
+        "Prep/Emulsion",
+        "Prep/HistoryCooked",
+        "Prep/HistoryTransform",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/Main",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth",
+        "QC/MainQC",
+        "QC/QCCheck"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/fetchGroup$",
+      "roles": [
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/MatCold",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/IncludeRawmatPack",
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Master/Report",
+        "Master/ScanSAP",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Oven/BatchSAP",
+        "Oven/MatCold",
+        "Oven/ScanSAP",
+        "Pack/IncludeRawmatPack",
+        "Pack/Manage",
+        "Pack/ManageDelay",
+        "Pack/ManageRawmat",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat",
+        "Pack/ScanSAP",
+        "Prep/BatchMIX",
+        "Prep/EditDataTrolley",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/prod-rawmat$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add/prod-rawmat$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get-production$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add-production$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update-production$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-production/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-prod-rawmat/[^/]+/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-prod-rawmat/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/import-prod-rawmat/CSV$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/ImportCSVFileIGD"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/qc/main/fetchRMForProd$",
+      "roles": [
+        3
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/MainQC"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/qc/fetchRMForProd$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/qc/check$",
+      "roles": [
+        3
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/QCCheck"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/history/cold-dates$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/qc/print/status$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/qc/History/ByDate$",
+      "roles": [
+        3
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/HisCheck"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update-destination$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/metal-detectors$",
+      "roles": [
+        3,
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/QCCheck",
+        "Supervisor/MDmanage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/sup/metal-detectors$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/MDmanage"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/work-areas$",
+      "roles": [
+        3,
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "QC/QCCheck",
+        "Supervisor/MDmanage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/sup/work-areas$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/MDmanage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/update-qc-datetime$",
+      "roles": [
+        2,
+        3
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/EditDataTrolley",
+        "QC/QCCheck"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkRawMat$",
+      "roles": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "Master/IncludeRawmatPack",
+        "Oven/ScanSAP",
+        "Pack/IncludeRawmatPack",
+        "Pack/ManageDelay",
+        "Pack/PullHistory",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/ScanSAP",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/fetchRawMatName$",
+      "roles": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/Main",
+        "ColdStorage/Room",
+        "ColdStorage/RoomTable",
+        "ColdStorage/RoomTableSupervisor",
+        "ColdStorages/CheckOut",
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/HistoryBaking",
+        "ColdStorages/Main",
+        "ColdStorages/MatCold",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Master/IncludeRawmatPack",
+        "Master/Main",
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Master/PackTro",
+        "Master/Report",
+        "Master/ScanSAP",
+        "Master/TrackTrolley",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Oven/BatchSAP",
+        "Oven/HistoryBaking",
+        "Oven/Main",
+        "Oven/MatCold",
+        "Oven/ScanSAP",
+        "Pack/CheckIn",
+        "Pack/IncludeRawmatPack",
+        "Pack/Main",
+        "Pack/Manage",
+        "Pack/ManageDelay",
+        "Pack/ManageRawmat",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat",
+        "Pack/ScanSAP",
+        "Prep/BatchMIX",
+        "Prep/CheckIn",
+        "Prep/EditDataTrolley",
+        "Prep/Emulsion",
+        "Prep/HistoryCooked",
+        "Prep/HistoryTransform",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/Main",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/ScanSAP",
+        "Prep/TimeStampMain",
+        "Prep/Timestampbroth",
+        "QC/MainQC",
+        "QC/QCCheck"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/rawmat/types$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat",
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add/rawmat/type$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/rawmat/types/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete/rawmat/type/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add/rawmat$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get/rawmat-groups/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get-rawmat$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update-rawmat$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-rawmat/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/rawmat/not-prodrm$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableProduction"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/rawmat/AllSearch$",
+      "roles": [
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/ScanSAPComeAnti",
+        "ColdStorages/ScanSAPOutCS",
+        "Master/IncludeRawmatPack",
+        "Oven/ScanSAP",
+        "Pack/IncludeRawmatPack",
+        "Pack/PullHistory",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/ScanSAP",
+        "Prep/Timestampbroth"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/rawmat/AllSearch/matname$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageDelay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get/rawmat-groups$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add/rawmat-group$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add/rawmat-group$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update/rawmat-group$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-rawmatgroup/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableRawmat"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkEditHistoryOnTrolley$",
+      "roles": [
+        2,
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room",
+        "Prep/MatImport",
+        "Prep/MatRework"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/report/rm-delay/tie/line$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/DelayTimeTrackingByPercentage",
+        "Supervisor/DelayTimeTrackingIP",
+        "Supervisor/DelayTimeTrackingRM"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkEditHistoryOnTrolleyAll$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkEditHistory$",
+      "roles": [
+        1,
+        2,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Oven/MatCold",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/updateProduction$",
+      "roles": [
+        1,
+        2,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Oven/MatCold",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkEditHistoryByMapping$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/EditDataTrolley"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/getDetailsByMapping$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/EditDataTrolley"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/updateEditProd$",
+      "roles": [
+        2
+      ],
+      "mode": "warn",
+      "callers": [
+        "Prep/EditDataTrolley"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/successTrolley$",
+      "roles": [
+        1,
+        2,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Master/IncludeRawmatPack",
+        "Oven/BatchSAP",
+        "Oven/MatCold",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/MatOnTrolley/updateProduction/pack$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/ManageRawmat"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/MatOnTrolley/updateProduction$",
+      "roles": [
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/ManageRequestOrder",
+        "Master/OrderRequestrawmat",
+        "Master/Report",
+        "Master/manage",
+        "Master/requestrawmat",
+        "Pack/Manage",
+        "Pack/ManageRequestOrder",
+        "Pack/OrderRequestrawmat",
+        "Pack/PullHistory",
+        "Pack/ReportDelay",
+        "Pack/ReportPull",
+        "Pack/ReportRawmatEditTIME",
+        "Pack/ReportRawmatNotEditTIME",
+        "Pack/RequestRawmat",
+        "Prep/MatImport",
+        "Prep/MatRework"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/MatOnTrolley/updateProductionAll$",
+      "roles": [
+        5,
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/Room",
+        "ColdStorages/Room"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/lineType$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/lineType$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/lineType/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/lineType/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/lineName$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/lineName$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/lineName/EditLineName/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/lineName/DeleteLineName/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableLine"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/cart$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/cart$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/cart/batch$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/cart/next-id$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/edit/cart/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/cart/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/del/cart/batch$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/CartTable"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/supervisor/mat-pkg/import$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/ImportCSVFileIGD"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/checkTrolley$",
+      "roles": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID",
+        "ColdStorage/Cs2",
+        "ColdStorage/Main",
+        "ColdStorage/Room",
+        "ColdStorage/RoomTable",
+        "ColdStorages/Dashboardrminprocess",
+        "ColdStorages/Dashboardrmoutprocess",
+        "ColdStorages/HistoryBaking",
+        "ColdStorages/Main",
+        "ColdStorages/MatCold",
+        "ColdStorages/Room",
+        "ColdStorages/RoomMonitor",
+        "ColdStorages/RoomTablerminprocess",
+        "Master/CheckIn",
+        "Master/CheckOut",
+        "Master/IncludeRawmatPack",
+        "Master/Main",
+        "Master/PackTro",
+        "Master/TrackTrolley",
+        "Oven/BatchSAP",
+        "Oven/HistoryBaking",
+        "Oven/Main",
+        "Oven/MatCold",
+        "Pack/Main",
+        "Pack/ManageRawmat",
+        "Prep/BatchMIX",
+        "Prep/CheckIn",
+        "Prep/EditDataTrolley",
+        "Prep/Emulsion",
+        "Prep/HistoryCooked",
+        "Prep/HistoryTransform",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/Main",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/TimeStampMain",
+        "QC/MainQC",
+        "QC/TrackTrolley",
+        "Supervisor/TrackTrolley"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/reserveTrolley$",
+      "roles": [
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Master/IncludeRawmatPack",
+        "Master/PackTro",
+        "Oven/BatchSAP",
+        "Oven/MatCold",
+        "Pack/ManageRawmat",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/re/reserveTrolley$",
+      "roles": [
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/MatCold",
+        "Master/IncludeRawmatPack",
+        "Master/PackTro",
+        "Oven/BatchSAP",
+        "Oven/MatCold",
+        "Pack/ManageRawmat",
+        "Prep/BatchMIX",
+        "Prep/Emulsion",
+        "Prep/IncludeRawmat",
+        "Prep/IncludeRawmatOtherPlant",
+        "Prep/MatImport",
+        "Prep/MatRework",
+        "Prep/TimeStampMain"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/cold/checkin/check/Trolley$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/RoomTableSupervisor"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/user/roles$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add-user$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/add-workplace-user$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get/positions$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update-user$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/update-workplace-user$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/users$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/delete-user/[^/]+$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/get/workplaces$",
+      "roles": [
+        6
+      ],
+      "mode": "warn",
+      "callers": [
+        "Supervisor/TableUser"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/config$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorage/rfid/config$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/rfid/config/[^/]+$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorage/rfid/config/[^/]+/toggle$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorage/rfid/print-claim$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/status$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/scan/[^/]+$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/history/[^/]+$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/unknown-epc$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/coldstorage/rfid/bound-epc$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorage/rfid/bind-epc$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/coldstorage/rfid/rebind-epc$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/coldstorage/rfid/delete-epc$",
+      "roles": [
+        5
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorage/CheckOutWithRFID"
+      ]
+    }
+  ]
+}

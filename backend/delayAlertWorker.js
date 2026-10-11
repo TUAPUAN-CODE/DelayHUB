@@ -20,9 +20,12 @@
  * The first run only remembers the colours of the rows (no immediate messages), so starting the worker does not flood the group.
  */
 require("dotenv").config();
+require("./lib/processGuards").installProcessGuards("delay-alert-worker");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const { issueServiceToken } = require("./lib/auth");
+const { createLeader } = require("./lib/leaderLock");
 
 const cfg = () => ({
   token: process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
@@ -97,6 +100,7 @@ const push = async (messages, c) => {
   await axios.post(c.pushUrl, { to: c.group, messages }, { headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" }, timeout: 20000 });
 };
 
+const STALE_STATE_MS = (parseInt(process.env.DELAY_ALERT_STALE_MIN, 10) || 30) * 60000;
 let libPromise = null;
 const loadLib = () => { if (!libPromise) libPromise = import("./lib/dbs.mjs"); return libPromise; };
 
@@ -111,10 +115,13 @@ const runOnce = async (now = Date.now()) => {
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const today = new Date();
   const from = new Date(today.getTime() - c.days * 86400000);
-  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: c.days, open_from: ymd(from), open_to: ymd(today) }, timeout: 60000 });
+  // เรียก API ภายในด้วย service token (ตัวตรวจสิทธิ์ของ server รู้จัก; ไม่ต้องมีรหัสผ่านผู้ใช้)
+  const res = await axios.get(`${c.api}/api/sheet/rows`, { params: { days: c.days, open_from: ymd(from), open_to: ymd(today) }, headers: { Authorization: `Bearer ${issueServiceToken("delay-alert-worker")}` }, timeout: 60000 });
   if (!res.data?.success) throw new Error(res.data?.error || "โหลดข้อมูลตารางไม่สำเร็จ");
 
-  const prev = readState(c.stateFile);
+  let prev = readState(c.stateFile);
+  // สถานะเก่าเกินไป (เช่น เครื่องนี้เพิ่งรับช่วงเป็นผู้นำหลังเครื่องอื่นหยุดไปนาน, หรือ worker หยุดนาน) = เริ่มใหม่แบบ baseline กันแจ้งเตือนท่วมกลุ่ม
+  if (prev && prev.savedAt && now - prev.savedAt > STALE_STATE_MS) { console.log("ℹ️ [delayAlert] สถานะเดิมเก่าเกิน " + Math.round(STALE_STATE_MS / 60000) + " นาที — เริ่มใหม่"); prev = null; }
   const baseline = prev === null;           // first run: no immediate messages, only remember
   const next = {};
   const worse = [];
@@ -152,7 +159,7 @@ const runOnce = async (now = Date.now()) => {
     sent = toSend.length;
     console.log(`✅ [delayAlert] ส่ง${summaryDue ? "สรุป" : "แจ้งเตือน"} ${sent} รายการ`);
   }
-  writeState(c.stateFile, { levels: next, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), immediateAt: sent > 0 ? now : (prev?.immediateAt || 0) });
+  writeState(c.stateFile, { savedAt: now, levels: next, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), immediateAt: sent > 0 ? now : (prev?.immediateAt || 0) });
   return { sent, summary: summaryDue && sent > 0 };
 };
 
@@ -160,8 +167,15 @@ const start = () => {
   const c = cfg();
   if (!c.token || !c.group) console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID ใน .env — ตัวตรวจจับทำงานแต่จะยังไม่ส่ง LINE");
   console.log(`🔌 [delayAlert] เริ่มทำงาน: ตรวจทุก ${c.intervalMs / 1000} วินาที ใช้ ${c.dbs === "stage" ? "DBS ตามขั้นตอนของแถว" : `DBS${c.dbs + 1}`} · สรุปทุก ${c.summaryMs / 60000} นาที · แจ้งทันทีไม่ถี่กว่า ${c.immediateMs / 60000} นาที (เขียว >${c.greenPct}% · เหลือง >${c.yellowPct}%)`);
+  // มีเครื่องเดียวที่แจ้งเตือน (ล็อกผ่าน Redis, ดู lib/leaderLock.js): รันสองเครื่องจะไม่ส่งซ้ำ และอีกเครื่องรับช่วงเองเมื่อผู้นำหยุด
+  const leader = createLeader({ name: "delay-alert", ttlMs: 30000 });
+  leader.start();
+  const bye = () => { leader.stop().finally(() => process.exit(0)); };
+  process.on("SIGINT", bye);
+  process.on("SIGTERM", bye);
   let busy = false;
   const tick = async () => {
+    if (!leader.isLeader()) return;
     if (busy) return;
     busy = true;
     try { await runOnce(); } catch (err) {

@@ -1,3 +1,5 @@
+const { placeholders, bindList } = require("../lib/sqlParams");
+const { safeRollback } = require("../lib/safeRollback");
 const express = require("express");
 const { connectToDatabase } = require("../database/db");
 const sql = require("mssql");
@@ -579,7 +581,7 @@ router.post("/add/rawmat", async (req, res) => {
       await transaction.commit();
       res.status(201).json({ success: true, message: "เพิ่มวัตถุดิบใหม่พร้อมกลุ่มสำเร็จ" });
     } catch (txError) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       console.error("Transaction error:", txError);
       res.status(500).json({ success: false, error: "Transaction failed", details: txError.message });
     }
@@ -936,7 +938,7 @@ router.delete("/delete-rawmat/:mat", async (req, res) => {
       .query(`DELETE FROM RawMat WHERE mat = @mat`);
 
     if (result.rowsAffected[0] === 0) {
-      await transaction.rollback();
+      await safeRollback(transaction);
       return res.status(400).json({
         success: false,
         error: "ไม่พบรหัสวัตถุดิบที่ต้องการลบ",
@@ -1592,16 +1594,17 @@ router.get('/rawmat-types', async (req, res) => {
 router.post('/check-existing-materials', async (req, res) => {
   try {
     const { materials } = req.body;
+    if (!Array.isArray(materials)) return res.status(400).json({ error: 'materials ต้องเป็น array' });
     const pool = await getPool();
     
-    // สร้าง IN clause สำหรับตรวจสอบ mat ที่มีอยู่แล้ว
-    const matValues = materials.map(m => `'${m.mat}'`).join(',');
+    // IN (...) แบบ parameterized — ห้ามต่อค่า mat จาก request เข้า SQL ตรงๆ
+    const mats = materials.map(m => m.mat);
     
-    const result = await pool.request()
+    const result = await bindList(pool.request(), "mat_", mats, sql.VarChar)
       .query(`
         SELECT [mat] 
         FROM [PFCMv2].[dbo].[RawMat]
-        WHERE [mat] IN (${matValues})
+        WHERE [mat] IN (${placeholders("mat_", mats)})
       `);
     
     res.json(result.recordset);
@@ -1615,14 +1618,18 @@ router.post('/check-existing-materials', async (req, res) => {
 router.post('/check-existing-cooked-groups', async (req, res) => {
   try {
     const { materials } = req.body;
+    if (!Array.isArray(materials)) return res.status(400).json({ error: 'materials ต้องเป็น array' });
    const pool = await getPool();
     
-    // สร้างเงื่อนไขสำหรับตรวจสอบ
-    const conditions = materials.map(m => 
-      `([mat] = '${m.mat}' AND [rm_group_id] = ${m.rm_group_id})`
-    ).join(' OR ');
+    // เงื่อนไขแบบ parameterized: ([mat] = @mat_0 AND [rm_group_id] = @grp_0) OR ...
+    const request = pool.request();
+    const conditions = materials.map((m, i) => {
+      request.input(`mat_${i}`, sql.VarChar, m.mat);
+      request.input(`grp_${i}`, sql.Int, m.rm_group_id);
+      return `([mat] = @mat_${i} AND [rm_group_id] = @grp_${i})`;
+    }).join(' OR ') || '1 = 0';
     
-    const result = await pool.request()
+    const result = await request
       .query(`
         SELECT [mat], [rm_group_id]
         FROM [PFCMv2].[dbo].[RawMatCookedGroup]
@@ -1736,7 +1743,7 @@ router.post('/save-materials', async (req, res) => {
   } catch (error) {
     if (transaction) {
       try {
-        await transaction.rollback();
+        await safeRollback(transaction);
       } catch (rollbackError) {
         console.error('Rollback failed:', rollbackError);
       }
@@ -1861,7 +1868,7 @@ router.delete('/materials/:mat', async (req, res) => {
   } catch (error) {
     if (transaction) {
       try {
-        await transaction.rollback();
+        await safeRollback(transaction);
       } catch (rollbackError) {
         console.error('Rollback failed:', rollbackError);
       }

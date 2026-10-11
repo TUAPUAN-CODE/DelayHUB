@@ -1,0 +1,42 @@
+# ── เพิ่มใน backend/.env (ทุกเครื่อง/ทุก worker ต้องใช้ค่าเดียวกัน) ─────────────────────────────
+
+# ความลับสำหรับเซ็น token — "ต้องตั้ง" เป็นค่าสุ่มยาว ≥ 32 ตัวอักษร (เช่น node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")
+# ถ้าไม่ตั้ง ระบบจะอนุมานจากค่า DB ใน .env (ใช้งานได้ แต่เปลี่ยนรหัส DB แล้ว token ทุกใบหมดอายุ)
+AUTH_JWT_SECRET=
+
+# ระดับการบังคับตัวตน/สิทธิ์:
+#   (ไม่ตั้ง) = auto (แนะนำ): warn ใน AUTH_GRACE_HOURS ชั่วโมงแรก แล้วเปลี่ยนเป็น enforce เอง
+#               ช่วง warn: ดูผู้เรียก API ที่ยังไม่มี token ได้ที่ GET /api/auth/missing (ต้องเป็น Role 6/8) และระบบแจ้ง LINE ก่อนเปลี่ยน 2 ชั่วโมงถ้ายังมี
+#   off     = ไม่บังคับ
+#   warn    = ปล่อยผ่านแต่ log เตือนเมื่อไม่มี token / ไม่มีสิทธิ์ (ค้างอยู่ในโหมดนี้ได้ ใช้เลื่อนการบังคับ)
+#   enforce = ไม่มี token → 401, ไม่มีสิทธิ์ → 403, แก้ค่า Setting ที่ล็อกโดยไม่ปลดล็อก → 403, Socket.IO ที่ไม่มี token ต่อไม่ได้
+# AUTH_MODE=
+# ช่วงเปลี่ยนผ่านของโหมด auto (ชั่วโมง) นับจากครั้งแรกที่ระบบนี้ทำงาน (เก็บใน Redis key pfcm:auth:first_start — ลบ key เพื่อเริ่มนับใหม่)
+# AUTH_GRACE_HOURS=24
+
+# ไฟล์ตารางสิทธิ์ route ต่อ Role (ค่าเริ่มต้น backend/config/rolePolicy.json — ไม่มีไฟล์ = ไม่จำกัดนอกเหนือกฎในโค้ด)
+# ROLE_POLICY_FILE=
+
+# อายุ token (ชั่วโมง) ค่าเริ่มต้น 12; หน้าเว็บต่ออายุเองได้ต่อเนื่องไม่เกิน 7 วัน
+# AUTH_TOKEN_HOURS=12
+
+# อยู่หลัง nginx ให้ใส่จำนวน proxy (เช่น 1) ถ้าไม่ตั้งจะเชื่อ proxy ที่อยู่ในเครือข่ายภายในทั้งหมด
+# TRUST_PROXY=1
+
+# ขีดจำกัดต่อผู้ใช้ต่อ 15 นาที (ค่าเริ่มต้น 3000), ล็อกอินผิดต่อ (IP+รหัสพนักงาน) (20), signup/forgot-password ต่อ IP (30)
+# RATE_LIMIT_MAX=3000
+# LOGIN_RATE_LIMIT=20
+# PUBLIC_AUTH_RATE_LIMIT=30
+
+# ── Observability ─────────────────────────────────────────────────────────────
+# /metrics (รูปแบบ Prometheus) — ถ้าตั้ง METRICS_KEY ต้องส่ง header x-metrics-key; ไม่ตั้ง = เปิดเฉพาะ IP ภายใน
+# METRICS_KEY=
+# เกณฑ์ log: request ช้า (ms), query ช้า (ms)
+# SLOW_REQUEST_MS=3000
+# SLOW_QUERY_MS=1500
+# LOG_ALL_4XX=false
+# แจ้ง LINE เมื่อระบบผิดปกติ (pool เต็ม, DB ล่ม, 5xx พุ่ง, event loop ค้าง) — ใช้กลุ่มแยกจากกลุ่ม delay; ไม่ตั้ง = เขียน log เท่านั้น
+# OPS_ALERT_LINE_GROUP_ID=
+# ALERT_POOL_PENDING=10
+# ALERT_5XX_RATE=0.05
+# ALERT_EVENTLOOP_LAG_MS=1500

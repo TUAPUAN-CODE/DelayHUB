@@ -31,14 +31,6 @@ const updateRmStatus = async (mapping_id) => {
   }
 };
 
-const calculateTimeDifference = (ComeColdDateTime) => {
-  const comecolddatetime = new Date(ComeColdDateTime);
-  const currentDate = new Date();
-  console.log("เวลาเข้าห้องเย็นล่าสุด : ", comecolddatetime);
-  console.log("เวลาปัจจุบัน : ", currentDate);
-  return (currentDate - comecolddatetime) / (1000 * 60);
-};
-
 // ปรับปรุงฟังก์ชัน formatTime เพื่อให้แสดงเวลาอย่างถูกต้อง
 const formatTime = (minutes) => {
   if (isNaN(minutes) || minutes === null) return "-";

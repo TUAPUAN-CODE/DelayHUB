@@ -1,4 +1,7 @@
 require('dotenv').config();
+require('./lib/processGuards').installProcessGuards('rfid-reader');
+const { issueServiceToken } = require('./lib/auth');
+const { createLeader } = require('./lib/leaderLock');
 
 const net = require('net');
 const sql = require('mssql');
@@ -101,6 +104,8 @@ if (WEB_SERVER_URL) {
         socketOptions.rejectUnauthorized = !insecureTls;
         socketOptions.agent = new https.Agent(agentOptions);
     }
+    // ยืนยันตัวตนกับ server ด้วย service token (ออกใหม่ทุกครั้งที่เชื่อม/เชื่อมใหม่; ต้องใช้ AUTH_JWT_SECRET / ค่า DB เดียวกับ backend ใน .env)
+    socketOptions.auth = (cb) => cb({ token: issueServiceToken('rfid-reader') });
     webSocket = ioClient(WEB_SERVER_URL, socketOptions);
     webSocket.on('connect', () => {
         console.log(`✅ เชื่อมต่อ WEB_SERVER_URL สำเร็จ: ${WEB_SERVER_URL}`);
@@ -588,7 +593,22 @@ function bindReaderClientEvents(sock) {
     });
 }
 
+// รันสองเครื่อง (RFID_LEADER_LOCK=true): reader รับ connection ได้ตัวเดียว → มีเพียงเครื่องที่ได้ล็อกผู้นำเท่านั้นที่เชื่อมต่อ อีกเครื่องรอรับช่วง
+let readerAllowed = true;
+function stopReader() {
+    readerAllowed = false;
+    isReconnecting = false;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (client) {
+        client.removeAllListeners();
+        client.on('error', () => {});
+        client.destroy();
+    }
+    console.warn('⏸️ หยุดเชื่อมต่อ Reader (ไม่ได้เป็นผู้นำ) — เครื่องอื่นรับช่วงต่อ');
+}
+
 function scheduleReconnect() {
+    if (!readerAllowed) { return; }
     if (isReconnecting) { return; }
     isReconnecting = true;
 
@@ -597,7 +617,7 @@ function scheduleReconnect() {
         console.warn(`🔄 กำลังลองเชื่อมต่อ Reader ใหม่: ${READER_IP}:${READER_PORT} ...`);
         // ปล่อย guard ก่อนต่อใหม่ ไม่งั้นถ้ารอบนี้ต่อไม่ติด 'close' ครั้งถัดไปจะโดน guard ทิ้ง แล้วไม่มีการลองใหม่อีกเลย
         isReconnecting = false;
-        connectReader();
+        if (readerAllowed) { connectReader(); }
     }, 5000);
 }
 
@@ -879,6 +899,14 @@ async function handleEpc(epc) {
     }
 }
 
+const rfidLeader = process.env.RFID_LEADER_LOCK === 'true'
+    ? createLeader({
+        name: `rfid-reader-${READER_NO}`,
+        ttlMs: 30000,
+        onChange: (isLeader) => { if (isLeader) { readerAllowed = true; connectReader(); } else { stopReader(); } },
+    })
+    : null;
+
 // watchdog: ต่อค้างแต่เงียบนานผิดปกติ → ตัดแล้วต่อใหม่
 setInterval(() => {
     if (SILENCE_RECONNECT_MS > 0 && client && client.readyState === 'open' && Date.now() - lastDataAt > SILENCE_RECONNECT_MS) {
@@ -895,11 +923,17 @@ setInterval(() => {
         await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
         await loadReaderConfigFromDb();
     }
-    connectReader();
+    if (rfidLeader) {
+        readerAllowed = false; // รอได้ล็อกผู้นำก่อนจึงเชื่อมต่อ
+        rfidLeader.start();
+    } else {
+        connectReader();
+    }
 })();
 
 process.on('SIGINT', () => {
     if (reconnectTimer) { clearTimeout(reconnectTimer); }
-    client.destroy();
+    if (client) { client.destroy(); }
+    if (rfidLeader) { rfidLeader.stop().catch(() => {}); }
     setTimeout(() => process.exit(0), 500);
 });

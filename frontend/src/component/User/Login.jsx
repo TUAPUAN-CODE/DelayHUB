@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { clearUserLocalStorage } from "../../services/localStorageUtil";
+import { setToken } from "../../services/authClient";
 import { WORKPLACE_ROUTES } from "../../services/roleRoutes";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
@@ -55,7 +56,10 @@ const Login = () => {
 
     if (response.data && response.data.user) {
       const user = response.data.user;
-      console.log("Login Success:", response.data);
+      console.log("Login Success: user", user.user_id); // ไม่ log response ทั้งก้อน เพราะมี token
+
+      // token ยืนยันตัวตน — authClient ส่งไปกับทุก request หลังจากนี้
+      setToken(response.data.token || null);
 
       // เก็บข้อมูลผู้ใช้ลงใน localStorage
       const userInfo = [

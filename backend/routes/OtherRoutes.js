@@ -1,3 +1,4 @@
+const { safeRollback } = require("../lib/safeRollback");
 // Role "Other" — Delay control of lots that are NOT tracked by the trolley system:
 //   outside the cold room the limit is 2 hours (prepared -> into the cold room), inside the cold room 24 hours.
 // A lot is prepared once (e.g. 100 kg) and goes into the cold room in one or several steps (IN), and leaves it in several steps (OUT, e.g. 10 kg at a time).
@@ -132,22 +133,22 @@ router.post("/other/lots/:id/move", async (req, res) => {
     transaction = new sql.Transaction(pool);
     await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE); // two people stamping the same lot at once must not both pass the weight check
     const lot = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, closed FROM OtherLot WHERE lot_id = @id");
-    if (!lot.recordset.length) { await transaction.rollback(); return res.status(404).json({ success: false, error: "ไม่พบรายการ" }); }
-    if (lot.recordset[0].closed) { await transaction.rollback(); return res.status(400).json({ success: false, error: "รายการนี้ปิดแล้ว" }); }
-    if (at < new Date(lot.recordset[0].prep_done_at.replace(" ", "T"))) { await transaction.rollback(); return res.status(400).json({ success: false, error: "เวลาต้องไม่ก่อนเวลาเตรียมเสร็จ" }); }
+    if (!lot.recordset.length) { await safeRollback(transaction); return res.status(404).json({ success: false, error: "ไม่พบรายการ" }); }
+    if (lot.recordset[0].closed) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "รายการนี้ปิดแล้ว" }); }
+    if (at < new Date(lot.recordset[0].prep_done_at.replace(" ", "T"))) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "เวลาต้องไม่ก่อนเวลาเตรียมเสร็จ" }); }
     const sums = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT kind, SUM(qty_kg) AS kg FROM OtherLotMove WHERE lot_id = @id GROUP BY kind");
     const kg = { IN: 0, OUT: 0 };
     sums.recordset.forEach((s) => { kg[s.kind] = Number(s.kg) || 0; });
     const prepared = Number(lot.recordset[0].weight_kg);
-    if (kind === "IN" && qty > prepared - kg.IN + 1e-6) { await transaction.rollback(); return res.status(400).json({ success: false, error: `เข้าห้องเย็นได้อีกไม่เกิน ${(prepared - kg.IN).toFixed(2)} kg` }); }
-    if (kind === "OUT" && qty > kg.IN - kg.OUT + 1e-6) { await transaction.rollback(); return res.status(400).json({ success: false, error: `ในห้องเย็นเหลือ ${(kg.IN - kg.OUT).toFixed(2)} kg` }); }
+    if (kind === "IN" && qty > prepared - kg.IN + 1e-6) { await safeRollback(transaction); return res.status(400).json({ success: false, error: `เข้าห้องเย็นได้อีกไม่เกิน ${(prepared - kg.IN).toFixed(2)} kg` }); }
+    if (kind === "OUT" && qty > kg.IN - kg.OUT + 1e-6) { await safeRollback(transaction); return res.status(400).json({ success: false, error: `ในห้องเย็นเหลือ ${(kg.IN - kg.OUT).toFixed(2)} kg` }); }
     await new sql.Request(transaction)
       .input("id", sql.Int, lotId).input("kind", sql.VarChar(3), kind).input("qty", sql.Decimal(12, 2), qty).input("at", sql.DateTime, at).input("by", sql.NVarChar(100), trim(req.body.user, 100))
       .query("INSERT INTO OtherLotMove (lot_id, kind, qty_kg, moved_at, created_by) VALUES (@id, @kind, @qty, @at, @by)");
     await transaction.commit();
     res.status(201).json({ success: true, message: "บันทึกสำเร็จ" });
   } catch (err) {
-    if (transaction) { try { await transaction.rollback(); } catch (e) { /* already closed */ } }
+    if (transaction) { try { await safeRollback(transaction); } catch (e) { /* already closed */ } }
     console.error("[Route /other/lots/:id/move] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }

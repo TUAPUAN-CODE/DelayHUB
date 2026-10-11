@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { buildEcosystem, validateReaderConfig } = require('../lib/rfidEcosystem');
 const express = require('express');
 const sql = require('mssql');
 const { exec } = require('child_process');
@@ -260,34 +261,11 @@ router.post('/api/coldstorage/rfid/config/:id/toggle', async (req, res) => {
       const fs = require('fs');
       const ecosystemPath = path.join(backendDir, `ecosystem-rfidc${readerNo}.config.js`);
 
-      const ecosystem = `module.exports = {
-  apps: [{
-    name: '${serviceName}',
-    script: './RFIDc1.js',
-    cwd: './',
-    instances: 1,
-    exec_mode: 'fork',
-    autorestart: true,
-    watch: false,
-    restart_delay: 3000,
-    max_memory_restart: '256M',
-    out_file: './logs/${serviceName}-out.log',
-    error_file: './logs/${serviceName}-error.log',
-    env: {
-      NODE_ENV: 'production',
-      READER_NO: '${readerNo}',
-      READER_IP: '${config.ip}',
-      READER_PORT: ${config.port},
-      READER_NAME: '${config.name}',
-      PRINT_AGENT_URL: '${config.printer_agent_url}',
-      WEB_SERVER_URL: '${process.env.WEB_SERVER_URL || ''}',
-      DB_USER: '${process.env.DB_USER}',
-      DB_PASSWORD: '${process.env.DB_PASSWORD}',
-      DB_SERVER: '${process.env.DB_SERVER}',
-      DB_DATABASE: '${process.env.DB_DATABASE}',
-    }
-  }]
-};`;
+      const invalid = validateReaderConfig(config);
+      if (invalid) {
+        return res.status(400).json({ success: false, message: invalid });
+      }
+      const ecosystem = buildEcosystem(config, serviceName);
 
       fs.writeFileSync(ecosystemPath, ecosystem);
 

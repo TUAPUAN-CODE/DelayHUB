@@ -1,3 +1,4 @@
+const { toIntList } = require("../lib/sqlParams");
 const express = require("express");
 const { connectToDatabase } = require("../database/db");
 const Papa = require("papaparse");
@@ -388,9 +389,10 @@ router.post("/add/prod-rawmat", async (req, res) => {
     }
 
     // ตรวจสอบว่า prod_id ซ้ำกับฐานข้อมูลหรือไม่
+    const prodIdList = toIntList(prod_ids, "prod_id"); // ต้องเป็นจำนวนเต็มเท่านั้นก่อนต่อเป็น SQL
     const existingProdQuery = `
       SELECT prod_id FROM ProdRawMat
-      WHERE mat = @mat AND prod_id IN (${prod_ids.join(",")})
+      WHERE mat = @mat AND prod_id IN (${prodIdList.join(",")})
     `;
     const result = await pool
       .request()
@@ -405,12 +407,12 @@ router.post("/add/prod-rawmat", async (req, res) => {
     }
 
     // สร้าง Query สำหรับ INSERT ข้อมูลหลายแถว
-    const values = prod_ids
-      .map((prod_id) => `('${mat}', ${prod_id})`)
+    const values = prodIdList
+      .map((prod_id) => `(@mat, ${prod_id})`)
       .join(", ");
     const query = `INSERT INTO ProdRawMat (mat, prod_id) VALUES ${values}`;
 
-    await pool.request().query(query);
+    await pool.request().input("mat", mat).query(query);
 
     res
       .status(201)
@@ -979,7 +981,7 @@ router.post("/import-prod-rawmat/CSV", async (req, res) => {
         const connectResult = await pool.request()
           .input("prod_id", prod_id)
           .input("mat", mat)
-          .query(`SELECT * FROM ProdRawMat WHERE prod_id = @prod_id AND mat = @mat`);
+          .query(`SELECT prod_id FROM ProdRawMat WHERE prod_id = @prod_id AND mat = @mat`);
 
         if (!connectResult.recordset.length) {
           await pool.request()

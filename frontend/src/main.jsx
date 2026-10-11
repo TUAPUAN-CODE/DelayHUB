@@ -20,6 +20,8 @@ import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import { initI18n } from "./i18n/translator";
+import "./services/authClient";
+import "./services/dedupeMutations";
 
 // Find the root DOM node
 const container = document.getElementById("root");

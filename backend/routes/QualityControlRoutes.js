@@ -1,3 +1,5 @@
+const { placeholders, bindList } = require("../lib/sqlParams");
+const { safeRollback } = require("../lib/safeRollback");
 module.exports = (io) => {
 	const express = require("express");
 	const { connectToDatabase } = require("../database/db");
@@ -14,6 +16,7 @@ module.exports = (io) => {
 
 			const rmTypeIdsArray = rm_type_ids.split(',');
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			const query = `
       SELECT
@@ -57,7 +60,7 @@ module.exports = (io) => {
           (rmm.dest = 'ไปบรรจุ' AND (rmm.rm_status = 'รอQCตรวจสอบ' OR rmm.rm_status = 'QcCheck รอแก้ไข' OR rmm.rm_status = 'รอกลับมาเตรียม'))
         )
         AND rmf.rm_group_id = rmg.rm_group_id
-        AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+        AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
       GROUP BY
         rmf.rmfp_id,
         rm.mat,
@@ -76,7 +79,7 @@ module.exports = (io) => {
       ORDER BY MAX(htr.cooked_date) DESC
     `;
 
-			const result = await pool.request().query(query);
+			const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 			const formattedData = result.recordset.map(item => {
 				const date = new Date(item.cooked_date);
@@ -108,6 +111,7 @@ module.exports = (io) => {
 
 			const rmTypeIdsArray = rm_type_ids.split(',');
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			const query = `
       SELECT
@@ -171,7 +175,7 @@ WHERE
     rmm.stay_place IN ('จุดเตรียม', 'หม้ออบ')
     AND rmm.dest    IN ('รอCheckin','ห้องเย็นใหญ่')
     AND rmm.rm_status IN ('รอQCตรวจสอบ', 'รอ MD')
-    AND rmg.rm_type_id IN (${rmTypeIdsArray.map(t => `'${t}'`).join(',')})
+    AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
 GROUP BY
     rmm.mapping_id,
     rmf.rmfp_id,
@@ -198,7 +202,7 @@ GROUP BY
 ORDER BY MAX(htr.cooked_date) DESC;
     `;
 
-			const result = await pool.request().query(query);
+			const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
 
 			const formattedData = result.recordset.map(item => {
 				// Format cooked_date
@@ -302,6 +306,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			}
 
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ✅ ตรวจสอบ MD
 			if (Number(md) === 1) {
@@ -497,7 +502,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					.request()
 					.input("mapping_id", sql.Int, mapping_id)
 					.input("receiver", sql.NVarChar, operator)
-					.input("tro_id", sql.NVarChar, tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.input("Moisture", sql.NVarChar, Moisture)
 					.input("percent_fine", sql.NVarChar, percent_fine)
 					.input("Temp", sql.NVarChar, Temp)
@@ -532,7 +537,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 				if (tro_id) {
 					await transaction
 						.request()
-						.input("tro_id", sql.NVarChar, tro_id)
+						.input("tro_id", sql.VarChar, tro_id)
 						.query(`
 					UPDATE [PFCMv2].[dbo].[Trolley]
 					SET tro_status = 1
@@ -555,7 +560,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					.request()
 					.input("mapping_id", sql.Int, mapping_id)
 					.input("receiver", sql.NVarChar, operator)
-					.input("tro_id", sql.NVarChar, tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.input("Moisture", sql.NVarChar, Moisture)
 					.input("percent_fine", sql.NVarChar, percent_fine)
 					.input("Temp", sql.NVarChar, Temp)
@@ -633,7 +638,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					// ✅ เพิ่มการตรวจสอบข้อมูลสำคัญ
 					if (!data.rmfp_id) {
 						console.error(`❌ ไม่พบ rmfp_id สำหรับ mapping_id: ${mapping_id}`);
-						await transaction.rollback();
+						await safeRollback(transaction);
 						return res.status(400).json({
 							success: false,
 							message: "ไม่พบข้อมูล rmfp_id ในระบบ"
@@ -704,7 +709,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					if (old_tro_id) {
 						await transaction
 							.request()
-							.input("tro_id", sql.NVarChar, old_tro_id)
+							.input("tro_id", sql.VarChar, old_tro_id)
 							.query(`
 					UPDATE [PFCMv2].[dbo].[Trolley]
 					SET tro_status = 1
@@ -751,7 +756,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 		} catch (err) {
 			console.error("SQL Error:", err);
-			if (transaction) await transaction.rollback();
+			if (transaction) await safeRollback(transaction);
 			res.status(500).json({
 				success: false,
 				message: "เกิดข้อผิดพลาดในระบบ",
@@ -777,6 +782,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			const sql = require("mssql");
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			console.log('🔍 Executing query for mapping_id:', mapping_id);
 
@@ -860,6 +866,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			const sql = require("mssql");
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			const result = await pool
 				.request()
@@ -968,6 +975,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			const searchWhere = `
 				(
@@ -1139,7 +1147,6 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 	router.put("/update-destination", async (req, res) => {
 		try {
-			console.log("Received Request:", req.body);
 			const { tro_id, dest, cold_time } = req.body;
 			if (!tro_id || !dest || !cold_time) {
 				console.log("Missing required fields:", { tro_id, dest });
@@ -1148,10 +1155,11 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			let rm_status = "รับฝาก-รอแก้ไข"; // กำหนดสถานะให้เป็น "รอแก้ไข"
 			const new_stay_place = "ออกห้องเย็น"; // เพิ่มตัวแปรสำหรับ stay_place
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// 1. อัปเดตสถานะ, ปลายทาง และ stay_place ในตาราง RMInTrolley
 			const updateRMResult = await pool.request()
-				.input("tro_id", tro_id)
+				.input("tro_id", sql.VarChar, tro_id)
 				.input("dest", dest)
 				.input("cold_time", cold_time)
 				.input("rm_status", rm_status)
@@ -1172,7 +1180,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// 2. ค้นหา tro_id ที่เกี่ยวข้องกับ rmfp_id ที่กำลังอัปเดต
 			const findTrolleyResult = await pool.request()
-				.input("tro_id", tro_id)
+				.input("tro_id", sql.VarChar, tro_id)
 				.query(`
 					SELECT tro_id 
 					FROM RMInTrolley
@@ -1185,7 +1193,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 				// อัปเดต tro_id เป็น NULL ในตาราง Slot
 				const updateSlotResult = await pool.request()
-					.input("tro_id", tro_id)
+					.input("tro_id", sql.VarChar, tro_id)
 					.query(`
 						UPDATE Slot
 						SET tro_id = NULL
@@ -1218,6 +1226,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 		try {
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 			// ดึงข้อมูลจากตาราง MetalDetectors
 			const result = await pool.request()
 				.query('SELECT md_no, Status FROM PFCMv2.dbo.MetalDetectors');
@@ -1245,6 +1254,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			const { id } = req.params;
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 			// ค้นหาเครื่องตรวจจับโลหะด้วยรหัส
 			const result = await pool.request()
 				.input('md_no', sql.NVarChar, id) // กำหนดค่าพารามิเตอร์เพื่อป้องกัน SQL Injection
@@ -1292,6 +1302,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีเครื่องตรวจจับโลหะนี้อยู่แล้วหรือไม่
 			const checkResult = await pool.request()
@@ -1349,6 +1360,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีเครื่องตรวจจับโลหะนี้อยู่หรือไม่
 			const checkResult = await pool.request()
@@ -1393,6 +1405,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีเครื่องตรวจจับโลหะนี้อยู่หรือไม่
 			const checkResult = await pool.request()
@@ -1434,6 +1447,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 		try {
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 			// ดึงข้อมูลจากตาราง WorkAreas
 			const result = await pool.request()
 				.query('SELECT WorkAreaCode, WorkAreaName,CONCAT(WorkAreaCode, \'-\', WorkAreaName) AS DisplayName FROM PFCMv2.dbo.WorkAreas');
@@ -1461,6 +1475,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			const { id } = req.params;
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 			// ค้นหาพื้นที่ทำงานด้วยรหัส
 			const result = await pool.request()
 				.input('WorkAreaCode', sql.NVarChar, id)
@@ -1508,6 +1523,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีพื้นที่ทำงานนี้อยู่แล้วหรือไม่
 			const checkResult = await pool.request()
@@ -1562,6 +1578,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีพื้นที่ทำงานนี้อยู่หรือไม่
 			const checkResult = await pool.request()
@@ -1606,6 +1623,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// เชื่อมต่อกับฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// ตรวจสอบว่ามีพื้นที่ทำงานนี้อยู่หรือไม่
 			const checkResult = await pool.request()
@@ -1658,6 +1676,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// 2. เชื่อมต่อฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// 3. ตรวจสอบว่า mapping_id มีอยู่และมีการเชื่อมโยงกับ qc_id
 			const mappingCheck = await pool
@@ -1745,7 +1764,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 		} catch (err) {
 			console.error("SQL Error:", err);
 			if (transaction) {
-				await transaction.rollback();
+				await safeRollback(transaction);
 			}
 			res.status(500).json({
 				success: false,
@@ -1771,6 +1790,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 
 			// 2. เชื่อมต่อฐานข้อมูล
 			const pool = await connectToDatabase();
+			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
 
 			// 3. ตรวจสอบว่า mapping_id มีอยู่และมีการเชื่อมโยงกับ qc_id
 			const mappingCheck = await pool
@@ -1839,7 +1859,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 		} catch (err) {
 			console.error("SQL Error:", err);
 			if (transaction) {
-				await transaction.rollback();
+				await safeRollback(transaction);
 			}
 			res.status(500).json({
 				success: false,
@@ -1932,7 +1952,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 	// 	} catch (err) {
 	// 	  console.error("SQL Error:", err);
 	// 	  if (transaction) {
-	// 		await transaction.rollback();
+	// 		await safeRollback(transaction);
 	// 	  }
 	// 	  res.status(500).json({
 	// 		success: false,
