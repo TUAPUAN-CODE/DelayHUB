@@ -141,8 +141,10 @@ module.exports = {
 
     {
       name: 'PFCMv2-frontend',
-      script: 'cmd',
-      args: '/c npm run serve-static',
+      // รัน serve ด้วย node โดยตรง (เดิม cmd /c npm run serve-static ทำให้มีหน้าต่าง console เด้งขึ้นทุกครั้งที่ start/reload)
+      // ค่าเท่ากับ script "serve-static" ใน frontend/package.json: serve -s dist -l 80
+      script: 'node_modules/serve/build/main.js',
+      args: '-s dist -l 80',
       cwd: '../frontend',
       instances: 1,
       exec_mode: 'fork',
