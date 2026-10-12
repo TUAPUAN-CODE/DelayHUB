@@ -127,10 +127,11 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     planByKey.get(k).push(p);
   }));
   const consumed = new Set(); // plan rows that belong to a HU / mapping row; the others get a row of their own
-  const plansOf = (h) => {
+  // absorb = true: the plan rows belong to a trolley row (mapping) and are shown inside it. false: each plan row gets a row of its own (one row per plan entry)
+  const plansOf = (h, absorb = true) => {
     if (!h) return [];
     const list = [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()];
-    list.forEach((p) => consumed.add(p.rmfp_id));
+    if (absorb) list.forEach((p) => consumed.add(p.rmfp_id));
     return list;
   };
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
@@ -162,7 +163,8 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   });
   (hus || []).forEach((h) => {
     if (used.has(String(h.hu))) return;
-    rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: plansOf(h) });
+    // the HU row keeps only its own SAP data; every production-plan row of the same batch is shown as its own row below
+    rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: [] });
   });
   // scanned production-plan rows that no HU row picked up (e.g. a batch typed by hand, no HU): they are their own rows, so a scan is never "lost"
   (plans || []).forEach((p) => {
