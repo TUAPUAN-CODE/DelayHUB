@@ -167,10 +167,17 @@ const buildMappingQuery = (scope = "open") => `
       )
       AND ${scope === "done" ? `
           ${DONE_SQL}
-          AND ${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)
+          -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
+          AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))
+          -- text search: any of the data columns of the table (same columns as the Sheet's settings)
           AND (@q = N'' OR (
-              rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
-              OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like OR rmm.mix_code LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
+              rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
+              OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
+              OR rmm.dest LIKE @q_like OR rmm.stay_place LIKE @q_like OR rmm.rm_status LIKE @q_like
+              OR rmm.level_eu LIKE @q_like OR rmm.prod_mix LIKE @q_like OR rmm.mix_code LIKE @q_like
+              OR CAST(rmm.tray_count AS NVARCHAR(30)) LIKE @q_like OR CAST(rmm.weight_RM AS NVARCHAR(30)) LIKE @q_like
+              OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
+              OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like
               OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
           ))` : `
           -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
@@ -328,12 +335,15 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 router.get("/sheet/done", async (req, res) => {
   try {
     const ymd = (d) => d.toISOString().slice(0, 10);
-    const dateTo = DATE_RE.test(req.query.date_to || "") ? req.query.date_to : ymd(new Date());
-    const dateFrom = DATE_RE.test(req.query.date_from || "") ? req.query.date_from : ymd(new Date(Date.now() - 7 * 86400000));
+    const q = String(req.query.q || "").trim().slice(0, 100);
+    // no text: the chosen date range (default: the last 7 days). A text search ignores the dates and looks in all finished rows
+    const hasDates = DATE_RE.test(req.query.date_from || "") && DATE_RE.test(req.query.date_to || "");
+    const dateTo = hasDates ? req.query.date_to : ymd(new Date());
+    const dateFrom = hasDates ? req.query.date_from : ymd(new Date(Date.now() - 7 * 86400000));
     if (dateFrom > dateTo) {
       return res.status(400).json({ success: false, error: "วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด" });
     }
-    const q = String(req.query.q || "").trim().slice(0, 100);
+    const useDates = !q;
     const mlimit = Math.min(Math.max(parseInt(req.query.limit, 10) || 2000, 100), 20000);
 
     const pool = await connectToDatabase();
@@ -342,13 +352,13 @@ router.get("/sheet/done", async (req, res) => {
     }
     const result = await pool.request()
       .input("mlimit", sql.Int, mlimit)
-      .input("date_from", sql.Date, dateFrom)
-      .input("date_to", sql.Date, dateTo)
+      .input("date_from", sql.Date, useDates ? dateFrom : null)
+      .input("date_to", sql.Date, useDates ? dateTo : null)
       .input("q", sql.NVarChar(100), q)
       .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
       .query(buildMappingQuery("done"));
 
-    res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: dateFrom, date_to: dateTo });
+    res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
     console.error("[Route /sheet/done] Error:", err);
     res.status(500).json({ success: false, error: err.message });

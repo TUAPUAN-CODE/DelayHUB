@@ -29,7 +29,10 @@ const DonePanel = ({ gridKey, gridProps }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.get(`${API_URL}/api/sheet/done`, { params: { date_from: from, date_to: to, q: q.trim(), limit } });
+      // a text search ignores the dates (the server looks in all finished rows); without text the dates apply
+      const params = { q: q.trim(), limit };
+      if (from && to) { params.date_from = from; params.date_to = to; }
+      const res = await axios.get(`${API_URL}/api/sheet/done`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "ดึงข้อมูล Done ไม่สำเร็จ");
       setMappings(res.data.mappings || []);
       setInfo({ capped: !!res.data.capped, limit: res.data.limit, from: res.data.date_from, to: res.data.date_to });
@@ -60,13 +63,13 @@ const DonePanel = ({ gridKey, gridProps }) => {
         <TextField size="small" type="date" label="ตั้งแต่วันที่" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField size="small" type="date" label="ถึงวันที่" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField
-          size="small" label="ค้นหา (วัตถุดิบ / Batch / HU / รถเข็น / ไลน์ / รหัสผลิต)" value={q} onChange={(e) => setQ(e.target.value)}
+          size="small" label="ค้นหาทุกคอลัมน์ (ไม่สนช่วงวันที่)" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") search(); }} sx={{ width: 330 }}
         />
         <Select size="small" value={limit} onChange={(e) => setLimit(Number(e.target.value))} sx={{ width: 130 }}>
           {[500, 2000, 5000, 10000].map((n) => <MenuItem key={n} value={n}>สูงสุด {n.toLocaleString()} แถว</MenuItem>)}
         </Select>
-        <Button variant="contained" onClick={search} disabled={loading || !from || !to}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
+        <Button variant="contained" onClick={search} disabled={loading || (!!from && !!to && from > to)}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
       </Paper>
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (
@@ -76,7 +79,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
         <div style={{ position: "absolute", inset: 0 }}>
           {mappings === null ? (
             <Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-              ยังไม่ได้ดึงข้อมูล — เลือกช่วงวันที่ (และคำค้นถ้าต้องการ) แล้วกด "ดึงข้อมูล Done"
+              ยังไม่ได้ดึงข้อมูล — พิมพ์คำค้น (ค้นทุกคอลัมน์ ทุกวันที่) หรือเลือกช่วงวันที่ แล้วกด "ดึงข้อมูล Done"
             </Paper>
           ) : (
             <DataGrid
