@@ -44,7 +44,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
 const DAYS = 7; // the work table shows the last 7 days by default; the user can pick another range or load everything
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const defaultRange = () => ({ from: ymd(new Date(Date.now() - DAYS * 86400000)), to: ymd(new Date()), all: false });
+// default range of "ดึงข้อมูล": today and yesterday (rows that are on a trolley are always shown, whatever their date)
+const RANGE_DAYS = 1;
+const defaultRange = () => ({ from: ymd(new Date(Date.now() - RANGE_DAYS * 86400000)), to: ymd(new Date()), all: false });
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
@@ -386,7 +388,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <TextField size="small" type="date" value={pick.to} onChange={(e) => setPick((p) => ({ ...p, to: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
       <Button size="small" variant="contained" disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
       <Button size="small" variant={range.all ? "contained" : "outlined"} color="secondary" onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
-      {range.all && <Button size="small" onClick={() => applyRange(defaultRange())}>7 วัน</Button>}
+      {range.all && <Button size="small" onClick={() => applyRange(defaultRange())}>{RANGE_DAYS} วัน</Button>}
     </Box>
   );
 

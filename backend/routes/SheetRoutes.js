@@ -179,6 +179,9 @@ const buildMappingQuery = (scope = "open") => `
           AND (@open_from IS NULL OR (
               COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
               AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
+          ) OR (
+              -- a row that is on a trolley is always shown, whatever its date
+              rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
           ))`}
   ORDER BY rmm.mapping_id DESC
 `;
@@ -232,6 +235,11 @@ const buildPlanQuery = () => `
   -- a scan ("สแกนป้าย SAP") saves stay_place = จุดเตรียมรับเข้า and the destination chosen at the scan (จุดเตรียม / หม้ออบ / เข้าห้องเย็น): all of them wait to be put in a trolley
   WHERE rmf.stay_place IN (N'จุดเตรียมรับเข้า', N'หม้ออบ')
     AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest NOT LIKE N'%ลบ%'
+    -- same date range as the work table (open_from / open_to; NULL = everything)
+    AND (@open_from IS NULL OR (
+        COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) >= @open_from
+        AND COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) < DATEADD(DAY, 1, @open_to)
+    ))
   ORDER BY htr.cooked_date DESC
 `;
 
