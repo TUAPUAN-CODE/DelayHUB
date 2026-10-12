@@ -7,12 +7,14 @@ const STAMP_URL = {
   start: "/api/coldstorages/scan/sap/start/defrost",
   end: "/api/coldstorages/scan/sap/end/defrost",
   dispatch: "/api/coldstorages/scan/sap",
+  linein: "/api/coldstorages/scan/sap/input/pd",
 };
 
 export const STAMP_LABEL = {
   start: "เริ่มละลาย",
   end: "ละลายเสร็จ",
   dispatch: "จ่ายลงไลน์",
+  linein: "ไลน์รับเข้า",
   checkin: "รับเข้าห้องเย็น",
 };
 

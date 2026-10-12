@@ -123,6 +123,15 @@ export const planStamp = (kind, row) => {
     return { ok: false, reason: "ยังไม่ได้เริ่มละลาย ต้องบันทึก \"เริ่มละลาย\" ก่อน จึงจะบันทึก \"ละลายเสร็จ\" ได้" };
   }
 
+  if (kind === "linein") {
+    for (let r = 1; r <= 3; r += 1) {
+      if (get(row, "end_defrost", r) && !get(row, "input_pd", r)) return { ok: true, round: r };
+    }
+    const lastIn = [3, 2, 1].find((r) => get(row, "input_pd", r));
+    if (lastIn) return { ok: false, reason: `รับเข้าไลน์${ordinal(lastIn)} ไปแล้วเมื่อ ${when(row, "input_pd", lastIn)} ต้องละลายเสร็จรอบใหม่ก่อน จึงจะบันทึกไลน์รับเข้าได้` };
+    return { ok: false, reason: "ยังไม่ได้ละลายเสร็จ ต้องบันทึก \"ละลายเสร็จ\" ก่อน จึงจะบันทึก \"ไลน์รับเข้า\" ได้" };
+  }
+
   if (kind === "dispatch") {
     for (let r = 1; r <= 4; r += 1) {
       if (get(row, "withdraw", r)) continue;

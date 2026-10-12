@@ -8339,6 +8339,85 @@ ORDER BY rmm.mapping_id DESC
     });
 
 
+    // ไลน์รับเข้า (input_pd) — หลังละลายเสร็จของรอบนั้น และยังไม่เคยบันทึกไลน์รับเข้าของรอบนั้น
+    router.post("/coldstorages/scan/sap/input/pd", async (req, res) => {
+        const { mat, batch, hu, weight } = req.body;
+
+        if (!mat || !batch || !hu) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing or invalid required fields",
+            });
+        }
+
+        let transaction;
+        try {
+            const pool = await connectToDatabase();
+            transaction = new sql.Transaction(pool);
+            await transaction.begin();
+
+            const request = new sql.Request(transaction);
+
+            const checkHU = await request
+                .input("hu", sql.Int, parseInt(hu, 10))
+                .query(`
+                SELECT TOP 1
+                    end_defrost_date,       input_pd_date,
+                    end_defrost_date_two,   input_pd_date_two,
+                    end_defrost_date_three, input_pd_date_three
+                FROM SAP_Receive
+                WHERE hu = @hu AND status = 1
+            `);
+
+            if (checkHU.recordset.length === 0) {
+                await safeRollback(transaction);
+                return res.status(404).json({
+                    success: false,
+                    message: `ไม่พบข้อมูล HU: ${hu} ในระบบ`,
+                });
+            }
+
+            const row = checkHU.recordset[0];
+
+            let updateQuery = "";
+            let round = 0;
+            if (row.end_defrost_date && !row.input_pd_date) {
+                updateQuery = `UPDATE SAP_Receive SET input_pd_date = GETDATE(), weight = COALESCE(@weight, weight) WHERE hu = @hu AND status = 1`;
+                round = 1;
+            } else if (row.end_defrost_date_two && !row.input_pd_date_two) {
+                updateQuery = `UPDATE SAP_Receive SET input_pd_date_two = GETDATE(), weight = COALESCE(@weight, weight) WHERE hu = @hu AND status = 1`;
+                round = 2;
+            } else if (row.end_defrost_date_three && !row.input_pd_date_three) {
+                updateQuery = `UPDATE SAP_Receive SET input_pd_date_three = GETDATE(), weight = COALESCE(@weight, weight) WHERE hu = @hu AND status = 1`;
+                round = 3;
+            } else {
+                await safeRollback(transaction);
+                return res.status(400).json({
+                    success: false,
+                    message: "ไม่พบรอบที่รอไลน์รับเข้า (ยังไม่ได้ละลายเสร็จ หรือรับเข้าไลน์ครบแล้ว)",
+                });
+            }
+
+            await request
+                .input("weight", sql.Decimal(18, 2), weight === undefined || weight === null || weight === "" ? null : parseFloat(weight))
+                .query(updateQuery);
+
+            await transaction.commit();
+
+            return res.json({
+                success: true,
+                round,
+                message: `บันทึกเวลาไลน์รับเข้าสำเร็จ (รอบที่ ${round})`,
+                summary: { batch, mat, hu },
+            });
+
+        } catch (err) {
+            if (transaction) await safeRollback(transaction);
+            console.error("SQL error", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
     router.post("/coldstorages/scan/sap/come/cs", async (req, res) => {
         const { mat, batch, hu, weight } = req.body;
 

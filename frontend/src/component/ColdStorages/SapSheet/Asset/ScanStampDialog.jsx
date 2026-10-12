@@ -10,6 +10,7 @@ const HINT = {
   start: "สแกนป้าย Tag ของวัตถุดิบที่นำออกมาละลาย ระบบจะบันทึกเวลาเริ่มละลาย",
   end: "สแกนป้าย Tag ของวัตถุดิบที่ละลายเสร็จแล้ว ระบบจะบันทึกเวลาละลายเสร็จ",
   dispatch: "สแกนป้าย Tag ของวัตถุดิบที่จ่ายลงไลน์ ระบบจะบันทึกเวลาจ่ายลงไลน์",
+  linein: "สแกนป้าย Tag ของวัตถุดิบที่รับเข้าไลน์แล้ว ระบบจะบันทึกเวลาไลน์รับเข้า",
 };
 
 /** Scan tags one after another (USB scanner types the tag + Enter; camera optional). onScan(kind, tagText) -> Promise<{ok,message}> */

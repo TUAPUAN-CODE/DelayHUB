@@ -234,6 +234,9 @@ const ParentComponent = ({ role, view = "work" }) => {
         [["receive", "รับ", "#2e7d32", "บันทึกเวลารับวัตถุดิบ"], ["boil", "ต้ม/อบเสร็จ", "#e65100", "บันทึกเวลาต้มอบเสร็จ"], ["return", "ส่งคืน", "#6a1b9a", "บันทึกเวลาส่งคืนวัตถุดิบ"]].forEach(([k, label, color, title]) => {
           out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, title, run: () => setPstamp({ kind: k, hu: h }) });
         });
+        // ไลน์รับเข้า (SAP HU): same rule as the scan button — after ละลายเสร็จ of the round, once per round
+        const plan = planStamp("linein", h);
+        out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
       }
       if (r.__plans?.length) {
         out.push({ col: "t_manage", key: "manage", passive: true, node: <ManageMenu plans={r.__plans} onAction={(a, p) => { const m = manageRef.current; ({ cart: m?.openCart, slip: m?.openSlip, complete: m?.openComplete, editPlan: m?.openEdit })[a]?.(p); }} /> });
@@ -414,6 +417,7 @@ const ParentComponent = ({ role, view = "work" }) => {
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
             <Button variant="contained" size="small" startIcon={<IoBarcodeSharp />} onClick={() => setScan({ camera: true, review: false, mat: "", batch: "", hu: "" })}>สแกนป้าย SAP</Button>
           )}
+          <Button variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan("linein")}>สแกนไลน์รับเข้า</Button>
         </>
       )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
