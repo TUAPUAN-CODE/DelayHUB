@@ -153,7 +153,8 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (role === "prep") {
         // lists of the old mixing pages (a failing list must not break the sheet)
         const kinds = Object.keys(MIX_KINDS);
-        const results = await Promise.allSettled(kinds.map((k) => axios.get(`${API_URL}${MIX_KINDS[k].url}`)));
+        const mixParams = range.all ? {} : { date_from: range.from, date_to: range.to }; // the mixing lists follow the chosen date range (default: 1 day)
+        const results = await Promise.allSettled(kinds.map((k) => axios.get(`${API_URL}${MIX_KINDS[k].url}`, { params: mixParams })));
         const next = {};
         results.forEach((r, i) => {
           if (r.status === "fulfilled") { const d = r.value.data; next[kinds[i]] = Array.isArray(d) ? d : (d?.success ? d.data : []); }

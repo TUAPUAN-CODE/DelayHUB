@@ -1,5 +1,13 @@
 const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
+// ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
+const dateRangeFromQuery = (q) => {
+  const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
+  return ok(q.date_from) && ok(q.date_to) && q.date_from <= q.date_to ? { from: q.date_from, to: q.date_to } : null;
+};
+// วันที่ของรายการ = วันต้ม/อบ (History.cooked_date) หรือวันเบิก; รายการที่ไม่มีวันที่ยังแสดงเสมอ
+const HISTORY_DATE_SQL = "COALESCE(TRY_CONVERT(DATETIME, h.cooked_date), TRY_CONVERT(DATETIME, h.withdraw_date))";
+const DATE_RANGE_WHERE = `AND (@date_from IS NULL OR ${HISTORY_DATE_SQL} IS NULL OR (${HISTORY_DATE_SQL} >= @date_from AND ${HISTORY_DATE_SQL} < DATEADD(DAY, 1, @date_to)))`;
 // หา prod_rm_id ของ (แผนการผลิต, วัตถุดิบ) — ถ้ายังไม่มีการผูก (ProdRawMat) ให้สร้างในทรานแซกชันเดียวกัน แล้วคืนค่า id
 async function getOrCreateProdRmId(transaction, productId, mat) {
   const found = await transaction.request()
@@ -2971,7 +2979,11 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
   router.get("/prep/getRMMixBatch", async (req, res) => {
     try {
       const pool = await connectToDatabase();
-      const result = await pool.request().query(`
+      const range = dateRangeFromQuery(req.query);
+      const result = await pool.request()
+        .input("date_from", sql.Date, range ? range.from : null)
+        .input("date_to", sql.Date, range ? range.to : null)
+        .query(`
       SELECT 
         r.rmfbatch_id,
         r.batch,
@@ -2987,6 +2999,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       JOIN Rawmat rm ON r.mat = rm.mat
       WHERE b_status = '1'
       ORDER BY r.rmfbatch_id DESC
+        ${DATE_RANGE_WHERE}
     `);
 
       res.json({ success: true, data: result.recordset });
@@ -2999,7 +3012,11 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
   router.get("/prep/getRMForEmuList", async (req, res) => {
     try {
       const pool = await connectToDatabase();
-      const result = await pool.request().query(`
+      const range = dateRangeFromQuery(req.query);
+      const result = await pool.request()
+        .input("date_from", sql.Date, range ? range.from : null)
+        .input("date_to", sql.Date, range ? range.to : null)
+        .query(`
       SELECT 
         r.rmfemu_id,
         r.batch,
@@ -3015,6 +3032,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       JOIN Rawmat rm ON r.mat = rm.mat
       WHERE emu_status = '1'
       ORDER BY r.rmfemu_id DESC
+        ${DATE_RANGE_WHERE}
     `);
 
       res.json({ success: true, data: result.recordset });
@@ -4514,7 +4532,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
   router.get("/prep/getMixToPack", async (req, res) => {
     try {
       const pool = await connectToDatabase();
-      const result = await pool.request().query(`
+      const range = dateRangeFromQuery(req.query);
+      const result = await pool.request()
+        .input("date_from", sql.Date, range ? range.from : null)
+        .input("date_to", sql.Date, range ? range.to : null)
+        .query(`
       SELECT 
         mtp.mixtp_id,
         rmfp.batch,
@@ -4558,6 +4580,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         ON mtp.from_mapping_id = h.mapping_id
 
       WHERE LTRIM(RTRIM(mtp.dest)) = N'ผสมเตรียม'
+        ${DATE_RANGE_WHERE}
         AND mtp.rm_status = N'QcCheck'
 
       ORDER BY mtp.mixtp_id DESC
@@ -4580,7 +4603,11 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
   router.get("/prep/getMixToPack/loaf", async (req, res) => {
     try {
       const pool = await connectToDatabase();
-      const result = await pool.request().query(`
+      const range = dateRangeFromQuery(req.query);
+      const result = await pool.request()
+        .input("date_from", sql.Date, range ? range.from : null)
+        .input("date_to", sql.Date, range ? range.to : null)
+        .query(`
       SELECT 
         rmm.mapping_id,
         rmfp.batch,
@@ -4628,6 +4655,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         ON rmm.mapping_id = h.mapping_id
 
       WHERE rmm.dest = N'จุดเตรียม'  and rmm.rm_status = N'QcCheck'
+        ${DATE_RANGE_WHERE}
         
 
       ORDER BY rmm.mapping_id DESC
