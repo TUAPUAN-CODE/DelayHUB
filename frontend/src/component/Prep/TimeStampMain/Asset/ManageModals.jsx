@@ -49,13 +49,18 @@ const ManageModals = forwardRef(function ManageModals({ onRefresh }, ref) {
         return;
       }
 
+      // แถวแผนการผลิตมีแค่คอลัมน์ batch (อาจคั่นด้วยคอมม่า) — ต้องแยกเป็นรายการให้โมดัลแสดง
+      const batchList = Array.isArray(data.batchArray) && data.batchArray.length
+        ? data.batchArray
+        : String(data.batch ?? "").split(",").map((b) => b.trim()).filter(Boolean);
+
       const formattedData = {
         ...data,
         rm_type_id: data.rm_type_id,
         mat: data.mat,
         mat_name: data.mat_name,
         CookedDateTime: data.CookedDateTime,
-        batchArray: data.batchArray,
+        batchArray: batchList,
         withdraw_date: data.withdraw_date,
         production: data.production, // ส่งค่า production ไปด้วย
         level_eu: data.level_eu
