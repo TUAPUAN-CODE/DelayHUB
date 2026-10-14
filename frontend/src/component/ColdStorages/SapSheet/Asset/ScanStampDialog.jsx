@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, TextField, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
-import QrScanner from "qr-scanner";
+import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+import useQrCamera from "../../../../hooks/useQrCamera";
 import { STAMP_LABEL } from "./sapApi";
 import LogList from "./LogList";
 
@@ -21,7 +22,6 @@ const ScanStampDialog = ({ open, kind, onClose, onScan, log }) => {
   const [camera, setCamera] = useState(false);
   const inputRef = useRef(null);
   const videoRef = useRef(null);
-  const scannerRef = useRef(null);
   const lastAt = useRef(0);
 
   const submit = useCallback(async (raw) => {
@@ -44,17 +44,17 @@ const ScanStampDialog = ({ open, kind, onClose, onScan, log }) => {
     if (open) { setText(""); setLast(null); setCamera(false); setTimeout(() => inputRef.current?.focus(), 200); }
   }, [open, kind]);
 
+  const { start: startCamera, stop: stopCamera, switchCamera, facing, cameraError } = useQrCamera(videoRef, submit);
+
   useEffect(() => {
-    if (!open || !camera || !videoRef.current) return undefined;
-    const scanner = new QrScanner(videoRef.current, (r) => submit(r.data), { highlightScanRegion: true, highlightCodeOutline: true });
-    scannerRef.current = scanner;
-    scanner.start().catch((err) => {
-      console.error("[ScanStampDialog] camera error:", err);
-      setLast({ ok: false, message: "เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้อง หรือใช้เครื่องสแกน/พิมพ์แทน" });
-      setCamera(false);
-    });
-    return () => { scanner.stop(); scanner.destroy(); scannerRef.current = null; };
-  }, [open, camera, submit]);
+    if (open && camera) startCamera();
+    else stopCamera();
+    return stopCamera;
+  }, [open, camera]);
+
+  useEffect(() => {
+    if (cameraError) setLast({ ok: false, message: cameraError });
+  }, [cameraError]);
 
   if (!kind) return null;
   return (
@@ -77,7 +77,14 @@ const ScanStampDialog = ({ open, kind, onClose, onScan, log }) => {
             กล้อง
           </Button>
         </Box>
-        {camera && <video ref={videoRef} style={{ width: "100%", maxHeight: 260, borderRadius: 8, background: "#000", marginBottom: 12 }} />}
+        {camera && (
+          <Box sx={{ mb: 1.5 }}>
+            <video ref={videoRef} playsInline muted style={{ width: "100%", maxHeight: 260, borderRadius: 8, background: "#000" }} />
+            <Button size="small" variant="outlined" startIcon={<CameraswitchIcon />} onClick={switchCamera} sx={{ mt: 1 }}>
+              {facing === "environment" ? "กล้องหลัง · สลับเป็นกล้องหน้า" : "กล้องหน้า · สลับเป็นกล้องหลัง"}
+            </Button>
+          </Box>
+        )}
         {last && (
           <Alert severity={last.ok ? "success" : "error"} sx={{ mb: 1.5, fontSize: 15 }}>
             {last.message}

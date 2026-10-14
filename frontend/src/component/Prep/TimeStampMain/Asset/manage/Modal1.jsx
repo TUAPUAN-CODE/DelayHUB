@@ -15,10 +15,13 @@ import { IoClose } from "react-icons/io5";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import axios from "axios";
-import QrScanner from "qr-scanner";
+import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+import useQrCamera from "../../../../../hooks/useQrCamera";
 axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;
+// ค่าเริ่มต้นต้องเป็น reference เดิมทุกครั้ง ไม่เช่นนั้น effect รีเซ็ตค่าทุก render และค่าที่สแกนจะถูกล้าง
+const NO_BATCH = [];
 
 const StyledModal = styled(Modal)(({ theme }) => ({
   display: "flex",
@@ -54,7 +57,7 @@ const Modal1 = ({
   mat,
   mat_name,
   batch,
-  batchArray = [],
+  batchArray = NO_BATCH,
   production,
   rmfp_id,
   dest,
@@ -63,7 +66,6 @@ const Modal1 = ({
   const [rmTypeId, setRmTypeId] = useState(rm_type_id ?? 3);
   const theme = useTheme();
   const videoRef = useRef(null);
-  const qrScannerRef = useRef(null);
   const [inputValue, setInputValue] = useState("");
   const [scannedValue, setScannedValue] = useState("");
   const [inputError, setInputError] = useState(false);
@@ -125,51 +127,28 @@ const Modal1 = ({
     }
   }, [open, batchArray]);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
-
-      const qrScanner = new QrScanner(
-        videoRef.current,
-        (result) => {
-          if (result) {
-            let value = result?.data || result;
-            value = value.replace(/\D/g, "").slice(-4);
-            setScannedValue(value);
-            setInputValue(value);
-            checkTrolleyStatus(value);
-          }
-        },
-        {
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-        }
-      );
-
-      qrScannerRef.current = qrScanner;
-      qrScanner.start();
-    } catch (err) {
-      console.error("Error opening camera:", err);
-      setApiError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้อง");
+  // QR ที่สแกนได้ → ใส่ในช่องเลขรถเข็นแล้วตรวจสถานะทันที (ข้ามค่าที่ซ้ำภายใน 1.5 วินาที)
+  const lastDecodeRef = useRef({ value: "", at: 0 });
+  const handleDecode = (raw) => {
+    const value = String(raw ?? "").replace(/\D/g, "").slice(-4);
+    if (!value) {
+      setApiError("QR Code นี้ไม่มีเลขรถเข็น");
+      return;
     }
+    const now = Date.now();
+    if (lastDecodeRef.current.value === value && now - lastDecodeRef.current.at < 1500) return;
+    lastDecodeRef.current = { value, at: now };
+    setScannedValue(value);
+    setInputError(false);
+    setInputValue(value.padStart(4, "0"));
+    checkTrolleyStatus(value);
   };
+
+  const { start: startCamera, stop: stopCamera, switchCamera, facing, cameraError } = useQrCamera(videoRef, handleDecode);
 
   const handleClose = () => {
     onClose();
     stopCamera();
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    if (qrScannerRef.current) qrScannerRef.current.stop();
   };
 
   useEffect(() => {
@@ -381,6 +360,11 @@ const Modal1 = ({
 
           <Divider sx={{ mb: 2 }} />
 
+          {cameraError && (
+            <Alert severity="warning" sx={{ mb: 1 }}>
+              {cameraError}
+            </Alert>
+          )}
           <video
             ref={videoRef}
             style={{
@@ -390,7 +374,17 @@ const Modal1 = ({
             }}
             autoPlay
             muted
+            playsInline
           />
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<CameraswitchIcon />}
+            onClick={switchCamera}
+            sx={{ alignSelf: "flex-end", mb: 1 }}
+          >
+            {facing === "environment" ? "กล้องหลัง · สลับเป็นกล้องหน้า" : "กล้องหน้า · สลับเป็นกล้องหลัง"}
+          </Button>
 
           <Divider sx={{ mt: 1, mb: 1 }} />
 

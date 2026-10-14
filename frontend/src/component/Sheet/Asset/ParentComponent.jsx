@@ -18,7 +18,7 @@ import EditCellDialog from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
-import { buildRows } from "./buildRows";
+import { buildRows, statusOf } from "./buildRows";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -58,7 +58,7 @@ const ManageMenu = ({ plans, onAction }) => {
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
         {plans.flatMap((p) => [
           <ListSubheader key={`h${p.rmfp_id}`} sx={{ lineHeight: "28px", fontSize: 12 }}>{[p.production, p.rm_group_name, p.level_eu && `EU ${p.level_eu}`].filter(Boolean).join(" · ") || `แผน ${p.rmfp_id}`}</ListSubheader>,
-          ...[["cart", "ใส่รถเข็น"], ["slip", "สลิป"], ["complete", "เสร็จสิ้น"], ["editPlan", "เปลี่ยนแผนการผลิต"]].map(([a, label]) => (
+          ...[["cart", "ใส่รถเข็น"], ["editPlan", "เปลี่ยนแผนการผลิต"]].map(([a, label]) => (
             <MenuItem key={`${p.rmfp_id}-${a}`} dense onClick={() => { setAnchor(null); onAction(a, p); }}>{label}</MenuItem>
           )),
         ])}
@@ -238,8 +238,9 @@ const ParentComponent = ({ role, view = "work" }) => {
           out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, title, run: () => setPstamp({ kind: k, hu: h }) });
         });
         // ไลน์รับเข้า (SAP HU): same rule as the scan button — after ละลายเสร็จ of the round, once per round
+        // สถานะ "รอใส่รถเข็น" ไม่ต้องมีปุ่มไลน์รับเข้า
         const plan = planStamp("linein", h);
-        out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
+        if (statusOf(r).label !== "รอใส่รถเข็น") out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
       }
       if (r.__plans?.length) {
         out.push({ col: "t_manage", key: "manage", passive: true, node: <ManageMenu plans={r.__plans} onAction={(a, p) => { const m = manageRef.current; ({ cart: m?.openCart, slip: m?.openSlip, complete: m?.openComplete, editPlan: m?.openEdit })[a]?.(p); }} /> });
