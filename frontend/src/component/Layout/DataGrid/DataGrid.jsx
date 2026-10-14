@@ -13,6 +13,7 @@ import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import DetailPanel from "./DetailPanel";
+import HamsterLoader from "./HamsterLoader";
 import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
 import useGridPrefs from "./useGridPrefs";
@@ -324,7 +325,13 @@ const DataGrid = ({
 
       {error && <Alert severity="error" sx={{ mb: 1 }} action={onReload ? <Button color="inherit" size="small" onClick={onReload}>ลองใหม่</Button> : null}>{error}</Alert>}
 
-      <Paper sx={{ borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
+      <Paper sx={{ position: "relative", borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
+        {/* โหลดครั้งแรก / รีเฟรช: ยังไม่มีข้อมูลสักแถว -> แสดงหน้าโหลดทับพื้นที่ตาราง (โหลดซ้ำตอนมีข้อมูลแล้วไม่บังตาราง) */}
+        {loading && !rows.length && (
+          <Box sx={{ position: "absolute", inset: 0, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.88)", minHeight: 260 }}>
+            <HamsterLoader />
+          </Box>
+        )}
         <TableContainer onScroll={onTableScroll} sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
           <Table
             stickyHeader size="small"
@@ -395,7 +402,7 @@ const DataGrid = ({
                 );
               })}
               {!pageRows.length && (
-                <TableRow><TableCell colSpan={cols.length + (selectable ? 1 : 0)} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : emptyText}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={cols.length + (selectable ? 1 : 0)} align="center" sx={{ py: 5, color: "#90A4AE", ...(loading && !rows.length ? { height: 280 } : {}) }}>{loading ? "" : emptyText}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
