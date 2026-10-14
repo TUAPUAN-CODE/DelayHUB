@@ -260,4 +260,6 @@ export default {
   "ยินดีต้อนรับกลับมา กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ": ["Welcome back. Please log in to continue"],
   "ลืมรหัสผ่าน?": ["Forgot password?"],
   "ยังไม่มีบัญชี?": ["Don't have an account?"],
+  "ลากเพื่อปรับความกว้าง": ["Drag to resize"],
+  "คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น": ["Click a row in the table to see all its details"],
 };

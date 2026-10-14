@@ -1,6 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
+  Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography, useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
@@ -12,7 +12,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import RowDetail from "./RowDetail";
+import DetailPanel from "./DetailPanel";
 import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
 import useGridPrefs from "./useGridPrefs";
@@ -106,6 +106,7 @@ const DataGrid = ({
   const setPage = () => setLimit(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
+  const narrow = useMediaQuery("(max-width:900px)"); // จอแคบ: กล่องรายละเอียดอยู่ใต้ตาราง
   const [leadStatus, setLeadStatus] = useState(null); // สถานะที่กดในชิป: แถวของสถานะนี้ขึ้นก่อน
   const activeRow = useMemo(() => (detail && activeKey !== null ? rows.find((r) => rowKey(r) === activeKey) || null : null), [detail, rows, activeKey, rowKey]);
   // the column settings are opened from the "Setting" button of the top bar; a page without the top bar keeps its own button
@@ -274,7 +275,8 @@ const DataGrid = ({
   return (
     <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
       {/* fill: แถวเดียวเสมอ (เลื่อนแนวนอนได้เมื่อจอแคบ) เพื่อให้ปุ่ม Detail อยู่แถวเดียวกับช่องค้นหา */}
-      <Box sx={{ display: "flex", flexWrap: fill ? "nowrap" : "wrap", overflowX: fill ? "auto" : undefined, gap: 1, alignItems: "center", mb: 1, flexShrink: 0, pb: fill ? 0.5 : 0 }}>
+      <Box sx={{ display: "flex", flexWrap: fill ? "nowrap" : "wrap", overflowX: fill ? "auto" : undefined, gap: 1, alignItems: "center", mb: 1, flexShrink: 0, pb: fill ? 0.5 : 0,
+        ...(fill ? { "& > :not(.MuiTextField-root)": { flexShrink: 0 }, "& .MuiButton-root": { whiteSpace: "nowrap" } } : {}) }}>
         <TextField
           size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 160 : 240 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -292,9 +294,10 @@ const DataGrid = ({
         {detail && <Button variant={detailOpen ? "contained" : "outlined"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)} sx={{ flexShrink: 0, whiteSpace: "nowrap", ml: "auto" }}>Detail</Button>}
       </Box>
 
-      <Box sx={{ display: "flex", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
+      <Box sx={{ display: "flex", flexDirection: detail && narrow ? "column" : "row", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", ...(fill ? { minHeight: 0 } : {}) }}>
-      {actionBar}
+      {/* detail: เครื่องมือของแถว/ผสม อยู่ในแท็บ "เครื่องมือ" ของกล่องขวาแทน */}
+      {!detail && actionBar}
 
       {!fill && colorChips}
 
@@ -401,11 +404,7 @@ const DataGrid = ({
       </Box>
 
       {detail && detailOpen && (
-        <Paper variant="outlined" sx={{ width: { xs: "100%", md: 380 }, flexShrink: 0, borderRadius: "16px", overflow: "auto", minHeight: 0, ...(fill ? {} : { maxHeight }) }}>
-          {activeRow
-            ? <RowDetail row={activeRow} columns={columns} />
-            : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>}
-        </Paper>
+        <DetailPanel row={activeRow} columns={columns} tools={actionBar} narrow={narrow} fill={fill} maxHeight={maxHeight} />
       )}
       </Box>
 
