@@ -345,6 +345,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#1552F0" : "text.secondary" }}>
         {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
       </Typography>
+      {mixBar}
       {activeRow && !barItems.length && <Typography variant="body2" color="text.secondary">แถวนี้ไม่มีรายการที่ทำได้ในขั้นตอนนี้</Typography>}
       {barItems.map((it) => (it.node ? <Box key={it.key}>{it.node}</Box> : (
         <Tooltip key={it.key} title={it.ok === false ? it.title || "ยังทำรายการนี้ไม่ได้" : it.title || ""} arrow>
@@ -400,7 +401,6 @@ const ParentComponent = ({ role, view = "work" }) => {
           onClick={() => setEditMode((v) => !v)}
         />
       )}
-      {mixBar}
       {gatherBar}
       {role === "prep" && (
         <>
