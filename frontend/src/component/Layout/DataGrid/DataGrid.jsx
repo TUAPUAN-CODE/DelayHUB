@@ -21,13 +21,14 @@ import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
 import { registerSettings } from "./settingsBus";
 
-// vivid delay colours (dark text stays readable on them); blue = a finished (Done) row
-const ROW_BG = { white: "#FFFFFF", green: "#4ADE80", yellow: "#FACC15", red: "#F87171", blue: "#60A5FA" };
+// vivid delay colours; each colour has its own text colour so the row stays readable (contrast >= 4.5:1). blue = a finished (Done) row
+const ROW_BG = { white: "#FFFFFF", green: "#15803D", yellow: "#FACC15", red: "#DC2626", blue: "#2563EB" };
+const ROW_FG = { white: "#13213F", green: "#FFFFFF", yellow: "#1F2937", red: "#FFFFFF", blue: "#FFFFFF" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#22C55E", yellow: "#FACC15", red: "#EF4444" }; // the round colour buttons
 const GRID = "1px solid #334155";
 // solid hover colours: a translucent hover colour would let the scrolled cells show through the frozen columns
-const HOVER_BG = { white: "#EAF1FF", green: "#22C55E", yellow: "#EAB308", red: "#EF4444", blue: "#3B82F6" };
+const HOVER_BG = { white: "#EAF1FF", green: "#166534", yellow: "#EAB308", red: "#B91C1C", blue: "#1D4ED8" };
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
@@ -39,7 +40,7 @@ const HEAD_FILTER_BG = "#F26B1D"; // filtered column (orange: easy to notice tha
 const DefaultCell = ({ col, row }) => {
   const v = cellValue(col, row);
   const empty = v === null || v === undefined || v === "" || v === "-";
-  if (empty) return <span style={{ color: "#C5CCD9" }}>-</span>;
+  if (empty) return <span style={{ opacity: 0.45 }}>-</span>;
   if (col.type === "time") return <span style={{ whiteSpace: "nowrap" }}>{shortTime(v)}</span>;
   return <span>{String(v)}</span>;
 };
@@ -47,13 +48,13 @@ const DefaultCell = ({ col, row }) => {
 // Body cells are plain <td> (with the MUI class names, so the table-level border / hover rules still apply) and the tick box is a native input:
 // a MUI TableCell + Checkbox per cell made every render of a few hundred rows take seconds. Rows are memoised: every prop is a primitive or a stable reference.
 const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#13213F", padding: "5px 10px", verticalAlign: "inherit", display: "table-cell" };
-const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
+const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, fg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
   <TableRow
     hover onClick={onPick ? () => onPick(row) : undefined}
     sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 2px 0 #F26B1D, inset 0 -2px 0 #F26B1D" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
       <td className="MuiTableCell-root MuiTableCell-body" onClick={(e) => e.stopPropagation()}
-        style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: bg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
+        style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: bg, color: fg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
         <input type="checkbox" checked={checked} disabled={!canSelect} onChange={() => onToggle(rowId)} style={{ width: 16, height: 16, cursor: canSelect ? "pointer" : "default", accentColor: "#F26B1D", verticalAlign: "middle" }} />
       </td>
     )}
@@ -65,7 +66,7 @@ const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, c
           key={c.key} className={`MuiTableCell-root MuiTableCell-body${c.lastFrozen ? " frozen-edge" : ""}`}
           onDoubleClick={onCell && c.editable ? () => onCell(row, c) : undefined} title={onCell && c.editable ? "ดับเบิลคลิกเพื่อแก้ไข" : undefined}
           style={{
-            ...CELL, background: bg, textAlign: c.align || "left",
+            ...CELL, background: bg, color: fg, fontWeight: fg === "#FFFFFF" ? 500 : undefined, textAlign: c.align || "left",
             ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { width: c.width, maxWidth: c.width, overflow: "hidden", wordBreak: "break-word" }),
           }}
         >
@@ -406,7 +407,7 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={ROW_BG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
+                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={ROW_BG[color || "white"]} fg={ROW_FG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
                     active={activeKey !== null && activeKey === key} onPick={stablePick} onCell={stableCell}
                   />
