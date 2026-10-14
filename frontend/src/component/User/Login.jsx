@@ -50,6 +50,7 @@ const schema = yup.object().shape({
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [logoFailed, setLogoFailed] = useState(false);
   const navigate = useNavigate();
 
   const {
@@ -125,12 +126,22 @@ const Login = () => {
         justifyContent: "center",
         px: 2,
         overflow: "hidden",
-        backgroundImage: "url('/Cat.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        bgcolor: "#06183c",
       }}
     >
       <CssBaseline />
+      {/* วิดีโอพื้นหลัง (public/bg.mp4) — ถ้าโหลดไม่ได้จะแสดงรูป Cat.jpg แทน */}
+      <Box
+        component="video"
+        src="/bg.mp4"
+        poster="/Cat.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        aria-hidden="true"
+        sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+      />
       {/* ฉากหลังมืด — ให้การ์ดกระจกอ่านง่าย */}
       <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,24,60,.35) 0%, rgba(6,24,60,.75) 100%)" }} />
 
@@ -160,7 +171,13 @@ const Login = () => {
         }}
       >
         <Box sx={{ textAlign: "center", mb: 3.5 }}>
-          <Box component="img" src="/i_tail.png" alt="i-Tail" sx={{ width: 72, height: "auto", mb: 1.5, filter: "drop-shadow(0 8px 16px rgba(0,0,0,.3))", userSelect: "none", pointerEvents: "none" }} />
+          <Box
+            component="img"
+            src={logoFailed ? "/i_tail.png" : "/logo.svg"}
+            onError={() => setLogoFailed(true)}
+            alt="i-Tail"
+            sx={{ width: 72, height: "auto", mb: 1.5, filter: "drop-shadow(0 8px 16px rgba(0,0,0,.3))", userSelect: "none", pointerEvents: "none" }}
+          />
           <Typography id="login-title" variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: ".02em", textShadow: "0 2px 10px rgba(0,0,0,.25)" }}>
             เข้าสู่ระบบ
           </Typography>
