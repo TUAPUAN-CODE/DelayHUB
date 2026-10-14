@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import RowDetail from "./RowDetail";
 
-// กล่องขวาของตาราง: แท็บ "รายละเอียด" (ค่าทั้งหมดของแถวที่เลือก) และ "เครื่องมือ" (ปุ่มทำรายการของหน้า)
+// กล่องขวาของตาราง: แท็บ "เครื่องมือ" (ปุ่มทำรายการของหน้า — เปิดเป็นแท็บแรก) และ "รายละเอียด" (ค่าทั้งหมดของแถวที่เลือก)
 // จอกว้าง: ลากขอบซ้ายเพื่อปรับความกว้าง (จำไว้ในเบราว์เซอร์) · จอแคบ: อยู่ใต้ตาราง เต็มความกว้าง
 const WIDTH_KEY = "dg_detail_width";
 const MIN_W = 260;
@@ -62,14 +62,14 @@ const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
       )}
       <Paper variant="outlined" sx={{ flex: 1, minWidth: 0, borderRadius: "16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ minHeight: 40, borderBottom: "1px solid #E3E9F6", flexShrink: 0, "& .MuiTab-root": { minHeight: 40, textTransform: "none", fontWeight: 700 } }}>
-          <Tab label="รายละเอียด" />
           <Tab label="เครื่องมือ" />
+          <Tab label="รายละเอียด" />
         </Tabs>
         <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-          {tab === 0 && (row
+          {tab === 1 && (row
             ? <RowDetail row={row} columns={columns} />
             : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>)}
-          {tab === 1 && <Box sx={{ p: 1.5, "& > .MuiPaper-root": { border: "none", background: "transparent", p: 0, mb: 0 } }}>{tools}</Box>}
+          {tab === 0 && <Box sx={{ p: 1.5, "& > .MuiPaper-root": { border: "none", background: "transparent", p: 0, mb: 0 } }}>{tools}</Box>}
         </Box>
       </Paper>
     </Box>

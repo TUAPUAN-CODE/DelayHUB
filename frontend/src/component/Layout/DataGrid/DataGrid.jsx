@@ -302,14 +302,14 @@ const DataGrid = ({
       {!fill && colorChips}
 
       {fill && chipsOrdered && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75, mb: 1, flexShrink: 0 }}>
+        <Box sx={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", gap: 0.75, mb: 1, pb: 0.5, flexShrink: 0 }}>
           {chipsOrdered.map((c) => {
             const on = leadStatus === c.label;
             return (
               <Chip
                 key={c.label} size="small" clickable onClick={() => pickStatus(c.label)}
-                label={<>{c.label} <span style={{ opacity: 0.85 }}>({c.count})</span></>}
-                sx={{ fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.95)" } }}
+                label={c.label}
+                sx={{ flexShrink: 0, fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.95)" } }}
               />
             );
           })}
