@@ -69,7 +69,17 @@ const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
           {tab === 1 && (row
             ? <RowDetail row={row} columns={columns} />
             : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>)}
-          {tab === 0 && <Box sx={{ p: 1.5, "& > .MuiPaper-root": { border: "none", background: "transparent", p: 0, mb: 0 } }}>{tools}</Box>}
+          {tab === 0 && (
+            <Box sx={{
+              p: 1.5,
+              // เรียงทีละแถว: ข้อความ/ปุ่มแต่ละอันเต็มความกว้างของกล่อง
+              "& > .MuiPaper-root": { border: "none", background: "transparent", p: 0, mb: 0, flexDirection: "column", alignItems: "stretch", flexWrap: "nowrap" },
+              "& > .MuiPaper-root > span, & > .MuiPaper-root > div": { width: "100%" },
+              "& .MuiButton-root": { width: "100%", justifyContent: "flex-start" },
+            }}>
+              {tools}
+            </Box>
+          )}
         </Box>
       </Paper>
     </Box>

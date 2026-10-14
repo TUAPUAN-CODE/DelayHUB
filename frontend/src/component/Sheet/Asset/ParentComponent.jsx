@@ -234,8 +234,8 @@ const ParentComponent = ({ role, view = "work" }) => {
           if (r.__plans.length === 1) return (action === "cart" ? manageRef.current?.openCart : manageRef.current?.openEdit)?.(r.__plans[0]);
           setPlanPick({ action, plans: r.__plans });
         };
-        out.push({ col: "t_bar", key: "cart-plan", label: "Put in trolley", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
-        out.push({ col: "t_bar", key: "edit-plan", label: "Change production plan", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
+        out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
+        out.push({ col: "t_bar", key: "edit-plan", label: "เปลี่ยนแผนการผลิต", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
       }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
