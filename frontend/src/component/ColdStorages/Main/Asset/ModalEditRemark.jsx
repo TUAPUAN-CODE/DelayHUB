@@ -70,9 +70,9 @@ const ModalEditRemark = ({ open, onClose, data, onSuccess }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
-                color: "#FFB27A",
+                color: '#1552F0',
                 fontWeight: 'bold',
-                borderBottom: '1px solid rgba(255,255,255,.14)',
+                borderBottom: '1px solid #eee',
                 pb: 2
             }}>
                 <EditNoteIcon /> เพิ่ม / แก้ไข หมายเหตุ
@@ -81,19 +81,19 @@ const ModalEditRemark = ({ open, onClose, data, onSuccess }) => {
             <DialogContent sx={{ pt: 3 }}>
                 {/* ข้อมูลรายการ */}
                 <Box sx={{
-                    backgroundColor: "rgba(255,255,255,.05)",
+                    backgroundColor: '#F5F8FF',
                     padding: '12px',
                     borderRadius: '8px',
                     mb: 2,
                     mt: 1
                 }}>
-                    <Typography variant="body2" sx={{ color: "rgba(241,244,250,.62)", mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: '#666', mb: 0.5 }}>
                         <strong>Material:</strong> {data?.mat || '-'}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "rgba(241,244,250,.62)", mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: '#666', mb: 0.5 }}>
                         <strong>Batch:</strong> {data?.batch || '-'}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "rgba(241,244,250,.62)" }}>
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                         <strong>HU:</strong> {data?.hu || '-'}
                     </Typography>
                 </Box>

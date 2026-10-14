@@ -244,7 +244,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
               </Box>
             )}
           </Box>
-          <IconButton onClick={handleClose} sx={{ color: "rgba(241,244,250,.62)", mt: -0.5 }}>
+          <IconButton onClick={handleClose} sx={{ color: "#94a3b8", mt: -0.5 }}>
             <IoClose size={22} />
           </IconButton>
         </Box>
@@ -271,8 +271,8 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
             {loading ? "⏳ กำลังประมวลผล..." : "พร้อมสแกน — วาง QR Code หน้ากล้อง หรือใช้ USB Scanner"}
           </Typography>
           <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.5 }}>
-            <QrCodeScannerIcon sx={{ fontSize: "16px", color: "rgba(241,244,250,.62)" }} />
-            <Typography sx={{ fontSize: "11px", color: "rgba(241,244,250,.62)" }}>USB Scanner พร้อมใช้</Typography>
+            <QrCodeScannerIcon sx={{ fontSize: "16px", color: "#64748b" }} />
+            <Typography sx={{ fontSize: "11px", color: "#64748b" }}>USB Scanner พร้อมใช้</Typography>
           </Box>
         </Box>
 
@@ -288,10 +288,10 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
         {lastSuccess && (
           <Box sx={{
             display: "flex", alignItems: "center", gap: 1.5,
-            bgcolor: "rgba(52,211,153,.14)", border: "2px solid #16a34a",
+            bgcolor: "#dcfce7", border: "2px solid #16a34a",
             borderRadius: "10px", px: 2, py: 1.25, mb: 2,
           }}>
-            <CheckCircleIcon sx={{ color: "#6EE7B7", fontSize: "22px" }} />
+            <CheckCircleIcon sx={{ color: "#16a34a", fontSize: "22px" }} />
             <Box>
               <Typography sx={{ fontSize: "14px", fontWeight: 800, color: "#14532d" }}>
                 รับเข้าสำเร็จ! รถเข็น {lastSuccess.troId}
@@ -308,7 +308,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
 
           {/* ── Left: Camera ── */}
           <Box>
-            <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "rgba(241,244,250,.62)",
+            <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#64748b",
               textTransform: "uppercase", letterSpacing: "0.08em", mb: 1 }}>
               📷 กล้อง QR Code
             </Typography>
@@ -328,7 +328,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
 
             {/* Manual Input */}
             <Box sx={{ mt: 2 }}>
-              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "rgba(241,244,250,.62)",
+              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#64748b",
                 textTransform: "uppercase", letterSpacing: "0.08em", mb: 1 }}>
                 ⌨️ พิมพ์เลขรถเข็น
               </Typography>
@@ -361,14 +361,14 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
                   ✓
                 </Button>
               </Box>
-              <Typography sx={{ fontSize: "11px", color: "rgba(241,244,250,.62)", mt: 0.5 }}>
+              <Typography sx={{ fontSize: "11px", color: "#94a3b8", mt: 0.5 }}>
                 กด Enter หรือปุ่ม ✓ เพื่อบันทึก
               </Typography>
             </Box>
 
             {/* Section Leader */}
             <Box sx={{ mt: 2 }}>
-              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "rgba(241,244,250,.62)",
+              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#64748b",
                 textTransform: "uppercase", letterSpacing: "0.08em", mb: 1 }}>
                 👤 หัวหน้าส่วนงานห้องเย็น
               </Typography>
@@ -386,24 +386,24 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
           {/* ── Right: Success Log ── */}
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "rgba(241,244,250,.62)",
+              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#64748b",
                 textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 📋 ประวัติการรับเข้า
               </Typography>
               {successLog.length > 0 && (
                 <Chip label={`${successLog.length} คัน`} size="small"
-                  sx={{ bgcolor: "rgba(52,211,153,.14)", color: "#166534", fontWeight: 700, fontSize: "11px" }} />
+                  sx={{ bgcolor: "#dcfce7", color: "#166534", fontWeight: 700, fontSize: "11px" }} />
               )}
             </Box>
 
             <Box sx={{
-              border: "1px solid rgba(255,255,255,.14)", borderRadius: "12px",
+              border: "1px solid #e2e8f0", borderRadius: "12px",
               overflow: "hidden", minHeight: "400px",
               maxHeight: "calc(92vh - 280px)", display: "flex", flexDirection: "column",
             }}>
               {successLog.length === 0 ? (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center",
-                  justifyContent: "center", flex: 1, py: 6, color: "rgba(241,244,250,.62)" }}>
+                  justifyContent: "center", flex: 1, py: 6, color: "#94a3b8" }}>
                   <QrCodeScannerIcon sx={{ fontSize: "48px", mb: 1.5, opacity: 0.4 }} />
                   <Typography sx={{ fontSize: "13px", fontWeight: 500 }}>
                     ยังไม่มีรายการ
@@ -419,11 +419,11 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
                 }}>
                   {/* Header row */}
                   <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-                    bgcolor: "rgba(255,255,255,.05)", px: 2, py: 1,
-                    borderBottom: "1px solid rgba(255,255,255,.14)", position: "sticky", top: 0 }}>
+                    bgcolor: "#f8fafc", px: 2, py: 1,
+                    borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0 }}>
                     {["รถเข็น", "ช่อง", "เวลา"].map(h => (
                       <Typography key={h} sx={{ fontSize: "11px", fontWeight: 700,
-                        color: "rgba(241,244,250,.62)", textTransform: "uppercase" }}>{h}</Typography>
+                        color: "#64748b", textTransform: "uppercase" }}>{h}</Typography>
                     ))}
                   </Box>
 
@@ -445,11 +445,11 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
                           {log.troId}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: "13px", color: "rgba(241,244,250,.62)",
+                      <Typography sx={{ fontSize: "13px", color: "#475569",
                         fontWeight: log.slot ? 600 : 400 }}>
                         {log.slot || "-"}
                       </Typography>
-                      <Typography sx={{ fontSize: "12px", color: "rgba(241,244,250,.62)" }}>
+                      <Typography sx={{ fontSize: "12px", color: "#94a3b8" }}>
                         {log.time}
                       </Typography>
                     </Box>
@@ -461,7 +461,7 @@ const ScanTrolley = ({ open, onClose, selectedCsId, selectedRoomName }) => {
         </Box>
 
         {/* ── Footer ── */}
-        <Box sx={{ mt: 2.5, pt: 2, borderTop: "1px solid rgba(255,255,255,.14)",
+        <Box sx={{ mt: 2.5, pt: 2, borderTop: "1px solid #e2e8f0",
           display: "flex", justifyContent: "flex-end" }}>
           <Button
             variant="outlined" color="error"

@@ -300,8 +300,8 @@ const handleMoveSuccess = () => {
       >
         {/* Title with Icon */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <StorageIcon sx={{ mr: 1, color: "#FFB27A" }} />
-          <Typography variant="h6" sx={{ color: "#FFB27A", fontWeight: 600 }}>
+          <StorageIcon sx={{ mr: 1, color: '#1552F0' }} />
+          <Typography variant="h6" sx={{ color: '#1552F0', fontWeight: 600 }}>
             รายการวัตถุดิบ
           </Typography>
         </Box>

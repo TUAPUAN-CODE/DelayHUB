@@ -262,7 +262,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   style={{ width: "100%", display: inputMode === "camera" && isCameraActive ? "block" : "none" }}
                 />
                 {inputMode === "camera" && !isCameraActive && !isScanning && (
-                  <Box sx={{ textAlign: "center", py: 4, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 2 }}>
+                  <Box sx={{ textAlign: "center", py: 4, backgroundColor: "#F5F8FF", borderRadius: 2 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>กล้องปิดอยู่</Typography>
                     <Button variant="outlined" onClick={switchToCameraMode} startIcon={<CameraAltIcon />} size="small">
                       เปิดกล้องใหม่
@@ -270,8 +270,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   </Box>
                 )}
                 {inputMode === "manual" && (
-                  <Box sx={{ textAlign: "center", py: 3, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 2, border: "2px dashed #1552F0" }}>
-                    <KeyboardIcon sx={{ fontSize: 48, color: "#FFB27A", mb: 1 }} />
+                  <Box sx={{ textAlign: "center", py: 3, backgroundColor: "#F5F8FF", borderRadius: 2, border: "2px dashed #1552F0" }}>
+                    <KeyboardIcon sx={{ fontSize: 48, color: "#1552F0", mb: 1 }} />
                     <Typography variant="body2" color="text.secondary">โหมดพิมพ์เอง</Typography>
                     <Typography variant="caption" color="#999">
                       พิมพ์เลข 4 หลักท้ายของป้ายทะเบียนรถเข็น
@@ -330,7 +330,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               onClick={handleClose}
               fullWidth
               disabled={isSubmitting}
-              sx={{ color: "#FCA5A5", borderColor: "#E5484D" }}
+              sx={{ color: "#E5484D", borderColor: "#E5484D" }}
             >
               ยกเลิก
             </Button>

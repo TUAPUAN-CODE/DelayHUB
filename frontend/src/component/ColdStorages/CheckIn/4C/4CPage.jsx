@@ -8,7 +8,7 @@ const  CS4CPageCI = () => {
 	
 	return (
 		<div
-		  style={{ backgroundColor: "rgba(255,255,255,.07)" }}
+		  style={{ backgroundColor: "#fff" }}
 		  className="flex-1 overflow-auto relative z-10"
 		>
 		  <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">

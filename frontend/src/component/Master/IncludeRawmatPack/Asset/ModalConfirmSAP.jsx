@@ -49,7 +49,7 @@ const StyledModal = styled(Modal)(({ theme }) => ({
 }));
 
 const ModalContent = styled(Box)(({ theme }) => ({
-  backgroundColor: "rgba(255,255,255,.07)",
+  backgroundColor: "#ffffff",
   padding: "24px",
   width: "100%",
   maxWidth: "800px",
@@ -85,7 +85,7 @@ const ModalAlert = ({ open, onClose }) => {
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Box
           sx={{
-            backgroundColor: "rgba(255,255,255,.07)",
+            backgroundColor: 'white',
             color: '#4caf50',
             borderRadius: 0,
             width: 60,
@@ -98,7 +98,7 @@ const ModalAlert = ({ open, onClose }) => {
         >
           <CheckCircleIcon sx={{ fontSize: 40 }} />
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: '4px', color: "#F1F4FA" }}>
+        <Typography variant="h6" sx={{ fontWeight: '4px', color: '#333' }}>
           บันทึกข้อมูลเรียบร้อยแล้ว
         </Typography>
         <Button
@@ -316,7 +316,7 @@ const ConfirmProdModal = ({
           {emulsion !== "true" && selectedPlanSets && selectedPlanSets.length > 0 && (
             <Box sx={{ maxHeight: '400px', overflow: 'auto', mb: 2 }}>
               {selectedPlanSets.map((set, index) => (
-                <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,.14)', borderRadius: 1 }}>
+                <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
                   <Typography><strong>ชุดที่ {index + 1}:</strong></Typography>
                   <Typography>แผน: {set.plan?.code} ({set.plan?.doc_no})</Typography>
                   <Typography>ไลน์ผลิต: {set.line?.line_name}</Typography>
@@ -350,11 +350,11 @@ const ConfirmProdModal = ({
           )}
 
           {selectedMaterials && selectedMaterials.length > 0 && (
-            <Box sx={{ mt: 2, p: 2, border: '1px solid rgba(255,255,255,.14)', borderRadius: 1, backgroundColor: "rgba(255,255,255,.05)" }}>
+            <Box sx={{ mt: 2, p: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#F5F8FF' }}>
               <Typography variant="h6" sx={{ mb: 1 }}>รายการวัตถุดิบ Emulsion:</Typography>
               <Box sx={{ maxHeight: '200px', overflow: 'auto' }}>
                 {selectedMaterials.map((matObj, idx) => (
-                  <Box key={idx} sx={{ mb: 1, p: 1, backgroundColor: "rgba(255,255,255,.07)", borderRadius: 1 }}>
+                  <Box key={idx} sx={{ mb: 1, p: 1, backgroundColor: 'white', borderRadius: 1 }}>
                     <Typography variant="body2">
                       <strong>Material:</strong> {matObj.mat || "-"} |
                       <strong> Batch:</strong> {matObj.batch || "-"} |
@@ -1101,9 +1101,9 @@ const DataReviewSAP = ({ open, onClose, material, batch, emulsionweightTotal, hu
                     sx={{
                       mb: 2,
                       p: 2,
-                      border: '1px solid rgba(255,255,255,.14)',
+                      border: '1px solid #eee',
                       borderRadius: 1,
-                      backgroundColor: "rgba(255,255,255,.05)"
+                      backgroundColor: '#F5F8FF'
                     }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

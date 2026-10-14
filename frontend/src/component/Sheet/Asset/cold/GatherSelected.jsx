@@ -71,7 +71,7 @@ const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
   return (
     <Dialog open={open} onClose={running ? undefined : onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        <AddShoppingCartIcon sx={{ color: "#FFB27A" }} />
+        <AddShoppingCartIcon sx={{ color: "#1552F0" }} />
         <span>จัดชุดวัตถุดิบ</span>
         <Chip size="small" label={`${rows.length} รายการ · ${fmt(total)} kg`} color="primary" variant="outlined" />
         <Box sx={{ flex: 1 }} />
@@ -95,7 +95,7 @@ const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
             <Box key={r.mapping_id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.75, borderBottom: "1px solid #EEF2F9" }}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 500 }} noWrap>{r.mat_name || r.mat || `รายการ ${r.mapping_id}`}</Typography>
-                <Typography sx={{ fontSize: 12, color: "rgba(241,244,250,.62)" }} noWrap>
+                <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>
                   รายการ {r.mapping_id} · จากรถเข็น {r.tro_id} · {r.cs_name || ""} ช่อง {r.slot_id ?? "-"} · Batch {r.batch_after || r.batch || "-"} · มี {fmt(parseFloat(r.weight_RM))} kg
                 </Typography>
               </Box>

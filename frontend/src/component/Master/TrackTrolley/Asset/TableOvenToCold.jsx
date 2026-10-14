@@ -119,7 +119,7 @@ const RmmLineDropdown = ({ options, value, onChange }) => {
             borderRadius: 1.5, px: 1.2, py: 0.4, cursor: 'pointer',
             backgroundColor: value ? '#e3f0ff' : '#fafafa',
             minWidth: 130, userSelect: 'none',
-            '&:hover': { borderColor: '#1552F0', backgroundColor: "rgba(255,255,255,.05)" },
+            '&:hover': { borderColor: '#1552F0', backgroundColor: '#F5F8FF' },
             transition: 'all .15s',
           }}
         >
@@ -128,7 +128,7 @@ const RmmLineDropdown = ({ options, value, onChange }) => {
           </Typography>
           {value ? (
             <ClearIcon
-              sx={{ fontSize: 14, color: "#FFB27A" }}
+              sx={{ fontSize: 14, color: '#1552F0' }}
               onClick={e => { e.stopPropagation(); onChange(null); setSearch(''); }}
             />
           ) : (
@@ -142,7 +142,7 @@ const RmmLineDropdown = ({ options, value, onChange }) => {
             minWidth: 200, maxHeight: 280, display: 'flex', flexDirection: 'column',
             borderRadius: 2, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
           }}>
-            <Box sx={{ p: 1, borderBottom: '1px solid rgba(255,255,255,.14)' }}>
+            <Box sx={{ p: 1, borderBottom: '1px solid #f0f0f0' }}>
               <TextField
                 autoFocus
                 fullWidth
@@ -279,11 +279,11 @@ const TrolleyTable = ({ data }) => {
     const cellStyle = {
       borderTop: '1px solid #e8e8e8',
       borderBottom: '1px solid #e8e8e8',
-      borderLeft: '1px solid rgba(255,255,255,.14)',
+      borderLeft: '1px solid #f0f0f0',
       fontSize: '13px',
       height: '48px',
       padding: '4px 8px',
-      color: "rgba(241,244,250,.62)",
+      color: '#555',
       backgroundColor: bg,
     };
 
@@ -308,7 +308,7 @@ const TrolleyTable = ({ data }) => {
           <TableCell align="center" style={{ ...cellStyle, width: 110 }}>
             {row.rmm_line_name ? (
               <Chip label={row.rmm_line_name} size="small"
-                style={{ backgroundColor: '#e3f0ff', color: "#FFB27A", fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
+                style={{ backgroundColor: '#e3f0ff', color: '#1552F0', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
             ) : '-'}
           </TableCell>
           <TableCell align="center" style={{ ...cellStyle, width: 140 }}>{row.cooked_date || '-'}</TableCell>
@@ -360,7 +360,7 @@ const TrolleyTable = ({ data }) => {
               style={{ backgroundColor: getStatusColor(row.trolley_status), color: '#fff', fontWeight: 700, fontSize: 11 }} />
             {row.rmm_line_name && (
               <Chip label={row.rmm_line_name} size="small"
-                style={{ backgroundColor: '#e3f0ff', color: "#FFB27A", fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
+                style={{ backgroundColor: '#e3f0ff', color: '#1552F0', fontWeight: 700, fontSize: 11, border: '1px solid #b3d4ff' }} />
             )}
           </Box>
           <Chip label={row._displayLoc} size="small"
@@ -427,7 +427,7 @@ const TrolleyTable = ({ data }) => {
       {/* ── Header ── */}
       <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-          <Typography variant="h6" sx={{ color: "#F1F4FA", fontWeight: 700, fontSize: 16 }}>
+          <Typography variant="h6" sx={{ color: '#444', fontWeight: 700, fontSize: 16 }}>
             ข้อมูลรถเข็น
           </Typography>
 
@@ -484,7 +484,7 @@ const TrolleyTable = ({ data }) => {
             sx: { height: 40 },
           }}
           sx={{
-            '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, borderRadius: 2, color: "rgba(241,244,250,.62)" },
+            '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, borderRadius: 2, color: '#555' },
             '& input': { padding: '8px' },
           }}
         />
@@ -555,7 +555,7 @@ const TrolleyTable = ({ data }) => {
             </Table>
           </TableContainer>
           <TablePagination
-            sx={{ '& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar': { fontSize: 11, color: "rgba(241,244,250,.62)", padding: 0 } }}
+            sx={{ '& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar': { fontSize: 11, color: '#888', padding: 0 } }}
             rowsPerPageOptions={[500, 1000, 1500]}
             component="div"
             count={filteredRows.length}

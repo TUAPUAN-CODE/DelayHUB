@@ -160,7 +160,7 @@ const CartBatchDeleteModal = ({ open, onClose, onSuccess }) => {
                 sx={{
                     fontSize: "20px",
                     fontWeight: "600",
-                    color: "#F1F4FA",
+                    color: "#333",
                     textAlign: "center",
                     paddingBottom: "16px",
                 }}
@@ -243,11 +243,11 @@ const CartBatchDeleteModal = ({ open, onClose, onSuccess }) => {
                         fontWeight: "500",
                         px: 3,
                         py: 1,
-                        color: "rgba(241,244,250,.62)",
-                        borderColor: "rgba(255,255,255,.14)",
+                        color: "#666",
+                        borderColor: "#ddd",
                         "&:hover": {
                             borderColor: "#bbb",
-                            backgroundColor: "rgba(255,255,255,.05)",
+                            backgroundColor: "#F5F8FF",
                         },
                     }}
                     variant="outlined"

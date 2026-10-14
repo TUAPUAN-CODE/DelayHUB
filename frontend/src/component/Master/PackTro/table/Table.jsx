@@ -244,7 +244,7 @@ const GroupedMixCodeRow = ({
           '&:hover': {
             backgroundColor: 'rgba(0, 0, 0, 0.04)',
           },
-          backgroundColor: "rgba(255,255,255,.07)",
+          backgroundColor: 'white',
           transition: 'background-color 0.2s ease'
         }}
       >
@@ -254,13 +254,13 @@ const GroupedMixCodeRow = ({
             textAlign: 'center',
             borderRadius: '8px 0 0 8px',
             borderLeft: `4px solid ${borderColor}`,
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             padding: '12px 16px',
             fontSize: '15px',
             fontWeight: '400',
-            color: "#F1F4FA",
-            backgroundColor: "rgba(255,255,255,.07)",
+            color: "#424242",
+            backgroundColor: "white",
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}
         >
@@ -280,18 +280,18 @@ const GroupedMixCodeRow = ({
           align="center"
           sx={{
             width: '18%',
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             padding: '12px 10px',
-            color: "rgba(241,244,250,.62)",
-            backgroundColor: "rgba(255,255,255,.07)",
+            color: "#616161",
+            backgroundColor: "white",
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ 
-              backgroundColor: "rgba(255,255,255,.05)", 
+              backgroundColor: '#f0f0f0', 
               padding: '4px 8px', 
               borderRadius: '6px', 
               fontSize: '13px',
@@ -312,13 +312,13 @@ const GroupedMixCodeRow = ({
           align="center"
           sx={{
             width: '13%',
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             padding: '12px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#616161",
             fontWeight: '400',
-            backgroundColor: "rgba(255,255,255,.07)",
+            backgroundColor: "white",
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}
         >
@@ -329,12 +329,12 @@ const GroupedMixCodeRow = ({
           align="center"
           sx={{
             width: '12%',
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             padding: '12px 10px',
-            color: "rgba(241,244,250,.62)",
-            backgroundColor: "rgba(255,255,255,.07)",
+            color: "#616161",
+            backgroundColor: "white",
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}
         >
@@ -345,12 +345,12 @@ const GroupedMixCodeRow = ({
           align="center"
           sx={{
             width: '12%',
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             padding: '12px 10px',
-            color: "rgba(241,244,250,.62)",
-            backgroundColor: "rgba(255,255,255,.07)",
+            color: "#616161",
+            backgroundColor: "white",
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}
         >
@@ -408,7 +408,7 @@ const Row = ({
         sx={{
           cursor: 'pointer',
           '&:hover': {
-            backgroundColor: "rgba(255,255,255,.05)",
+            backgroundColor: '#F5F8FF',
           }
         }}
       >
@@ -416,11 +416,11 @@ const Row = ({
           style={{
             width: '12%',
             textAlign: 'center',
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             height: '40px',
             padding: '0px 0px',
-            borderRight: "0px solid rgba(255,255,255,.14)",
+            borderRight: "0px solid #E3E8F2",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             borderLeft: `5px solid ${borderColor}`,
@@ -453,8 +453,8 @@ const Row = ({
           style={{
             width: '10%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -463,7 +463,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
           }}
         >
           {row.batch_after || '-'}
@@ -474,8 +474,8 @@ const Row = ({
           style={{
             width: '10%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -484,7 +484,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
           }}
         >
           {row.mat || '-'}
@@ -495,8 +495,8 @@ const Row = ({
           style={{
             width: '18%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -505,7 +505,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -519,8 +519,8 @@ const Row = ({
           style={{
             width: '13%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -529,7 +529,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
           }}
         >
           {row.production || '-'}
@@ -540,8 +540,8 @@ const Row = ({
           style={{
             width: '12%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -550,7 +550,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
           }}
         >
           {row.weight_RM || '-'}
@@ -561,8 +561,8 @@ const Row = ({
           style={{
             width: '12%',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
             overflow: 'hidden',
@@ -571,7 +571,7 @@ const Row = ({
             height: '40px',
             lineHeight: '1.5',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             borderRadius: '0 8px 8px 0',
           }}
         >
@@ -590,43 +590,43 @@ const Row = ({
             <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'auto', borderTop: '1px solid #E8EDF6', borderLeft: '1px solid #E8EDF6', borderBottom: "1px solid #E8EDF6", borderRight: '1px solid #E8EDF6', maxWidth: '100%', }}>
               <Table size="small" aria-label="purchases" sx={{ width: '100%', }}>
                 <TableHead >
-                  <TableRow style={{ backgroundColor: "rgba(255,255,255,.05)" }}>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>สรุปเบิก</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาต้ม/อบเสร็จ</TableCell>
+                  <TableRow style={{ backgroundColor: "#F5F8FF" }}>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>สรุปเบิก</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาต้ม/อบเสร็จ</TableCell>
                     <TableCell
                       sx={{
                         fontSize: "13px",
                         textAlign: 'center',
                         borderRight: '1px solid #E8EDF6',
                         verticalAlign: 'middle',
-                        color: "rgba(241,244,250,.62)",
+                        color: "#6B7489",
                         width: "10%"
                       }}
                     >
                       {["รอ Qc", "รอกลับมาเตรียม"].includes(row.rm_status) ? "เวลาส่งมาห้องเย็น"
                         : "เวลาแปรรูปเสร็จ"}
                     </TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาเข้าห้องเย็น1</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาออกห้องเย็น1</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาเข้าห้องเย็น2</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาออกห้องเย็น2</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาเข้าห้องเย็น3</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาออกห้องเย็น3</TableCell>
-                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", width: "10%" }}>เวลาแก้ไข</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาเข้าห้องเย็น1</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาออกห้องเย็น1</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาเข้าห้องเย็น2</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาออกห้องเย็น2</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาเข้าห้องเย็น3</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาออกห้องเย็น3</TableCell>
+                    <TableCell sx={{ fontSize: "13px", textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", width: "10%" }}>เวลาแก้ไข</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.withdraw_date ? new Date(row.withdraw_date).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.cooked_date ? new Date(row.cooked_date).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.rmit_date ? new Date(row.rmit_date).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.come_cold_date ? new Date(row.come_cold_date).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.out_cold_date ? new Date(row.out_cold_date).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.come_cold_date_two ? new Date(row.come_cold_date_two).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.out_cold_date_two ? new Date(row.out_cold_date_two).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.come_cold_date_three ? new Date(row.come_cold_date_three).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.out_cold_date_three ? new Date(row.out_cold_date_three).toLocaleString('th-TH') : '-'}</TableCell>
-                    <TableCell sx={{ border: 'none', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)" }}>{row.rework_date ? new Date(row.rework_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.withdraw_date ? new Date(row.withdraw_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.cooked_date ? new Date(row.cooked_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.rmit_date ? new Date(row.rmit_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.come_cold_date ? new Date(row.come_cold_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.out_cold_date ? new Date(row.out_cold_date).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.come_cold_date_two ? new Date(row.come_cold_date_two).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.out_cold_date_two ? new Date(row.out_cold_date_two).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.come_cold_date_three ? new Date(row.come_cold_date_three).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489" }}>{row.out_cold_date_three ? new Date(row.out_cold_date_three).toLocaleString('th-TH') : '-'}</TableCell>
+                    <TableCell sx={{ border: 'none', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489" }}>{row.rework_date ? new Date(row.rework_date).toLocaleString('th-TH') : '-'}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -736,27 +736,27 @@ const TableMainPrepDetail = ({ handleOpenModal, data, handleRowClick, handleOpen
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ width: '100%' }}>
           <TableHead style={{ marginBottom: "10px" }}>
             <TableRow sx={{ height: '40px' }}>
-              <TableCell align="center" style={{ width: '15%', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", borderLeft: "1px solid rgba(255,255,255,.14)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '15%', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', borderLeft: "1px solid #E3E8F2", padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>DelayTime</Box>
               </TableCell>
 
-              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>Batch</Box>
               </TableCell>
 
-              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>Mat</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: '20%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '20%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>รายชื่อวัตถุดิบ</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>แผนการผลิต</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>น้ำหนักวัตถุดิบ</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
+              <TableCell align="center" style={{ width: '10%', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>จำนวนถาด</Box>
               </TableCell>
             </TableRow>
@@ -800,7 +800,7 @@ const TableMainPrepDetail = ({ handleOpenModal, data, handleRowClick, handleOpen
                 })
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
+                <TableCell colSpan={9} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>

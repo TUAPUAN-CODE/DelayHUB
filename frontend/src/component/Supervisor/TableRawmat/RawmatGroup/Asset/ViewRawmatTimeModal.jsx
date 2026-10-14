@@ -71,7 +71,7 @@ const ViewRawmatTimeModal = ({ isOpen, onClose, data }) => {
             รายละเอียดเวลาในแต่ละขั้นตอน
           </Typography>
           
-          <Paper elevation={0} sx={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: "8px", overflow: "hidden" }}>
+          <Paper elevation={0} sx={{ border: "1px solid #E3E8F2", borderRadius: "8px", overflow: "hidden" }}>
             <Table>
               <TableBody>
                 {timeDetails.map((item, index) => (

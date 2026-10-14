@@ -32,7 +32,7 @@ const StatusZoneSettings = ({ ext, setExt }) => {
   };
 
   return (
-    <Box sx={{ p: 1.5, border: "1px solid rgba(255,255,255,.14)", borderRadius: 2, background: "rgba(255,255,255,.05)" }}>
+    <Box sx={{ p: 1.5, border: "1px solid #E3E9F6", borderRadius: 2, background: "#F8FAFF" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 0.5 }}>สถานะอยู่ในพื้นที่ไหน (ใช้เรียงลำดับและแบ่งสีในเมนูสถานะ)</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
         เพิ่มพื้นที่ของคุณเองได้ · หนึ่งสถานะอยู่ได้หลายพื้นที่ (จะแสดงในเมนูสถานะใต้ทุกพื้นที่ที่เลือก สีของชิปใช้พื้นที่แรก)

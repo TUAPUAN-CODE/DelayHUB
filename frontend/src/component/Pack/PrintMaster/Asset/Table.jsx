@@ -101,9 +101,9 @@ const QrScanModal = ({ open, onClose, onScan }) => {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,.14)' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid #e0e0e0' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 'bold', fontSize: '16px' }}>
-          <QrCodeScanner sx={{ color: "#93C5FD" }} />
+          <QrCodeScanner sx={{ color: '#1976D2' }} />
           Scan QR Code
         </Box>
         <IconButton onClick={handleClose} size="small"><Close /></IconButton>
@@ -118,13 +118,13 @@ const QrScanModal = ({ open, onClose, onScan }) => {
           )}
         </Box>
         {scanError && (
-          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '6px', backgroundColor: "rgba(248,113,113,.16)", color: "#FCA5A5", fontSize: '12px' }}>
+          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '6px', backgroundColor: '#ffebee', color: '#c62828', fontSize: '12px' }}>
             ❌ {scanError}
           </Box>
         )}
-        <Box sx={{ p: 1.5, borderRadius: '6px', backgroundColor: "rgba(255,255,255,.05)", fontSize: '11px', color: "rgba(241,244,250,.62)" }}>
+        <Box sx={{ p: 1.5, borderRadius: '6px', backgroundColor: '#f5f5f5', fontSize: '11px', color: '#666' }}>
           <Box sx={{ fontWeight: 'bold', mb: 0.5 }}>Format ที่รองรับ:</Box>
-          <Box sx={{ fontFamily: 'monospace', color: "#93C5FD" }}>MAT|BATCH|HU|Quantity|PC</Box>
+          <Box sx={{ fontFamily: 'monospace', color: '#1976D2' }}>MAT|BATCH|HU|Quantity|PC</Box>
           <Box sx={{ mt: 0.5 }}>ชี้กล้องไปที่ QR Code — อ่านอัตโนมัติแล้วปิด</Box>
         </Box>
       </Box>
@@ -150,20 +150,20 @@ const TypeButton = ({ type, selected, onClick }) => (
 );
 
 const FieldLabel = ({ children, required }) => (
-  <Box sx={{ fontSize: '10px', fontWeight: 'bold', color: "rgba(241,244,250,.62)", mb: 0.3, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+  <Box sx={{ fontSize: '10px', fontWeight: 'bold', color: '#555', mb: 0.3, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
     {children}{required && <span style={{ color: 'red' }}> *</span>}
   </Box>
 );
 
 const inputSx = {
-  '& .MuiInputBase-root': { height: '34px', fontSize: '13px', backgroundColor: "rgba(255,255,255,.07)" },
+  '& .MuiInputBase-root': { height: '34px', fontSize: '13px', backgroundColor: '#fff' },
   '& .MuiInputBase-input': { padding: '6px 10px' },
 };
 
 const dateInputStyle = {
   width: '100%', height: '34px', fontSize: '13px',
   padding: '0 8px', border: '1px solid #c4c4c4',
-  borderRadius: '4px', outline: 'none', backgroundColor: "rgba(255,255,255,.07)",
+  borderRadius: '4px', outline: 'none', backgroundColor: '#fff',
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -340,7 +340,7 @@ const TableMainPrep = () => {
             display: 'inline-flex', alignItems: 'center', gap: 1,
             px: 2.5, py: 1, borderRadius: '8px',
             border: '1.5px solid #1976D2',
-            backgroundColor: "rgba(96,165,250,.16)", color: "#93C5FD",
+            backgroundColor: '#e3f2fd', color: '#1565C0',
             cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
             userSelect: 'none', transition: 'all 0.15s',
             '&:hover': { backgroundColor: '#1976D2', color: '#fff' },
@@ -389,7 +389,7 @@ const TableMainPrep = () => {
               <Box sx={{
                 display: 'flex', alignItems: 'center', gap: 0.5,
                 height: '34px', border: '1px solid #c4c4c4', borderRadius: '4px',
-                px: 1, backgroundColor: "rgba(255,255,255,.07)",
+                px: 1, backgroundColor: '#fff',
               }}>
                 <input
                   type="number" min="0" max="23"
@@ -401,7 +401,7 @@ const TableMainPrep = () => {
                   }}
                   style={{ width: '36px', border: 'none', outline: 'none', fontSize: '13px', textAlign: 'center', padding: 0 }}
                 />
-                <span style={{ fontSize: '14px', fontWeight: 'bold', color: "rgba(241,244,250,.62)", lineHeight: 1 }}>:</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#555', lineHeight: 1 }}>:</span>
                 <input
                   type="number" min="0" max="59"
                   value={parseInt(form.produce_time?.split(':')[1] ?? '0', 10)}
@@ -412,7 +412,7 @@ const TableMainPrep = () => {
                   }}
                   style={{ width: '36px', border: 'none', outline: 'none', fontSize: '13px', textAlign: 'center', padding: 0 }}
                 />
-                <span style={{ fontSize: '11px', color: "rgba(241,244,250,.62)", marginLeft: '2px' }}>น. (0-23)</span>
+                <span style={{ fontSize: '11px', color: '#999', marginLeft: '2px' }}>น. (0-23)</span>
               </Box>
             </Box>
           </Box>
@@ -471,11 +471,11 @@ const TableMainPrep = () => {
         </Box>
 
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,.14)', pt: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', borderTop: '1px solid #e0e0e0', pt: 2 }}>
           <Box onClick={handleClear} sx={{
             px: 3, py: 1, borderRadius: '8px', border: '1.5px solid #bbb',
-            cursor: 'pointer', fontSize: '14px', color: "rgba(241,244,250,.62)",
-            '&:hover': { backgroundColor: "rgba(255,255,255,.05)" },
+            cursor: 'pointer', fontSize: '14px', color: '#555',
+            '&:hover': { backgroundColor: '#f0f0f0' },
           }}>
             ล้างข้อมูล
           </Box>
@@ -495,11 +495,11 @@ const TableMainPrep = () => {
 
       {/* ─── Records Table ─── */}
       <Paper sx={{ borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,.14)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ fontWeight: 'bold', fontSize: '15px', color: "#93C5FD" }}>
+        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ fontWeight: 'bold', fontSize: '15px', color: '#1976D2' }}>
             ประวัติการบันทึก — วันนี้ ({records.length} รายการ)
           </Box>
-          <Box sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)" }}>คลิกแถวเพื่อโหลดข้อมูลมาแก้ไข → บันทึกใหม่</Box>
+          <Box sx={{ fontSize: '11px', color: '#999' }}>คลิกแถวเพื่อโหลดข้อมูลมาแก้ไข → บันทึกใหม่</Box>
         </Box>
         <TableContainer sx={{ maxHeight: '420px' }}>
           <Table stickyHeader size="small">
@@ -519,7 +519,7 @@ const TableMainPrep = () => {
             <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4, color: "rgba(241,244,250,.62)", fontSize: '14px' }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4, color: '#999', fontSize: '14px' }}>
                     วันนี้ยังไม่มีประวัติการบันทึก
                   </TableCell>
                 </TableRow>
@@ -529,15 +529,15 @@ const TableMainPrep = () => {
                   onClick={() => handleRowClick(row)}
                   sx={{
                     cursor: 'pointer',
-                    '&:hover': { backgroundColor: "rgba(96,165,250,.16)" },
+                    '&:hover': { backgroundColor: '#e3f2fd' },
                     backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa',
                   }}
                 >
-                  <TableCell sx={{ fontSize: '12px', py: 0.8, px: 1.5, color: "rgba(241,244,250,.62)" }}>{i + 1}</TableCell>
-                  <TableCell sx={{ fontSize: '12px', py: 0.8, px: 1.5, fontFamily: 'monospace', color: "rgba(241,244,250,.62)" }}>{row.slip_id ?? '-'}</TableCell>
+                  <TableCell sx={{ fontSize: '12px', py: 0.8, px: 1.5, color: '#888' }}>{i + 1}</TableCell>
+                  <TableCell sx={{ fontSize: '12px', py: 0.8, px: 1.5, fontFamily: 'monospace', color: '#666' }}>{row.slip_id ?? '-'}</TableCell>
                   <TableCell sx={{ py: 0.8, px: 1.5 }}>
                     <Chip label={row.type_choice || '-'} size="small"
-                      sx={{ fontSize: '11px', height: '20px', backgroundColor: "rgba(96,165,250,.16)", color: "#93C5FD", fontWeight: 'bold' }} />
+                      sx={{ fontSize: '11px', height: '20px', backgroundColor: '#e3f2fd', color: '#1976D2', fontWeight: 'bold' }} />
                   </TableCell>
                   <TableCell sx={{ fontSize: '12px', py: 0.8, px: 1.5, whiteSpace: 'nowrap' }}>
                     {row.send_date ? String(row.send_date).slice(0, 10) : '-'}

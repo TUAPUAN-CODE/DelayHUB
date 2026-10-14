@@ -268,7 +268,7 @@ const ModalSlip3 = ({
           flexDirection: 'column',
           gap: 1,
           fontSize: "15px",
-          color: "rgba(241,244,250,.62)"
+          color: "#555"
         }}>
           <DialogContent sx={{ paddingBottom: 0 }}>
             <Typography sx={{
@@ -285,7 +285,7 @@ const ModalSlip3 = ({
             <Typography color="error" sx={{ 
              mb: 2, 
              p: 1, 
-             backgroundColor: "rgba(248,113,113,.16)", // ✅ เพิ่ม background สีแดงอ่อน
+             backgroundColor: "#ffebee", // ✅ เพิ่ม background สีแดงอ่อน
              borderRadius: 1 
             }}>
             {error}
@@ -299,7 +299,7 @@ const ModalSlip3 = ({
             {batchArray.length > 0 && (
               <>
                 <Divider sx={{ mt: 2, mb: 2 }} />
-                <Typography sx={{ fontSize: "16px", fontWeight: 500, color: "#F1F4FA", marginBottom: "8px" }}>
+                <Typography sx={{ fontSize: "16px", fontWeight: 500, color: "#333", marginBottom: "8px" }}>
                   รายการ Batch ทั้งหมด:
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 2 }}>
@@ -312,19 +312,19 @@ const ModalSlip3 = ({
                         <Box
                           sx={{
                             padding: "4px 8px",
-                            backgroundColor: "rgba(255,255,255,.05)",
+                            backgroundColor: "#f0f0f0",
                             borderRadius: "4px",
                             fontSize: "14px",
                             minWidth: "120px",
                             textAlign: "center",
-                            color: "rgba(241,244,250,.62)"
+                            color: "#666"
                           }}
                         >
                           {batchItem}
                         </Box>
 
                         {/* ลูกศร */}
-                        <Typography sx={{ fontSize: "16px", color: "rgba(241,244,250,.62)" }}>→</Typography>
+                        <Typography sx={{ fontSize: "16px", color: "#666" }}>→</Typography>
 
                         {/* Batch ใหม่ */}
                         <Box
@@ -336,7 +336,7 @@ const ModalSlip3 = ({
                             minWidth: "120px",
                             textAlign: "center",
                             fontWeight: "bold",
-                            color: "#6EE7B7"
+                            color: "#2e7d32"
                           }}
                         >
                           {newBatch}

@@ -2,43 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Design tokens: dark smoked glass (same values as theme/dochubTheme.js) ---------- */
+/* ---------- Design tokens (same values as theme/dochubTheme.js and DocHUB) ---------- */
 :root {
-  --c-primary: 255 138 61; --c-primary-dark: 242 107 29; --c-primary-soft: 255 138 61;
-  --c-bg: 15 18 24; --c-surface: 30 33 42; --c-text: 241 244 250; --c-muted: 168 176 192; --c-border: 255 255 255;
-  --c-success: 52 211 153; --c-warning: 251 191 36; --c-danger: 248 113 113;
+  --c-primary: 21 82 240; --c-primary-dark: 15 63 196; --c-primary-soft: 234 240 255;
+  --c-bg: 241 244 251; --c-surface: 255 255 255; --c-text: 27 35 51; --c-muted: 107 116 137; --c-border: 227 232 242;
+  --c-success: 22 163 74; --c-warning: 245 158 11; --c-danger: 229 72 77;
   --radius: 14px; --font: 'Prompt';
-  --shadow-sm: 0 4px 16px rgb(0 0 0 / .25);
-  --shadow-md: 0 10px 40px rgb(0 0 0 / .35);
-  --glass-bg: rgb(255 255 255 / .07);
-  --glass-bg-strong: rgb(30 33 42 / .78);
-  --glass-blur: blur(20px) saturate(140%);
-  --glass-border: 1px solid rgb(255 255 255 / .14);
-  --glass-shadow: 0 10px 40px rgb(0 0 0 / .35), inset 0 1px 0 rgb(255 255 255 / .10);
-  --text: #F1F4FA; --text-muted: rgb(241 244 250 / .62);
-  color-scheme: dark;
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / .05), 0 1px 3px rgb(16 24 40 / .07);
+  --shadow-md: 0 8px 24px rgb(16 24 40 / .10);
 }
 
 html, body, #root { height: 100%; }
-html {
+body, html {
   margin: 0;
   font-family: 'Prompt', 'Noto Sans Thai', system-ui, sans-serif;
-  color: var(--text);
-  background: #0F1218;
+  color: rgb(var(--c-text));
+  background: #EEF2FB;
   -webkit-font-smoothing: antialiased;
 }
-body { margin: 0; font-family: inherit; color: var(--text); background: transparent; } /* html paints the base colour; body must stay clear or it would cover body::before */
 
 /* ---------- Glassmorphism ----------
-   A fixed dark gradient with warm glows behind everything; every surface is translucent + blur on top of it. */
+   A fixed colourful background behind everything; every surface (Paper, dialog, table, header, old pages that set white inline)
+   is translucent white + blur on top of it. Values are kept in sync with GLASS / GLASS_STRONG in theme/dochubTheme.js. */
+body { background: transparent; } /* html paints the base colour; body must stay clear or it would cover body::before */
+:root {
+  --glass-bg: rgb(255 255 255 / .88);
+  --glass-bg-strong: rgb(255 255 255 / .96);
+  --glass-blur: blur(12px) saturate(140%);
+  --glass-border: 1px solid #E1E9FA;
+  --glass-shadow: 0 1px 2px rgb(19 33 63 / .04), 0 6px 24px rgb(21 82 240 / .08);
+  --accent: #F26B1D; --accent-grad: linear-gradient(135deg, #FF9A4D, #F26B1D);
+}
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(ellipse at 85% 8%, rgb(255 138 61 / .30) 0, transparent 45%),
-    radial-gradient(ellipse at 10% 85%, rgb(255 176 80 / .18) 0, transparent 42%),
-    radial-gradient(ellipse at 12% 10%, rgb(56 189 248 / .12) 0, transparent 40%),
-    radial-gradient(ellipse at 70% 95%, rgb(168 85 247 / .12) 0, transparent 45%),
-    linear-gradient(160deg, #141821 0%, #0D1015 55%, #17130F 100%);
+    radial-gradient(ellipse at 100% 0%, rgb(255 154 77 / .10) 0, transparent 40%),
+    linear-gradient(180deg, #EAF1FF 0%, #F4F7FD 38%, #FFFFFF 100%);
 }
 .glass {
   background-color: var(--glass-bg) !important;
@@ -50,65 +49,29 @@ body::before {
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
 }
 .MuiPaper-elevation:not(.MuiAlert-root):not(.MuiSnackbarContent-root):not(.MuiAppBar-root):not(.MuiDialog-paper):not(.MuiPopover-paper):not(.MuiMenu-paper) {
-  background-color: var(--glass-bg); border: var(--glass-border); box-shadow: var(--glass-shadow);
+  border: var(--glass-border); box-shadow: var(--glass-shadow);
 }
-.MuiPaper-outlined { background-color: var(--glass-bg); }
-
-/* ---------- Old pages that hard-code light colours (inline style / Tailwind) ----------
-   light backgrounds become glass, dark text becomes light. "[style^=..]" / "; color" so that background-color never matches a text rule. */
-[style*="background-color: rgb(255, 255, 255)"], [style*="background: rgb(255, 255, 255)"], [style*="background-color: white"], [style*="background: white"],
-[style*="background-color: rgb(245, 248, 255)"], [style*="background: rgb(245, 248, 255)"], [style*="background-color: rgb(248, 250, 255)"], [style*="background: rgb(248, 250, 255)"],
-[style*="background-color: rgb(234, 240, 255)"], [style*="background: rgb(234, 240, 255)"], [style*="background-color: rgb(241, 244, 251)"], [style*="background: rgb(241, 244, 251)"],
-[style*="background-color: rgb(245, 245, 245)"], [style*="background: rgb(245, 245, 245)"], [style*="background-color: rgb(250, 250, 250)"], [style*="background: rgb(250, 250, 250)"],
-[style*="background-color: rgb(240, 240, 240)"], [style*="background: rgb(240, 240, 240)"], [style*="background-color: rgb(238, 238, 238)"], [style*="background-color: rgb(249, 250, 251)"],
-[style*="background-color: rgb(243, 244, 246)"], [style*="background-color: rgb(241, 245, 255)"], [style*="background: rgb(241, 245, 255)"], [style*="background-color: rgb(248, 249, 250)"],
-.bg-white, .bg-gray-50, .bg-gray-100, .bg-slate-50, .bg-slate-100, .bg-blue-50 {
+/* old pages that paint white inline / with Tailwind: turn the white into glass */
+.MuiPaper-root[style*="background-color: rgb(255, 255, 255)"], .MuiPaper-root[style*="background: rgb(255, 255, 255)"],
+div[style*="background-color: rgb(255, 255, 255)"], div[style*="background: rgb(255, 255, 255)"],
+section[style*="background-color: rgb(255, 255, 255)"], .bg-white {
   background-color: var(--glass-bg) !important;
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
 }
-td[style*="background-color: rgb(255, 255, 255)"], th[style*="background-color: rgb(255, 255, 255)"] { -webkit-backdrop-filter: none; backdrop-filter: none; }
-[style^="color: rgb(0, 0, 0)"], [style*="; color: rgb(0, 0, 0)"], [style^="color: black"], [style*="; color: black"],
-[style^="color: rgba(0, 0, 0"], [style*="; color: rgba(0, 0, 0"],
-[style^="color: rgb(27, 35, 51)"], [style*="; color: rgb(27, 35, 51)"], [style^="color: rgb(31, 41, 55)"], [style*="; color: rgb(31, 41, 55)"],
-[style^="color: rgb(17, 24, 39)"], [style*="; color: rgb(17, 24, 39)"], [style^="color: rgb(33, 33, 33)"], [style*="; color: rgb(33, 33, 33)"],
-[style^="color: rgb(34, 34, 34)"], [style*="; color: rgb(34, 34, 34)"], [style^="color: rgb(51, 51, 51)"], [style*="; color: rgb(51, 51, 51)"],
-[style^="color: rgb(55, 65, 81)"], [style*="; color: rgb(55, 65, 81)"], [style^="color: rgb(66, 66, 66)"], [style*="; color: rgb(66, 66, 66)"],
-[style^="color: rgb(68, 68, 68)"], [style*="; color: rgb(68, 68, 68)"], [style^="color: rgb(85, 85, 85)"], [style*="; color: rgb(85, 85, 85)"],
-.text-black, .text-gray-900, .text-gray-800, .text-gray-700, .text-slate-900, .text-slate-800, .text-slate-700 {
-  color: var(--text) !important;
-}
-[style^="color: rgb(102, 102, 102)"], [style*="; color: rgb(102, 102, 102)"], [style^="color: rgb(107, 116, 137)"], [style*="; color: rgb(107, 116, 137)"],
-[style^="color: rgb(97, 97, 97)"], [style*="; color: rgb(97, 97, 97)"], [style^="color: rgb(117, 117, 117)"], [style*="; color: rgb(117, 117, 117)"],
-[style^="color: rgb(75, 85, 99)"], [style*="; color: rgb(75, 85, 99)"], [style^="color: rgb(107, 114, 128)"], [style*="; color: rgb(107, 114, 128)"],
-[style^="color: gray"], [style*="; color: gray"], [style^="color: grey"], [style*="; color: grey"],
-.text-gray-600, .text-gray-500, .text-slate-600, .text-slate-500 {
-  color: var(--text-muted) !important;
-}
-/* brand-blue text of the old light theme is too dark on the dark glass */
-[style^="color: rgb(21, 82, 240)"], [style*="; color: rgb(21, 82, 240)"], [style^="color: rgb(15, 63, 196)"], [style*="; color: rgb(15, 63, 196)"] { color: #8FB2FF !important; }
-.border-gray-200, .border-gray-300, .border-gray-100 { border-color: rgb(255 255 255 / .14) !important; }
-
 /* plain MUI <Modal> (not Dialog): the content box becomes strong glass */
 .MuiModal-root:not(.MuiDialog-root):not(.MuiPopover-root):not(.MuiMenu-root) > .MuiBox-root {
-  background-color: var(--glass-bg-strong) !important; color: var(--text);
-  -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%);
+  background-color: var(--glass-bg-strong) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
   border: var(--glass-border);
 }
 /* table body: translucent rows so the glass of the table panel shows through */
-.MuiTableBody-root .MuiTableCell-root:not([style*="background"]) { background-color: rgb(255 255 255 / .03); }
-/* native date / select pickers follow the dark scheme */
-input, textarea, select { color-scheme: dark; }
+.MuiTableBody-root .MuiTableCell-root:not([style*="background"]) { background-color: #fff; }
 /* small screens: a lighter blur keeps scrolling smooth on the floor tablets / phones */
 @media (max-width: 600px) {
-  :root { --glass-blur: blur(12px) saturate(130%); }
+  :root { --glass-blur: blur(10px) saturate(150%); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root { --glass-bg: rgb(36 40 50 / .96); --glass-bg-strong: rgb(36 40 50 / .98); }
-}
-/* printing the page itself (e.g. Oven batch print): plain white paper, dark text */
-@media print {
-  body::before { display: none; }
-  html, body { background: #fff !important; color: #000 !important; }
+  :root { --glass-bg: rgb(255 255 255 / .94); --glass-bg-strong: rgb(255 255 255 / .97); }
 }
 input, textarea, select, button,
 .MuiTypography-root, .MuiButton-root, .MuiInputBase-root, .MuiOutlinedInput-root, .MuiTableCell-root,
@@ -136,7 +99,7 @@ button:disabled { cursor: not-allowed; }
 .MuiTableContainer-root { border-radius: 12px; }
 .MuiTableHead-root .MuiTableCell-root { letter-spacing: .1px; }
 .MuiTableBody-root .MuiTableRow-root { transition: background-color .12s ease; }
-.MuiTableBody-root .MuiTableRow-root:hover > .MuiTableCell-root { background-color: rgb(255 255 255 / .07) !important; }
+.MuiTableBody-root .MuiTableRow-root:hover > .MuiTableCell-root { background-color: rgb(var(--c-primary) / .045) !important; }
 .MuiDialog-paper, .MuiModal-root .MuiBox-root[class*="ModalContent"] { border-radius: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -173,9 +136,8 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
 
 /* ---------- Shared top bar (Layout/AppSidebar.jsx) ---------- */
 .app-topbar { position: relative; z-index: 20; flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px;
-  background: rgb(20 23 30 / .55); color: #fff; font-family: 'Prompt', sans-serif;
-  -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
-  border-bottom: 1px solid rgb(255 255 255 / .10); box-shadow: 0 6px 30px rgb(0 0 0 / .35); }
+  background: linear-gradient(90deg, #1552F0 0%, #2F6BFF 60%, #3B7BFF 100%); color: #fff; font-family: 'Prompt', sans-serif;
+  box-shadow: 0 4px 18px rgb(21 82 240 / .25); }
 .app-top-brand { flex-shrink: 0; line-height: 1.15; padding-right: 8px; border-right: 1px solid rgb(255 255 255 / .25); }
 .app-top-title { font-size: 16px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
 .app-top-sub { font-size: 10.5px; color: rgb(255 255 255 / .75); white-space: nowrap; }
@@ -189,7 +151,7 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
 .app-top-link { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
   color: rgb(255 255 255 / .92); font: inherit; font-size: 13.5px; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s ease, color .15s ease; }
 .app-top-link:hover { background: rgb(255 255 255 / .16); color: #fff; }
-.app-top-link.is-active { background: linear-gradient(135deg, #FF9A4D, #F26B1D); color: #fff; font-weight: 600; box-shadow: 0 4px 14px rgb(255 122 40 / .35); }
+.app-top-link.is-active { background: var(--accent-grad); color: #fff; font-weight: 600; box-shadow: 0 4px 14px rgb(242 107 29 / .40); }
 
 /* multilingual fonts (system fonts first, no download needed) */
 html[lang="my"] body, html[lang="my"] .MuiTypography-root, html[lang="my"] .MuiButton-root, html[lang="my"] .MuiTableCell-root, html[lang="my"] .app-topbar { font-family: 'Prompt', 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', sans-serif; }

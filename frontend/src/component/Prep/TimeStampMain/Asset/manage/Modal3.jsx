@@ -375,7 +375,7 @@ const Modal3 = ({
             flexDirection: "column",
             gap: 1,
             fontSize: "15px",
-            color: "rgba(241,244,250,.62)",
+            color: "#555",
           }}
         >
           <DialogContent sx={{ paddingBottom: 0 }}>
@@ -407,7 +407,7 @@ const Modal3 = ({
                   sx={{
                     fontSize: "16px",
                     fontWeight: 500,
-                    color: "#F1F4FA",
+                    color: "#333",
                     marginBottom: "8px",
                   }}
                 >
@@ -434,19 +434,19 @@ const Modal3 = ({
                         <Box
                           sx={{
                             padding: "4px 8px",
-                            backgroundColor: "rgba(255,255,255,.05)",
+                            backgroundColor: "#f0f0f0",
                             borderRadius: "4px",
                             fontSize: "14px",
                             minWidth: "120px",
                             textAlign: "center",
-                            color: "rgba(241,244,250,.62)",
+                            color: "#666",
                           }}
                         >
                           {batchItem}
                         </Box>
 
                         {/* ลูกศร */}
-                        <Typography sx={{ fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
+                        <Typography sx={{ fontSize: "16px", color: "#666" }}>
                           →
                         </Typography>
 
@@ -460,7 +460,7 @@ const Modal3 = ({
                             minWidth: "120px",
                             textAlign: "center",
                             fontWeight: "bold",
-                            color: "#6EE7B7",
+                            color: "#2e7d32",
                           }}
                         >
                           {newBatch}

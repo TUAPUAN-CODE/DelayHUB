@@ -104,11 +104,11 @@ const TrolleyFlows = forwardRef(function TrolleyFlows({ rows, onDone }, ref) {
               </>
             )}
           </Box>
-          <Typography sx={{ mt: 2, mb: 0.5, fontSize: 13, color: "rgba(241,244,250,.62)" }}>วัตถุดิบบนรถเข็นคันนี้ ({sameTrolley.length} รายการ)</Typography>
-          <Box sx={{ maxHeight: 160, overflow: "auto", border: "1px solid rgba(255,255,255,.14)", borderRadius: 2 }}>
+          <Typography sx={{ mt: 2, mb: 0.5, fontSize: 13, color: "#6B7489" }}>วัตถุดิบบนรถเข็นคันนี้ ({sameTrolley.length} รายการ)</Typography>
+          <Box sx={{ maxHeight: 160, overflow: "auto", border: "1px solid #E3E8F2", borderRadius: 2 }}>
             {sameTrolley.map((r) => (
               <Box key={r.mapping_id} sx={{ px: 1.5, py: 0.75, borderBottom: "1px solid #EEF2F9", fontSize: 13 }}>
-                <b>{r.mat_name}</b> <span style={{ color: "rgba(241,244,250,.62)" }}>· {r.batch} · {r.weight_RM ?? "-"} kg</span>
+                <b>{r.mat_name}</b> <span style={{ color: "#6B7489" }}>· {r.batch} · {r.weight_RM ?? "-"} kg</span>
               </Box>
             ))}
           </Box>

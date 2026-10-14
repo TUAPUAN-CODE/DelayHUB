@@ -149,7 +149,7 @@ const MainProduction = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -212,7 +212,7 @@ const MainProduction = () => {
                   align="center"
                   style={{
                     backgroundColor: "#1552F0",
-                    border: "1px solid rgba(255,255,255,.14)",
+                    border: "1px solid #E3E8F2",
                     margin: 0,
                     borderRadius:
                       index === 0
@@ -305,7 +305,7 @@ const MainProduction = () => {
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
             {
               fontSize: "10px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
               padding: "0px",
             },
         }}

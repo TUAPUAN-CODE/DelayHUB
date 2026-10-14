@@ -158,7 +158,7 @@ const WorkplaceSelector = () => {
               sx={{
                 width: isMobile ? "100%" : "50%",
                 padding: isMobile ? 3 : 5,
-                backgroundColor: "rgba(255,255,255,.07)",
+                backgroundColor: "white",
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
@@ -215,7 +215,7 @@ const WorkplaceSelector = () => {
                   },
                   "&:disabled": {
                     backgroundColor: "#cccccc",
-                    color: "rgba(241,244,250,.62)",
+                    color: "#666666",
                   },
                 }}
               >
@@ -223,8 +223,8 @@ const WorkplaceSelector = () => {
               </Button>
 
               {selectedWorkplace && (
-                <Box sx={{ mt: 3, p: 2, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 2 }}>
-                  <Typography variant="body2" sx={{ textAlign: "center", color: "rgba(241,244,250,.62)" }}>
+                <Box sx={{ mt: 3, p: 2, backgroundColor: "#F5F8FF", borderRadius: 2 }}>
+                  <Typography variant="body2" sx={{ textAlign: "center", color: "#666" }}>
                     คุณเลือก: <strong>{workplaces.find(wp => wp.wp_id === selectedWorkplace)?.name}</strong>
                   </Typography>
                 </Box>

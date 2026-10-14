@@ -8,6 +8,26 @@ import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
+import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
+import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import PersonPinCircleOutlinedIcon from "@mui/icons-material/PersonPinCircleOutlined";
+import AddShoppingCartOutlinedIcon from "@mui/icons-material/AddShoppingCartOutlined";
+import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
+import BlenderOutlinedIcon from "@mui/icons-material/BlenderOutlined";
+import ShoppingCartCheckoutOutlinedIcon from "@mui/icons-material/ShoppingCartCheckoutOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import ColorSettings, { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
 import StatusZoneSettings from "./StatusZoneSettings";
@@ -52,6 +72,20 @@ const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTi
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
 // Pack: แถวสถานะ "รอบรรจุเสร็จ" ติ๊ก / ใส่น้ำหนัก / บรรจุเสร็จ ได้ทั้งหมด ไม่ดูสถานะวัตถุดิบ (rm_status)
+// icon of a per-row tool that does not bring its own (matched on the start of its key)
+const TOOL_ICONS = [
+  ["in", LoginOutlinedIcon], ["out", LogoutOutlinedIcon], ["move", SwapHorizOutlinedIcon], ["qc", FactCheckOutlinedIcon],
+  ["send", LocalShippingOutlinedIcon], ["checkin", HowToRegOutlinedIcon], ["cart", ShoppingCartOutlinedIcon], ["rw-cart", ShoppingCartOutlinedIcon],
+  ["im-cart", ShoppingCartOutlinedIcon], ["edit", EditOutlinedIcon], ["rw-edit", EditOutlinedIcon], ["ok", CheckCircleOutlineIcon], ["del", DeleteOutlineIcon],
+  ["ps-", PlayArrowOutlinedIcon],
+];
+const toolIcon = (it) => {
+  if (it.icon) return it.icon;
+  const hit = TOOL_ICONS.find(([k]) => it.key === k || it.key.startsWith(`${k}-`) || (k.endsWith("-") && it.key.startsWith(k)));
+  if (!hit) return undefined;
+  const Icon = hit[1];
+  return <Icon fontSize="small" />;
+};
 const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date && (r.__stage === "ready" || r.__status?.label === "รอบรรจุเสร็จ");
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
@@ -340,21 +374,21 @@ const ParentComponent = ({ role, view = "work" }) => {
   }, [data.mappings, role]);
   const gatherBar = (role === "cs1" || role === "cs2") && (
     <>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: "#F1F4FA", whiteSpace: "nowrap" }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
       <Tooltip title={gatherRows.length ? "" : "ติ๊กวัตถุดิบที่สถานะ \"อยู่ในห้องเย็น\" ในตารางก่อน"} arrow>
         <span>
-          <Button size="small" variant="contained" color="secondary" disabled={!gatherRows.length} onClick={() => setGatherOpen(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>จัดชุด ({gatherRows.length})</Button>
+          <Button size="small" variant="contained" color="secondary" startIcon={<Inventory2OutlinedIcon />} disabled={!gatherRows.length} onClick={() => setGatherOpen(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}><span>จัดชุด</span>&nbsp;({gatherRows.length})</Button>
         </span>
       </Tooltip>
     </>
   );
   const mixBar = role === "prep" && (
     <>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: "#F1F4FA", whiteSpace: "nowrap" }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
       {Object.entries(MIX_KINDS).map(([k, v]) => (
         <Tooltip key={k} title={mixPicked[k].length ? "" : `ติ๊กแถว "${v.status}" ในตารางก่อน`} arrow>
           <span>
-            <Button size="small" variant="contained" color="secondary" disabled={!mixPicked[k].length} onClick={() => mixRefs[k].current?.add(mixPicked[k])} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>
+            <Button size="small" variant="contained" color="secondary" startIcon={<BlenderOutlinedIcon />} disabled={!mixPicked[k].length} onClick={() => mixRefs[k].current?.add(mixPicked[k])} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>
               {v.label} ({mixPicked[k].length})
             </Button>
           </span>
@@ -365,17 +399,17 @@ const ParentComponent = ({ role, view = "work" }) => {
   // Pack: ปุ่มของแถวที่ติ๊กไว้ อยู่ในแท็บ "เครื่องมือ" (onClick เป็น arrow: ฟังก์ชันถูกประกาศด้านล่าง)
   const packBar = role === "pack" && (
     <>
-      <Button variant="contained" size="small" color="success" disabled={!selected.size} onClick={() => confirmSelected()}><span>บรรจุเสร็จ</span>&nbsp;({selected.size})</Button>
-      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => mixSelected()}><span>ผสมวัตถุดิบ</span>&nbsp;({selected.size})</Button>
-      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
-      <Button variant="contained" size="small" color="warning" disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
-      <Button variant="contained" size="small" color="error" disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
-      {CAN_ADD_RM && <Button variant="contained" size="small" onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
+      <Button variant="contained" size="small" color="secondary" startIcon={<TaskAltOutlinedIcon />} disabled={!selected.size} onClick={() => confirmSelected()}><span>บรรจุเสร็จ</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" startIcon={<BlenderOutlinedIcon />} disabled={!selected.size} onClick={() => mixSelected()}><span>ผสมวัตถุดิบ</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" startIcon={<ShoppingCartCheckoutOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
+      <Button variant="outlined" size="small" startIcon={<EditNoteOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
+      {CAN_ADD_RM && <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
     </>
   );
   const actionBar = (
-    <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#FF8A3D" : undefined, background: activeRow ? "rgba(255,138,61,.10)" : undefined }}>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#FFB27A" : "text.secondary" }}>
+    <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#F26B1D" : undefined, background: activeRow ? "#FFF7F0" : undefined }}>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#D95A10" : "text.secondary" }}>
         {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
       </Typography>
       {mixBar}
@@ -385,7 +419,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       {barItems.map((it) => (it.node ? <Box key={it.key}>{it.node}</Box> : (
         <Tooltip key={it.key} title={it.ok === false ? it.title || "ยังทำรายการนี้ไม่ได้" : it.title || ""} arrow>
           <span>
-            <Button size="small" variant="contained" disabled={it.ok === false} onClick={it.run} startIcon={it.icon}
+            <Button size="small" variant="contained" disabled={it.ok === false} onClick={it.run} startIcon={toolIcon(it)}
               sx={{ textTransform: "none", whiteSpace: "nowrap", background: it.color, "&:hover": { background: it.color, filter: "brightness(.92)" } }}>{it.label}</Button>
           </span>
         </Tooltip>
@@ -433,9 +467,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       <TextField size="small" type="date" value={pick.from} onChange={(e) => setPick((p) => ({ ...p, from: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
       <Typography variant="body2" color="text.secondary">-</Typography>
       <TextField size="small" type="date" value={pick.to} onChange={(e) => setPick((p) => ({ ...p, to: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
-      <Button size="small" variant="contained" disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
-      <Button size="small" variant={range.all ? "contained" : "outlined"} color="secondary" onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
-      {range.all && <Button size="small" onClick={() => applyRange(defaultRange())}>{RANGE_DAYS} วัน</Button>}
+      <Button size="small" variant="contained" color="secondary" startIcon={<CloudDownloadOutlinedIcon />} disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
+      <Button size="small" variant={range.all ? "contained" : "outlined"} startIcon={<AllInclusiveIcon />} onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
+      {range.all && <Button size="small" startIcon={<RestartAltIcon />} onClick={() => applyRange(defaultRange())}>{RANGE_DAYS} วัน</Button>}
     </Box>
   );
 
@@ -487,8 +521,8 @@ const ParentComponent = ({ role, view = "work" }) => {
       ))}
       {role === "pack" && (
         <>
-          {!Number.isNaN(MY_LINE) && <Chip label="ไลน์ของฉัน" clickable color={myLine ? "primary" : "default"} variant={myLine ? "filled" : "outlined"} onClick={() => setMyLine((v) => !v)} />}
-          <Button variant="contained" size="small" onClick={() => packRef.current?.addTrolley()}>เพิ่มรถเข็น</Button>
+          {!Number.isNaN(MY_LINE) && <Chip icon={<PersonPinCircleOutlinedIcon />} label="ไลน์ของฉัน" clickable color={myLine ? "primary" : "default"} variant={myLine ? "filled" : "outlined"} onClick={() => setMyLine((v) => !v)} />}
+          <Button variant="contained" size="small" startIcon={<AddShoppingCartOutlinedIcon />} onClick={() => packRef.current?.addTrolley()}>เพิ่มรถเข็น</Button>
         </>
       )}
     </>

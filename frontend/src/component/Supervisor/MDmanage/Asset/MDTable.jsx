@@ -174,7 +174,7 @@ const MDTable = ({
                         bgcolor: LIGHT_BLUE_COLOR
                       },
                       '&:nth-of-type(even)': {
-                        bgcolor: "rgba(255,255,255,.07)"
+                        bgcolor: '#ffffff'
                       },
                       '&:hover': {
                         bgcolor: 'rgba(0, 120, 255, 0.1)'

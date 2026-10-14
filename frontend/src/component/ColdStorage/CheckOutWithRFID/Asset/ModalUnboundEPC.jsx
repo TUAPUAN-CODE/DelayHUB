@@ -124,8 +124,8 @@ const ModalUnboundEPC = ({ open, onClose }) => {
             style={{ marginBottom: 8, width: 260 }}
           />
         )}
-        {error && <p style={{ color: "#FCA5A5" }}>{error}</p>}
-        {message && <p style={{ color: "#6EE7B7" }}>{message}</p>}
+        {error && <p style={{ color: "#d32f2f" }}>{error}</p>}
+        {message && <p style={{ color: "#2e7d32" }}>{message}</p>}
         {loading ? (
           <div style={{ textAlign: "center", padding: 24 }}><CircularProgress /></div>
         ) : items.length === 0 ? (
@@ -133,7 +133,7 @@ const ModalUnboundEPC = ({ open, onClose }) => {
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: "1px solid rgba(255,255,255,.14)" }}>
+              <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
                 <th>EPC</th>
                 {tab === "unbound" ? (
                   <>
@@ -150,7 +150,7 @@ const ModalUnboundEPC = ({ open, onClose }) => {
             </thead>
             <tbody>
               {items.map((row) => (
-                <tr key={row.epc} style={{ borderBottom: "1px solid rgba(255,255,255,.14)" }}>
+                <tr key={row.epc} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ fontFamily: "monospace" }}>{row.epc}</td>
                   {tab === "unbound" ? (
                     <>

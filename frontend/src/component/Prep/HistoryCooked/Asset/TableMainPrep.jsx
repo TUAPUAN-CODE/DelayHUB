@@ -79,11 +79,11 @@ const Row = ({
         <TableCell style={{
           width: columnWidths[columnCount - 2],
           textAlign: 'center',
-          borderTop: '1px solid rgba(255,255,255,.14)',
-          borderBottom: '1px solid rgba(255,255,255,.14)',
+          borderTop: '1px solid #E3E8F2',
+          borderBottom: '1px solid #E3E8F2',
           height: '40px',
           padding: '0px 30px',
-          borderRight: "0px solid rgba(255,255,255,.14)",
+          borderRight: "0px solid #E3E8F2",
           borderTopLeftRadius: "8px",
           borderBottomLeftRadius: "8px",
           borderLeft: `5px solid ${borderColor}`,
@@ -106,8 +106,8 @@ const Row = ({
             style={{
               width: columnWidths[idx],
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid rgba(255,255,255,.14)',
-              borderBottom: '1px solid rgba(255,255,255,.14)',
+              borderTop: '1px solid #E3E8F2',
+              borderBottom: '1px solid #E3E8F2',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -116,7 +116,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             }}
           >
             {value || '-'}
@@ -125,12 +125,12 @@ const Row = ({
         {/* <TableCell style={{
           width: columnWidths[columnCount - 2],
           textAlign: 'center',
-          borderTop: '1px solid rgba(255,255,255,.14)',
-          borderBottom: '1px solid rgba(255,255,255,.14)',
+          borderTop: '1px solid #E3E8F2',
+          borderBottom: '1px solid #E3E8F2',
           borderLeft: '1px solid #f2f2f2',
           height: '40px',
           padding: '0px',
-          borderRight: "0px solid rgba(255,255,255,.14)"
+          borderRight: "0px solid #E3E8F2"
         }}>
           <div style={{
             display: 'flex',
@@ -141,7 +141,7 @@ const Row = ({
             <LiaShoppingCartSolid
               style={{
                 cursor: 'pointer',
-                color: "#FFB27A",
+                color: '#1552F0',
                 fontSize: '24px',
               }}
               onClick={(e) => {
@@ -154,8 +154,8 @@ const Row = ({
         <TableCell style={{
           width: columnWidths[columnCount - 2],
           textAlign: 'center',
-          borderTop: '1px solid rgba(255,255,255,.14)',
-          borderBottom: '1px solid rgba(255,255,255,.14)',
+          borderTop: '1px solid #E3E8F2',
+          borderBottom: '1px solid #E3E8F2',
           borderLeft: '1px solid #f2f2f2',
           height: '40px',
           padding: '0px',
@@ -169,7 +169,7 @@ const Row = ({
             <BsPrinter
               style={{
                 cursor: 'pointer',
-                color: "#FFB27A",
+                color: '#1552F0',
                 fontSize: '20px',
               }}
               onClick={(e) => {
@@ -182,12 +182,12 @@ const Row = ({
         {/* <TableCell style={{
           width: columnWidths[columnCount - 2],
           textAlign: 'center',
-          borderTop: '1px solid rgba(255,255,255,.14)',
-          borderBottom: '1px solid rgba(255,255,255,.14)',
+          borderTop: '1px solid #E3E8F2',
+          borderBottom: '1px solid #E3E8F2',
           borderLeft: '1px solid #f2f2f2',
           height: '40px',
           padding: '0px',
-          borderRight:'1px solid rgba(255,255,255,.14)',
+          borderRight:'1px solid #E3E8F2',
           borderTopRightRadius:'8px',
           borderBottomRightRadius:'8px',
         }}>
@@ -215,7 +215,7 @@ const Row = ({
       <TableRow>
         <TableCell colSpan={columnCount} style={{ padding: '2px', borderBottom: 'none' }}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ backgroundColor: "rgba(255,255,255,.05)", overflowX: 'auto', marginBottom: '5px', marginTop: '5px', borderRadius: '6px' }}>
+            <Box sx={{ backgroundColor: '#F5F8FF', overflowX: 'auto', marginBottom: '5px', marginTop: '5px', borderRadius: '6px' }}>
               <Table style={{ tableLayout: 'fixed' }}>
                 <TableBody>
                   {[row].map((detailRow, index) => (
@@ -223,7 +223,7 @@ const Row = ({
                       <TableCell style={{
                         width: columnWidths[columnCount - 1],
                         textAlign: 'center',
-                        border: '1px solid rgba(255,255,255,.14)',
+                        border: '1px solid #E3E8F2',
                         height: '40px',
                         padding: "0px 10px",
                         borderBottomRightRadius: "8px",
@@ -235,14 +235,14 @@ const Row = ({
                           align="center"
                           style={{
                             width: columnWidths[idx],
-                            border: '1px solid rgba(255,255,255,.14)',
+                            border: '1px solid #E3E8F2',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             fontSize: '10px',
                             lineHeight: '1.5',
                             height: '40px',
                             padding: "0px 10px",
-                            color: "rgba(241,244,250,.62)"
+                            color: "#6B7489"
                           }}
                         >
                           {detail}
@@ -251,7 +251,7 @@ const Row = ({
                       <TableCell style={{
                         width: columnWidths[columnCount - 3],
                         textAlign: 'center',
-                        border: '1px solid rgba(255,255,255,.14)',
+                        border: '1px solid #E3E8F2',
                         height: '40px',
                         padding: "0px 10px"
                       }}></TableCell>
@@ -328,7 +328,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)"
+              color: "#6B7489"
             },
             "& input": {
               padding: "8px",
@@ -375,11 +375,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       <TableCell align="center"  style={{
                 borderTopLeftRadius: '8px',
                 borderBottomLeftRadius: '8px',
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
-                fontSize: '12px', color: "rgba(241,244,250,.62)",
-                borderLeft: "1px solid rgba(255,255,255,.14)",
+                fontSize: '12px', color: '#6B7489',
+                borderLeft: "1px solid #E3E8F2",
                 padding: '5px',
                 width: columnWidths[columnCount - 2]
               }}
@@ -388,11 +388,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       </TableCell>
       {columns.map((key, index) => (
         <TableCell key={index} align="center" style={{
-          borderTop: "1px solid rgba(255,255,255,.14)",
-          borderBottom: "1px solid rgba(255,255,255,.14)",
+          borderTop: "1px solid #E3E8F2",
+          borderBottom: "1px solid #E3E8F2",
           borderRight: "1px solid #f2f2f2",
           fontSize: '12px',
-          color: "rgba(241,244,250,.62)",
+          color: '#6B7489',
           padding: '5px',
           width: columnWidths[index],
         }}
@@ -402,7 +402,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
       ))}
    
       <TableCell align="center" style={{
-                borderLeft: "0px solid ", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: columnWidths[columnCount - 2]
+                borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: columnWidths[columnCount - 2]
               }}>
         <Typography style={{ fontSize: '12px' }}>ปริ้นย้อนหลัง</Typography>
       </TableCell>
@@ -437,7 +437,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             padding: "0px",
           }
         }}

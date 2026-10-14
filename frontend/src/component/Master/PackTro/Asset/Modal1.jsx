@@ -211,7 +211,7 @@ const isReserved = await reserveTrolley(inputValue);
     }}>
       <ModalContent>
         <CloseButton aria-label="close" onClick={handleClose}><IoClose /></CloseButton>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
           <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
             กรุณากรอกข้อมูลหรือสแกนป้ายทะเบียน
           </Typography>

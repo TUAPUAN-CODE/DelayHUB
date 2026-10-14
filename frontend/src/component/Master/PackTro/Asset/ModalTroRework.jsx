@@ -178,14 +178,14 @@ const TrolleyReworkModal = ({ open, onClose, onNext, data, rmfp_id, mapping_id, 
       >
         <ModalContent>
           <CloseButton aria-label="close" onClick={onClose}><IoClose /></CloseButton>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
             <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
               กรุณากรอกข้อมูล
             </Typography>
 
             {/* แสดงข้อมูลวัตถุดิบที่ได้รับมา */}
             {data && (
-              <Box sx={{ mb: 2, p: 1, bgcolor: "rgba(255,255,255,.05)", borderRadius: 1 }}>
+              <Box sx={{ mb: 2, p: 1, bgcolor: '#F5F8FF', borderRadius: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   รายละเอียด:
                 </Typography>
@@ -239,13 +239,13 @@ const TrolleyReworkModal = ({ open, onClose, onNext, data, rmfp_id, mapping_id, 
                 <FormControlLabel 
                   value="จุดเตรียม" 
                   control={<Radio />} 
-                  style={{ color: "rgba(241,244,250,.62)" }} 
+                  style={{ color: "#666" }} 
                   label="จุดเตรียม" 
                 />
                 <FormControlLabel 
                   value="เข้าห้องเย็น" 
                   control={<Radio />} 
-                  style={{ color: "rgba(241,244,250,.62)" }} 
+                  style={{ color: "#666" }} 
                   label="ห้องเย็น" 
                 />
               </RadioGroup>

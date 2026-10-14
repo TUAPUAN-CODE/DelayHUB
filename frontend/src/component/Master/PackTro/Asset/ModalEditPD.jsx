@@ -84,7 +84,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         sx={{ "& .MuiDialog-paper": { width: "1400px", height: "610px", padding: "0" } }}
       >
         <DialogContent sx={{ p: "0" }}>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", mb: 2, pt: 2, pl: 3 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2, pt: 2, pl: 3 }}>
             กรุณาตรวจสอบข้อมูลก่อนส่งวัตถุดิบ
           </Typography>
 

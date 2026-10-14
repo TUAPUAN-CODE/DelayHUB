@@ -21,7 +21,7 @@ const userName = () => [localStorage.getItem("first_name"), localStorage.getItem
 
 /** "2 h 5 m / 2 h" — green / yellow / red by the time that is left of the limit */
 const Clock = ({ chunk, limit }) => {
-  if (!chunk) return <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>;
+  if (!chunk) return <span style={{ color: "#B0BAC9" }}>-</span>;
   const c = LEVEL[chunk.level];
   return (
     <Chip
@@ -107,8 +107,8 @@ const DelayControlPage = () => {
   })();
 
   return (
-    <div style={{ backgroundColor: "rgba(255,255,255,.07)" }} className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
-      <main className="max-w-8xl w-full mx-auto pt-2 pb-1 px-1 lg:px-8 flex-1 min-h-0 flex flex-col" style={{ color: "#F1F4FA" }}>
+    <div style={{ backgroundColor: "#fff" }} className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
+      <main className="max-w-8xl w-full mx-auto pt-2 pb-1 px-1 lg:px-8 flex-1 min-h-0 flex flex-col" style={{ color: "#1B2333" }}>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", mb: 1, flexShrink: 0 }}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ kind: "new" })}>เพิ่มรายการ</Button>
           <Typography variant="body2" color="text.secondary">
@@ -142,11 +142,11 @@ const DelayControlPage = () => {
                     <Fragment key={lot.lot_id}>
                       <TableRow hover sx={{ background: lot.closed ? "#F3F4F6" : c.done ? "#DCEBFF" : lv.bg, opacity: lot.closed ? 0.7 : 1 }}>
                         <TableCell><IconButton size="small" onClick={() => toggle(lot.lot_id)}>{isOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}</IconButton></TableCell>
-                        <TableCell><strong>{lot.lot_name}</strong>{lot.ref_code ? <div style={{ fontSize: 12, color: "rgba(241,244,250,.62)" }}>{lot.ref_code}</div> : null}</TableCell>
+                        <TableCell><strong>{lot.lot_name}</strong>{lot.ref_code ? <div style={{ fontSize: 12, color: "#6B7489" }}>{lot.ref_code}</div> : null}</TableCell>
                         <TableCell align="right">{c.weight}</TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(lot.prep_done_at)}</TableCell>
-                        <TableCell>{c.unplaced > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.unplaced} kg</b><Clock chunk={c.runningOutside} limit={LIMIT_OUTSIDE_MIN} /></Box> : <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>}</TableCell>
-                        <TableCell>{c.inCold > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.inCold} kg</b><Clock chunk={c.runningCold} limit={LIMIT_INSIDE_MIN} /></Box> : <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>}</TableCell>
+                        <TableCell>{c.unplaced > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.unplaced} kg</b><Clock chunk={c.runningOutside} limit={LIMIT_OUTSIDE_MIN} /></Box> : <span style={{ color: "#B0BAC9" }}>-</span>}</TableCell>
+                        <TableCell>{c.inCold > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.inCold} kg</b><Clock chunk={c.runningCold} limit={LIMIT_INSIDE_MIN} /></Box> : <span style={{ color: "#B0BAC9" }}>-</span>}</TableCell>
                         <TableCell align="right">{c.outKg}</TableCell>
                         <TableCell>
                           <Chip size="small" label={c.done ? "ครบแล้ว" : c.worst === "red" ? "เกินเวลา" : c.worst === "yellow" ? "ใกล้ครบเวลา" : "ปกติ"}
@@ -171,18 +171,18 @@ const DelayControlPage = () => {
                                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>นอกห้องเย็น (เตรียมเสร็จ → เข้าห้องเย็น)</Typography>
                                 {c.outsideChunks.length ? c.outsideChunks.map((k, i) => (
                                   <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center", fontSize: 13, mb: 0.25 }}>
-                                    <span style={{ minWidth: 70 }}>{k.kg} kg</span><Clock chunk={k} limit={LIMIT_OUTSIDE_MIN} />{k.running && <span style={{ color: "rgba(241,244,250,.62)" }}>(กำลังนับ)</span>}
+                                    <span style={{ minWidth: 70 }}>{k.kg} kg</span><Clock chunk={k} limit={LIMIT_OUTSIDE_MIN} />{k.running && <span style={{ color: "#6B7489" }}>(กำลังนับ)</span>}
                                   </Box>
-                                )) : <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>}
+                                )) : <span style={{ color: "#B0BAC9" }}>-</span>}
                               </div>
                               <div>
                                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>ในห้องเย็น (เข้า → ออก)</Typography>
                                 {c.coldChunks.length ? c.coldChunks.map((k, i) => (
                                   <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center", fontSize: 13, mb: 0.25, flexWrap: "wrap" }}>
                                     <span style={{ minWidth: 70 }}>{k.kg} kg</span><Clock chunk={k} limit={LIMIT_INSIDE_MIN} />
-                                    <span style={{ color: "rgba(241,244,250,.62)" }}>{fmtAt(k.inAt)} → {k.outAt ? fmtAt(k.outAt) : "ยังอยู่ในห้องเย็น"}</span>
+                                    <span style={{ color: "#6B7489" }}>{fmtAt(k.inAt)} → {k.outAt ? fmtAt(k.outAt) : "ยังอยู่ในห้องเย็น"}</span>
                                   </Box>
-                                )) : <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>}
+                                )) : <span style={{ color: "#B0BAC9" }}>-</span>}
                               </div>
                               <div style={{ gridColumn: "1 / -1" }}>
                                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>ประวัติการ stamp</Typography>
@@ -190,8 +190,8 @@ const DelayControlPage = () => {
                                   <div key={m.move_id} style={{ fontSize: 13 }}>
                                     {fmtAt(m.moved_at)} · {m.kind === "IN" ? "เข้าห้องเย็น" : "ออกห้องเย็น"} {Number(m.qty_kg)} kg{m.created_by ? ` · ${m.created_by}` : ""}
                                   </div>
-                                )) : <span style={{ color: "rgba(241,244,250,.62)" }}>ยังไม่มีการ stamp</span>}
-                                {lot.note ? <div style={{ fontSize: 13, marginTop: 4, color: "rgba(241,244,250,.62)" }}>หมายเหตุ: {lot.note}</div> : null}
+                                )) : <span style={{ color: "#B0BAC9" }}>ยังไม่มีการ stamp</span>}
+                                {lot.note ? <div style={{ fontSize: 13, marginTop: 4, color: "#6B7489" }}>หมายเหตุ: {lot.note}</div> : null}
                               </div>
                             </Box>
                           </TableCell>
@@ -200,7 +200,7 @@ const DelayControlPage = () => {
                     </Fragment>
                   );
                 })}
-                {!rows.length && <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: "rgba(241,244,250,.62)" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
+                {!rows.length && <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>

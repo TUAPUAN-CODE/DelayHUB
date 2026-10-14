@@ -141,7 +141,7 @@ const ScanTrolley = ({ open, onClose, onNext, selectedOption, selectedSlot}) => 
     }}>
       <ModalContent>
         <CloseButton aria-label="close" onClick={handleClose}><IoClose /></CloseButton>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
           <Typography sx={{ fontSize: "18px", fontWeight: 500,color: "#545454", marginBottom: "10px" }}>
             กรุณากรอกข้อมูลหรือสแกนป้ายทะเบียน
           </Typography>
@@ -171,7 +171,7 @@ const ScanTrolley = ({ open, onClose, onNext, selectedOption, selectedSlot}) => 
             />
           </Box>
         <Typography>ประเภทการรับเข้า : {selectedOption}</Typography>
-        <p style={{color:"#F1F4FA"}}><strong>Slot ID:</strong> {selectedSlot?.slot_id}</p>
+        <p style={{color:"#000"}}><strong>Slot ID:</strong> {selectedSlot?.slot_id}</p>
         <p><strong>CS ID:</strong> {selectedSlot?.cs_id}</p>
         <p><strong>Tro ID:</strong> {selectedSlot?.tro_id ? selectedSlot.tro_id : "ไม่มีรถเข็น"}</p>
         <p><strong>Status:</strong> {selectedSlot?.slot_status ? "ว่าง" : "ไม่ว่าง"}</p>

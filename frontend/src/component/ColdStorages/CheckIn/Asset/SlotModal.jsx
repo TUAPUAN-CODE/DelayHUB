@@ -12,7 +12,7 @@ import {
 const SlotModal = ({ slot, onClose, onConfirm }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div style={{ color: "#F1F4FA" }} className="bg-white p-6 rounded-lg shadow-lg w-96">
+      <div style={{ color: "#000" }} className="bg-white p-6 rounded-lg shadow-lg w-96">
 
         <Typography variant="h6" fontWeight={600} mb={0.5}>
           ยืนยันการรับเข้า

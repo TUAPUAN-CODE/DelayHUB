@@ -56,7 +56,7 @@ const ModalSuccess = ({ open, onClose, mat, mat_name, batch, production, rmfp_id
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogContent>
-        <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+        <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
           กรุณาตรวจสอบข้อมูลก่อนทำรายการ
         </Typography>
         <Divider sx={{ mb: 2 }} />

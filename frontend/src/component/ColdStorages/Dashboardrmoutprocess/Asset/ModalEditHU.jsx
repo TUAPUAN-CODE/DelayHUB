@@ -82,8 +82,8 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle sx={{ pb: 1 }}>
         <Box display="flex" alignItems="center" gap={1}>
-          <SaveIcon sx={{ color: "#FFB27A" }} />
-          <Typography variant="h6" sx={{ fontSize: "16px", color: "#FFB27A", fontWeight: 700 }}>
+          <SaveIcon sx={{ color: "#0F3FC4" }} />
+          <Typography variant="h6" sx={{ fontSize: "16px", color: "#0F3FC4", fontWeight: 700 }}>
             อัปเดต HU
           </Typography>
         </Box>
@@ -93,7 +93,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
         <Divider sx={{ mb: 2 }} />
 
         {/* Info */}
-        <Stack spacing={1} sx={{ bgcolor: "rgba(255,255,255,.05)", p: 2, borderRadius: 1, mb: 2 }}>
+        <Stack spacing={1} sx={{ bgcolor: "#F5F8FF", p: 2, borderRadius: 1, mb: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="caption" color="text.secondary">Material:</Typography>
             <Typography variant="body2" fontWeight={600}>{data.mat || "-"}</Typography>
@@ -104,13 +104,13 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="caption" color="text.secondary">HU ปัจจุบัน:</Typography>
-            <Typography variant="body2" fontWeight={600} sx={{ color: "#FDBA74" }}>
+            <Typography variant="body2" fontWeight={600} sx={{ color: "#E65100" }}>
               {data.hu ?? "-"}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="caption" color="text.secondary">Weight ปัจจุบัน:</Typography>
-            <Typography variant="body2" fontWeight={600} sx={{ color: "#FDBA74" }}>
+            <Typography variant="body2" fontWeight={600} sx={{ color: "#E65100" }}>
               {data.weight ?? "-"}
             </Typography>
           </Box>
@@ -118,7 +118,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
 
         {/* New HU Input */}
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-          New HU <span style={{ color: "#FCA5A5" }}>*</span>
+          New HU <span style={{ color: "#E5484D" }}>*</span>
         </Typography>
         <TextField
           fullWidth
@@ -136,7 +136,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
 
         {/* New Weight Input */}
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-          New Weight <span style={{ color: "#FCA5A5" }}>*</span>
+          New Weight <span style={{ color: "#E5484D" }}>*</span>
         </Typography>
         <TextField
           fullWidth
@@ -162,7 +162,7 @@ const ModalEditHU = ({ open, onClose, data, onSuccess }) => {
             startIcon={<CancelIcon />}
             onClick={onClose}
             disabled={isSubmitting}
-            sx={{ borderRadius: "8px", borderColor: "#9e9e9e", color: "rgba(241,244,250,.62)" }}
+            sx={{ borderRadius: "8px", borderColor: "#9e9e9e", color: "#555" }}
           >
             ยกเลิก
           </Button>

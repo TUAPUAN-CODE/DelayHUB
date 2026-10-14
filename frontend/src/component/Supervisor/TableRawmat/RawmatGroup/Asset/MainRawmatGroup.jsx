@@ -175,7 +175,7 @@ const MainRawmatGroup = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -238,7 +238,7 @@ const MainRawmatGroup = () => {
                   align="center"
                   style={{
                     backgroundColor: "#1552F0",
-                    border: "1px solid rgba(255,255,255,.14)",
+                    border: "1px solid #E3E8F2",
                     margin: 0,
                     borderRadius:
                       index === 0
@@ -314,10 +314,10 @@ const MainRawmatGroup = () => {
                         sx={{
                           borderRadius: "8px",
                           textTransform: "none",
-                          color: "#FFB27A",
+                          color: "#1552F0",
                           borderColor: "#1552F0",
                           '&:hover': {
-                            backgroundColor: "rgba(255,255,255,.05)",
+                            backgroundColor: "#EAF0FF",
                             borderColor: "hsl(210, 100%, 50%)",
                           }
                         }}
@@ -385,7 +385,7 @@ const MainRawmatGroup = () => {
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
             {
               fontSize: "10px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
               padding: "0px",
             },
         }}

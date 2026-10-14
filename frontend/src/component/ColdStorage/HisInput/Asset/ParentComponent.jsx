@@ -391,7 +391,7 @@ const ParentComponent = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -433,13 +433,13 @@ const ParentComponent = () => {
             mx: 2, 
             my: 1, 
             p: 2, 
-            border: '1px solid rgba(255,255,255,.14)', 
+            border: '1px solid #E3E8F2', 
             borderRadius: '8px',
             bgcolor: 'background.paper'
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, color: "#F1F4FA" }}>
+            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, color: '#333' }}>
               <CalendarTodayIcon fontSize="small" />
               ค้นหาตามช่วงเวลา
             </Typography>

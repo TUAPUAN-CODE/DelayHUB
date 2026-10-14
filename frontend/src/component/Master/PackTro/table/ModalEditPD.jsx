@@ -78,7 +78,7 @@ const QcCheck = ({ open, onClose, material, materialName,cold, rm_cold_status,rm
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -251,7 +251,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาระบุข้อมูลในการส่งออก
           </Typography>
 
@@ -273,27 +273,27 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
 
             <Box sx={{ paddingLeft: "12px" }}>
-              <Typography style={{ color: "rgba(241,244,250,.62)", marginRight: "16px" }}>สถานที่จัดส่ง</Typography>
+              <Typography style={{ color: "#666", marginRight: "16px" }}>สถานที่จัดส่ง</Typography>
               <RadioGroup row name="location" value={Location} onChange={handleLocation}>
                 {["เหลือจากไลน์ผลิต", "QcCheck"].includes(rm_status) && (
-                  <FormControlLabel value="บรรจุ" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="บรรจุ" />
+                  <FormControlLabel value="บรรจุ" control={<Radio />} style={{ color: "#666" }} label="บรรจุ" />
                 )}
 
                 {["รอ Qc"].includes(rm_status) && (
                   <>
-                    <FormControlLabel value=" Qc" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="Qc" />
+                    <FormControlLabel value=" Qc" control={<Radio />} style={{ color: "#666" }} label="Qc" />
                   </>
                 )}
                 {["รอกลับมาเตรียม"].includes(rm_status) && (
                   <>
-                    <FormControlLabel value="จุดเตรียม" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="จุดเตรียม" />
+                    <FormControlLabel value="จุดเตรียม" control={<Radio />} style={{ color: "#666" }} label="จุดเตรียม" />
                   </>
                 )}
 
                 {["รอแก้ไข"].includes(rm_status) && (
                   <>
-                    <FormControlLabel value="จุดเตรียม" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="จุดเตรียม" />
-                    <FormControlLabel value="หม้ออบ" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="หม้ออบ" />
+                    <FormControlLabel value="จุดเตรียม" control={<Radio />} style={{ color: "#666" }} label="จุดเตรียม" />
+                    <FormControlLabel value="หม้ออบ" control={<Radio />} style={{ color: "#666" }} label="หม้ออบ" />
                   </>
                 )}
 
@@ -302,7 +302,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
             <Box sx={{ paddingLeft: "12px" }}>
         
-              <Typography style={{ color: "rgba(241,244,250,.62)", width: "100px", marginBottom: "9px" }}>ผู้ดำเนินการ</Typography>
+              <Typography style={{ color: "#666", width: "100px", marginBottom: "9px" }}>ผู้ดำเนินการ</Typography>
               <TextField
                 label="กรอกชื่อผู้ทำรายการ"
                 variant="outlined"

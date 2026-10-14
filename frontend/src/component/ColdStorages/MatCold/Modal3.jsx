@@ -128,7 +128,7 @@ const Modal3 = ({ open, onClose, data, onEdit , CookedDateTime }) => {
         if (reason === 'backdropClick') return;
         handleClose();
       }} maxWidth="xs" fullWidth>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
           <DialogContent sx={{ paddingBottom: 0 }} >
             <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
               กรุณาตรวจสอบข้อมูลก่อนทำรายการ
@@ -143,11 +143,11 @@ const Modal3 = ({ open, onClose, data, onEdit , CookedDateTime }) => {
             {apiErrorMessage && (
               <Typography 
                 sx={{ 
-                  color: "#FCA5A5", 
+                  color: '#d32f2f', 
                   fontSize: '14px', 
                   fontWeight: 500,
                   marginBottom: 2,
-                  backgroundColor: "rgba(248,113,113,.16)",
+                  backgroundColor: '#ffebee',
                   padding: '8px 12px',
                   borderRadius: '4px',
                   border: '1px solid #ffcdd2'

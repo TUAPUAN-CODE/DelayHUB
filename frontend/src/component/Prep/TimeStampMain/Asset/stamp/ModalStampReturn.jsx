@@ -19,7 +19,7 @@ const STORAGE_OPTIONS = [
 ];
 
 const ModalContent = styled(Box)(() => ({
-  backgroundColor: "rgba(255,255,255,.07)",
+  backgroundColor: "#ffffff",
   padding: "32px",
   width: "100%",
   maxWidth: "520px",
@@ -33,7 +33,7 @@ const ModalAlert = ({ open, onClose }) => (
     sx={{ "& .MuiDialog-paper": { borderRadius: 2, padding: 3 } }}>
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       <CheckCircleIcon sx={{ fontSize: 52, color: "#4caf50" }} />
-      <Typography variant="h6" sx={{ color: "#F1F4FA" }}>
+      <Typography variant="h6" sx={{ color: "#333" }}>
         บันทึกข้อมูลเรียบร้อยแล้ว
       </Typography>
       <Button onClick={onClose}
@@ -234,10 +234,10 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
 // ─── Helper Component ─────────────────────────────────────────────────────────
 const InfoRow = ({ label, value }) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-    <Typography sx={{ fontSize: "13px", color: "rgba(241,244,250,.62)", minWidth: "80px" }}>
+    <Typography sx={{ fontSize: "13px", color: "#888", minWidth: "80px" }}>
       {label}:
     </Typography>
-    <Typography sx={{ fontSize: "14px", fontWeight: 500, color: "#F1F4FA" }}>
+    <Typography sx={{ fontSize: "14px", fontWeight: 500, color: "#333" }}>
       {value || "-"}
     </Typography>
   </Box>

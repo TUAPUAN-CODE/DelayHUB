@@ -411,7 +411,7 @@ const ModalSlip2 = ({
       fullWidth 
       maxWidth="xs"
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
         <DialogContent sx={{ padding: '8px 16px' }}>
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -426,7 +426,7 @@ const ModalSlip2 = ({
           </Box>
 
           {/* แสดงการเทียบ Batch Array กับ Batch ใหม่ */}
-          <Typography sx={{ fontSize: "16px", fontWeight: 400, color: "#F1F4FA", marginTop: "8px", marginBottom: "8px" }}>
+          <Typography sx={{ fontSize: "16px", fontWeight: 400, color: "#333", marginTop: "8px", marginBottom: "8px" }}>
             เทียบ Batch Array กับ Batch ใหม่:
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 2 }}>
@@ -438,18 +438,18 @@ const ModalSlip2 = ({
                     <Box
                       sx={{
                         padding: "4px 8px",
-                        backgroundColor: "rgba(255,255,255,.05)",
+                        backgroundColor: "#f0f0f0",
                         borderRadius: "4px",
                         fontSize: "14px",
                         minWidth: "120px",
                         textAlign: "center",
-                        color: "rgba(241,244,250,.62)"
+                        color: "#666"
                       }}
                     >
                       {batchItem}
                     </Box>
 
-                    <Typography sx={{ fontSize: "16px", color: "rgba(241,244,250,.62)" }}>→</Typography>
+                    <Typography sx={{ fontSize: "16px", color: "#666" }}>→</Typography>
 
                     <Box
                       sx={{
@@ -468,7 +468,7 @@ const ModalSlip2 = ({
                 );
               })
             ) : (
-              <Typography sx={{ fontSize: "14px", color: "rgba(241,244,250,.62)" }}>ไม่มีข้อมูล</Typography>
+              <Typography sx={{ fontSize: "14px", color: "#999" }}>ไม่มีข้อมูล</Typography>
             )}
           </Box>
 

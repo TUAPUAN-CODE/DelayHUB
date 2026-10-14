@@ -49,46 +49,46 @@ const Modal3 = ({ open, onClose, data, onEdit }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogContent sx={{ color: "rgba(241,244,250,.62)", fontSize: "15px" }}>
-        <Typography sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", textAlign: "left" }}>
+      <DialogContent sx={{ color: "#6B7489", fontSize: "15px" }}>
+        <Typography sx={{ fontSize: "18px", color: "#6B7489", textAlign: "left" }}>
           กรุณาตรวจสอบข้อมูลก่อนทำรายการ
         </Typography>
         <Divider sx={{ mt: 2, mb: 2 }} />
 
         <Box mt={0.5}>
-        <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+        <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
   ป้ายทะเบียน : {inputValues.length > 0 ? inputValues[0] : "ไม่มีข้อมูลจาก Modal1"}
 </Typography>
 
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             น้ำหนักวัตถุดิบ/รถเข็น : {input2?.weightPerCart || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             จำนวนถาด : {input2?.numberOfTrays || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         <Box mt={0.5}>
-          <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+          <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
             ผู้ดำเนินการ : {input2?.operator || "ข้อมูลไม่พบ"}
           </Typography>
         </Box>
 
         {rmfp_id ? (
           <Box mt={0.5}>
-            <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+            <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
               RMFP ID : {rmfp_id}
             </Typography>
           </Box>
         ) : (
           <Box mt={0.5}>
-            <Typography sx={{ fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+            <Typography sx={{ fontSize: "15px", color: "#6B7489" }}>
               RMFP ID ไม่พบข้อมูล
             </Typography>
           </Box>

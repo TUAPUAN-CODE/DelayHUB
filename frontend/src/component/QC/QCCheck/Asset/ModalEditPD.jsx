@@ -180,7 +180,7 @@ const QcCheck = ({
     <>
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: 18, color: "rgba(241,244,250,.62)", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: 18, color: "#6B7489", mb: 2 }}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -229,7 +229,7 @@ const QcCheck = ({
             {name_edit_prod_two && name_edit_prod_two !== "-" && (
               <>
                 <Box sx={{
-                  bgcolor: "rgba(251,191,36,.14)",
+                  bgcolor: "#fff3e0",
                   p: 1,
                   borderLeft: "4px solid #ff9800",
                   borderRadius: 1,
@@ -365,7 +365,7 @@ const QcCheck = ({
               <Stack sx={{ border: "1px solid #e3e3e3", borderRadius: 2, p: 2 }}>
 
                 <Typography fontWeight={500} color="rgba(0, 0, 0, 0.6)">
-                  เตรียมงานให้กะ: <span style={{ color: "#FFB27A" }}>{prepare_mor_night}</span>
+                  เตรียมงานให้กะ: <span style={{ color: "#1552F0" }}>{prepare_mor_night}</span>
                 </Typography>
 
               </Stack>
@@ -934,7 +934,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         maxWidth="sm"
       >
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
             กรุณาตรวจสอบ
           </Typography>
 
@@ -965,7 +965,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             {name_edit_prod_two && name_edit_prod_two !== "-" && (
               <>
                 <Box sx={{
-                  bgcolor: "rgba(251,191,36,.14)",
+                  bgcolor: "#fff3e0",
                   p: 1,
                   borderLeft: "4px solid #ff9800",
                   borderRadius: 1,
@@ -1000,7 +1000,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   กรุณาตรวจสอบ Sensory ให้ครบทุกหัวข้อ
                 </Typography>
               )} */}
-              <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>Sensory</Typography>
+              <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>Sensory</Typography>
 
               <RadioGroup
                 row
@@ -1008,9 +1008,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                 value={CheckSensorycolor}
                 onChange={handleCheckSensorycolor}
               >
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>สี</Typography>
-                <FormControlLabel value="1" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ผ่าน" />
-                <FormControlLabel value="0" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ไม่ผ่าน" />
+                <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>สี</Typography>
+                <FormControlLabel value="1" control={<Radio />} sx={{ color: "#666" }} label="ผ่าน" />
+                <FormControlLabel value="0" control={<Radio />} sx={{ color: "#666" }} label="ไม่ผ่าน" />
               </RadioGroup>
               {fieldErrors.color && (
                 <Typography color="error" variant="caption">กรุณาเลือกสถานะสี</Typography>
@@ -1022,9 +1022,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                 value={CheckSensoryperfurm}
                 onChange={handleCheckperfurm}
               >
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>กลิ่น</Typography>
-                <FormControlLabel value="1" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ผ่าน" />
-                <FormControlLabel value="0" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ไม่ผ่าน" />
+                <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>กลิ่น</Typography>
+                <FormControlLabel value="1" control={<Radio />} sx={{ color: "#666" }} label="ผ่าน" />
+                <FormControlLabel value="0" control={<Radio />} sx={{ color: "#666" }} label="ไม่ผ่าน" />
               </RadioGroup>
               {fieldErrors.odor && (
                 <Typography color="error" variant="caption">กรุณาเลือกสถานะกลิ่น</Typography>
@@ -1036,20 +1036,20 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                 value={CheckSensorymeet}
                 onChange={handleCheckmeet}
               >
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>เนื้อ</Typography>
-                <FormControlLabel value="1" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ผ่าน" />
-                <FormControlLabel value="0" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ไม่ผ่าน" />
+                <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>เนื้อ</Typography>
+                <FormControlLabel value="1" control={<Radio />} sx={{ color: "#666" }} label="ผ่าน" />
+                <FormControlLabel value="0" control={<Radio />} sx={{ color: "#666" }} label="ไม่ผ่าน" />
               </RadioGroup>
               {fieldErrors.texture && (
                 <Typography color="error" variant="caption">กรุณาเลือกสถานะเนื้อ</Typography>
               )}
 
               <Stack direction="row" alignItems="center">
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px" }}>ยอมรับพิเศษ</Typography>
+                <Typography sx={{ color: "#666", width: "120px" }}>ยอมรับพิเศษ</Typography>
                 <FormControlLabel
                   control={<Checkbox checked={Sensoryacceptance} onChange={handleChange} />}
                   label="ยอมรับพิเศษ"
-                  sx={{ color: "rgba(241,244,250,.62)" }}
+                  sx={{ color: "#666" }}
                 />
               </Stack>
 
@@ -1083,9 +1083,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               )} */}
 
               <RadioGroup row name="md" value={CheckMetal} onChange={handleCheckMetal}>
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>MD</Typography>
-                <FormControlLabel value="1" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ผ่าน" />
-                <FormControlLabel value="0" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="รอผ่าน MD" />
+                <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>MD</Typography>
+                <FormControlLabel value="1" control={<Radio />} sx={{ color: "#666" }} label="ผ่าน" />
+                <FormControlLabel value="0" control={<Radio />} sx={{ color: "#666" }} label="รอผ่าน MD" />
               </RadioGroup>
               {fieldErrors.md && (
                 <Typography color="error" variant="caption">กรุณาเลือกสถานะ MD</Typography>
@@ -1165,20 +1165,20 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               )} */}
 
               <RadioGroup row name="defect" value={CheckDeflect} onChange={handleCheckDeflect}>
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px", mt: 1 }}>Defect</Typography>
-                <FormControlLabel value="1" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ผ่าน" />
-                <FormControlLabel value="0" control={<Radio />} sx={{ color: "rgba(241,244,250,.62)" }} label="ไม่ผ่าน" />
+                <Typography sx={{ color: "#666", width: "120px", mt: 1 }}>Defect</Typography>
+                <FormControlLabel value="1" control={<Radio />} sx={{ color: "#666" }} label="ผ่าน" />
+                <FormControlLabel value="0" control={<Radio />} sx={{ color: "#666" }} label="ไม่ผ่าน" />
               </RadioGroup>
               {fieldErrors.defect && (
                 <Typography color="error" variant="caption">กรุณาเลือกสถานะ Defect</Typography>
               )}
 
               <Stack direction="row" alignItems="center">
-                <Typography sx={{ color: "rgba(241,244,250,.62)", width: "120px" }}>ยอมรับพิเศษ</Typography>
+                <Typography sx={{ color: "#666", width: "120px" }}>ยอมรับพิเศษ</Typography>
                 <FormControlLabel
                   control={<Checkbox checked={Defectacceptance} onChange={handleChangeDefect} />}
                   label="ยอมรับพิเศษ"
-                  sx={{ color: "rgba(241,244,250,.62)" }}
+                  sx={{ color: "#666" }}
                 />
               </Stack>
               {showDefectField && (
@@ -1273,7 +1273,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               p: 2,
               mt: 2
             }}>
-              <Typography sx={{ color: "rgba(241,244,250,.62)", mb: 1 }}>เตรียมงานให้กะ</Typography>
+              <Typography sx={{ color: "#666", mb: 1 }}>เตรียมงานให้กะ</Typography>
               <Stack direction="row" spacing={2}>
                 <Button
                   variant={shiftPreparation === "DS" ? "contained" : "outlined"}
@@ -1302,7 +1302,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               </Stack>
             </Stack>
 
-            <Typography sx={{ color: "rgba(241,244,250,.62)", mt: 2, mb: 1 }}>
+            <Typography sx={{ color: "#666", mt: 2, mb: 1 }}>
               วัน/เวลา ที่เริ่มผ่านเครื่อง MD:
             </Typography>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -1336,7 +1336,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               />
             </LocalizationProvider>
 
-            <Typography sx={{ color: "rgba(241,244,250,.62)", mt: 2, mb: 1 }}>
+            <Typography sx={{ color: "#666", mt: 2, mb: 1 }}>
               ผู้ดำเนินการ
             </Typography>
             <TextField
@@ -1351,7 +1351,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               helperText={fieldErrors.operator ? "กรุณากรอกชื่อผู้ทำรายการ" : ""}
             />
 
-            <Typography sx={{ color: "rgba(241,244,250,.62)", mt: 2, mb: 1 }}>
+            <Typography sx={{ color: "#666", mt: 2, mb: 1 }}>
               หมายเหตุทั่วไป
             </Typography>
             <TextField

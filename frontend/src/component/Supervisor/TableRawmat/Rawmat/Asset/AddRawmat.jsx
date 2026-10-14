@@ -219,7 +219,7 @@ const AddRawmat = ({ isOpen, onClose, onSuccess }) => {
                     maxHeight: 200,
                     overflowY: "auto",
                     padding: 1,
-                    border: "1px solid rgba(255,255,255,.14)",
+                    border: "1px solid #ccc",
                     borderRadius: "5px",
                   }}
                 >
@@ -257,7 +257,7 @@ const AddRawmat = ({ isOpen, onClose, onSuccess }) => {
                     overflowY: "auto",
                     padding: 1,
                     margin: 1,
-                    border: "1px solid rgba(255,255,255,.14)",
+                    border: "1px solid #ccc",
                     display: "flex",
                     flexDirection: "column",
                     borderRadius: "5px",

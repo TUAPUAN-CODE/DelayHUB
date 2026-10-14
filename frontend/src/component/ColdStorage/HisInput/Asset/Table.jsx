@@ -85,21 +85,21 @@ const TrolleyRow = ({ trolleyData, index }) => {
           height: '45px',
         }}
       >
-        <TableCell align="center" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "#F1F4FA", fontWeight: 'medium' }}>
+        <TableCell align="center" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#444', fontWeight: 'medium' }}>
           {trolleyData.trolleyId || "-"}
           {trolleyData.tripStart ? (
-            <div style={{ fontSize: 11, color: "rgba(241,244,250,.62)", fontWeight: 400 }}>
+            <div style={{ fontSize: 11, color: '#6B7489', fontWeight: 400 }}>
               {new Date(trolleyData.tripStart).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </div>
           ) : null}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {trolleyData.totalWeight ? parseFloat(trolleyData.totalWeight).toFixed(2) : "-"} kg
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {trolleyData.totalTrayCount || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
             <Tooltip title="ดูรายละเอียดวัตถุดิบในรถเข็น">
               <IconButton
@@ -107,7 +107,7 @@ const TrolleyRow = ({ trolleyData, index }) => {
                 size="small"
                 onClick={() => setOpen(!open)}
                 color={open ? "primary" : "default"}
-                sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #E3E8F2', backgroundColor: "rgba(255,255,255,.07)" }}
+                sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #E3E8F2', backgroundColor: '#ffffff' }}
               >
                 <VisibilityIcon fontSize="small" />
               </IconButton>
@@ -117,7 +117,7 @@ const TrolleyRow = ({ trolleyData, index }) => {
                 aria-label="print"
                 size="small"
                 onClick={handlePrintClick}
-                sx={{ width: '30px', height: '30px', border: '1px solid rgba(255,255,255,.14)', backgroundColor: "rgba(255,255,255,.07)" }}
+                sx={{ width: '30px', height: '30px', border: '1px solid #E3E8F2', backgroundColor: '#ffffff' }}
               >
                 <PrintIcon fontSize="small" color="action" />
               </IconButton>
@@ -136,8 +136,8 @@ const TrolleyRow = ({ trolleyData, index }) => {
       <TableRow>
         <TableCell style={{ padding: 0 }} colSpan={4}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: "rgba(255,255,255,.05)", borderRadius: '4px', padding: '12px', border: '1px solid rgba(255,255,255,.14)' }}>
-              <Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: '#f8f9fa', borderRadius: '4px', padding: '12px', border: '1px solid #E3E8F2' }}>
+              <Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 'bold', color: '#555', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Box sx={{ width: '8px', height: '20px', backgroundColor: '#3f51b5', borderRadius: '4px' }}></Box>
                 รายละเอียดวัตถุดิบในรถเข็น {trolleyData.trolleyId} ({trolleyData.materials.length} รายการ)
               </Typography>
@@ -145,15 +145,15 @@ const TrolleyRow = ({ trolleyData, index }) => {
               <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '300px' }}>
                 <Table size="small" stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.วัตถุดิบ }}>ชื่อวัตถุดิบ</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.รหัสวัตถุดิบ }}>รหัสวัตถุดิบ</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.batch }}>Batch</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.production }}>Code (Line)</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.น้ำหนัก }}>น้ำหนัก</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.จำนวนถาด }}>จำนวนถาด</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.เวลาเตรียม }}>เวลาเตรียมเสร็จ</TableCell>
-                      <TableCell align="center" style={{ fontWeight: 'bold', color: "rgba(241,244,250,.62)", fontSize: '12px' }}>ประวัติเข้าออกห้องเย็น</TableCell>
+                    <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.วัตถุดิบ }}>ชื่อวัตถุดิบ</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.รหัสวัตถุดิบ }}>รหัสวัตถุดิบ</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.batch }}>Batch</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.production }}>Code (Line)</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.น้ำหนัก }}>น้ำหนัก</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.จำนวนถาด }}>จำนวนถาด</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px', width: MATERIAL_COLUMN_WIDTHS.เวลาเตรียม }}>เวลาเตรียมเสร็จ</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 'bold', color: '#666', fontSize: '12px' }}>ประวัติเข้าออกห้องเย็น</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -182,31 +182,31 @@ const MaterialRow = ({ material, matIndex }) => {
   return (
     <>
       <TableRow sx={{ backgroundColor }}>
-        <TableCell align="left" style={{ padding: '8px 16px', fontSize: '12px', color: "#F1F4FA", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="left" style={{ padding: '8px 16px', fontSize: '12px', color: '#444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.rawMaterialName || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.mat || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.batch || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.code || "-"}
         </TableCell>
         {/* เพิ่มคอลัมน์น้ำหนัก */}
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.weight ? parseFloat(material.weight).toFixed(2) : "-"} kg
         </TableCell>
         {/* เพิ่มคอลัมน์จำนวนถาด */}
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {material.trayCount || "-"}
         </TableCell>
 
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)", whiteSpace: 'nowrap' }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666', whiteSpace: 'nowrap' }}>
           {formatDate(material.prepCompleteTime) || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', fontSize: '12px', color: '#666' }}>
           {hasHistory ? (
             <IconButton
               aria-label="view history"
@@ -226,14 +226,14 @@ const MaterialRow = ({ material, matIndex }) => {
       {hasHistory && showHistory && (
         <TableRow>
           <TableCell colSpan={6} style={{ padding: '0 8px 8px 40px' }}>
-            <Box sx={{ backgroundColor: "rgba(255,255,255,.05)", padding: '8px', borderRadius: '4px' }}>
+            <Box sx={{ backgroundColor: '#F5F8FF', padding: '8px', borderRadius: '4px' }}>
               <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>
                 ประวัติการเข้า-ออกห้องเย็น ({material.entryExitHistory.length} รายการ)
               </Typography>
               <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '150px' }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
+                    <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
                       <TableCell align="center" style={{ fontWeight: 'bold', fontSize: '11px', padding: '4px' }}>ประเภท</TableCell>
                       <TableCell align="center" style={{ fontWeight: 'bold', fontSize: '11px', padding: '4px' }}>ครั้งที่</TableCell>
                       <TableCell align="center" style={{ fontWeight: 'bold', fontSize: '11px', padding: '4px' }}>เวลา</TableCell>
@@ -356,7 +356,7 @@ const ColdStorageTable = ({
           overflowY: 'auto',
           marginTop: 0,
           borderRadius: '8px',
-          borderColor: 'rgba(255,255,255,.14)',
+          borderColor: '#E3E8F2',
           backgroundColor: backgroundColor
         }}
       >
@@ -366,20 +366,20 @@ const ColdStorageTable = ({
           sx={{ width: '100%' }}
         >
           <TableHead>
-            <TableRow sx={{ height: '45px', backgroundColor: "rgba(255,255,255,.05)" }}>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: TROLLEY_COLUMN_WIDTHS.เลขรถเข็น, fontWeight: 'normal' }}>
+            <TableRow sx={{ height: '45px', backgroundColor: '#F5F8FF' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#555', padding: '5px', width: TROLLEY_COLUMN_WIDTHS.เลขรถเข็น, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                   <ShoppingCartIcon />
                   <span>เลขรถเข็น</span>
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: TROLLEY_COLUMN_WIDTHS.น้ำหนักรวม, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#555', padding: '5px', width: TROLLEY_COLUMN_WIDTHS.น้ำหนักรวม, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>น้ำหนักรวม</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: TROLLEY_COLUMN_WIDTHS.จำนวนถาดรวม, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#555', padding: '5px', width: TROLLEY_COLUMN_WIDTHS.จำนวนถาดรวม, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>จำนวนถาดรวม</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: TROLLEY_COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#555', padding: '5px', width: TROLLEY_COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>การจัดการ</Box>
               </TableCell>
             </TableRow>
@@ -391,9 +391,9 @@ const ColdStorageTable = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ padding: "40px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
+                <TableCell colSpan={4} align="center" sx={{ padding: "40px", fontSize: "16px", color: "#6B7489" }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                    <InventoryIcon sx={{ fontSize: 40, color: "rgba(241,244,250,.30)" }} />
+                    <InventoryIcon sx={{ fontSize: 40, color: '#bdbdbd' }} />
                     <Typography>ไม่มีข้อมูลประวัติการเข้า-ออกห้องเย็นในขณะนี้</Typography>
                   </Box>
                 </TableCell>
@@ -407,7 +407,7 @@ const ColdStorageTable = ({
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "rgba(241,244,250,.62)",
+            color: "#555",
             padding: "0px",
           },
           marginTop: '8px',

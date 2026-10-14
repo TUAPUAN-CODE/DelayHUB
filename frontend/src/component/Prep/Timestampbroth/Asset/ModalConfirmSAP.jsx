@@ -49,7 +49,7 @@ const StyledModal = styled(Modal)(({ theme }) => ({
 }));
 
 const ModalContent = styled(Box)(({ theme }) => ({
-  backgroundColor: "rgba(255,255,255,.07)",
+  backgroundColor: "#ffffff",
   padding: "24px",
   width: "100%",
   maxWidth: "800px",
@@ -85,7 +85,7 @@ const ModalAlert = ({ open, onClose }) => {
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Box
           sx={{
-            backgroundColor: "rgba(255,255,255,.07)",
+            backgroundColor: 'white',
             color: '#4caf50',
             borderRadius: 0,
             width: 60,
@@ -98,7 +98,7 @@ const ModalAlert = ({ open, onClose }) => {
         >
           <CheckCircleIcon sx={{ fontSize: 40 }} />
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: '4px', color: "#F1F4FA" }}>
+        <Typography variant="h6" sx={{ fontWeight: '4px', color: '#333' }}>
           บันทึกข้อมูลเรียบร้อยแล้ว
         </Typography>
         <Button
@@ -296,7 +296,7 @@ const ConfirmProdModal = ({
 
           <Box sx={{ maxHeight: '400px', overflow: 'auto', mb: 2 }}>
             {selectedPlanSets.map((set, index) => (
-              <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,.14)', borderRadius: 1 }}>
+              <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
                 <Typography><strong>ชุดที่ {index + 1}:</strong></Typography>
                 <Typography>แผน: {set.plan.code} ({set.plan.doc_no})</Typography>
                 <Typography>ไลน์ผลิต: {set.line.line_name}</Typography>
@@ -852,9 +852,9 @@ const DataReviewSAP = ({ open, onClose, material, batch,hu }) => {
                     sx={{
                       mb: 2,
                       p: 2,
-                      border: '1px solid rgba(255,255,255,.14)',
+                      border: '1px solid #eee',
                       borderRadius: 1,
-                      backgroundColor: "rgba(255,255,255,.05)"
+                      backgroundColor: '#F5F8FF'
                     }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

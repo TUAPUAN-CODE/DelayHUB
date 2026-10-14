@@ -56,7 +56,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, select
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogContent>
-        <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+        <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
           ข้อมูลการยืนยันการผลิต
         </Typography>
         <Divider sx={{ mb: 2 }} />
@@ -169,7 +169,7 @@ const ModalEditPD = ({ open, onClose, data }) => {
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
             กรุณาเลือกแผนการผลิต และสถานที่จัดส่ง
           </Typography>
           
@@ -203,7 +203,7 @@ const ModalEditPD = ({ open, onClose, data }) => {
                   <MenuItem key={plan.prod_id} value={plan.prod_id}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                       <Typography>{plan.code} ({plan.doc_no} - {plan.line_name})</Typography>
-                      <IconButton onClick={() => handlePlanSelect(plan)}><FaCheck style={{ color: "#FFB27A" }} /></IconButton>
+                      <IconButton onClick={() => handlePlanSelect(plan)}><FaCheck style={{ color: "#1552F0" }} /></IconButton>
                     </Box>
                   </MenuItem>
                 ))}
@@ -224,14 +224,14 @@ const ModalEditPD = ({ open, onClose, data }) => {
                       borderRadius: "4px",
                       border: "1px solid #c9c9c9"
                     }}
-                    sx={{ backgroundColor: "rgba(255,255,255,.07)", color: "rgba(241,244,250,.62)" }}
+                    sx={{ backgroundColor: "#fff", color: "#6B7489" }}
                   />
                 </Box>
               ))}
             </Box>
 
             {/* <Box sx={{ display: "flex", alignItems: "center", pl: 1 }}>
-              <Typography style={{ color: "rgba(241,244,250,.62)", mr: 2 }}>สถานที่จัดส่ง</Typography>
+              <Typography style={{ color: "#666", mr: 2 }}>สถานที่จัดส่ง</Typography>
               <RadioGroup
                 row
                 value={deliveryLocation}
@@ -241,13 +241,13 @@ const ModalEditPD = ({ open, onClose, data }) => {
                   value="จุดเตรียม"
                   control={<Radio />}
                   label="จุดเตรียม"
-                  style={{ color: "rgba(241,244,250,.62)" }}
+                  style={{ color: "#666" }}
                 />
                 <FormControlLabel
                   value="ห้องเย็น"
                   control={<Radio />}
                   label="ห้องเย็น"
-                  style={{ color: "rgba(241,244,250,.62)" }}
+                  style={{ color: "#666" }}
                 />
               </RadioGroup>
             </Box> */}

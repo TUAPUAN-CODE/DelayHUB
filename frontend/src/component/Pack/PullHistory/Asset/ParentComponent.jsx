@@ -236,7 +236,7 @@ const ParentComponent = () => {
       {activeTab === 'table' ? (
         <div>
           {loading && (
-            <div style={{ padding: '8px 24px', background: "rgba(255,255,255,.05)", color: "#FFB27A", fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '8px 24px', background: '#EAF0FF', color: '#0F3FC4', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '14px', height: '14px', border: '2px solid #BBDEFB', borderTop: '2px solid #1552F0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               กำลังโหลดข้อมูล...
             </div>

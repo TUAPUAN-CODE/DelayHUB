@@ -597,12 +597,12 @@ const Row = ({
           align="center"
           style={{
             width: CUSTOM_COLUMN_WIDTHS.trolleyId,
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             backgroundColor: backgroundColor
@@ -631,12 +631,12 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.production,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             backgroundColor: backgroundColor
           }}
         >
@@ -649,8 +649,8 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.trolleyStatus,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
@@ -673,12 +673,12 @@ const Row = ({
           style={{
             width: '120px',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             backgroundColor: backgroundColor,
           }}
         >
@@ -691,12 +691,12 @@ const Row = ({
           style={{
             width: '120px',
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             backgroundColor: backgroundColor,
           }}
         >
@@ -710,9 +710,9 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.rfidScan,
             borderLeft: "1px solid #f2f2f2",
-            borderTop: '1px solid rgba(255,255,255,.14)',
-            borderBottom: '1px solid rgba(255,255,255,.14)',
-            borderRight: "1px solid rgba(255,255,255,.14)",
+            borderTop: '1px solid #E3E8F2',
+            borderBottom: '1px solid #E3E8F2',
+            borderRight: "1px solid #E3E8F2",
             borderTopRightRadius: "8px",
             borderBottomRightRadius: "8px",
             height: '40px',
@@ -735,7 +735,7 @@ const Row = ({
                   borderRadius: 6,
                   border: '1px solid #1552F0',
                   backgroundColor: scanningId === `${reader.id}-${row.tro_id}` ? '#cfe8fb' : '#fff',
-                  color: "#FFB27A",
+                  color: '#1552F0',
                   fontWeight: 'bold',
                   cursor: scanningId === `${reader.id}-${row.tro_id}` ? 'wait' : 'pointer',
                 }}
@@ -776,7 +776,7 @@ const MaterialDetails = ({ materials, isOpen, row }) => {
       <TableCell colSpan={5} style={{ padding: '0px' }}>
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
           <Box sx={{ margin: 2 }}>
-            <Typography variant="h6" gutterBottom component="div" sx={{ fontSize: '16px', fontWeight: 'bold', color: "#FFB27A" }}>
+            <Typography variant="h6" gutterBottom component="div" sx={{ fontSize: '16px', fontWeight: 'bold', color: '#1552F0' }}>
               รายการวัตถุดิบในรถเข็น
             </Typography>
             <Table size="small">
@@ -839,8 +839,8 @@ const ActionButton = ({ width, onClick, icon, backgroundColor, isLastCell = fals
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,.14)',
-        borderBottom: '1px solid rgba(255,255,255,.14)',
+        borderTop: '1px solid #E3E8F2',
+        borderBottom: '1px solid #E3E8F2',
         borderLeft: '1px solid #f2f2f2',
         borderRight: isLastCell ? "1px solid #E3E8F2" : "0px solid",
         borderTopRightRadius: isLastCell ? "8px" : "0px",
@@ -1223,7 +1223,7 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -1250,10 +1250,10 @@ const handleReaderScanAndPrint = async (readerId, row) => {
                 backgroundColor: "#1552F0",
                 borderTopLeftRadius: '8px',
                 borderBottomLeftRadius: '8px',
-                borderTop: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
-                borderLeft: "1px solid rgba(255,255,255,.14)",
+                borderBottom: "1px solid #E3E8F2",
+                borderLeft: "1px solid #E3E8F2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.trolleyId
               }}>
@@ -1263,8 +1263,8 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               {/* Table header - Production Plan */}
               <TableCell align="center" style={{
                 backgroundColor: "#1552F0",
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.production
@@ -1275,8 +1275,8 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               {/* Table header - Trolley Status */}
               <TableCell align="center" style={{
                 backgroundColor: "#1552F0",
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: CUSTOM_COLUMN_WIDTHS.trolleyStatus
@@ -1287,8 +1287,8 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               {/* Table header - Total Weight */}
               <TableCell align="center" style={{
                 backgroundColor: "#1552F0",
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: '120px'
@@ -1299,8 +1299,8 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               {/* Table header - Total Trays */}
               <TableCell align="center" style={{
                 backgroundColor: "#1552F0",
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
                 borderRight: "1px solid #f2f2f2",
                 padding: '5px',
                 width: '120px'
@@ -1310,9 +1310,9 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               {/* Table header - RFID Scan / Print */}
               <TableCell align="center" style={{
                 backgroundColor: "#1552F0",
-                borderTop: "1px solid rgba(255,255,255,.14)",
-                borderBottom: "1px solid rgba(255,255,255,.14)",
-                borderRight: "1px solid rgba(255,255,255,.14)",
+                borderTop: "1px solid #E3E8F2",
+                borderBottom: "1px solid #E3E8F2",
+                borderRight: "1px solid #E3E8F2",
                 borderTopRightRadius: '8px',
                 borderBottomRightRadius: '8px',
                 padding: '5px',
@@ -1349,7 +1349,7 @@ const handleReaderScanAndPrint = async (readerId, row) => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
+                <TableCell colSpan={5} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
                   ไม่มีรายการรถเข็นในขณะนี้
                 </TableCell>
               </TableRow>
@@ -1361,7 +1361,7 @@ const handleReaderScanAndPrint = async (readerId, row) => {
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "rgba(241,244,250,.62)",
+            color: "#6B7489",
             padding: "0px",
           }
         }}

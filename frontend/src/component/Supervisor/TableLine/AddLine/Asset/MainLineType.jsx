@@ -181,7 +181,7 @@ const MainLineType = () => {
                 height: "45px",
                 fontSize: "16px",
                 borderRadius: "8px",
-                color: "rgba(241,244,250,.62)",
+                color: "#6B7489",
               },
               "& input": {
                 padding: "10px",
@@ -205,7 +205,7 @@ const MainLineType = () => {
               width: "fit-content",
               whiteSpace: "nowrap",
               fontSize: "16px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
               backgroundColor: "transparent",
               minWidth: "auto",
               height: "45px",
@@ -255,7 +255,7 @@ const MainLineType = () => {
                     align="center"
                     sx={{
                       backgroundColor: "#1552F0",
-                      border: "1px solid rgba(255,255,255,.14)",
+                      border: "1px solid #E3E8F2",
                       margin: 0,
                       padding: "16px",
                       minWidth: index === 0 ? "300px" : "120px",
@@ -392,7 +392,7 @@ const MainLineType = () => {
                               fontSize: "24px",
                               color: "#ef4444",
                               "&:hover": {
-                                color: "#FCA5A5",
+                                color: "#dc2626",
                               },
                             }} 
                           />
@@ -413,7 +413,7 @@ const MainLineType = () => {
               "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
                 {
                   fontSize: "12px",
-                  color: "rgba(241,244,250,.62)",
+                  color: "#6B7489",
                   padding: "8px",
                 },
               margin: 0,

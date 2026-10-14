@@ -88,8 +88,8 @@ const CartDeleteModal = ({ open, onClose, onSuccess, cartData }) => {
     >
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <WarningIcon sx={{ color: "#FCA5A5", fontSize: "28px" }} />
-          <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#FCA5A5" }}>
+          <WarningIcon sx={{ color: "#d32f2f", fontSize: "28px" }} />
+          <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#d32f2f" }}>
             ยืนยันการลบรถเข็น
           </Typography>
         </Box>
@@ -103,7 +103,7 @@ const CartDeleteModal = ({ open, onClose, onSuccess, cartData }) => {
         )}
 
         <Box sx={{ mb: 3 }}>
-          <Typography variant="body1" sx={{ mb: 2, color: "rgba(241,244,250,.62)" }}>
+          <Typography variant="body1" sx={{ mb: 2, color: "#555" }}>
             คุณต้องการลบรถเข็นนี้ออกจากระบบใช่หรือไม่?
           </Typography>
           
@@ -117,7 +117,7 @@ const CartDeleteModal = ({ open, onClose, onSuccess, cartData }) => {
             <Divider sx={{ my: 2 }} />
             <Box sx={{ 
               p: 2, 
-              backgroundColor: "rgba(248,113,113,.16)", 
+              backgroundColor: "#ffebee", 
               borderRadius: "8px",
               border: "1px solid #ffcdd2"
             }}>

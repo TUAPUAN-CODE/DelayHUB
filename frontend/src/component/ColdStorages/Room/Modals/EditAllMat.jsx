@@ -101,12 +101,12 @@ const ConfirmProdModal = ({
       }}
     >
       <DialogContent>
-        <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
+        <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
           กรุณาตรวจสอบข้อมูลก่อนทำรายการ
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        <Paper elevation={0} sx={{ p: 2, backgroundColor: "rgba(255,255,255,.05)", mb: 2, borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, backgroundColor: '#F5F8FF', mb: 2, borderRadius: 2 }}>
           <Typography variant="subtitle1" gutterBottom>ข้อมูลวัตถุดิบ</Typography>
           <Stack spacing={1} sx={{ pl: 2 }}>
             <Typography color="rgba(0, 0, 0, 0.6)">Material: {material}</Typography>
@@ -126,7 +126,7 @@ const ConfirmProdModal = ({
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
             <Paper
               elevation={0}
-              sx={{ p: 1, backgroundColor: "rgba(255,255,255,.05)", flex: 1, borderRadius: 1, textAlign: 'center' }}
+              sx={{ p: 1, backgroundColor: '#F5F8FF', flex: 1, borderRadius: 1, textAlign: 'center' }}
             >
               <Typography variant="body2" color="text.secondary">จาก</Typography>
               <Typography fontWeight="medium">{currentProduction || 'ไม่มีแผนการผลิต'}</Typography>
@@ -151,7 +151,7 @@ const ConfirmProdModal = ({
         </Box>
 
         {/* แสดงข้อมูลผู้อนุมัติ */}
-        <Paper elevation={0} sx={{ p: 2, backgroundColor: "rgba(251,191,36,.14)", mb: 2, borderRadius: 2, border: '1px solid #ffecb3' }}>
+        <Paper elevation={0} sx={{ p: 2, backgroundColor: '#fff8e1', mb: 2, borderRadius: 2, border: '1px solid #ffecb3' }}>
           <Typography variant="subtitle1" gutterBottom>ข้อมูลผู้อนุมัติ</Typography>
           <Typography color="rgba(0, 0, 0, 0.7)">
             <PersonIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
@@ -381,7 +381,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
 
           <Stack spacing={2}>
             {selectedRow && (
-              <Paper elevation={0} sx={{ p: 2, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ p: 2, backgroundColor: '#F5F8FF', borderRadius: 2 }}>
                 <Typography variant="subtitle1" gutterBottom>
                   ข้อมูลรถเข็นและวัตถุดิบทั้งหมด ({selectedRow.allMaterials?.length || 0} รายการ)
                 </Typography>
@@ -417,7 +417,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         <Typography variant="body2" fontWeight="medium" sx={{ 
-                          color: "#F1F4FA",
+                          color: '#333',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -427,7 +427,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         <Typography variant="body2" sx={{
-                          color: "rgba(241,244,250,.62)",
+                          color: '#666',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -447,7 +447,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                   elevation={0}
                   sx={{
                     p: 2,
-                    backgroundColor: "rgba(255,255,255,.05)",
+                    backgroundColor: '#F5F8FF',
                     borderRadius: 2,
                     border: '1px solid #d0e4f8'
                   }}
@@ -458,8 +458,8 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                       label="ปัจจุบัน"
                       size="small"
                       sx={{
-                        backgroundColor: "rgba(96,165,250,.16)",
-                        color: "#7DD3FC",
+                        backgroundColor: '#e1f5fe',
+                        color: '#0277bd',
                         height: '22px'
                       }}
                     />
@@ -482,7 +482,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                           sx={{
                             fontWeight: 'medium',
                             fontSize: '16px',
-                            color: "#7DD3FC"
+                            color: '#0277bd'
                           }}
                         >
                           ไม่มีแผนการผลิต
@@ -498,7 +498,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                         sx={{
                           fontWeight: 'medium',
                           fontSize: '16px',
-                          color: "#7DD3FC",
+                          color: '#0277bd',
                           mb: index < uniqueProductions.length - 1 ? 1 : 0
                         }}
                       >
@@ -532,7 +532,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                     p: 2,
                     border: '1px solid #e1f5fe',
                     borderRadius: 2,
-                    backgroundColor: "rgba(255,255,255,.05)"
+                    backgroundColor: '#F5F8FF'
                   }}>
                     <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' } }}>
                       <Autocomplete
@@ -568,7 +568,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                 )}
 
                 {!showDropdowns && selectedPlan && (
-                  <Box sx={{ p: 2, border: '1px solid #e1f5fe', borderRadius: 2, backgroundColor: "rgba(255,255,255,.05)" }}>
+                  <Box sx={{ p: 2, border: '1px solid #e1f5fe', borderRadius: 2, backgroundColor: '#F5F8FF' }}>
                     <Typography>
                       {selectedPlan.code} ({selectedPlan.doc_no}) - {selectedLine?.line_name || 'ยังไม่ได้เลือกไลน์'}
                     </Typography>
@@ -585,7 +585,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                     elevation={0}
                     sx={{
                       p: 2,
-                      backgroundColor: "rgba(52,211,153,.14)",
+                      backgroundColor: '#e8f5e9',
                       borderRadius: 2,
                       border: '1px solid #c8e6c9',
                       mt: 1
@@ -597,8 +597,8 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                         label="ใหม่"
                         size="small"
                         sx={{
-                          backgroundColor: "rgba(52,211,153,.14)",
-                          color: "#6EE7B7",
+                          backgroundColor: '#c8e6c9',
+                          color: '#2e7d32',
                           height: '22px'
                         }}
                       />
@@ -608,7 +608,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                       sx={{
                         fontWeight: 'medium',
                         fontSize: '16px',
-                        color: "#6EE7B7"
+                        color: '#2e7d32'
                       }}
                     >
                       {`${selectedPlan.code} (${selectedPlan.doc_no})`}
@@ -623,7 +623,7 @@ const EditAllMat = ({ open, handleClose, selectedRow, onSuccess }) => {
                   elevation={0}
                   sx={{
                     p: 2,
-                    backgroundColor: "rgba(251,191,36,.14)",
+                    backgroundColor: '#fff8e1',
                     borderRadius: 2,
                     border: '1px solid #ffecb3',
                     mt: 1

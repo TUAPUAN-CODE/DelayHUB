@@ -59,11 +59,11 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ padding: '24px', backgroundColor: "rgba(255,255,255,.05)" }}>
+            <DialogContent sx={{ padding: '24px', backgroundColor: '#f8f9fa' }}>
                 <Grid container spacing={3} sx={{ marginTop: '4px' }}>
                     {/* หมายเลขรถเข็น */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             หมายเลขรถเข็น
                         </Typography>
                         <TextField
@@ -72,7 +72,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('trolley_number', e.target.value)}
                             placeholder="กรอกหมายเลขรถเข็น"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -82,7 +82,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* สถานะรถเข็น */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             สถานะรถเข็น
                         </Typography>
                         <TextField
@@ -92,7 +92,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('trolley_status', e.target.value)}
                             placeholder="เลือกสถานะรถเข็น"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -108,7 +108,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* Batch */}
                     <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             Batch
                         </Typography>
                         <TextField
@@ -117,7 +117,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('batch', e.target.value)}
                             placeholder="กรอก Batch"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -127,7 +127,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* Material */}
                     <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             Material
                         </Typography>
                         <TextField
@@ -136,7 +136,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('mat', e.target.value)}
                             placeholder="กรอก Material"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -146,7 +146,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* รายชื่อวัตถุดิบ */}
                     <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             รายชื่อวัตถุดิบ
                         </Typography>
                         <TextField
@@ -155,7 +155,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('mat_name', e.target.value)}
                             placeholder="กรอกรายชื่อวัตถุดิบ"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -165,7 +165,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* แผนการผลิต */}
                     <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             แผนการผลิต
                         </Typography>
                         <TextField
@@ -174,7 +174,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('production', e.target.value)}
                             placeholder="กรอกแผนการผลิต"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -185,7 +185,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* เวลาอบเสร็จ/ต้มเสร็จ */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             เวลาอบเสร็จ/ต้มเสร็จ
                         </Typography>
                         <TextField
@@ -194,7 +194,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             value={formData.cooked_date}
                             onChange={(e) => onInputChange('cooked_date', e.target.value)}
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -207,7 +207,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* เวลาเตรียมเสร็จ */}
                     {/* <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             เวลาเตรียมเสร็จ
                         </Typography>
                         <TextField
@@ -216,7 +216,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             value={formData.rmit_date}
                             onChange={(e) => onInputChange('rmit_date', e.target.value)}
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -229,7 +229,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
                     {/* สถานที่รถเข็น */}
                     {/* <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ marginBottom: '8px', color: "rgba(241,244,250,.62)", fontWeight: '500' }}>
+                        <Typography variant="body2" sx={{ marginBottom: '8px', color: '#6B7489', fontWeight: '500' }}>
                             สถานที่รถเข็น
                         </Typography>
                         <TextField
@@ -240,7 +240,7 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
                             onChange={(e) => onInputChange('trolley_location', e.target.value)}
                             placeholder="กรอกสถานที่รถเข็น"
                             sx={{
-                                backgroundColor: "rgba(255,255,255,.07)",
+                                backgroundColor: 'white',
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '8px',
                                 }
@@ -252,13 +252,13 @@ const EditTrolleyModal = ({ open, onClose, editingRow, formData, onInputChange, 
 
             <DialogActions sx={{
                 padding: '16px 24px',
-                backgroundColor: "rgba(255,255,255,.05)",
-                borderTop: '1px solid rgba(255,255,255,.14)'
+                backgroundColor: '#f8f9fa',
+                borderTop: '1px solid #E3E8F2'
             }}>
                 <Button
                     onClick={onClose}
                     sx={{
-                        color: "rgba(241,244,250,.62)",
+                        color: '#6B7489',
                         textTransform: 'none',
                         fontSize: '16px',
                         padding: '8px 24px',

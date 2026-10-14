@@ -3,7 +3,7 @@ import ParentComponent  from "./Asset/ParentComponent";
 
 const CSHisInputPage = () => {
   return (
-    <div style={{ backgroundColor: "rgba(255,255,255,.05)" }} className="flex-1 overflow-auto relative z-10">
+    <div style={{ backgroundColor: "#F5F8FF" }} className="flex-1 overflow-auto relative z-10">
       <Header title={"ตารางประวัติรถเข็นเข้า/ออกห้องเย็น"} />
       <main className='max-w-8xl mx-auto py-1 px-1 lg:px-8'>
   			<ParentComponent />

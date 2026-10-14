@@ -231,7 +231,7 @@ const LineName = () => {
                 height: "45px",
                 fontSize: "16px",
                 borderRadius: "8px",
-                color: "rgba(241,244,250,.62)",
+                color: "#6B7489",
               },
               "& input": {
                 padding: "10px",
@@ -243,10 +243,10 @@ const LineName = () => {
           <FormControl sx={{ minWidth: "150px", height: "45px" }}>
             <InputLabel id="line-type-filter-label" sx={{ 
                 fontSize: "14px",
-                color: "rgba(241,244,250,.62)",
+                color: "#6B7489",
                 transform: "translate(14px, 12px) scale(1)", // ตำแหน่งกลางกรอบ
                 "&.Mui-focused": {
-                  color: "rgba(241,244,250,.62)",
+                  color: "#6B7489",
                   transform: "translate(14px, -6px) scale(0.75)", // เลื่อนขึ้นเมื่อ focus
                 },
                 "&.MuiInputLabel-shrink": {
@@ -265,7 +265,7 @@ const LineName = () => {
                 height: "45px",
                 fontSize: "16px",
                 borderRadius: "8px",
-                color: "rgba(241,244,250,.62)",
+                color: "#6B7489",
               }}
             >
               <MenuItem value="">
@@ -316,7 +316,7 @@ const LineName = () => {
               width: "fit-content",
               whiteSpace: "nowrap",
               fontSize: "16px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
               backgroundColor: "transparent",
               minWidth: "auto",
               height: "45px",
@@ -357,8 +357,8 @@ const LineName = () => {
               flexWrap: "wrap",
             }}
           >
-            <FilterListIcon sx={{ color: "rgba(241,244,250,.62)", fontSize: "20px" }} />
-            <Typography sx={{ fontSize: "14px", color: "rgba(241,244,250,.62)", marginRight: "8px" }}>
+            <FilterListIcon sx={{ color: "#666", fontSize: "20px" }} />
+            <Typography sx={{ fontSize: "14px", color: "#666", marginRight: "8px" }}>
               ตัวกรองที่ใช้:
             </Typography>
             
@@ -386,7 +386,7 @@ const LineName = () => {
 
         {/* Results Summary */}
         <Box sx={{ padding: "0 15px 10px 15px" }}>
-          <Typography sx={{ fontSize: "14px", color: "rgba(241,244,250,.62)" }}>
+          <Typography sx={{ fontSize: "14px", color: "#666" }}>
             แสดงผลลัพธ์ {filteredRows.length} รายการ
             {getActiveFiltersCount() > 0 && ` (จากทั้งหมด ${lineNames.length} รายการ)`}
           </Typography>
@@ -412,7 +412,7 @@ const LineName = () => {
                     align="center"
                     sx={{
                       backgroundColor: "#1552F0",
-                      border: "1px solid rgba(255,255,255,.14)",
+                      border: "1px solid #E3E8F2",
                       margin: 0,
                       padding: "16px",
                       minWidth: index === 0 ? "250px" : index === 1 ? "250px" : "120px",
@@ -566,7 +566,7 @@ const LineName = () => {
                               fontSize: "24px",
                               color: "#ef4444",
                               "&:hover": {
-                                color: "#FCA5A5",
+                                color: "#dc2626",
                               },
                             }} 
                           />
@@ -587,7 +587,7 @@ const LineName = () => {
               "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
                 {
                   fontSize: "12px",
-                  color: "rgba(241,244,250,.62)",
+                  color: "#6B7489",
                   padding: "8px",
                 },
               margin: 0,

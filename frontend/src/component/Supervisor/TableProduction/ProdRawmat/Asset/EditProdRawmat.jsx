@@ -197,7 +197,7 @@ const EditProdRawmat = ({ isOpen, onClose, onSuccess, data }) => {
               sx={{
                 height: 300,
                 overflowY: "auto",
-                border: "1px solid rgba(255,255,255,.14)",
+                border: "1px solid #ccc",
                 borderRadius: "4px",
                 marginTop: 1,
               }}
@@ -298,7 +298,7 @@ const EditProdRawmat = ({ isOpen, onClose, onSuccess, data }) => {
               sx={{
                 height: 300,
                 overflowY: "auto",
-                border: "1px solid rgba(255,255,255,.14)",
+                border: "1px solid #ccc",
                 borderRadius: "4px",
                 marginTop: 1,
               }}

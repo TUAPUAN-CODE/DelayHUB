@@ -164,7 +164,7 @@ const ModalSlip = ({
             sx={{
               fontSize: "20px",
               fontWeight: 600,
-              color: "#F1F4FA",
+              color: "#333",
             }}
           >
             กรุณากรอก Batch ใหม่
@@ -174,7 +174,7 @@ const ModalSlip = ({
             sx={{
               fontSize: "16px",
               fontWeight: 500,
-              color: "rgba(241,244,250,.62)",
+              color: "#555",
             }}
           >
             Old Batch: {oldBatch || "ไม่มีข้อมูล"}
@@ -188,7 +188,7 @@ const ModalSlip = ({
               sx={{
                 fontSize: "16px",
                 fontWeight: 500,
-                color: "#F1F4FA",
+                color: "#333",
                 marginBottom: "12px",
               }}
             >
@@ -201,7 +201,7 @@ const ModalSlip = ({
                     key={idx}
                     sx={{
                       padding: "6px 12px",
-                      backgroundColor: "rgba(255,255,255,.05)",
+                      backgroundColor: "#f0f0f0",
                       borderRadius: "4px",
                       fontSize: "14px",
                       fontWeight: 500,
@@ -211,7 +211,7 @@ const ModalSlip = ({
                   </Box>
                 ))
               ) : (
-                <Typography sx={{ fontSize: "14px", color: "rgba(241,244,250,.62)" }}>
+                <Typography sx={{ fontSize: "14px", color: "#999" }}>
                   ไม่มีข้อมูล
                 </Typography>
               )}
@@ -232,7 +232,7 @@ const ModalSlip = ({
                 sx={{
                   fontSize: "16px",
                   fontWeight: 500,
-                  color: "#F1F4FA",
+                  color: "#333",
                 }}
               >
                 กรอก Batch ใหม่สำหรับแต่ละ Batch:
@@ -245,16 +245,16 @@ const ModalSlip = ({
                     flexDirection: "column",
                     gap: 1,
                     padding: 2,
-                    backgroundColor: "rgba(255,255,255,.05)",
+                    backgroundColor: "#F5F8FF",
                     borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,.14)",
+                    border: "1px solid #E3E8F2",
                   }}
                 >
                   <Typography
                     sx={{
                       fontSize: "14px",
                       fontWeight: 500,
-                      color: "rgba(241,244,250,.62)",
+                      color: "#666",
                     }}
                   >
                     Batch เดิม: {b}

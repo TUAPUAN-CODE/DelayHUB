@@ -257,7 +257,7 @@ const Modal3 = ({ open, onClose, data, onEdit, onSuccess, CookedDateTime }) => {
           flexDirection: 'column',
           gap: 1,
           fontSize: "15px",
-          color: "rgba(241,244,250,.62)"
+          color: "#555"
         }}>
           <DialogContent sx={{ paddingBottom: 0 }}>
             <Typography sx={{

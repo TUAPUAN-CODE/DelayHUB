@@ -66,7 +66,7 @@ const ModalAlert = ({ open, onClose }) => {
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Box
           sx={{
-            backgroundColor: "rgba(255,255,255,.07)",
+            backgroundColor: 'white',
             color: '#4caf50',
             borderRadius: 0,
             width: 60,
@@ -79,7 +79,7 @@ const ModalAlert = ({ open, onClose }) => {
         >
           <CheckCircleIcon sx={{ fontSize: 40 }} />
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: '4px', color: "#F1F4FA" }}>
+        <Typography variant="h6" sx={{ fontWeight: '4px', color: '#333' }}>
           บันทึกข้อมูลเรียบร้อยแล้ว
         </Typography>
         <Button
@@ -266,7 +266,7 @@ const ConfirmProdModalSAP = ({
           <Typography variant="h6" sx={{ mb: 2 }}>ยืนยันข้อมูลการผลิต</Typography>
           <Box sx={{ maxHeight: '400px', overflow: 'auto', mb: 2 }}>
             {selectedPlanSets.map((set, index) => (
-              <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,.14)', borderRadius: 1 }}>
+              <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
                 <Typography><strong>ชุดที่ {index + 1}:</strong></Typography>
                 <Typography>แผน: {set.plan.code} ({set.plan.doc_no})</Typography>
                 <Typography>ไลน์ผลิต: {set.line.line_name}</Typography>
@@ -883,7 +883,7 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
 
           {/* STEP 1: SCAN QR CODE */}
           {currentStep === 1 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
               <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
                 สแกน Qr Code เพื่อรับข้อมูลวัตถุดิบ
               </Typography>
@@ -1186,9 +1186,9 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
                         sx={{
                           mb: 2,
                           p: 2,
-                          border: '1px solid rgba(255,255,255,.14)',
+                          border: '1px solid #eee',
                           borderRadius: 1,
-                          backgroundColor: "rgba(255,255,255,.05)"
+                          backgroundColor: '#F5F8FF'
                         }}
                       >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

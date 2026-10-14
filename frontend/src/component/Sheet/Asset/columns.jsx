@@ -4,14 +4,14 @@
 import { Button, IconButton, Tooltip } from "@mui/material";
 
 export const GROUPS = [
-  { key: "tool", label: "เครื่องมือ", color: "#4A3021" },
-  { key: "info", label: "ข้อมูลวัตถุดิบ", color: "#26324A" },
-  { key: "prep", label: "เตรียม / QC", color: "#4A3A1E" },
-  { key: "cs1", label: "ห้องเย็น (รอบ 1–3)", color: "#1E3A4A" },
-  { key: "cs2", label: "ห้องเย็นใหญ่ (รอบ 1–4)", color: "#33284A" },
-  { key: "sap", label: "วัตถุดิบไม่แปรรูป (HU)", color: "#1E4040" },
-  { key: "pack", label: "บรรจุ", color: "#234030" },
-  { key: "dbs", label: "DBS (Delay)", color: "#4A2626" },
+  { key: "tool", label: "เครื่องมือ", color: "#0F3FC4" },
+  { key: "info", label: "ข้อมูลวัตถุดิบ", color: "#1552F0" },
+  { key: "prep", label: "เตรียม / QC", color: "#B45309" },
+  { key: "cs1", label: "ห้องเย็น (รอบ 1–3)", color: "#0277BD" },
+  { key: "cs2", label: "ห้องเย็นใหญ่ (รอบ 1–4)", color: "#4527A0" },
+  { key: "sap", label: "วัตถุดิบไม่แปรรูป (HU)", color: "#00796B" },
+  { key: "pack", label: "บรรจุ", color: "#2E7D32" },
+  { key: "dbs", label: "DBS (Delay)", color: "#F26B1D" },
 ];
 
 const t = (key, label, group, width = 134) => ({ key, label, group, kind: "data", type: "time", width });
@@ -19,10 +19,10 @@ const x = (key, label, group, width = 110, extra = {}) => ({ key, label, group, 
 
 /** buttons of one tool column: the Role's handlers come from ctx.tools(row) */
 const ToolButtons = ({ items }) => {
-  if (!items.length) return <span style={{ color: "rgba(241,244,250,.30)" }}>-</span>;
+  if (!items.length) return <span style={{ color: "#C5CCD9" }}>-</span>;
   return items.map((it) => (it.node ? <span key={it.key}>{it.node}</span> : it.icon ? (
     <Tooltip key={it.key} title={it.title || it.label} arrow>
-      <span><IconButton size="small" onClick={it.run} sx={{ color: it.ok === false ? "rgba(241,244,250,.3)" : it.color, filter: "brightness(1.6)" }}>{it.icon}</IconButton></span>
+      <span><IconButton size="small" onClick={it.run} sx={{ color: it.ok === false ? "#C5CCD9" : it.color }}>{it.icon}</IconButton></span>
     </Tooltip>
   ) : (
     // ok === false: the button is shown but cannot be pressed (the reason is in the tooltip)
@@ -45,7 +45,10 @@ export const STATUS_COLUMN = {
   sortValue: (r) => (r.__status ? r.__status.rank : null), // sort follows the areas, not the alphabet
   optionMeta: (r) => (r.__status ? { rank: r.__status.rank, zone: r.__status.zone, zones: r.__status.zones } : null), // the dropdown groups its values by area, in this order
   render: (r) => (r.__status ? (
-    <span title={r.__status.label} style={{ background: `${r.__status.color}38`, color: "#F1F4FA", border: `1px solid ${r.__status.color}`, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{r.__status.label}</span>
+    <span title={r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, border: `1px solid ${r.__status.color}40`, borderRadius: 999, padding: "2px 9px 2px 7px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: r.__status.color, flexShrink: 0 }} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{r.__status.label}</span>
+    </span>
   ) : null),
 };
 
@@ -57,14 +60,14 @@ const stdLabel = (min) => {
 const DbsCell = ({ d }) => {
   const hasActual = d && d.text && d.text !== "-";
   const hasStd = d && d.std !== null && d.std !== undefined;
-  if (!hasActual && !hasStd) return <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>;
+  if (!hasActual && !hasStd) return <span style={{ color: "#B0BAC9" }}>-</span>;
   return (
     <Tooltip title={hasStd ? `เวลาจริง ${hasActual ? d.text : "-"} · มาตรฐาน ${stdLabel(d.std)}` : "ไม่มีเวลามาตรฐาน"} arrow>
       <span style={{ whiteSpace: "nowrap" }}>
         {hasActual
           ? <span style={{ fontWeight: 700, color: d.over ? "#B91C1C" : "#047857", background: d.over ? "#FEE2E2" : "#ECFDF5", borderRadius: 6, padding: "1px 6px" }}>{d.text}</span>
-          : <span style={{ color: "rgba(241,244,250,.62)" }}>-</span>}
-        {hasStd && <span style={{ color: "rgba(241,244,250,.62)", fontSize: 11.5 }}> / {stdLabel(d.std)}</span>}
+          : <span style={{ color: "#B0BAC9" }}>-</span>}
+        {hasStd && <span style={{ color: "#6B7489", fontSize: 11.5 }}> / {stdLabel(d.std)}</span>}
       </span>
     </Tooltip>
   );

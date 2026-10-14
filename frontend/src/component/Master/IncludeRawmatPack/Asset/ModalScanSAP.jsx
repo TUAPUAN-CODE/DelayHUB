@@ -354,13 +354,13 @@ const CameraActivationModal = ({
         <CloseButton aria-label="close" onClick={handleClose}>
           <IoClose />
         </CloseButton>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
           <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
             สแกน Qr Code เพื่อรับข้อมูลวัตถุดิบ
           </Typography>
 
           {selectedMaterials && selectedMaterials.length > 0 && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 1 }}>
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#F5F8FF", borderRadius: 1 }}>
               <Typography sx={{ fontWeight: "bold" }}>รายการวัตถุดิบที่เลือก:</Typography>
               {selectedMaterials.map((mat, idx) => (
                 <Typography key={idx}>

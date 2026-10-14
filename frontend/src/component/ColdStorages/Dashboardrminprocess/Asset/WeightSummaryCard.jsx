@@ -163,7 +163,7 @@ const WeightSummaryCard = ({ data }) => {
   const cardInfo = {
     green: {
       color: '#22c55e',
-      bgColor: "rgba(52,211,153,.14)",
+      bgColor: '#f0fdf4',
       borderColor: '#bbf7d0',
       name: 'ปกติ (≤ 49%)',
       icon: (
@@ -174,7 +174,7 @@ const WeightSummaryCard = ({ data }) => {
     },
     yellow: {
       color: '#f59e0b',
-      bgColor: "rgba(251,191,36,.14)",
+      bgColor: '#fffbeb',
       borderColor: '#fef3c7',
       name: 'มีความล่าช้า (50-99%)',
       icon: (
@@ -185,7 +185,7 @@ const WeightSummaryCard = ({ data }) => {
     },
     red: {
       color: '#ef4444',
-      bgColor: "rgba(248,113,113,.16)",
+      bgColor: '#fef2f2',
       borderColor: '#fecaca',
       name: 'ล่าช้ามาก (≥ 100%)',
       icon: (
@@ -195,9 +195,9 @@ const WeightSummaryCard = ({ data }) => {
       )
     },
     gray: {
-      color: "rgba(241,244,250,.62)",
-      bgColor: "rgba(255,255,255,.05)",
-      borderColor: 'rgba(255,255,255,.14)',
+      color: '#64748b',
+      bgColor: '#f8fafc',
+      borderColor: '#e2e8f0',
       name: 'รอดำเนินการ',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -221,7 +221,7 @@ const WeightSummaryCard = ({ data }) => {
 
   return (
     <div className="weight-summary-card" style={{
-      backgroundColor: "rgba(255,255,255,.07)",
+      backgroundColor: 'white',
       borderRadius: '10px',
       padding: '20px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
@@ -233,13 +233,13 @@ const WeightSummaryCard = ({ data }) => {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '15px',
-        borderBottom: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid #f0f0f0',
         paddingBottom: '10px'
       }}>
         <h3 style={{ 
           margin: 0, 
           fontSize: '18px', 
-          color: "#F1F4FA", 
+          color: '#000000', 
           fontWeight: 600 
         }}>
           <span style={{ marginRight: '8px' }}>
@@ -310,7 +310,7 @@ const WeightSummaryCard = ({ data }) => {
                   <span style={{ 
                     fontSize: '16px', 
                     fontWeight: '600', 
-                    color: "#F1F4FA"
+                    color: '#000000'
                   }}>
                     {info.name}
                   </span>
@@ -334,18 +334,18 @@ const WeightSummaryCard = ({ data }) => {
                 marginBottom: isExpanded ? '16px' : '0'
               }}>
                 <div>
-                  <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>น้ำหนักรวม</div>
-                  <div style={{ fontSize: '22px', fontWeight: '600', color: "#F1F4FA" }}>
+                  <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>น้ำหนักรวม</div>
+                  <div style={{ fontSize: '22px', fontWeight: '600', color: '#000000' }}>
                     {formatNumber(statusData.totalWeight)} กก.
                   </div>
                 </div>
                 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>จำนวน</div>
-                  <div style={{ fontSize: '15px', fontWeight: '500', color: "#F1F4FA" }}>
+                  <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>จำนวน</div>
+                  <div style={{ fontSize: '15px', fontWeight: '500', color: '#000000' }}>
                     {formatCount(statusData.count)} รายการ
                   </div>
-                  <div style={{ fontSize: '13px', color: "#F1F4FA" }}>
+                  <div style={{ fontSize: '13px', color: '#000000' }}>
                     {formatCount(statusData.totalTrays)} ถาด
                   </div>
                 </div>
@@ -371,10 +371,10 @@ const WeightSummaryCard = ({ data }) => {
                     }}>
                       <thead>
                         <tr style={{ borderBottom: `1px solid ${info.borderColor}` }}>
-                          <th style={{ textAlign: 'left', padding: '6px 4px', color: "#F1F4FA", fontWeight: '500' }}>Batch</th>
-                          <th style={{ textAlign: 'left', padding: '6px 4px', color: "#F1F4FA", fontWeight: '500' }}>ชื่อวัตถุดิบ</th>
-                          <th style={{ textAlign: 'right', padding: '6px 4px', color: "#F1F4FA", fontWeight: '500' }}>น้ำหนัก</th>
-                          <th style={{ textAlign: 'center', padding: '6px 4px', color: "#F1F4FA", fontWeight: '500' }}>ถาด</th>
+                          <th style={{ textAlign: 'left', padding: '6px 4px', color: '#000000', fontWeight: '500' }}>Batch</th>
+                          <th style={{ textAlign: 'left', padding: '6px 4px', color: '#000000', fontWeight: '500' }}>ชื่อวัตถุดิบ</th>
+                          <th style={{ textAlign: 'right', padding: '6px 4px', color: '#000000', fontWeight: '500' }}>น้ำหนัก</th>
+                          <th style={{ textAlign: 'center', padding: '6px 4px', color: '#000000', fontWeight: '500' }}>ถาด</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -383,16 +383,16 @@ const WeightSummaryCard = ({ data }) => {
                             borderBottom: `1px solid ${info.borderColor}20`,
                             backgroundColor: idx % 2 === 0 ? 'transparent' : `${info.borderColor}30`
                           }}>
-                            <td style={{ padding: '6px 4px', color: "#F1F4FA" }}>{item.batch}</td>
-                            <td style={{ padding: '6px 4px', color: "#F1F4FA" }}>
+                            <td style={{ padding: '6px 4px', color: '#000000' }}>{item.batch}</td>
+                            <td style={{ padding: '6px 4px', color: '#000000' }}>
                               <div style={{ fontWeight: '500' }}>{item.mat_name}</div>
-                              <div style={{ fontSize: '11px', color: "#F1F4FA", display: 'flex', justifyContent: 'space-between' }}>
+                              <div style={{ fontSize: '11px', color: '#000000', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>{item.mat}</span>
                                 <span>{item.production}</span>
                               </div>
                             </td>
-                            <td style={{ padding: '6px 4px', textAlign: 'right', color: "#F1F4FA" }}>{formatNumber(item.weight)} กก.</td>
-                            <td style={{ padding: '6px 4px', textAlign: 'center', color: "#F1F4FA" }}>{item.trays}</td>
+                            <td style={{ padding: '6px 4px', textAlign: 'right', color: '#000000' }}>{formatNumber(item.weight)} กก.</td>
+                            <td style={{ padding: '6px 4px', textAlign: 'center', color: '#000000' }}>{item.trays}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -407,10 +407,10 @@ const WeightSummaryCard = ({ data }) => {
       
       {/* แสดงข้อมูลรวม */}
       <div style={{
-        backgroundColor: "rgba(255,255,255,.05)",
+        backgroundColor: '#f8fafc',
         borderRadius: '8px',
         padding: '16px',
-        border: '1px solid rgba(255,255,255,.14)',
+        border: '1px solid #e2e8f0',
         marginTop: '10px'
       }}>
         <div style={{
@@ -419,24 +419,24 @@ const WeightSummaryCard = ({ data }) => {
           gap: '16px'
         }}>
           <div>
-            <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>น้ำหนักรวมทั้งหมด</div>
-            <div style={{ fontSize: '16px', fontWeight: '500', color: "#F1F4FA" }}>{formatNumber(summary.totalWeight)} กก.</div>
+            <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>น้ำหนักรวมทั้งหมด</div>
+            <div style={{ fontSize: '16px', fontWeight: '500', color: '#000000' }}>{formatNumber(summary.totalWeight)} กก.</div>
           </div>
           
           <div>
-            <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>จำนวนรายการทั้งหมด</div>
-            <div style={{ fontSize: '16px', fontWeight: '500', color: "#F1F4FA" }}>{formatCount(summary.totalItems)} รายการ</div>
+            <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>จำนวนรายการทั้งหมด</div>
+            <div style={{ fontSize: '16px', fontWeight: '500', color: '#000000' }}>{formatCount(summary.totalItems)} รายการ</div>
           </div>
           
           <div>
-            <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>จำนวนถาดรวม</div>
-            <div style={{ fontSize: '16px', fontWeight: '500', color: "#F1F4FA" }}>{formatCount(summary.totalTrays)} ถาด</div>
+            <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>จำนวนถาดรวม</div>
+            <div style={{ fontSize: '16px', fontWeight: '500', color: '#000000' }}>{formatCount(summary.totalTrays)} ถาด</div>
           </div>
           
           {summary.delayStatus.gray.count > 0 && (
             <div>
-              <div style={{ fontSize: '13px', color: "#F1F4FA", marginBottom: '4px' }}>รอดำเนินการ</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: "#F1F4FA" }}>
+              <div style={{ fontSize: '13px', color: '#000000', marginBottom: '4px' }}>รอดำเนินการ</div>
+              <div style={{ fontSize: '16px', fontWeight: '500', color: '#000000' }}>
                 {formatNumber(summary.delayStatus.gray.totalWeight)} กก. ({formatCount(summary.delayStatus.gray.count)} รายการ)
               </div>
             </div>

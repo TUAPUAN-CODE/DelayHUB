@@ -115,42 +115,42 @@ const Row = ({ row, index }) => {
   return (
     <>
       <TableRow sx={{ backgroundColor: backgroundColor, height: '45px' }}>
-        <TableCell align="left" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "#F1F4FA", fontWeight: 'medium' }}>
+        <TableCell align="left" style={{ padding: '8px 16px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#444', fontWeight: 'medium' }}>
           {displayBatch}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.mat || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.mat_name || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.production || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.tro_id || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.dest || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.weight_RM ? parseFloat(row.weight_RM).toFixed(2) : "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.level_eu || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {formatDate(row.CookedDateTime) || "-"}
         </TableCell>
-        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: "rgba(241,244,250,.62)" }}>
+        <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
             <Tooltip title="ดูประวัติเพิ่มเติม">
-              <IconButton aria-label="view history" size="small" onClick={() => setOpen(!open)} color={open ? "primary" : "default"} sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #E3E8F2', backgroundColor: "rgba(255,255,255,.07)" }}>
+              <IconButton aria-label="view history" size="small" onClick={() => setOpen(!open)} color={open ? "primary" : "default"} sx={{ width: '30px', height: '30px', border: open ? '1px solid #90caf9' : '1px solid #E3E8F2', backgroundColor: '#ffffff' }}>
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="พิมพ์ข้อมูล">
-              <IconButton aria-label="print" size="small" onClick={handlePrintClick} sx={{ width: '30px', height: '30px', border: '1px solid rgba(255,255,255,.14)', backgroundColor: "rgba(255,255,255,.07)" }}>
+              <IconButton aria-label="print" size="small" onClick={handlePrintClick} sx={{ width: '30px', height: '30px', border: '1px solid #E3E8F2', backgroundColor: '#ffffff' }}>
                 <PrintIcon fontSize="small" color="action" />
               </IconButton>
             </Tooltip>
@@ -163,10 +163,10 @@ const Row = ({ row, index }) => {
       <TableRow>
         <TableCell style={{ padding: 0 }} colSpan={9}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: "rgba(255,255,255,.05)", borderRadius: '4px', padding: '16px', border: '1px solid rgba(255,255,255,.14)' }}>
+            <Box sx={{ margin: '0 1px 16px 1px', backgroundColor: '#f8f9fa', borderRadius: '4px', padding: '16px', border: '1px solid #E3E8F2' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <FactCheckIcon fontSize="small" sx={{ color: "#FFB27A" }} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: "#F1F4FA" }}>
+                <FactCheckIcon fontSize="small" sx={{ color: '#1552F0' }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
                   ข้อมูลการตรวจสอบ QC
                 </Typography>
               </Box>
@@ -174,10 +174,10 @@ const Row = ({ row, index }) => {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-                    <Box sx={{ backgroundColor: "rgba(255,255,255,.05)", px: 2, py: 1.5, borderBottom: '1px solid #bbdefb' }}>
+                    <Box sx={{ backgroundColor: '#EAF0FF', px: 2, py: 1.5, borderBottom: '1px solid #bbdefb' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PaletteIcon sx={{ color: "#FFB27A" }} />
-                        <Typography variant="subtitle1" sx={{ color: "#FFB27A", fontWeight: 'bold' }}>
+                        <PaletteIcon sx={{ color: '#1552F0' }} />
+                        <Typography variant="subtitle1" sx={{ color: '#1552F0', fontWeight: 'bold' }}>
                           Sensory (สี, กลิ่น, เนื้อ)
                         </Typography>
                       </Box>
@@ -219,7 +219,7 @@ const Row = ({ row, index }) => {
 
                 <Grid item xs={12} md={4}>
                   <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-                    <Box sx={{ backgroundColor: "rgba(251,191,36,.14)", px: 2, py: 1.5, borderBottom: '1px solid #ffe0b2' }}>
+                    <Box sx={{ backgroundColor: '#fff3e0', px: 2, py: 1.5, borderBottom: '1px solid #ffe0b2' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SettingsInputComponentIcon sx={{ color: '#ff9800' }} />
                         <Typography variant="subtitle1" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
@@ -246,7 +246,7 @@ const Row = ({ row, index }) => {
                           }
                           InputProps={{
                             readOnly: true,
-                            sx: { fontSize: '14px', backgroundColor: "rgba(255,255,255,.05)" }
+                            sx: { fontSize: '14px', backgroundColor: '#F5F8FF' }
                           }}
                         />
                       </Box>
@@ -263,7 +263,7 @@ const Row = ({ row, index }) => {
                             value={row.md_remark || '-'}
                             InputProps={{
                               readOnly: true,
-                              sx: { fontSize: '14px', backgroundColor: "rgba(255,255,255,.05)" }
+                              sx: { fontSize: '14px', backgroundColor: '#F5F8FF' }
                             }}
                             multiline
                             minRows={2}
@@ -276,10 +276,10 @@ const Row = ({ row, index }) => {
 
                 <Grid item xs={12} md={4}>
                   <Card variant="outlined" sx={{ height: '100%', minHeight: '180px' }}>
-                    <Box sx={{ backgroundColor: "rgba(248,113,113,.16)", px: 2, py: 1.5, borderBottom: '1px solid #ffcdd2' }}>
+                    <Box sx={{ backgroundColor: '#ffebee', px: 2, py: 1.5, borderBottom: '1px solid #ffcdd2' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <StraightenIcon sx={{ color: "#FCA5A5" }} />
-                        <Typography variant="subtitle1" sx={{ color: "#FCA5A5", fontWeight: 'bold' }}>
+                        <StraightenIcon sx={{ color: '#f44336' }} />
+                        <Typography variant="subtitle1" sx={{ color: '#f44336', fontWeight: 'bold' }}>
                           Defect (ขนาด, ก้าง)
                         </Typography>
                       </Box>
@@ -322,14 +322,14 @@ const Row = ({ row, index }) => {
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 2, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon sx={{ color: "#FFB27A" }} />
-                  <Typography variant="body2" sx={{ color: "rgba(241,244,250,.62)" }}>
+                  <PersonIcon sx={{ color: '#1552F0' }} />
+                  <Typography variant="body2" sx={{ color: '#555' }}>
                     <b>ผู้ดำเนินการ:</b> {row?.receiver_qc ?? '-'}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarTodayIcon sx={{ color: "#FFB27A" }} />
-                  <Typography variant="body2" sx={{ color: "rgba(241,244,250,.62)" }}>
+                  <CalendarTodayIcon sx={{ color: '#1552F0' }} />
+                  <Typography variant="body2" sx={{ color: '#555' }}>
                     <b>วันเวลาที่ QC ตรวจสอบ:</b> {row?.qc_datetime_formatted ?? '-'}
                   </Typography>
                 </Box>
@@ -396,7 +396,7 @@ const QcHisTable = ({
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "rgba(241,244,250,.62)",
+              color: "#6B7489",
             },
             "& input": {
               padding: "8px",
@@ -416,44 +416,44 @@ const QcHisTable = ({
           overflowY: 'auto',
           marginTop: 0,
           borderRadius: '8px',
-          borderColor: 'rgba(255,255,255,.14)',
+          borderColor: '#E3E8F2',
           backgroundColor: backgroundColor
         }}
       >
         <Table stickyHeader style={{ tableLayout: 'fixed' }} sx={{ width: '100%' }}>
           <TableHead>
-            <TableRow sx={{ height: '45px', backgroundColor: "rgba(255,255,255,.05)" }}>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.Batch, fontWeight: 'normal' }}>
+            <TableRow sx={{ height: '45px', backgroundColor: '#F5F8FF' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Batch, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Batch</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.Material, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.Material, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Material</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.รายชื่อวัตถุดิบ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.รายชื่อวัตถุดิบ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>รายชื่อวัตถุดิบ
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>แผนการผลิต
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.แผนการผลิต, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>หมายเลขรถเข็น
                 </Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.สถานที่จัดส่ง, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.สถานที่จัดส่ง, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>สถานที่จัดส่ง</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.น้ำหนัก, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.น้ำหนัก, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>น้ำหนัก (kg)</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.LevelEu, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.LevelEu, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>Level Eu</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.เวลาต้มอบเสร็จ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.เวลาต้มอบเสร็จ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>เวลาต้ม/อบเสร็จ</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid rgba(255,255,255,.14)", borderLeft: "1px solid #ffffff", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderBottom: "2px solid #E3E8F2", borderLeft: "1px solid #ffffff", fontSize: '12px', color: '#555', padding: '5px', width: COLUMN_WIDTHS.การจัดการ, fontWeight: 'normal' }}>
                 <Box style={{ fontSize: '14px', color: '#ffffff' }}>การจัดการ</Box>
               </TableCell>
             </TableRow>
@@ -467,9 +467,9 @@ const QcHisTable = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ padding: "40px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
+                <TableCell colSpan={9} align="center" sx={{ padding: "40px", fontSize: "16px", color: "#6B7489" }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                    <InventoryIcon sx={{ fontSize: 40, color: "rgba(241,244,250,.30)" }} />
+                    <InventoryIcon sx={{ fontSize: 40, color: '#bdbdbd' }} />
                     <Typography>ไม่มีข้อมูลประวัติการตรวจสอบ</Typography>
                   </Box>
                 </TableCell>
@@ -483,7 +483,7 @@ const QcHisTable = ({
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "rgba(241,244,250,.62)",
+            color: "#555",
             padding: "0px",
           },
           marginTop: '8px',

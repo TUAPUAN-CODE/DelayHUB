@@ -99,7 +99,7 @@ const Modal3 = ({ open, onClose, data, CookedDateTime }) => {
         maxWidth="xs"
         fullWidth
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
           <DialogContent sx={{ paddingBottom: 0 }} >
             <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
               กรุณาตรวจสอบข้อมูลก่อนทำรายการ

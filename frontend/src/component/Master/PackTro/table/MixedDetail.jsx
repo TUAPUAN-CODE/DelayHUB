@@ -365,9 +365,9 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                             <Box sx={{ 
                                 textAlign: 'center', 
                                 py: 4, 
-                                bgcolor: "rgba(255,255,255,.05)", 
+                                bgcolor: '#F5F8FF', 
                                 borderRadius: 2,
-                                border: '1px dashed rgba(255,255,255,.14)' 
+                                border: '1px dashed #bdbdbd' 
                             }}>
                                 <Typography color="textSecondary">ไม่มีข้อมูลรถเข็น</Typography>
                             </Box>
@@ -488,7 +488,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                                         gutterBottom 
                                                                         sx={{ 
                                                                             fontWeight: 500, 
-                                                                            color: "#FFB27A",
+                                                                            color: '#0F3FC4',
                                                                             mb: 2
                                                                         }}
                                                                     >
@@ -496,7 +496,7 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                                     </Typography>
                                                                     
                                                                     <Box sx={{ 
-                                                                        backgroundColor: "rgba(255,255,255,.07)",
+                                                                        backgroundColor: 'white',
                                                                         borderRadius: '8px',
                                                                         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                                                         overflow: 'hidden'
@@ -505,12 +505,12 @@ const MixedDetail = ({ item, onClose, onSuccess }) => {
                                                                             <TableBody sx={{
                                                                                 '& .MuiTableRow-root': {
                                                                                     '&:nth-of-type(odd)': {
-                                                                                        backgroundColor: "rgba(255,255,255,.05)",
+                                                                                        backgroundColor: '#fafafa',
                                                                                     },
                                                                                 },
                                                                                 '& .MuiTableCell-root': {
                                                                                     padding: '12px 16px',
-                                                                                    borderBottom: '1px solid rgba(255,255,255,.14)'
+                                                                                    borderBottom: '1px solid #f0f0f0'
                                                                                 }
                                                                             }}>
                                                                                 <TableRow>
