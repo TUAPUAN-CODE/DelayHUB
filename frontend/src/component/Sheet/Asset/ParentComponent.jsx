@@ -23,11 +23,11 @@ import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
-import CartModal from "../../Pack/ManageRawmat/Asset/ModalEditPD";
 import TrolleyFlows from "../../ColdStorage/RoomTableSupervisor/Asset/flow/TrolleyFlows";
 import CheckoutFlow from "../../ColdStorage/RoomTableSupervisor/Asset/flow/CheckoutFlow";
 import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
+import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
 import ReworkFlows from "./prep/ReworkFlows";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
@@ -82,7 +82,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [range, setRange] = useState(defaultRange); // the range that is loaded (and refreshed every minute)
   const [pick, setPick] = useState(defaultRange);   // what is typed in the date boxes, loaded when the button is pressed
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
-  const [cart, setCart] = useState(null);
+  const [batch, setBatch] = useState(null); // { kind: "cart" | "edit" | "delete", rows }
   const [selected, setSelected] = useState(() => new Set());
   const [weights, setWeights] = useState({});
   const [toast, setToast] = useState("");
@@ -290,12 +290,8 @@ const ParentComponent = ({ role, view = "work" }) => {
     }
     if (role === "pack") {
       const confirmable = stage === "ready" && !r.sc_pack_date;
-      if (stage === "ready") out.push({ col: "t_cart", key: "cart", label: "ใส่รถเข็น", color: "#1552F0", run: () => setCart({ ...r, mat: r.mat, production: r.code, rm_cold_status: r.rm_status }) });
+      // ใส่รถเข็น / แก้ไข / ลบ ทำจากแถวที่ติ๊กไว้ (ได้หลายแถวในครั้งเดียว) ที่ packBar
       if (stage === "trolley") out.push({ col: "t_send", key: "send", label: "ส่งไป", color: "#047857", run: () => packRef.current?.send(r.tro_id) });
-      if (stage === "ready") {
-        out.push({ col: "t_edit", key: "edit", label: "แก้ไข", color: "#B26A00", run: () => moreRef.current?.edit(r) });
-        out.push({ col: "t_confirm", key: "confirm", label: "ลบ", color: "#C62828", run: () => moreRef.current?.confirmOne(r) });
-      }
       if (confirmable || canPack(r)) {
         out.push({ col: "t_kg", key: "kg", passive: true, node: <WeightInput value={weights[r.mapping_id]} disabled={!selected.has(r.__key)} onChange={(v) => setWeights((w) => ({ ...w, [r.mapping_id]: v }))} /> });
       }
@@ -371,6 +367,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     <>
       <Button variant="contained" size="small" color="success" disabled={!selected.size} onClick={() => confirmSelected()}>บรรจุเสร็จ ({selected.size})</Button>
       <Button variant="contained" size="small" disabled={!selected.size} onClick={() => mixSelected()}>ผสมวัตถุดิบ ({selected.size})</Button>
+      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => openBatch("cart")}>ใส่รถเข็น ({selected.size})</Button>
+      <Button variant="contained" size="small" color="warning" disabled={!selected.size} onClick={() => openBatch("edit")}>แก้ไขแผนการผลิต ({selected.size})</Button>
+      <Button variant="contained" size="small" color="error" disabled={!selected.size} onClick={() => openBatch("delete")}>ลบ ({selected.size})</Button>
       {CAN_ADD_RM && <Button variant="contained" size="small" onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
     </>
   );
@@ -416,6 +415,16 @@ const ParentComponent = ({ role, view = "work" }) => {
     }));
     packRef.current?.mixRows(materials, materials.reduce((sum, m) => sum + m.weight, 0));
   };
+  // ใส่รถเข็น / แก้ไขแผน / ลบ: ใช้ได้กับแถวที่รอบรรจุเสร็จ (ยังไม่บรรจุ) เท่านั้น
+  const openBatch = (kind) => {
+    const picked = rows.filter((r) => selected.has(r.__key));
+    if (!picked.length) return;
+    const notReady = picked.filter((r) => r.__stage !== "ready" || r.sc_pack_date);
+    if (notReady.length) { setToast(`มี ${notReady.length} แถวที่ทำรายการนี้ไม่ได้ (ต้องเป็นสถานะรอบรรจุเสร็จ) กรุณาเอาเครื่องหมายถูกออกก่อน`); return; }
+    if (kind === "edit" && new Set(picked.map((r) => String(r.mat_id || r.mat))).size > 1) { setToast("แก้ไขแผนการผลิตพร้อมกันได้เฉพาะวัตถุดิบ (Mat) เดียวกัน"); return; }
+    setBatch({ kind, rows: picked });
+  };
+  const closeBatch = () => { setBatch(null); setSelected(new Set()); setWeights({}); };
   const afterConfirm = () => { setSelected(new Set()); setWeights({}); load(); };
 
   const applyRange = (next) => { setRange(next); setPick(next); };
@@ -564,7 +573,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={load} />
       <CheckoutFlow ref={checkoutRef} onDone={load} />
       <LargeFlows ref={largeRef} onDone={load} />
-      {cart && <CartModal open data={cart} onClose={() => setCart(null)} onSuccess={() => { setCart(null); load(); }} />}
+      {batch?.kind === "cart" && <BatchCartDialog rows={batch.rows} weights={weights} onClose={closeBatch} onDone={load} />}
+      {batch?.kind === "edit" && <BatchEditPlanDialog rows={batch.rows} onClose={closeBatch} onDone={load} />}
+      {batch?.kind === "delete" && <BatchDeleteDialog rows={batch.rows} onClose={closeBatch} onDone={load} />}
     </div>
   );
 };

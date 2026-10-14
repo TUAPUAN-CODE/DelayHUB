@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   CircularProgress, Typography, TextField, IconButton, Tooltip,
-  Box, Button, Checkbox, FormControlLabel, InputAdornment, Slider,
+  Box, Button, Checkbox, InputAdornment, Slider,
   Dialog, DialogTitle, DialogContent, DialogActions, Alert
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -23,7 +23,6 @@ const TableList = ({
 }) => {
   // States
   const [selectedTrolleys, setSelectedTrolleys] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEditTrolley, setCurrentEditTrolley] = useState(null);
   const [tempWeight, setTempWeight] = useState(0);
@@ -38,17 +37,7 @@ const TableList = ({
   // Reset selected trolleys when available trolleys change
   useEffect(() => {
     setSelectedTrolleys([]);
-    setSelectAll(false);
   }, [availableTrolleys]);
-
-  // Update selectAll state based on selections
-  useEffect(() => {
-    const availableTrolleysCount = filteredAvailableTrolleys.length;
-    setSelectAll(
-      availableTrolleysCount > 0 && 
-      selectedTrolleys.length === availableTrolleysCount
-    );
-  }, [selectedTrolleys, filteredAvailableTrolleys.length]);
 
   // ----- Handlers -----
   
@@ -59,17 +48,6 @@ const TableList = ({
         ? prev.filter(id => id !== mappingTroId)
         : [...prev, mappingTroId];
     });
-  };
-
-  const handleToggleSelectAll = () => {
-    if (selectAll) {
-      setSelectedTrolleys([]);
-    } else {
-      const availableTrolleyIds = filteredAvailableTrolleys.map(
-        trolley => trolley.mapping_id
-      );
-      setSelectedTrolleys(availableTrolleyIds);
-    }
   };
 
   // Basket Handlers
@@ -238,16 +216,8 @@ const TableList = ({
           <TableHead>
             <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
               <TableCell>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={selectAll}
-                      onChange={handleToggleSelectAll}
-                      disabled={isLoading || filteredAvailableTrolleys.length === 0}
-                    />
-                  }
-                  label="เลือกทั้งหมด"
-                />
+                {/* ไม่มี "เลือกทั้งหมด": ติ๊กทีละแถว กันเลือกเกินโดยไม่ตั้งใจ */}
+                เลือก
               </TableCell>
               <TableCell sx={{ textAlign: 'center' }}>หมายเลขวัตถุดิบ</TableCell>
               <TableCell sx={{ textAlign: 'center' }}>ชื่อวัตถุดิบ</TableCell>

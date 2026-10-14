@@ -84,11 +84,6 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
     g.rows.forEach((r) => { if (all) delete n[r.mapping_id]; else if (n[r.mapping_id] === undefined) n[r.mapping_id] = String(r.weight_RM); });
     return n;
   });
-  const selectAllShown = () => setPicked((p) => {
-    const n = { ...p };
-    groups.forEach((g) => g.rows.forEach((r) => { if (n[r.mapping_id] === undefined) n[r.mapping_id] = String(r.weight_RM); }));
-    return n;
-  });
 
   const weightError = (row) => {
     const w = parseFloat(picked[row.mapping_id]);
@@ -140,8 +135,6 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
           <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", my: 1.5, alignItems: "center" }}>
             <Chip size="small" label="ทุกห้อง" clickable color={room === "all" ? "primary" : "default"} onClick={() => setRoom("all")} />
             {rooms.map(([id, name]) => <Chip key={id} size="small" label={name} clickable color={String(room) === String(id) ? "primary" : "default"} onClick={() => setRoom(id)} />)}
-            <Box sx={{ flex: 1 }} />
-            <Button size="small" onClick={selectAllShown} disabled={!groups.length}>เลือกทั้งหมดที่เห็น</Button>
           </Box>
           {loading && <Box sx={{ display: "grid", placeItems: "center", py: 6 }}><CircularProgress /></Box>}
           {error && <Alert severity="error" action={<Button color="inherit" size="small" onClick={load}>ลองใหม่</Button>}>{error}</Alert>}

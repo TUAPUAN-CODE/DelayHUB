@@ -1,6 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert, Box, Button, Checkbox, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography, useMediaQuery,
+  Alert, Box, Button, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography, useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
@@ -226,13 +226,6 @@ const DataGrid = ({
   cellRef.current = onCellEdit;
   const stableCell = useMemo(() => (onCellEdit ? (r, c) => cellRef.current?.(r, c) : undefined), [!!onCellEdit]); // eslint-disable-line react-hooks/exhaustive-deps
   const stablePick = useMemo(() => (onRowClick ? (r) => pickRef.current?.(r) : undefined), [!!onRowClick]); // eslint-disable-line react-hooks/exhaustive-deps
-  const selectableRows = useMemo(() => (selectable ? sorted.filter((r) => (isSelectable ? isSelectable(r) : true)) : []), [sorted, selectable, isSelectable]); // eslint-disable-line react-hooks/exhaustive-deps
-  const allChecked = useMemo(() => selectableRows.length > 0 && selectableRows.every((r) => selSet.has(rowKey(r))), [selectableRows, selSet, rowKey]);
-  const someChecked = useMemo(() => selSet.size > 0 && selectableRows.some((r) => selSet.has(rowKey(r))), [selectableRows, selSet, rowKey]);
-  const toggleAll = () => {
-    if (!onSelectedChange) return;
-    onSelectedChange(allChecked ? new Set() : new Set(selectableRows.map(rowKey)));
-  };
   const toggleOne = useCallback((key) => {
     if (!onSelectedChange) return;
     const next = new Set(selRef.current);
@@ -361,7 +354,7 @@ const DataGrid = ({
               <TableRow>
                 {selectable && (
                   <TableCell sx={{ ...HEAD, background: "#1552F0", position: "sticky", left: 0, top: HEAD_H, zIndex: 6, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
-                    <Checkbox size="small" checked={allChecked} indeterminate={!allChecked && someChecked} onChange={toggleAll} sx={{ color: "#fff", "&.Mui-checked, &.MuiCheckbox-indeterminate": { color: "#fff" } }} />
+                    {/* ไม่มีช่อง "เลือกทุกแถว": ต้องติ๊กทีละแถว กันเลือกเกินโดยไม่ตั้งใจ */}
                   </TableCell>
                 )}
                 {cols.map((c) => {
