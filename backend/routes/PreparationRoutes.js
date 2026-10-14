@@ -2998,8 +2998,8 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       LEFT JOIN History h ON r.hist_id_rmfbatch = h.hist_id
       JOIN Rawmat rm ON r.mat = rm.mat
       WHERE b_status = '1'
-      ORDER BY r.rmfbatch_id DESC
         ${DATE_RANGE_WHERE}
+      ORDER BY r.rmfbatch_id DESC
     `);
 
       res.json({ success: true, data: result.recordset });
@@ -3031,8 +3031,8 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       LEFT JOIN History h ON r.hist_id_rmfemu = h.hist_id
       JOIN Rawmat rm ON r.mat = rm.mat
       WHERE emu_status = '1'
-      ORDER BY r.rmfemu_id DESC
         ${DATE_RANGE_WHERE}
+      ORDER BY r.rmfemu_id DESC
     `);
 
       res.json({ success: true, data: result.recordset });
