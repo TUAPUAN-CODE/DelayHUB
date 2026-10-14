@@ -11,6 +11,8 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import RowDetail from "./RowDetail";
 import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
 import useGridPrefs from "./useGridPrefs";
@@ -85,6 +87,8 @@ const DataGrid = ({
   hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
+  // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
+  detail = false,
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
   onCellEdit,
 }) => {
@@ -99,6 +103,8 @@ const DataGrid = ({
   const [limit, setLimit] = useState(pageSize);
   const setPage = () => setLimit(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(true);
+  const activeRow = useMemo(() => (detail && activeKey !== null ? rows.find((r) => rowKey(r) === activeKey) || null : null), [detail, rows, activeKey, rowKey]);
   // the column settings are opened from the "Setting" button of the top bar; a page without the top bar keeps its own button
   const [topbar, setTopbar] = useState(false);
   useEffect(() => { setTopbar(!!document.querySelector(".app-topbar")); }, []);
@@ -262,8 +268,11 @@ const DataGrid = ({
           </>
         )}
         {onReload && !hideReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
+        {detail && <Button variant={detailOpen ? "contained" : "outlined"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)}>Detail</Button>}
       </Box>
 
+      <Box sx={{ display: "flex", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", ...(fill ? { minHeight: 0 } : {}) }}>
       {actionBar}
 
       {!fill && colorChips}
@@ -354,6 +363,16 @@ const DataGrid = ({
           </Table>
         </TableContainer>
       </Paper>
+      </Box>
+
+      {detail && detailOpen && (
+        <Paper variant="outlined" sx={{ width: { xs: "100%", md: 380 }, flexShrink: 0, borderRadius: "16px", overflow: "auto", minHeight: 0, ...(fill ? {} : { maxHeight }) }}>
+          {activeRow
+            ? <RowDetail row={activeRow} columns={columns} />
+            : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>}
+        </Paper>
+      )}
+      </Box>
 
       {menuKey && colByKey[menuKey] && (
         <ColumnMenu

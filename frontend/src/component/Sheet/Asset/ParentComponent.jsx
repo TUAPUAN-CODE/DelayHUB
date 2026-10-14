@@ -445,7 +445,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
       <div style={{ position: "absolute", inset: 0 }}>
       <DataGrid
-        fill actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
+        fill detail actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" defaultExt={DEFAULT_EXT} {...sharedGrid}
         rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
