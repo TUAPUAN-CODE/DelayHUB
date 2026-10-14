@@ -89,6 +89,8 @@ const DataGrid = ({
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
   // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
   detail = false,
+  // statusChips: [{ label, count, color, bg }] ของคอลัมน์สถานะ (เรียงตามลำดับกระบวนการ) แสดงแทนแถบล้างค้นหา (โหมด fill) · statusKey: key ของคอลัมน์สถานะ
+  statusChips, statusKey = "status",
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
   onCellEdit,
 }) => {
@@ -104,6 +106,7 @@ const DataGrid = ({
   const setPage = () => setLimit(pageSize);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
+  const [leadStatus, setLeadStatus] = useState(null); // สถานะที่กดในชิป: แถวของสถานะนี้ขึ้นก่อน
   const activeRow = useMemo(() => (detail && activeKey !== null ? rows.find((r) => rowKey(r) === activeKey) || null : null), [detail, rows, activeKey, rowKey]);
   // the column settings are opened from the "Setting" button of the top bar; a page without the top bar keeps its own button
   const [topbar, setTopbar] = useState(false);
@@ -167,7 +170,10 @@ const DataGrid = ({
   }, [filtered, rowColor, colorOf]);
 
   const shownRows = useMemo(() => (colorOnly ? filtered.filter((r) => colorOf(r) === colorOnly) : filtered), [filtered, colorOnly, colorOf]);
-  const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
+  const sorted = useMemo(
+    () => sortRows(shownRows, prefs.sorts, colByKey, leadStatus ? (r) => (r.__status?.label === leadStatus ? 0 : 1) : null),
+    [shownRows, prefs.sorts, colByKey, leadStatus],
+  );
 
   const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
   const onTableScroll = (e) => {
@@ -198,7 +204,13 @@ const DataGrid = ({
     setFilters((prev) => { const next = { ...prev }; if (values) next[key] = values; else delete next[key]; return next; });
     setPage(0);
   }, []);
-  const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); prefs.setSorts([]); setPage(0); };
+  const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); setLeadStatus(null); prefs.setSorts([]); setPage(0); };
+  // กดชิปสถานะ: เรียงคอลัมน์สถานะ แล้วขึ้นต้นด้วยสถานะนั้น (กดอีกครั้ง = ยกเลิก)
+  const pickStatus = (label) => {
+    if (leadStatus === label) { setLeadStatus(null); return; }
+    setLeadStatus(label);
+    setSort(statusKey, "asc");
+  };
 
   // selection
   const selSet = selected || EMPTY_SET;
@@ -277,7 +289,21 @@ const DataGrid = ({
 
       {!fill && colorChips}
 
-      {(!fill || activeFilters > 0 || prefs.sorts.length > 0) && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
+      {fill && statusChips && (
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75, mb: 1, flexShrink: 0 }}>
+          {statusChips.map((c) => {
+            const on = leadStatus === c.label;
+            return (
+              <Chip
+                key={c.label} size="small" clickable onClick={() => pickStatus(c.label)}
+                label={`${c.label} (${c.count})`}
+                sx={{ fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.95)" } }}
+              />
+            );
+          })}
+        </Box>
+      )}
+      {!fill && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
         {!fill && <Typography variant="caption" color="text.secondary">
           {activeFilters || sorted.length !== rows.length ? `แสดง ${sorted.length} จาก ${rows.length} แถว` : `${rows.length} แถว`}{caption ? ` · ${caption}` : ""}
         </Typography>}

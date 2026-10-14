@@ -19,6 +19,7 @@ import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows, statusOf } from "./buildRows";
+import { STATUS_LIST } from "./statusZones";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -392,6 +393,19 @@ const ParentComponent = ({ role, view = "work" }) => {
     window.dispatchEvent(new Event("sheet-edited")); // the Done table searches again
   };
 
+  // ชิปสถานะ: เรียงตามลำดับกระบวนการ (STATUS_LIST) และแสดงเฉพาะสถานะที่มีแถว พร้อมจำนวน
+  const statusChips = useMemo(() => {
+    const count = new Map();
+    const look = new Map();
+    rows.forEach((r) => {
+      const st = r.__status;
+      if (!st?.label) return;
+      count.set(st.label, (count.get(st.label) || 0) + 1);
+      if (!look.has(st.label)) look.set(st.label, st);
+    });
+    const order = [...new Set([...STATUS_LIST.map(([label]) => label), ...count.keys()])];
+    return order.filter((label) => count.get(label)).map((label) => ({ label, count: count.get(label), color: look.get(label).color, bg: look.get(label).bg }));
+  }, [rows]);
   const toolbarExtra = (
     <>
       {rangeBar}
@@ -445,7 +459,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
       <div style={{ position: "absolute", inset: 0 }}>
       <DataGrid
-        fill detail actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
+        fill detail statusChips={statusChips} actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" defaultExt={DEFAULT_EXT} {...sharedGrid}
         rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
