@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Box, Button, Paper, Chip, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Chip, Dialog, DialogContent, DialogTitle, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -92,6 +92,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   const [editMode, setEditMode] = useState(false); // Supervisor: double-click a cell to edit it (server allows role 6 / 8 only)
   const [editTarget, setEditTarget] = useState(null);
+  const [planPick, setPlanPick] = useState(null); // { action: "cart" | "edit", plans } — แถวที่มีหลายแผนการผลิต ให้เลือกแผนก่อน
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
   const columns = useMemo(() => columnsForRole(role), [role]);
@@ -226,12 +227,15 @@ const ParentComponent = ({ role, view = "work" }) => {
         const plan = planStamp("linein", h);
         if (statusOf(r).label !== "รอใส่รถเข็น") out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
       }
-      // ปุ่มของแผนการผลิตอยู่ในแถบ "แถวที่เลือก" (col t_bar ไม่ใช่คอลัมน์ในตาราง)
-      (r.__plans || []).forEach((p) => {
-        const tag = r.__plans.length > 1 ? ` (${p.production || p.rmfp_id})` : "";
-        out.push({ col: "t_bar", key: `cart-plan-${p.rmfp_id}`, label: `Put in trolley${tag}`, color: "#1552F0", title: "ใส่รถเข็น", run: () => manageRef.current?.openCart(p) });
-        out.push({ col: "t_bar", key: `edit-plan-${p.rmfp_id}`, label: `Change production plan${tag}`, color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => manageRef.current?.openEdit(p) });
-      });
+      // ปุ่มของแผนการผลิตอยู่ในแถบ "แถวที่เลือก" (col t_bar ไม่ใช่คอลัมน์ในตาราง) — ปุ่มละ 1 อัน; ถ้ามีหลายแผนจะให้เลือกแผนก่อน
+      if (r.__plans?.length) {
+        const pick = (action) => {
+          if (r.__plans.length === 1) return (action === "cart" ? manageRef.current?.openCart : manageRef.current?.openEdit)?.(r.__plans[0]);
+          setPlanPick({ action, plans: r.__plans });
+        };
+        out.push({ col: "t_bar", key: "cart-plan", label: "Put in trolley", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
+        out.push({ col: "t_bar", key: "edit-plan", label: "Change production plan", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
+      }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
         const ref = mixRefs[kind];
@@ -483,6 +487,20 @@ const ParentComponent = ({ role, view = "work" }) => {
       {role === "prep" && (
         <>
           <ManageModals ref={manageRef} onRefresh={load} />
+          <Dialog open={!!planPick} onClose={() => setPlanPick(null)} maxWidth="xs" fullWidth>
+            <DialogTitle>เลือกแผนการผลิต</DialogTitle>
+            <DialogContent dividers>
+              {planPick?.plans.map((p) => (
+                <Button
+                  key={p.rmfp_id} fullWidth variant="outlined"
+                  sx={{ justifyContent: "flex-start", mb: 1, textTransform: "none" }}
+                  onClick={() => { const m = manageRef.current; const open = planPick.action === "cart" ? m?.openCart : m?.openEdit; setPlanPick(null); open?.(p); }}
+                >
+                  {[p.production, p.rm_group_name, p.level_eu && `EU ${p.level_eu}`].filter(Boolean).join(" · ") || `แผน ${p.rmfp_id}`}
+                </Button>
+              ))}
+            </DialogContent>
+          </Dialog>
           <CameraActivationModal
             open={scan.camera} onClose={() => setScan((s) => ({ ...s, camera: false }))}
             onConfirm={(m, b, h) => setScan({ camera: false, review: true, mat: m, batch: b, hu: h })}
