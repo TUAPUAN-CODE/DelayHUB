@@ -20,6 +20,7 @@ import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows, statusOf } from "./buildRows";
 import { STATUS_LIST } from "./statusZones";
+import StatusOrderSettings from "./StatusOrderSettings";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -452,6 +453,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "color", label: "สีแถว", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "status", label: "พื้นที่สถานะ", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
+    { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings ext={ext} setExt={setExt} /> },
   ], [lineNames]);
   const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
 

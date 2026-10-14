@@ -206,6 +206,14 @@ const DataGrid = ({
   }, []);
   const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); setLeadStatus(null); prefs.setSorts([]); setPage(0); };
   // กดชิปสถานะ: เรียงคอลัมน์สถานะ แล้วขึ้นต้นด้วยสถานะนั้น (กดอีกครั้ง = ยกเลิก)
+  // ลำดับชิป: ตามที่ผู้ใช้ตั้งไว้ในการตั้งค่า (ext.statusOrder) — สถานะที่ไม่อยู่ในลำดับจะต่อท้าย
+  const chipsOrdered = useMemo(() => {
+    if (!statusChips) return null;
+    const order = prefs.ext?.statusOrder || [];
+    if (!order.length) return statusChips;
+    const rank = new Map(order.map((l, i) => [l, i]));
+    return [...statusChips].sort((a, b) => (rank.get(a.label) ?? 9999) - (rank.get(b.label) ?? 9999));
+  }, [statusChips, prefs.ext]);
   const pickStatus = (label) => {
     if (leadStatus === label) { setLeadStatus(null); return; }
     setLeadStatus(label);
@@ -289,14 +297,14 @@ const DataGrid = ({
 
       {!fill && colorChips}
 
-      {fill && statusChips && (
+      {fill && chipsOrdered && (
         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75, mb: 1, flexShrink: 0 }}>
-          {statusChips.map((c) => {
+          {chipsOrdered.map((c) => {
             const on = leadStatus === c.label;
             return (
               <Chip
                 key={c.label} size="small" clickable onClick={() => pickStatus(c.label)}
-                label={`${c.label} (${c.count})`}
+                label={<>{c.label} <span style={{ opacity: 0.85 }}>({c.count})</span></>}
                 sx={{ fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.95)" } }}
               />
             );
