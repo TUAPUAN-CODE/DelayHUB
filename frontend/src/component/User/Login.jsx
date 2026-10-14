@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { clearUserLocalStorage } from "../../services/localStorageUtil";
 import { setToken } from "../../services/authClient";
 import { WORKPLACE_ROUTES } from "../../services/roleRoutes";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
 import {
-  Container,
   TextField,
   Button,
   Typography,
-  Paper,
   Box,
   IconButton,
   InputAdornment,
   CssBaseline,
+  Link,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useForm } from "react-hook-form";
@@ -22,6 +21,22 @@ import * as yup from "yup";
 import FloatingLanguageSwitcher from "../Layout/FloatingLanguageSwitcher";
 import { useNavigate } from "react-router-dom"; // นำเข้า useNavigate
 const API_URL = import.meta.env.VITE_API_URL;
+
+// ช่องกรอกแบบกระจก (ตัวอักษรสีขาว ขอบจาง) — ใช้ร่วมกันทั้งสองช่อง
+const glassField = {
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,.8)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#cdeeff" },
+  "& .MuiOutlinedInput-root": {
+    color: "#fff",
+    borderRadius: "10px",
+    background: "rgba(255,255,255,.14)",
+    "& fieldset": { borderColor: "rgba(255,255,255,.3)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,.55)" },
+    "&.Mui-focused fieldset": { borderColor: "#4fb6e8" },
+  },
+  "& .MuiFormHelperText-root": { color: "#ffd6d6" },
+};
+const linkSx = { color: "#cdeeff", fontWeight: 700 };
 
 // Schema ตรวจสอบข้อมูล
 const schema = yup.object().shape({
@@ -103,119 +118,133 @@ const Login = () => {
     <FloatingLanguageSwitcher />
     <Box
       sx={{
-        minHeight: "100vh",
+        position: "fixed",
+        inset: 0,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        px: { xs: 2, md: 0 },
-        background: "linear-gradient(135deg, #1552F0 0%, #0F3FC4 100%)",
+        px: 2,
+        overflow: "hidden",
+        backgroundImage: "url('/Cat.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
       <CssBaseline />
-      <Container maxWidth="lg">
-        <Paper
-          elevation={0}
-          sx={{
-            display: "flex",
-            overflow: "hidden",
-            borderRadius: 5,
-            boxShadow: "0 24px 60px rgba(8, 28, 110, .35)",
-            animation: "pageIn .45s cubic-bezier(.22,1,.36,1) both",
-          }}
-        >
-          {/* พื้นที่รูปภาพ */}
-          <Box
-            sx={{
-              width: "50%",
-              backgroundImage: "url('/Cat.jpg')",
-              backgroundSize: "80vh",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              display: { xs: "none", md: "block" },
+      {/* ฉากหลังมืด — ให้การ์ดกระจกอ่านง่าย */}
+      <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,24,60,.35) 0%, rgba(6,24,60,.75) 100%)" }} />
+
+      <Box
+        component="section"
+        aria-labelledby="login-title"
+        sx={{
+          position: "relative",
+          width: "100%",
+          maxWidth: 420,
+          px: { xs: 3, sm: 4.5 },
+          py: { xs: 4.5, sm: 5.5 },
+          borderRadius: "24px",
+          color: "#fff",
+          background: "linear-gradient(155deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.08) 45%, rgba(255,255,255,.14) 100%)",
+          backdropFilter: "blur(22px) saturate(140%)",
+          WebkitBackdropFilter: "blur(22px) saturate(140%)",
+          border: "1px solid rgba(255,255,255,.35)",
+          boxShadow: "0 30px 60px -15px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3)",
+          animation: "pageIn .6s cubic-bezier(.22,1,.36,1) both",
+          transition: "transform .5s cubic-bezier(.22,.9,.3,1)",
+          "@media (hover: hover) and (prefers-reduced-motion: no-preference)": {
+            perspective: "1200px",
+            "&:hover": { transform: "rotateX(2deg) rotateY(-3deg) translateY(-2px)" },
+          },
+          "@media (max-width: 480px)": { backdropFilter: "blur(14px)" },
+        }}
+      >
+        <Box sx={{ textAlign: "center", mb: 3.5 }}>
+          <Box component="img" src="/i_tail.png" alt="i-Tail" sx={{ width: 72, height: "auto", mb: 1.5, filter: "drop-shadow(0 8px 16px rgba(0,0,0,.3))", userSelect: "none", pointerEvents: "none" }} />
+          <Typography id="login-title" variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: ".02em", textShadow: "0 2px 10px rgba(0,0,0,.25)" }}>
+            เข้าสู่ระบบ
+          </Typography>
+          <Typography variant="body2" sx={{ mt: .75, color: "rgba(255,255,255,.8)" }}>
+            ยินดีต้อนรับกลับมา กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
+          </Typography>
+        </Box>
+
+        {errorMessage && (
+          <Typography role="alert" sx={{ mb: 2, px: 1.5, py: 1, borderRadius: 2, fontSize: ".85rem", color: "#ffd6d6", background: "rgba(220,38,38,.25)", border: "1px solid rgba(255,140,140,.45)" }}>
+            {errorMessage}
+          </Typography>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <TextField
+            fullWidth
+            id="user_id"
+            label="รหัสพนักงาน"
+            variant="outlined"
+            margin="normal"
+            autoComplete="username"
+            {...register("user_id")}
+            error={!!errors.user_id}
+            helperText={errors.user_id?.message}
+            sx={glassField}
+          />
+          <TextField
+            fullWidth
+            id="password"
+            label="รหัสผ่าน"
+            variant="outlined"
+            margin="normal"
+            autoComplete="current-password"
+            type={showPassword ? "text" : "password"}
+            {...register("password")}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            sx={glassField}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    edge="end"
+                    sx={{ color: "rgba(255,255,255,.85)" }}
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
           />
 
-          {/* ฟอร์ม Login */}
-          <Box
+          <Button
+            fullWidth
+            type="submit"
+            variant="contained"
             sx={{
-              width: { xs: "100%", md: "50%" },
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              py: { xs: 6, md: 10 },
-              px: { xs: 3, sm: 8, md: 10 },
-              textAlign: "center",
-              minHeight: { xs: "auto", md: "650px" },
+              mt: 2.5,
+              py: 1.4,
+              borderRadius: "12px",
+              fontWeight: 700,
+              letterSpacing: ".03em",
+              textTransform: "none",
+              color: "#fff",
+              background: "linear-gradient(135deg, #4fb6e8, #2f8cc4)",
+              boxShadow: "0 10px 22px rgba(47,140,196,.45), inset 0 1px 0 rgba(255,255,255,.4)",
+              "&:hover": { background: "linear-gradient(135deg, #5fc0ee, #3a97cf)", boxShadow: "0 14px 26px rgba(47,140,196,.55)" },
             }}
           >
-            <Typography
-              variant="h4"
-              gutterBottom
-              sx={{ fontWeight: 600, color: "#1552F0" }}
-            >
-              ยินดีต้อนรับ
-            </Typography>
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              sx={{ marginBottom: 2 }}
-            >
-              กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
-            </Typography>
-            {errorMessage && (
-              <Typography color="error" sx={{ mb: 2 }}>
-                {errorMessage}
-              </Typography>
-            )}
-            <form onSubmit={handleSubmit(onSubmit)}>
-              {/* เพิ่ม onSubmit */}
-              <TextField
-                fullWidth
-                label="รหัสพนักงาน"
-                variant="outlined"
-                margin="normal"
-                {...register("user_id")}
-                error={!!errors.user_id}
-                helperText={errors.user_id?.message}
-              />
-              <TextField
-                fullWidth
-                label="รหัสผ่าน"
-                variant="outlined"
-                margin="normal"
-                type={showPassword ? "text" : "password"}
-                {...register("password")}
-                error={!!errors.password}
-                helperText={errors.password?.message}
-              />
-              <Box mt={2}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  sx={{ padding: 1.2 }}
-                  type="submit" // เพิ่ม type="submit"
-                >
-                  เข้าสู่ระบบ
-                </Button>
-              </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", marginTop: "10px"}}>
-                <Typography variant="body2" sx={{ marginTop: 2 }} align="left">
-                  <a href="/forgot-password" className="text-base text-blue-600 py-3">
-                    ลืมรหัสผ่าน ?
-                  </a>
-                </Typography>
-                <Typography variant="body2" sx={{ marginTop: 2 }} align="right">
-                  <a href="/signup">ยังไม่มีบัญชี ? </a>
-                  <a href="/signup" className="text-base text-blue-600 py-3">
-                    ลงทะเบียน
-                  </a>
-                </Typography>
-              </Box>
-            </form>
-          </Box>
-        </Paper>
-      </Container>
+            เข้าสู่ระบบ
+          </Button>
+        </form>
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mt: 2.5, fontSize: ".85rem" }}>
+          <Link href="/forgot-password" underline="hover" sx={linkSx}>ลืมรหัสผ่าน?</Link>
+          <Typography component="span" sx={{ fontSize: "inherit", color: "rgba(255,255,255,.8)" }}>
+            ยังไม่มีบัญชี?{" "}
+            <Link href="/signup" underline="hover" sx={linkSx}>ลงทะเบียน</Link>
+          </Typography>
+        </Box>
+      </Box>
     </Box>
     </>
   );
