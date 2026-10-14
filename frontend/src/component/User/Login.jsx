@@ -50,7 +50,6 @@ const schema = yup.object().shape({
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [logoFailed, setLogoFailed] = useState(false);
   const navigate = useNavigate();
 
   const {
@@ -170,14 +169,7 @@ const Login = () => {
           "@media (max-width: 480px)": { backdropFilter: "blur(14px)" },
         }}
       >
-        <Box sx={{ textAlign: "center", mb: 3.5 }}>
-          <Box
-            component="img"
-            src={logoFailed ? "/i_tail.png" : "/logo.svg"}
-            onError={() => setLogoFailed(true)}
-            alt="i-Tail"
-            sx={{ width: 72, height: "auto", mb: 1.5, filter: "drop-shadow(0 8px 16px rgba(0,0,0,.3))", userSelect: "none", pointerEvents: "none" }}
-          />
+        <Box sx={{ textAlign: "center", mb: 3.5, mt: 1 }}>
           <Typography id="login-title" variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: ".02em", textShadow: "0 2px 10px rgba(0,0,0,.25)" }}>
             เข้าสู่ระบบ
           </Typography>
