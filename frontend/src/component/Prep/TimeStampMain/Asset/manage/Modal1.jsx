@@ -106,7 +106,7 @@ const Modal1 = ({
 
       if (batchArray && batchArray.length > 0) {
         batchArray.forEach((b) => {
-          initialBatchInputs[b] = "";
+          initialBatchInputs[b] = String(b).toUpperCase(); // ใส่ batch เดิมไว้ให้ แก้ไขได้
           initialBatchErrors[b] = false;
         });
       }
@@ -133,7 +133,7 @@ const Modal1 = ({
     checkTrolleyStatus(value);
   };
 
-  const { start: startCamera, stop: stopCamera, switchCamera, facing, cameraError } = useQrCamera(videoRef, handleDecode);
+  const { start: startCamera, stop: stopCamera, switchCamera, facing } = useQrCamera(videoRef, handleDecode);
 
   const handleClose = () => {
     onClose();
@@ -244,17 +244,6 @@ const Modal1 = ({
     }
   };
 
-  const useOldBatch = (batchValue) => {
-    setBatchInputs((prev) => ({
-      ...prev,
-      [batchValue]: batchValue.toUpperCase(),
-    }));
-    setBatchErrors((prev) => ({
-      ...prev,
-      [batchValue]: false,
-    }));
-  };
-
   // เครื่องสแกนพิมพ์ทีละตัวเร็ว ๆ และปิดด้วย Enter: เก็บตัวอักษรไว้ แล้วส่งค่าเมื่อครบ
   // (พิมพ์ด้วยคีย์บอร์ดไม่ได้ เพราะช่องเป็น readOnly)
   useEffect(() => {
@@ -307,16 +296,6 @@ const Modal1 = ({
           >
             กรุณากรอกข้อมูลหรือสแกนป้ายทะเบียน
           </Typography>
-          <Typography
-            sx={{
-              fontSize: "18px",
-              fontWeight: 500,
-              color: "#545454",
-              marginBottom: "10px",
-            }}
-          >
-            Old Batch: {batch || "ไม่มีข้อมูล"}
-          </Typography>
 
           {inputError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -336,11 +315,6 @@ const Modal1 = ({
 
           <Divider sx={{ mb: 2 }} />
 
-          {cameraError && (
-            <Alert severity="warning" sx={{ mb: 1 }}>
-              {cameraError}
-            </Alert>
-          )}
           <video
             ref={videoRef}
             style={{
@@ -364,77 +338,14 @@ const Modal1 = ({
 
           <Divider sx={{ mt: 1, mb: 1 }} />
 
-          <Typography
-            sx={{
-              fontSize: "16px",
-              fontWeight: 400,
-              color: "#333",
-              marginBottom: "8px",
-            }}
-          >
-            Batch Array:
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginBottom: 2 }}>
-            {batchArray && batchArray.length > 0 ? (
-              batchArray.map((b, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    padding: "4px 8px",
-                    backgroundColor: "#f0f0f0",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                  }}
-                >
-                  {b}
-                </Box>
-              ))
-            ) : (
-              <Typography sx={{ fontSize: "14px", color: "#999" }}>
-                ไม่มีข้อมูล
-              </Typography>
-            )}
-          </Box>
-
           {batchArray && batchArray.length > 0 && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
-              <Typography
-                sx={{
-                  fontSize: "16px",
-                  fontWeight: 500,
-                  color: "#333",
-                }}
-              >
-                กรอก Batch ใหม่สำหรับแต่ละ Batch:
-              </Typography>
-
               {batchArray.map((b, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1,
-                    padding: 2,
-                    backgroundColor: "#F5F8FF",
-                    borderRadius: "4px",
-                    border: "1px solid #E3E8F2",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      color: "#666",
-                    }}
-                  >
-                    Batch เดิม: {b}
-                  </Typography>
-
+                <Box key={idx}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <TextField
                       fullWidth
-                      label={`Batch ใหม่ ${idx + 1} (10 ตัวอักษร)`}
+                      label={batchArray.length > 1 ? `Batch ${idx + 1} (10 ตัวอักษร)` : "Batch (10 ตัวอักษร)"}
                       value={batchInputs[b] || ""}
                       onChange={(e) => handleBatchInputChange(b, e.target.value)}
                       size="small"
@@ -450,24 +361,6 @@ const Modal1 = ({
                       }}
                     />
 
-                    <Button
-                      variant="contained"
-                      onClick={() => useOldBatch(b)}
-                      sx={{
-                        backgroundColor: "#41b0e6",
-                        color: "#fff",
-                        height: "40px",
-                        minWidth: "auto",
-                        px: 2,
-                        fontSize: "0.875rem",
-                        whiteSpace: "nowrap",
-                        "&:hover": {
-                          backgroundColor: "#2c8fcc",
-                        },
-                      }}
-                    >
-                      ใช้เดิม
-                    </Button>
                   </Box>
                 </Box>
               ))}

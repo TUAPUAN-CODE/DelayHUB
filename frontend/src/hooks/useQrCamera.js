@@ -52,12 +52,7 @@ const useQrCamera = (videoRef, onDecode) => {
 
     try {
       await scanner.start();
-      // บนเครื่องที่ไม่มีกล้องหลัง เบราว์เซอร์จะใช้กล้องหน้าแทน ให้แจ้งผู้ใช้
-      const track = videoRef.current?.srcObject?.getVideoTracks?.()[0];
-      const reported = track?.getSettings?.().facingMode;
-      if (reported === "user") {
-        setCameraError("ไม่พบกล้องหลังบนอุปกรณ์นี้ กำลังใช้กล้องหน้า");
-      }
+      // เครื่องที่ไม่มีกล้องหลัง เบราว์เซอร์จะใช้กล้องหน้าแทนเอง (ไม่ต้องแจ้งผู้ใช้)
       return true;
     } catch (err) {
       console.error("[useQrCamera] camera error:", err);
