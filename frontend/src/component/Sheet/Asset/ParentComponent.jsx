@@ -291,7 +291,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (stage === "trolley") out.push({ col: "t_send", key: "send", label: "ส่งไป", color: "#047857", run: () => packRef.current?.send(r.tro_id) });
       if (stage === "ready") {
         out.push({ col: "t_edit", key: "edit", label: "แก้ไข", color: "#B26A00", run: () => moreRef.current?.edit(r) });
-        out.push({ col: "t_confirm", key: "confirm", label: "ยืนยัน", color: "#2E7D32", run: () => moreRef.current?.confirmOne(r) });
+        out.push({ col: "t_confirm", key: "confirm", label: "ลบ", color: "#C62828", run: () => moreRef.current?.confirmOne(r) });
       }
       if (confirmable || stage === "ready") {
         out.push({ col: "t_kg", key: "kg", passive: true, node: <WeightInput value={weights[r.mapping_id]} disabled={!selected.has(r.__key)} onChange={(v) => setWeights((w) => ({ ...w, [r.mapping_id]: v }))} /> });
@@ -363,6 +363,14 @@ const ParentComponent = ({ role, view = "work" }) => {
       ))}
     </>
   );
+  // Pack: ปุ่มของแถวที่ติ๊กไว้ อยู่ในแท็บ "เครื่องมือ" (onClick เป็น arrow: ฟังก์ชันถูกประกาศด้านล่าง)
+  const packBar = role === "pack" && (
+    <>
+      <Button variant="contained" size="small" color="success" disabled={!selected.size} onClick={() => confirmSelected()}>บรรจุเสร็จ ({selected.size})</Button>
+      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => mixSelected()}>ผสมวัตถุดิบ ({selected.size})</Button>
+      {CAN_ADD_RM && <Button variant="contained" size="small" onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
+    </>
+  );
   const actionBar = (
     <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#1552F0" : undefined, background: activeRow ? "#F3F7FF" : undefined }}>
       <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#1552F0" : "text.secondary" }}>
@@ -370,6 +378,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Typography>
       {mixBar}
       {gatherBar}
+      {packBar}
       {activeRow && !barItems.length && <Typography variant="body2" color="text.secondary">แถวนี้ไม่มีรายการที่ทำได้ในขั้นตอนนี้</Typography>}
       {barItems.map((it) => (it.node ? <Box key={it.key}>{it.node}</Box> : (
         <Tooltip key={it.key} title={it.ok === false ? it.title || "ยังทำรายการนี้ไม่ได้" : it.title || ""} arrow>
@@ -389,6 +398,20 @@ const ParentComponent = ({ role, view = "work" }) => {
     if (!picked.length) return;
     if (picked.some((r) => !(parseFloat(weights[r.mapping_id]) > 0))) { setToast("กรุณากรอกน้ำหนัก (kg) ให้ครบทุกแถวที่เลือก"); return; }
     moreRef.current?.confirmRows(picked, weights);
+  };
+  // ผสมวัตถุดิบจากแถวที่ติ๊ก + น้ำหนักที่กรอกในตาราง แล้วเปิดหน้าสแกน QR ทันที
+  const mixSelected = () => {
+    const picked = rows.filter((r) => selected.has(r.__key));
+    if (!picked.length) return;
+    if (picked.some((r) => !(parseFloat(weights[r.mapping_id]) > 0))) { setToast("กรุณากรอกน้ำหนัก (kg) ให้ครบทุกแถวที่เลือก"); return; }
+    const over = picked.find((r) => parseFloat(weights[r.mapping_id]) > Number(r.weight_RM || 0));
+    if (over) { setToast(`น้ำหนักเกินที่มีอยู่ (${over.weight_RM} kg): ${over.mat_name || over.batch || ""}`); return; }
+    const docOf = (p) => String(p || "").split(" (")[0].trim();
+    if (new Set(picked.map((r) => docOf(r.code))).size > 1) { setToast("ไม่สามารถผสมได้เนื่องจากคนละ Doc"); return; }
+    const materials = picked.map((r) => ({
+      mapping_id: r.mapping_id, mat: r.mat, batch: r.batch_after || r.batch, hu: r.hu, weight: parseFloat(weights[r.mapping_id]), level_eu: r.level_eu,
+    }));
+    packRef.current?.mixRows(materials, materials.reduce((sum, m) => sum + m.weight, 0));
   };
   const afterConfirm = () => { setSelected(new Set()); setWeights({}); load(); };
 
@@ -453,9 +476,6 @@ const ParentComponent = ({ role, view = "work" }) => {
       {role === "pack" && (
         <>
           {!Number.isNaN(MY_LINE) && <Chip label="ไลน์ของฉัน" clickable color={myLine ? "primary" : "default"} variant={myLine ? "filled" : "outlined"} onClick={() => setMyLine((v) => !v)} />}
-          <Button variant="contained" size="small" disabled={!selected.size} onClick={confirmSelected}>ยืนยันที่เลือก ({selected.size})</Button>
-          {CAN_ADD_RM && <Button variant="contained" size="small" onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
-          <Button variant="contained" size="small" onClick={() => packRef.current?.mix()}>ผสมวัตถุดิบ</Button>
           <Button variant="contained" size="small" onClick={() => packRef.current?.addTrolley()}>เพิ่มรถเข็น</Button>
         </>
       )}

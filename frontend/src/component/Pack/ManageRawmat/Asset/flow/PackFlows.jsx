@@ -58,7 +58,7 @@ const toQcEditData = (data) => ({
 
 /**
  * รวมขั้นตอนที่เคยอยู่คนละหน้า (QC / เพิ่มรถเข็น / ส่งรถเข็น / ผสมวัตถุดิบ) ให้เรียกจากตาราง Delay หน้าเดียว
- * ref: qc(row) · send(troId) · addTrolley() · mix()
+ * ref: qc(row) · send(troId) · addTrolley() · mix() · mixRows(materials, totalWeight)
  */
 const PackFlows = forwardRef(({ onDone, onNotify }, ref) => {
   // ── QC ──
@@ -148,6 +148,12 @@ const PackFlows = forwardRef(({ onDone, onNotify }, ref) => {
     send: openSend,
     addTrolley: () => setAddOpen(true),
     mix: () => setMixSelectOpen(true),
+    // ผสมจากแถวที่เลือกในตาราง (วัตถุดิบ + น้ำหนักที่กรอกแล้ว): ข้ามหน้าเลือก ไปหน้าสแกน QR ทันที
+    mixRows: (materials, totalWeight) => {
+      setMixMaterials(materials);
+      setMixWeight(totalWeight);
+      setMixScanOpen(true);
+    },
   }));
 
   return (
