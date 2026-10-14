@@ -167,7 +167,10 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   (hus || []).forEach((h) => {
     if (used.has(String(h.hu))) return;
     // the HU row keeps only its own SAP data; every production-plan row of the same batch is shown as its own row below
-    rows.push({ ...h, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: [] });
+    // the HU row has no raw material group: show the DBS1..DBS4 standard of its own plan (same mat + batch + HU) when there is one
+    const std = (planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).find((p) => (!p.hu || String(p.hu) === String(h.hu)) && p.DBS1 != null);
+    const stdFields = std ? { DBS1: std.DBS1, DBS2: std.DBS2, DBS3: std.DBS3, DBS4: std.DBS4 } : {};
+    rows.push({ ...h, ...stdFields, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: [] });
   });
   // scanned production-plan rows that no HU row picked up (e.g. a batch typed by hand, no HU): they are their own rows, so a scan is never "lost"
   (plans || []).forEach((p) => {

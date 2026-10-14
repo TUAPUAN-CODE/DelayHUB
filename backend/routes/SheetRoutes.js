@@ -211,6 +211,14 @@ const buildHuQuery = () => `
 
 // Production-plan rows that were scanned ("สแกนป้าย SAP") but are not in a trolley yet: the same rows the old "จัดการวัตถุดิบ" page listed (all raw material types).
 // Same field names as /prep/manage/fetchRMForProd, so the "จัดการ" menu of the sheet works on them.
+// ค่ามาตรฐาน DBS1..DBS4 ของกลุ่มวัตถุดิบ (สูตรเดียวกับแถวรถเข็นใน buildMappingQuery) — ใช้ในแถวแผน / แถวผสม ให้ทุกสถานะเห็นค่ามาตรฐาน
+const dbsStdSql = (a) => `
+      FORMAT(${a}.prep_to_cold, 'N2') AS DBS1,
+      FORMAT(${a}.cold, 'N2') AS DBS2,
+      FORMAT(${a}.cold_to_pack, 'N2') AS DBS3,
+      FORMAT(CASE WHEN ${a}.rm_group_id IN (55, 85, 49, 46, 82) THEN ${a}.prep_to_pack
+                  ELSE ${a}.prep_to_cold + ${a}.cold_to_pack END, 'N2') AS DBS4`;
+
 const buildPlanQuery = () => `
   SELECT TOP (@limit)
       rmf.rmfp_id,
@@ -225,7 +233,7 @@ const buildPlanQuery = () => `
       rmf.rmfp_line_name,
       rmg.rm_type_id,
       rmg.rm_group_name,
-      rmg.cold,
+      rmg.cold,${dbsStdSql("rmg")},
       rmf.level_eu,
       rmf.remark,
       rmf.hu,
@@ -263,7 +271,7 @@ const buildMixedQuery = () => `
       rmfp.rmfp_line_name,
       rmfp.level_eu,
       CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
-      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,
+      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,${dbsStdSql("rmgx")},
       emx.emulsion_text
   FROM RMForProd rmfp WITH (NOLOCK)
   JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmfp.rmfp_id
@@ -271,6 +279,7 @@ const buildMixedQuery = () => `
   JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
   JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
   LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
+  LEFT JOIN RawMatGroup rmgx WITH (NOLOCK) ON rmfp.rm_group_id = rmgx.rm_group_id
   WHERE NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
     AND (@open_from IS NULL OR (
         COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
