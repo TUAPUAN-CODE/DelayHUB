@@ -21,14 +21,14 @@ import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
 import { registerSettings } from "./settingsBus";
 
-// vivid delay colours; each colour has its own text colour so the row stays readable (contrast >= 4.5:1). blue = a finished (Done) row
-const ROW_BG = { white: "#FFFFFF", green: "#15803D", yellow: "#FACC15", red: "#DC2626", blue: "#2563EB" };
-const ROW_FG = { white: "#13213F", green: "#FFFFFF", yellow: "#1F2937", red: "#FFFFFF", blue: "#FFFFFF" };
+// light delay colours with dark text (easy to read); blue = a finished (Done) row
+const ROW_BG = { white: "#FFFFFF", green: "#BBF7D0", yellow: "#FEF08A", red: "#FECACA", blue: "#BFDBFE" };
+const ROW_FG = { white: "#13213F", green: "#13213F", yellow: "#13213F", red: "#13213F", blue: "#13213F" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#22C55E", yellow: "#FACC15", red: "#EF4444" }; // the round colour buttons
 const GRID = "1px solid #334155";
 // solid hover colours: a translucent hover colour would let the scrolled cells show through the frozen columns
-const HOVER_BG = { white: "#EAF1FF", green: "#166534", yellow: "#EAB308", red: "#B91C1C", blue: "#1D4ED8" };
+const HOVER_BG = { white: "#EAF1FF", green: "#86EFAC", yellow: "#FDE047", red: "#FCA5A5", blue: "#93C5FD" };
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
