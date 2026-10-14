@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Box, Button, Paper, Chip, ListSubheader, Menu, MenuItem, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Chip, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -50,23 +50,6 @@ const defaultRange = () => ({ from: ymd(new Date(Date.now() - RANGE_DAYS * 86400
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
-const ManageMenu = ({ plans, onAction }) => {
-  const [anchor, setAnchor] = useState(null);
-  return (
-    <>
-      <Button size="small" variant="outlined" onClick={(e) => setAnchor(e.currentTarget)} sx={{ whiteSpace: "nowrap", minWidth: 0, px: 1, fontSize: 12 }}>จัดการ ({plans.length}) ▾</Button>
-      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
-        {plans.flatMap((p) => [
-          <ListSubheader key={`h${p.rmfp_id}`} sx={{ lineHeight: "28px", fontSize: 12 }}>{[p.production, p.rm_group_name, p.level_eu && `EU ${p.level_eu}`].filter(Boolean).join(" · ") || `แผน ${p.rmfp_id}`}</ListSubheader>,
-          ...[["cart", "ใส่รถเข็น"], ["editPlan", "เปลี่ยนแผนการผลิต"]].map(([a, label]) => (
-            <MenuItem key={`${p.rmfp_id}-${a}`} dense onClick={() => { setAnchor(null); onAction(a, p); }}>{label}</MenuItem>
-          )),
-        ])}
-      </Menu>
-    </>
-  );
-};
-
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
@@ -242,9 +225,12 @@ const ParentComponent = ({ role, view = "work" }) => {
         const plan = planStamp("linein", h);
         if (statusOf(r).label !== "รอใส่รถเข็น") out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
       }
-      if (r.__plans?.length) {
-        out.push({ col: "t_manage", key: "manage", passive: true, node: <ManageMenu plans={r.__plans} onAction={(a, p) => { const m = manageRef.current; ({ cart: m?.openCart, slip: m?.openSlip, complete: m?.openComplete, editPlan: m?.openEdit })[a]?.(p); }} /> });
-      }
+      // ปุ่มของแผนการผลิตอยู่ในแถบ "แถวที่เลือก" (col t_bar ไม่ใช่คอลัมน์ในตาราง)
+      (r.__plans || []).forEach((p) => {
+        const tag = r.__plans.length > 1 ? ` (${p.production || p.rmfp_id})` : "";
+        out.push({ col: "t_bar", key: `cart-plan-${p.rmfp_id}`, label: `Put in trolley${tag}`, color: "#1552F0", title: "ใส่รถเข็น", run: () => manageRef.current?.openCart(p) });
+        out.push({ col: "t_bar", key: `edit-plan-${p.rmfp_id}`, label: `Change production plan${tag}`, color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => manageRef.current?.openEdit(p) });
+      });
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
         const ref = mixRefs[kind];
