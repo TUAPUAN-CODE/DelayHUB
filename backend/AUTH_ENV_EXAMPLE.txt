@@ -40,3 +40,7 @@ AUTH_JWT_SECRET=
 # ALERT_POOL_PENDING=10
 # ALERT_5XX_RATE=0.05
 # ALERT_EVENTLOOP_LAG_MS=1500
+
+# รหัสสำหรับบันทึกค่าตั้งกลางของหน้า Sheet (ใช้ร่วมกันทุกบัญชี เช่น ลำดับสถานะบนแถบเหนือตาราง)
+# ไม่ตั้ง = บันทึกไม่ได้ (server ตอบ 503) · ตั้งแล้วต้อง pm2 reload PFCMv2-backend --update-env
+# SHEET_GLOBAL_SETTING_PASSWORD=

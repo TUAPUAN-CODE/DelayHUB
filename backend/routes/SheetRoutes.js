@@ -499,6 +499,84 @@ router.put("/sheet/prefs", async (req, res) => {
   }
 });
 
+// ── ค่าตั้งกลางของหน้า Sheet ที่ทุกบัญชีใช้ร่วมกัน (ตอนนี้: ลำดับสถานะบนแถบเหนือตาราง) ──
+// เก็บในตาราง SheetUserPrefs แถว user_id = 0, sheet_key = 'global' (ไม่ต้องสร้างตารางใหม่)
+// อ่านได้ทุกคน · บันทึกได้เมื่อใส่รหัสตรงกับ SHEET_GLOBAL_SETTING_PASSWORD ใน .env ของ backend (server ตรวจ ไม่ใช่หน้าเว็บ)
+const GLOBAL_USER_ID = 0;
+const GLOBAL_SHEET_KEY = "global";
+const STATUS_ORDER_MAX = 80;
+const STATUS_LABEL_MAX = 100;
+
+const samePassword = (given, expected) => {
+  const a = Buffer.from(String(given));
+  const b = Buffer.from(String(expected));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
+const readGlobalSettings = async (pool) => {
+  const result = await withPrefsTable(pool, () => pool.request()
+    .input("user_id", sql.Int, GLOBAL_USER_ID)
+    .input("sheet_key", sql.NVarChar(50), GLOBAL_SHEET_KEY)
+    .query("SELECT config FROM SheetUserPrefs WHERE user_id = @user_id AND sheet_key = @sheet_key"));
+  const raw = result.recordset[0]?.config;
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) || {};
+  } catch (err) {
+    console.error("[Sheet] global settings JSON error:", err.message);
+    return {};
+  }
+};
+
+router.get("/sheet/global-settings", async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    res.json({ success: true, data: await readGlobalSettings(pool) });
+  } catch (err) {
+    console.error("[Route GET /sheet/global-settings] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put("/sheet/global-settings", async (req, res) => {
+  const { password, statusOrder } = req.body || {};
+  const expected = process.env.SHEET_GLOBAL_SETTING_PASSWORD;
+  if (!expected) {
+    return res.status(503).json({ success: false, error: "ยังไม่ได้ตั้งรหัส SHEET_GLOBAL_SETTING_PASSWORD ใน .env ของ backend" });
+  }
+  if (typeof password !== "string" || !samePassword(password, expected)) {
+    logger.warn("global_setting_bad_password", { id: req.id, by: req.user ? req.user.user_id : null });
+    return res.status(401).json({ success: false, error: "รหัสผ่านไม่ถูกต้อง" });
+  }
+  const validOrder = Array.isArray(statusOrder)
+    && statusOrder.length <= STATUS_ORDER_MAX
+    && statusOrder.every((l) => typeof l === "string" && l.length > 0 && l.length <= STATUS_LABEL_MAX);
+  if (!validOrder) {
+    return res.status(400).json({ success: false, error: "ลำดับสถานะไม่ถูกต้อง" });
+  }
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const next = { ...(await readGlobalSettings(pool)), statusOrder: [...new Set(statusOrder)] };
+    await withPrefsTable(pool, () => pool.request()
+      .input("user_id", sql.Int, GLOBAL_USER_ID)
+      .input("sheet_key", sql.NVarChar(50), GLOBAL_SHEET_KEY)
+      .input("config", sql.NVarChar(sql.MAX), JSON.stringify(next))
+      .query(`
+        UPDATE SheetUserPrefs SET config = @config, updated_at = GETDATE()
+        WHERE user_id = @user_id AND sheet_key = @sheet_key;
+        IF @@ROWCOUNT = 0
+          INSERT INTO SheetUserPrefs (user_id, sheet_key, config) VALUES (@user_id, @sheet_key, @config);
+      `));
+    logger.info("global_setting_saved", { id: req.id, by: req.user ? req.user.user_id : null, key: "statusOrder" });
+    res.json({ success: true, message: "บันทึกการตั้งค่าสำเร็จ", data: next });
+  } catch (err) {
+    console.error("[Route PUT /sheet/global-settings] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ── Supervisor edit of a table row (in-process / done) ────────────────────
 // Only role 6 / 8 (rule in lib/authMiddleware.js). Every column that may be edited is listed here — the column name never comes from the request,
 // only from this list, so it can be put in the statement; the value is always a parameter. One request = one mapping, all changes in one transaction.

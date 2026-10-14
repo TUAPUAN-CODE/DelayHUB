@@ -19,8 +19,7 @@ import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows, statusOf } from "./buildRows";
-import { STATUS_LIST } from "./statusZones";
-import StatusOrderSettings from "./StatusOrderSettings";
+import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -93,7 +92,20 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   const [editMode, setEditMode] = useState(false); // Supervisor: double-click a cell to edit it (server allows role 6 / 8 only)
   const [editTarget, setEditTarget] = useState(null);
-  const [planPick, setPlanPick] = useState(null); // { action: "cart" | "edit", plans } — แถวที่มีหลายแผนการผลิต ให้เลือกแผนก่อน
+  const [planPick, setPlanPick] = useState(null);
+  // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
+  const [globalOrder, setGlobalOrder] = useState([]);
+  useEffect(() => {
+    const loadGlobal = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/sheet/global-settings`);
+        setGlobalOrder(res.data.data?.statusOrder || []);
+      } catch (err) {
+        console.error("[Sheet] global settings error:", err.message);
+      }
+    };
+    loadGlobal();
+  }, []); // { action: "cart" | "edit", plans } — แถวที่มีหลายแผนการผลิต ให้เลือกแผนก่อน
   const [pstamp, setPstamp] = useState(null); // { kind, hu } — Prep time stamp of a SAP/HU row (receive / boil done / return)
 
   const columns = useMemo(() => columnsForRole(role), [role]);
@@ -220,8 +232,13 @@ const ParentComponent = ({ role, view = "work" }) => {
     }
     if (role === "prep") {
       if (h && h.sap_re_id !== undefined) {
+        // รับ / ต้ม/อบเสร็จ / ส่งคืน ตามสถานะของแถว: จ่ายลงไลน์แล้ว = กด "รับ" ได้อย่างเดียว · อยู่ที่ไลน์ = ต้ม/อบเสร็จ และส่งคืนได้ · สถานะอื่นทั้งหมด = กดไม่ได้
+        const stLabel = statusOf(r).label;
+        const allowed = stLabel === "จ่ายลงไลน์แล้ว" ? ["receive"] : stLabel === "อยู่ที่ไลน์" ? ["boil", "return"] : [];
+        const reason = stLabel === "จ่ายลงไลน์แล้ว" ? "ต้องกด รับ ก่อน" : stLabel === "อยู่ที่ไลน์" ? "รับวัตถุดิบแล้ว" : `สถานะ ${stLabel} ทำรายการนี้ไม่ได้`;
         [["receive", "รับ", "#2e7d32", "บันทึกเวลารับวัตถุดิบ"], ["boil", "ต้ม/อบเสร็จ", "#e65100", "บันทึกเวลาต้มอบเสร็จ"], ["return", "ส่งคืน", "#6a1b9a", "บันทึกเวลาส่งคืนวัตถุดิบ"]].forEach(([k, label, color, title]) => {
-          out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, title, run: () => setPstamp({ kind: k, hu: h }) });
+          const ok = allowed.includes(k);
+          out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, ok, title: ok ? title : reason, run: () => { if (ok) setPstamp({ kind: k, hu: h }); } });
         });
         // ไลน์รับเข้า (SAP HU): same rule as the scan button — after ละลายเสร็จ of the round, once per round
         // สถานะ "รอใส่รถเข็น" ไม่ต้องมีปุ่มไลน์รับเข้า
@@ -265,7 +282,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (r.cs_id && r.cs_id >= 10 && r.dest === "ในห้องเย็นใหญ่") out.push({ col: "t_cs2", key: "out", label: "ส่งออก", color: "#2E7D32", run: () => largeRef.current?.checkout(r) });
     }
     const stage = r.__stage;
-    if (role === "qc" || role === "pack") {
+    if (role === "qc" || role === "pack" || role === "prep") {
       if (stage === "qc") out.push({ col: "t_qc", key: "qc", label: "ตรวจ QC", color: "#B45309", run: () => packRef.current?.qc(r) });
     }
     if (role === "pack") {
@@ -352,6 +369,7 @@ const ParentComponent = ({ role, view = "work" }) => {
         {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
       </Typography>
       {mixBar}
+      {gatherBar}
       {activeRow && !barItems.length && <Typography variant="body2" color="text.secondary">แถวนี้ไม่มีรายการที่ทำได้ในขั้นตอนนี้</Typography>}
       {barItems.map((it) => (it.node ? <Box key={it.key}>{it.node}</Box> : (
         <Tooltip key={it.key} title={it.ok === false ? it.title || "ยังทำรายการนี้ไม่ได้" : it.title || ""} arrow>
@@ -407,9 +425,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       count.set(st.label, (count.get(st.label) || 0) + 1);
       if (!look.has(st.label)) look.set(st.label, st);
     });
-    const order = [...new Set([...STATUS_LIST.map(([label]) => label), ...count.keys()])];
+    const order = [...new Set([...fullStatusOrder(globalOrder), ...count.keys()])];
     return order.filter((label) => count.get(label)).map((label) => ({ label, count: count.get(label), color: look.get(label).color, bg: look.get(label).bg }));
-  }, [rows]);
+  }, [rows, globalOrder]);
   const toolbarExtra = (
     <>
       {rangeBar}
@@ -419,7 +437,6 @@ const ParentComponent = ({ role, view = "work" }) => {
           onClick={() => setEditMode((v) => !v)}
         />
       )}
-      {gatherBar}
       {role === "prep" && (
         <>
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
@@ -452,8 +469,8 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "color", label: "สีแถว", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "status", label: "พื้นที่สถานะ", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
-    { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings ext={ext} setExt={setExt} /> },
-  ], [lineNames]);
+    { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings savedOrder={globalOrder} onSaved={setGlobalOrder} /> },
+  ], [lineNames, globalOrder]);
   const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
 
   return (

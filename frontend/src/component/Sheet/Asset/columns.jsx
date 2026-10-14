@@ -25,7 +25,12 @@ const ToolButtons = ({ items }) => {
       <span><IconButton size="small" onClick={it.run} sx={{ color: it.ok === false ? "#C5CCD9" : it.color }}>{it.icon}</IconButton></span>
     </Tooltip>
   ) : (
-    <Button key={it.key} size="small" variant="outlined" onClick={it.run} sx={{ py: 0, px: 1, minWidth: 0, fontSize: 12, textTransform: "none", whiteSpace: "nowrap", color: it.color, borderColor: it.color, mr: 0.5, mb: 0.25 }}>{it.label}</Button>
+    // ok === false: the button is shown but cannot be pressed (the reason is in the tooltip)
+    <Tooltip key={it.key} title={it.ok === false ? it.title || "" : ""} arrow>
+      <span>
+        <Button size="small" variant="outlined" disabled={it.ok === false} onClick={it.run} sx={{ py: 0, px: 1, minWidth: 0, fontSize: 12, textTransform: "none", whiteSpace: "nowrap", color: it.color, borderColor: it.color, mr: 0.5, mb: 0.25 }}>{it.label}</Button>
+      </span>
+    </Tooltip>
   )));
 };
 

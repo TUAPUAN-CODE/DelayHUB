@@ -207,14 +207,8 @@ const DataGrid = ({
   }, []);
   const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); setLeadStatus(null); prefs.setSorts([]); setPage(0); };
   // กดชิปสถานะ: เรียงคอลัมน์สถานะ แล้วขึ้นต้นด้วยสถานะนั้น (กดอีกครั้ง = ยกเลิก)
-  // ลำดับชิป: ตามที่ผู้ใช้ตั้งไว้ในการตั้งค่า (ext.statusOrder) — สถานะที่ไม่อยู่ในลำดับจะต่อท้าย
-  const chipsOrdered = useMemo(() => {
-    if (!statusChips) return null;
-    const order = prefs.ext?.statusOrder || [];
-    if (!order.length) return statusChips;
-    const rank = new Map(order.map((l, i) => [l, i]));
-    return [...statusChips].sort((a, b) => (rank.get(a.label) ?? 9999) - (rank.get(b.label) ?? 9999));
-  }, [statusChips, prefs.ext]);
+  // ลำดับชิปมาจากหน้าที่ส่งมา (หน้า Sheet ใช้ค่ากลางลำดับสถานะของทุกบัญชี)
+  const chipsOrdered = statusChips || null;
   const pickStatus = (label) => {
     if (leadStatus === label) { setLeadStatus(null); return; }
     setLeadStatus(label);
