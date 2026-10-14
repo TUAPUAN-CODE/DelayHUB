@@ -273,9 +273,10 @@ const DataGrid = ({
 
   return (
     <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0 }}>
+      {/* fill: แถวเดียวเสมอ (เลื่อนแนวนอนได้เมื่อจอแคบ) เพื่อให้ปุ่ม Detail อยู่แถวเดียวกับช่องค้นหา */}
+      <Box sx={{ display: "flex", flexWrap: fill ? "nowrap" : "wrap", overflowX: fill ? "auto" : undefined, gap: 1, alignItems: "center", mb: 1, flexShrink: 0, pb: fill ? 0.5 : 0 }}>
         <TextField
-          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: 240 }}
+          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 160 : 240 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
         />
         {fill && colorChips}
@@ -288,7 +289,7 @@ const DataGrid = ({
           </>
         )}
         {onReload && !hideReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
-        {detail && <Button variant={detailOpen ? "contained" : "outlined"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)}>Detail</Button>}
+        {detail && <Button variant={detailOpen ? "contained" : "outlined"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)} sx={{ flexShrink: 0, whiteSpace: "nowrap", ml: "auto" }}>Detail</Button>}
       </Box>
 
       <Box sx={{ display: "flex", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
