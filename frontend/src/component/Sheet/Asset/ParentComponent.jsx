@@ -365,11 +365,11 @@ const ParentComponent = ({ role, view = "work" }) => {
   // Pack: ปุ่มของแถวที่ติ๊กไว้ อยู่ในแท็บ "เครื่องมือ" (onClick เป็น arrow: ฟังก์ชันถูกประกาศด้านล่าง)
   const packBar = role === "pack" && (
     <>
-      <Button variant="contained" size="small" color="success" disabled={!selected.size} onClick={() => confirmSelected()}>บรรจุเสร็จ ({selected.size})</Button>
-      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => mixSelected()}>ผสมวัตถุดิบ ({selected.size})</Button>
-      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => openBatch("cart")}>ใส่รถเข็น ({selected.size})</Button>
-      <Button variant="contained" size="small" color="warning" disabled={!selected.size} onClick={() => openBatch("edit")}>แก้ไขแผนการผลิต ({selected.size})</Button>
-      <Button variant="contained" size="small" color="error" disabled={!selected.size} onClick={() => openBatch("delete")}>ลบ ({selected.size})</Button>
+      <Button variant="contained" size="small" color="success" disabled={!selected.size} onClick={() => confirmSelected()}><span>บรรจุเสร็จ</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => mixSelected()}><span>ผสมวัตถุดิบ</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" color="warning" disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
+      <Button variant="contained" size="small" color="error" disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
       {CAN_ADD_RM && <Button variant="contained" size="small" onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
     </>
   );

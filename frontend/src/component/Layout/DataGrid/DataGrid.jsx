@@ -22,6 +22,9 @@ import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows
 import { registerSettings } from "./settingsBus";
 
 const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA", blue: "#DCEBFF" }; // blue = a finished (Done) row
+// glass: scrolling cells are translucent (the frosted table panel shows through); frozen cells stay solid so the scrolled cells never show through them
+const GLASS_ROW_BG = { white: "rgba(255,255,255,.45)", green: "rgba(232,245,233,.78)", yellow: "rgba(255,248,225,.80)", red: "rgba(253,236,234,.80)", blue: "rgba(220,235,255,.80)" };
+const SOLID_ROW_BG = { white: "#F8FAFF", ...ROW_BG };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#2E7D32", yellow: "#B26A00", red: "#C62828" };
 const GRID = "2px solid #263238";
@@ -30,7 +33,7 @@ const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
-const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "6px 8px" };
+const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "6px 8px", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" };
 
 const DefaultCell = ({ col, row }) => {
   const v = cellValue(col, row);
@@ -43,13 +46,13 @@ const DefaultCell = ({ col, row }) => {
 // Body cells are plain <td> (with the MUI class names, so the table-level border / hover rules still apply) and the tick box is a native input:
 // a MUI TableCell + Checkbox per cell made every render of a few hundred rows take seconds. Rows are memoised: every prop is a primitive or a stable reference.
 const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#1B2333", padding: "3px 8px", verticalAlign: "inherit", display: "table-cell" };
-const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
+const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, solidBg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
   <TableRow
     hover onClick={onPick ? () => onPick(row) : undefined}
     sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
       <td className="MuiTableCell-root MuiTableCell-body" onClick={(e) => e.stopPropagation()}
-        style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: bg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
+        style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: solidBg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
         <input type="checkbox" checked={checked} disabled={!canSelect} onChange={() => onToggle(rowId)} style={{ width: 16, height: 16, cursor: canSelect ? "pointer" : "default", accentColor: "#1552F0", verticalAlign: "middle" }} />
       </td>
     )}
@@ -61,7 +64,7 @@ const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, hoverBg, selectable, c
           key={c.key} className={`MuiTableCell-root MuiTableCell-body${c.lastFrozen ? " frozen-edge" : ""}`}
           onDoubleClick={onCell && c.editable ? () => onCell(row, c) : undefined} title={onCell && c.editable ? "ดับเบิลคลิกเพื่อแก้ไข" : undefined}
           style={{
-            ...CELL, background: bg, textAlign: c.align || "left",
+            ...CELL, background: sticky ? solidBg : bg, textAlign: c.align || "left",
             ...(sticky ? { position: "sticky", left, zIndex: 2, width: c.width, minWidth: c.width, maxWidth: c.width, overflow: "hidden", whiteSpace: c.kind === "tool" ? "normal" : "nowrap", textOverflow: "ellipsis" } : { width: c.width, maxWidth: c.width, overflow: "hidden", wordBreak: "break-word" }),
           }}
         >
@@ -321,7 +324,7 @@ const DataGrid = ({
       <Paper sx={{ position: "relative", borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
         {/* โหลดครั้งแรก / รีเฟรช: ยังไม่มีข้อมูลสักแถว -> แสดงหน้าโหลดทับพื้นที่ตาราง (โหลดซ้ำตอนมีข้อมูลแล้วไม่บังตาราง) */}
         {loading && !rows.length && (
-          <Box sx={{ position: "absolute", inset: 0, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.88)", minHeight: 260 }}>
+          <Box sx={{ position: "absolute", inset: 0, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", minHeight: 260 }}>
             <HamsterLoader />
           </Box>
         )}
@@ -388,7 +391,7 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={color ? ROW_BG[color] : "#fff"} hoverBg={HOVER_BG[color || "white"]}
+                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={GLASS_ROW_BG[color || "white"]} solidBg={SOLID_ROW_BG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
                     active={activeKey !== null && activeKey === key} onPick={stablePick} onCell={stableCell}
                   />

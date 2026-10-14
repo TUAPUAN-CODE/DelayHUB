@@ -17,8 +17,64 @@ body, html {
   margin: 0;
   font-family: 'Prompt', 'Noto Sans Thai', system-ui, sans-serif;
   color: rgb(var(--c-text));
-  background: rgb(var(--c-bg));
+  background: #EEF2FB;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Glassmorphism ----------
+   A fixed colourful background behind everything; every surface (Paper, dialog, table, header, old pages that set white inline)
+   is translucent white + blur on top of it. Values are kept in sync with GLASS / GLASS_STRONG in theme/dochubTheme.js. */
+body { background: transparent; } /* html paints the base colour; body must stay clear or it would cover body::before */
+:root {
+  --glass-bg: rgb(255 255 255 / .58);
+  --glass-bg-strong: rgb(255 255 255 / .80);
+  --glass-blur: blur(18px) saturate(160%);
+  --glass-border: 1px solid rgb(255 255 255 / .65);
+  --glass-shadow: 0 8px 32px rgb(31 45 110 / .12), inset 0 1px 0 rgb(255 255 255 / .6);
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(at 8% 12%, rgb(21 82 240 / .42) 0, transparent 48%),
+    radial-gradient(at 92% 8%, rgb(139 92 246 / .34) 0, transparent 44%),
+    radial-gradient(at 80% 88%, rgb(6 182 212 / .36) 0, transparent 48%),
+    radial-gradient(at 15% 92%, rgb(236 72 153 / .24) 0, transparent 42%),
+    radial-gradient(at 50% 50%, rgb(255 255 255 / .35) 0, transparent 60%),
+    linear-gradient(135deg, #DCE6FF 0%, #ECE6FF 50%, #DDF6FF 100%);
+}
+.glass {
+  background-color: var(--glass-bg) !important;
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: var(--glass-border); box-shadow: var(--glass-shadow);
+}
+/* every MUI surface gets the blur (colour comes from the theme); Alerts / snackbars keep their own colours */
+.MuiPaper-root:not(.MuiAlert-root):not(.MuiSnackbarContent-root):not(.MuiAppBar-root) {
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+.MuiPaper-elevation:not(.MuiAlert-root):not(.MuiSnackbarContent-root):not(.MuiAppBar-root):not(.MuiDialog-paper):not(.MuiPopover-paper):not(.MuiMenu-paper) {
+  border: var(--glass-border); box-shadow: var(--glass-shadow);
+}
+/* old pages that paint white inline / with Tailwind: turn the white into glass */
+.MuiPaper-root[style*="background-color: rgb(255, 255, 255)"], .MuiPaper-root[style*="background: rgb(255, 255, 255)"],
+div[style*="background-color: rgb(255, 255, 255)"], div[style*="background: rgb(255, 255, 255)"],
+section[style*="background-color: rgb(255, 255, 255)"], .bg-white {
+  background-color: var(--glass-bg) !important;
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+/* plain MUI <Modal> (not Dialog): the content box becomes strong glass */
+.MuiModal-root:not(.MuiDialog-root):not(.MuiPopover-root):not(.MuiMenu-root) > .MuiBox-root {
+  background-color: var(--glass-bg-strong) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
+  border: var(--glass-border);
+}
+/* table body: translucent rows so the glass of the table panel shows through */
+.MuiTableBody-root .MuiTableCell-root:not([style*="background"]) { background-color: rgb(255 255 255 / .35); }
+/* small screens: a lighter blur keeps scrolling smooth on the floor tablets / phones */
+@media (max-width: 600px) {
+  :root { --glass-blur: blur(10px) saturate(150%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass-bg: rgb(255 255 255 / .94); --glass-bg-strong: rgb(255 255 255 / .97); }
 }
 input, textarea, select, button,
 .MuiTypography-root, .MuiButton-root, .MuiInputBase-root, .MuiOutlinedInput-root, .MuiTableCell-root,
@@ -32,7 +88,7 @@ input, textarea, select, button,
 
 /* ---------- Page area (every module page root: "flex-1 overflow-auto relative z-10") ---------- */
 .flex-1.overflow-auto.relative.z-10 {
-  background-color: rgb(var(--c-bg)) !important;
+  background-color: transparent !important;
   animation: pageIn .32s cubic-bezier(.22, 1, .36, 1) both;
 }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -83,7 +139,9 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
 
 /* ---------- Shared top bar (Layout/AppSidebar.jsx) ---------- */
 .app-topbar { position: relative; z-index: 20; flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px;
-  background: rgb(var(--c-primary)); color: #fff; font-family: 'Prompt', sans-serif; box-shadow: 0 2px 8px rgb(0 0 0 / .18); }
+  background: rgb(var(--c-primary) / .78); color: #fff; font-family: 'Prompt', sans-serif;
+  -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
+  border-bottom: 1px solid rgb(255 255 255 / .25); box-shadow: 0 4px 24px rgb(21 82 240 / .22); }
 .app-top-brand { flex-shrink: 0; line-height: 1.15; padding-right: 8px; border-right: 1px solid rgb(255 255 255 / .25); }
 .app-top-title { font-size: 16px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
 .app-top-sub { font-size: 10.5px; color: rgb(255 255 255 / .75); white-space: nowrap; }

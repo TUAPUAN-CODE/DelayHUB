@@ -71,15 +71,12 @@ const Header = ({ title }) => {
   const initial = (user?.name || "").trim().charAt(0).toUpperCase() || "?";
   return (
     <header
-      className="header-container"
+      className="header-container glass"
       style={{
-        backgroundColor: "#fff",
         color: "#1B2333",
         marginTop: 10,
         borderRadius: 14,
         minHeight: 52,
-        border: "1px solid #E3E8F2",
-        boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.07)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -101,7 +98,7 @@ const Header = ({ title }) => {
       {/* User Card */}
       <div
         className="user-card"
-        style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px", borderRadius: 12, background: "#F5F8FF", fontSize: 11, color: "#6B7489" }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px", borderRadius: 12, background: "rgba(255,255,255,.55)", fontSize: 11, color: "#6B7489" }}
       >
         <div
           style={{
