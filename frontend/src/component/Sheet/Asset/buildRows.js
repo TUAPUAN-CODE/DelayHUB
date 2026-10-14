@@ -130,7 +130,10 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   // absorb = true: the plan rows belong to a trolley row (mapping) and are shown inside it. false: each plan row gets a row of its own (one row per plan entry)
   const plansOf = (h, absorb = true) => {
     if (!h) return [];
-    const list = [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || []).map((p) => [p.rmfp_id, p])).values()];
+    // a plan of another HU of the same batch belongs to that HU: only plans with no HU or this HU are taken
+    const list = [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || [])
+      .filter((p) => !p.hu || String(p.hu) === String(h.hu))
+      .map((p) => [p.rmfp_id, p])).values()];
     if (absorb) list.forEach((p) => consumed.add(p.rmfp_id));
     return list;
   };
