@@ -173,8 +173,10 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   (plans || []).forEach((p) => {
     if (consumed.has(p.rmfp_id)) return;
     consumed.add(p.rmfp_id);
+    // the SAP times of its HU (เริ่มละลาย / ละลายเสร็จ / จ่ายลงไลน์ / ไลน์รับเข้า …) are shown on the plan row too; the HU tools stay on the HU row (__hu: null)
+    const h = p.hu ? huByKey.get(String(p.hu)) : null;
     rows.push({
-      ...p, weight_RM: p.weight, code: p.production, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
+      ...(h ? mergeHu(p, h) : p), weight_RM: p.weight, code: p.production, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
     });
   });
   // mixed lots (emulsions mixed into a production-plan row) that are not in a trolley yet: rows of their own, with the emulsion text
