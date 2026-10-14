@@ -51,6 +51,9 @@ const defaultRange = () => ({ from: ymd(new Date(Date.now() - RANGE_DAYS * 86400
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
+// Pack: แถวสถานะ "รอบรรจุเสร็จ" ติ๊ก / ใส่น้ำหนัก / บรรจุเสร็จ ได้ทั้งหมด ไม่ดูสถานะวัตถุดิบ (rm_status)
+const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date && (r.__stage === "ready" || r.__status?.label === "รอบรรจุเสร็จ");
+
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
@@ -293,7 +296,7 @@ const ParentComponent = ({ role, view = "work" }) => {
         out.push({ col: "t_edit", key: "edit", label: "แก้ไข", color: "#B26A00", run: () => moreRef.current?.edit(r) });
         out.push({ col: "t_confirm", key: "confirm", label: "ลบ", color: "#C62828", run: () => moreRef.current?.confirmOne(r) });
       }
-      if (confirmable || stage === "ready") {
+      if (confirmable || canPack(r)) {
         out.push({ col: "t_kg", key: "kg", passive: true, node: <WeightInput value={weights[r.mapping_id]} disabled={!selected.has(r.__key)} onChange={(v) => setWeights((w) => ({ ...w, [r.mapping_id]: v }))} /> });
       }
       if (r.tro_id && CHECKIN_DEST.includes(r.dest)) out.push({ col: "t_checkin", key: "checkin", label: "Check In", color: "#6A1B9A", run: () => moreRef.current?.checkin(r, allRowsRef.current) });
@@ -507,7 +510,7 @@ const ParentComponent = ({ role, view = "work" }) => {
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf}
         toolbarExtra={toolbarExtra}
-        selectable={role === "pack" || role === "prep" || role === "cs1" || role === "cs2"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : role === "cs1" || role === "cs2" ? inMyRoom(r) && Number(r.weight_RM) > 0 : r.__stage === "ready" && !r.sc_pack_date)}
+        selectable={role === "pack" || role === "prep" || role === "cs1" || role === "cs2"} selected={selected} onSelectedChange={setSelected} isSelectable={(r) => (role === "prep" ? r.__kind === "mix" || !!r.__loaf : role === "cs1" || role === "cs2" ? inMyRoom(r) && Number(r.weight_RM) > 0 : canPack(r))}
       />
       </div>
       </div>

@@ -270,9 +270,15 @@ const DataGrid = ({
     <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
       {/* fill: แถวเดียวเสมอ (เลื่อนแนวนอนได้เมื่อจอแคบ) เพื่อให้ปุ่ม Detail อยู่แถวเดียวกับช่องค้นหา */}
       <Box sx={{ display: "flex", flexWrap: fill ? "nowrap" : "wrap", overflowX: fill ? "auto" : undefined, gap: 1, alignItems: "center", mb: 1, flexShrink: 0, pb: fill ? 0.5 : 0,
-        ...(fill ? { "& > :not(.MuiTextField-root)": { flexShrink: 0 }, "& .MuiButton-root": { whiteSpace: "nowrap" } } : {}) }}>
+        ...(fill ? {
+          gap: 0.5,
+          "& > :not(.MuiTextField-root)": { flexShrink: 0 },
+          "& .MuiButton-root": { whiteSpace: "nowrap", minWidth: 0, px: 1, py: 0.5, fontSize: 13, lineHeight: 1.4 },
+          "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
+          "& .MuiChip-root": { height: 28 },
+        } : {}) }}>
         <TextField
-          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 160 : 240 }}
+          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 200 : 240 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
         />
         {fill && colorChips}
