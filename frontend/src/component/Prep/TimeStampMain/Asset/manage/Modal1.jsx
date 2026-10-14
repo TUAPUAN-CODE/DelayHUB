@@ -73,19 +73,9 @@ const Modal1 = ({
 
   const [batchInputs, setBatchInputs] = useState({});
   const [batchErrors, setBatchErrors] = useState({});
-  const [isEditableUser, setIsEditableUser] = useState(false);
-
-  // ---- refs สำหรับตรวจจับ Barcode Scanner ----
-  const lastKeyTime = useRef(0);
-  const isFirstKey = useRef(true); // FIX: ใช้ตรวจว่าเป็นตัวอักษรแรกของ sequence หรือไม่
-  // --------------------------------------------
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user_id");
-    const userId = storedUser ? parseInt(storedUser, 10) : null;
-    const allowedUsers = [6590019, 4590390, 6760051, 6760099, 6760051, 3590269, 6390056];
-    setIsEditableUser(allowedUsers.includes(userId));
-  }, []);
+  // ---- รับค่าจากเครื่องสแกน (USB): ตัวเลขที่พิมพ์ติดกันเร็ว ๆ แล้วปิดด้วย Enter ----
+  const scanBufferRef = useRef("");
+  const scanLastKeyRef = useRef(0);
 
   const isFormValid = () => {
     const isTrolleyValid = inputValue.trim() !== "" && inputValue.trim().length <= 4;
@@ -108,9 +98,8 @@ const Modal1 = ({
       setApiError("");
       setInputError(false);
 
-      // FIX: reset isFirstKey เมื่อ Modal เปิดใหม่
-      isFirstKey.current = true;
-      lastKeyTime.current = 0;
+      scanBufferRef.current = "";
+      scanLastKeyRef.current = 0;
 
       const initialBatchInputs = {};
       const initialBatchErrors = {};
@@ -266,39 +255,26 @@ const Modal1 = ({
     }));
   };
 
-  // ---- Handler: ตรวจจับว่าเป็น Scanner หรือพิมพ์เอง ----
-  const handleTrolleyKeyDown = (e) => {
-    // user พิเศษ → พิมพ์ได้ทุกอย่าง ไม่บล็อก
-    if (isEditableUser) return;
-
-    const now = Date.now();
-    const timeDiff = now - lastKeyTime.current;
-    lastKeyTime.current = now;
-
-    // Enter / Tab / Backspace / Delete → อนุญาตเสมอ และ reset isFirstKey
-    // (Scanner ส่ง Enter ปิดท้าย sequence)
-    if (["Enter", "Tab", "Backspace", "Delete"].includes(e.key)) {
-      isFirstKey.current = true; // FIX: reset เมื่อจบ sequence
-      return;
-    }
-
-    if (e.key.length === 1) {
-      // FIX: ตัวแรกของ sequence → ผ่านเสมอ ไม่ต้องเช็ค timeDiff
-      // เพราะ lastKeyTime เริ่มจาก 0 → timeDiff จะใหญ่มากเสมอ
-      // ทำให้ตัวแรกของทุก scan ถูกบล็อกผิดพลาดบน PC ที่ Scanner ช้า
-      if (isFirstKey.current) {
-        isFirstKey.current = false;
+  // เครื่องสแกนพิมพ์ทีละตัวเร็ว ๆ และปิดด้วย Enter: เก็บตัวอักษรไว้ แล้วส่งค่าเมื่อครบ
+  // (พิมพ์ด้วยคีย์บอร์ดไม่ได้ เพราะช่องเป็น readOnly)
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      const now = Date.now();
+      if (e.key === "Enter") {
+        const value = scanBufferRef.current;
+        scanBufferRef.current = "";
+        if (value) handleDecode(value);
         return;
       }
-
-      // ตัวถัดไป: ถ้าช้าเกิน 100ms แสดงว่าคนพิมพ์เอง → บล็อก
-      if (timeDiff > 100) {
-        e.preventDefault();
-        isFirstKey.current = true; // FIX: sequence ขาด → reset ให้ตัวถัดไปผ่านได้
-      }
-    }
-  };
-  // -------------------------------------------------------
+      if (e.key.length !== 1) return;
+      if (now - scanLastKeyRef.current > 100) scanBufferRef.current = ""; // ช้าเกินไป = ไม่ใช่เครื่องสแกน
+      scanLastKeyRef.current = now;
+      scanBufferRef.current += e.key;
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <StyledModal
@@ -501,36 +477,14 @@ const Modal1 = ({
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
               fullWidth
-              label={
-                isEditableUser
-                  ? "เลขทะเบียนรถเข็น (สามารถพิมพ์หรือสแกนได้)"
-                  : "เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)"
-              }
+              label="เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)"
               value={inputValue}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, "");
-                const formatted = raw.padStart(4, "0").slice(-4);
-                setInputValue(formatted);
-                setInputError(false);
-              }}
-              onKeyDown={handleTrolleyKeyDown}
-              onPaste={(e) => {
-                // อนุญาต paste เฉพาะ user พิเศษ
-                if (!isEditableUser) e.preventDefault();
-              }}
               margin="normal"
               size="small"
               error={inputError}
-              placeholder={
-                isEditableUser
-                  ? "พิมพ์หรือสแกนหมายเลขรถเข็น"
-                  : "กรุณาสแกน QR Code หรือ Barcode Scanner"
-              }
-              sx={{
-                "& .MuiInputBase-input": {
-                  cursor: isEditableUser ? "text" : "default",
-                },
-              }}
+              placeholder="กรุณาสแกน QR Code หรือ Barcode Scanner"
+              InputProps={{ readOnly: true }}
+              sx={{ "& .MuiInputBase-input": { cursor: "default" } }}
             />
           </Box>
 

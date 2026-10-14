@@ -26,7 +26,14 @@ const useQrCamera = (videoRef, onDecode) => {
   }, []);
 
   const start = useCallback(async () => {
-    if (!videoRef.current) return false;
+    // โมดัลจะ mount <video> หลังเปิด: รอจนกว่า element จะพร้อม (สูงสุดประมาณ 1 วินาที)
+    for (let i = 0; i < 20 && !videoRef.current; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    if (!videoRef.current) {
+      setCameraError("เปิดกล้องไม่ได้ (ไม่พบพื้นที่แสดงกล้อง)");
+      return false;
+    }
     stop();
     setCameraError("");
     setFacing("environment");
