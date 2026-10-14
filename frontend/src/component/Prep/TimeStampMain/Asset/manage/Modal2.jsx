@@ -402,7 +402,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       batchArray: data?.batchArray || [],
       rmfp_id: data?.rmfp_id || "",
       inputValues: data?.inputValues || [],
-      cookedDateTimeNew: formatDT(cookedTime),
+      cookedDateTimeNew: formatDT(effectivePreparedTime), // เวลาต้ม/อบเสร็จ = เวลาเตรียมเสร็จที่กรอก
       preparedDateTimeNew: formatDT(effectivePreparedTime), // ✅ ส่งค่าเดียวกับ cooked สำหรับ rm_type 2,3
       mixtimeNew: formatDT(mixtime),
       grindtimeNew: formatDT(grindtime),
@@ -537,34 +537,6 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
               }}
               slotProps={{
                 textField: { fullWidth: true, size: "small", sx: { marginBottom: "16px" } },
-              }}
-            />
-          </LocalizationProvider>
-
-          {/* ✅ เวลาอบเสร็จ — read-only เมื่อ rm_type_id 2,3 */}
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateTimePicker
-              label="เวลาอบเสร็จ/ต้มเสร็จ"
-              value={cookedTime ? dayjs(cookedTime) : null}
-              onChange={(newValue) => {
-                if (isReadOnlyTime || isSyncTime) return;
-                if (newValue && newValue.isAfter(dayjs())) {
-                  setErrorMessage("ไม่สามารถเลือกเวลาอนาคตเป็นเวลาอบเสร็จ/ต้มเสร็จได้");
-                  setSnackbarOpen(true);
-                  return;
-                }
-                setCookedTime(newValue ? newValue.format("YYYY-MM-DDTHH:mm") : "");
-              }}
-              maxDateTime={(isReadOnlyTime || isSyncTime) ? undefined : dayjs()}
-              ampm={false}
-              timeSteps={{ minutes: 1 }}
-              readOnly={isReadOnlyTime || isSyncTime}
-              slotProps={{
-                textField: {
-                  fullWidth: true, size: "small", required: true,
-                  sx: readOnlyTextFieldSx({ marginBottom: "16px" }),
-                  InputProps: { readOnly: isReadOnlyTime || isSyncTime },
-                },
               }}
             />
           </LocalizationProvider>
