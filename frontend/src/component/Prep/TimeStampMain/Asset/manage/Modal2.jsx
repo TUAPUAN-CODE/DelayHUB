@@ -453,7 +453,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
 
   return (
     <Dialog open={open} onClose={(e, reason) => { if (reason === "backdropClick") return; onClose(); }} fullWidth maxWidth="xs">
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, fontSize: "15px", color: "#555" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
         <DialogContent sx={{ padding: "8px 16px" }}>
           {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
@@ -471,7 +471,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
             }
           </Box>
 
-          <Typography sx={{ fontSize: "16px", fontWeight: 400, color: "#333", marginTop: "8px", marginBottom: "8px" }}>
+          <Typography sx={{ fontSize: "16px", fontWeight: 400, color: "#F1F4FA", marginTop: "8px", marginBottom: "8px" }}>
             เทียบ Batch Array กับ Batch ใหม่:
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 2 }}>
@@ -480,10 +480,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
                 const newBatch = batchAfter?.[idx] || "N/A";
                 return (
                   <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box sx={{ padding: "4px 8px", backgroundColor: "#f0f0f0", borderRadius: "4px", fontSize: "14px", minWidth: "120px", textAlign: "center", color: "#666" }}>
+                    <Box sx={{ padding: "4px 8px", backgroundColor: "rgba(255,255,255,.05)", borderRadius: "4px", fontSize: "14px", minWidth: "120px", textAlign: "center", color: "rgba(241,244,250,.62)" }}>
                       {batchItem}
                     </Box>
-                    <Typography sx={{ fontSize: "16px", color: "#666" }}>→</Typography>
+                    <Typography sx={{ fontSize: "16px", color: "rgba(241,244,250,.62)" }}>→</Typography>
                     <Box sx={{ padding: "4px 8px", backgroundColor: "#d0f0d0", borderRadius: "4px", fontSize: "14px", minWidth: "120px", textAlign: "center", fontWeight: "bold" }}>
                       {newBatch}
                     </Box>
@@ -491,7 +491,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
                 );
               })
             ) : (
-              <Typography sx={{ fontSize: "14px", color: "#999" }}>ไม่มีข้อมูล</Typography>
+              <Typography sx={{ fontSize: "14px", color: "rgba(241,244,250,.62)" }}>ไม่มีข้อมูล</Typography>
             )}
           </Box>
 
@@ -654,20 +654,20 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           />
 
           {/* สถานที่จัดส่ง (QC) */}
-          <Box sx={{ border: "1px solid #E3E8F2", borderRadius: "4px", padding: "12px", backgroundColor: "#f8f9fa", marginTop: "8px", marginBottom: deliveryType === "ส่งห้องเย็นใหญ่" ? "8px" : "16px" }}>
-            <Typography style={{ color: "#333", fontWeight: 500, fontSize: "15px", marginBottom: "4px" }}>
+          <Box sx={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: "4px", padding: "12px", backgroundColor: "rgba(255,255,255,.05)", marginTop: "8px", marginBottom: deliveryType === "ส่งห้องเย็นใหญ่" ? "8px" : "16px" }}>
+            <Typography style={{ color: "#F1F4FA", fontWeight: 500, fontSize: "15px", marginBottom: "4px" }}>
               การตรวจสอบ:
             </Typography>
             <RadioGroup name="deliveryType" value={deliveryType} onChange={(e) => { setDeliveryType(e.target.value); setStoragePurposeError(false); }}>
-              <FormControlLabel value="Qc ตรวจสอบ" control={<Radio size="small" />} style={{ color: "#666" }} label="Qc ตรวจสอบ" />
-              <FormControlLabel value="รอกลับมาเตรียม" control={<Radio size="small" />} style={{ color: "#666" }} label="รอกลับมาเตรียม" />
-              <FormControlLabel value="ส่งห้องเย็นใหญ่" control={<Radio size="small" />} style={{ color: "#666" }} label="ส่งห้องเย็นใหญ่" />
+              <FormControlLabel value="Qc ตรวจสอบ" control={<Radio size="small" />} style={{ color: "rgba(241,244,250,.62)" }} label="Qc ตรวจสอบ" />
+              <FormControlLabel value="รอกลับมาเตรียม" control={<Radio size="small" />} style={{ color: "rgba(241,244,250,.62)" }} label="รอกลับมาเตรียม" />
+              <FormControlLabel value="ส่งห้องเย็นใหญ่" control={<Radio size="small" />} style={{ color: "rgba(241,244,250,.62)" }} label="ส่งห้องเย็นใหญ่" />
             </RadioGroup>
           </Box>
 
           {deliveryType === "ส่งห้องเย็นใหญ่" && (
-            <Box sx={{ border: "1px solid #0F3FC4", borderRadius: "4px", padding: "12px", backgroundColor: "#EAF0FF", marginBottom: "16px" }}>
-              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F3FC4", marginBottom: "10px" }}>
+            <Box sx={{ border: "1px solid #0F3FC4", borderRadius: "4px", padding: "12px", backgroundColor: "rgba(255,255,255,.05)", marginBottom: "16px" }}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#FFB27A", marginBottom: "10px" }}>
                 ข้อมูลเพิ่มเติมสำหรับห้องเย็นใหญ่
               </Typography>
 

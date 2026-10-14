@@ -228,7 +228,7 @@ const PaperPDFViewer = () => {
       padding: '24px',
     },
     card: {
-      background: '#fff',
+      background: "rgba(255,255,255,.07)",
       borderRadius: '18px',
       boxShadow: '0 4px 24px rgba(33,150,243,0.10)',
       overflow: 'hidden',
@@ -257,13 +257,13 @@ const PaperPDFViewer = () => {
       gap: '12px',
       flexWrap: 'wrap',
       alignItems: 'center',
-      background: '#F5F8FF',
+      background: "rgba(255,255,255,.05)",
     },
     searchBox: {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      background: '#fff',
+      background: "rgba(255,255,255,.07)",
       border: '1.5px solid #BBDEFB',
       borderRadius: '10px',
       padding: '8px 14px',
@@ -276,7 +276,7 @@ const PaperPDFViewer = () => {
       outline: 'none',
       fontSize: '14px',
       width: '100%',
-      color: '#333',
+      color: "#F1F4FA",
       background: 'transparent',
     },
     select: {
@@ -284,8 +284,8 @@ const PaperPDFViewer = () => {
       borderRadius: '10px',
       border: '1.5px solid #BBDEFB',
       fontSize: '14px',
-      color: '#333',
-      background: '#fff',
+      color: "#F1F4FA",
+      background: "rgba(255,255,255,.07)",
       cursor: 'pointer',
       outline: 'none',
     },
@@ -343,9 +343,9 @@ const PaperPDFViewer = () => {
       justifyContent: 'space-between',
       padding: '14px 24px',
       borderTop: '1px solid #EAF0FF',
-      background: '#F5F8FF',
+      background: "rgba(255,255,255,.05)",
       fontSize: '13px',
-      color: '#546E7A',
+      color: "rgba(241,244,250,.62)",
       flexWrap: 'wrap',
       gap: '8px',
     },
@@ -370,7 +370,7 @@ const PaperPDFViewer = () => {
       padding: '20px',
     },
     modalBox: {
-      background: '#fff',
+      background: "rgba(255,255,255,.07)",
       borderRadius: '16px',
       width: '92vw',
       maxWidth: '1100px',
@@ -418,7 +418,7 @@ const PaperPDFViewer = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#546E7A', fontSize: '13px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: "rgba(241,244,250,.62)", fontSize: '13px' }}>
             <IconFilter />
             <span>ตัวกรอง:</span>
           </div>
@@ -463,7 +463,7 @@ const PaperPDFViewer = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length} style={{ textAlign: 'center', padding: '60px', color: '#90A4AE' }}>
+                  <td colSpan={columns.length} style={{ textAlign: 'center', padding: '60px', color: "rgba(241,244,250,.62)" }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                       <div style={{
                         width: '36px', height: '36px',
@@ -484,7 +484,7 @@ const PaperPDFViewer = () => {
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} style={{ textAlign: 'center', padding: '60px', color: '#90A4AE', fontSize: '15px' }}>
+                  <td colSpan={columns.length} style={{ textAlign: 'center', padding: '60px', color: "rgba(241,244,250,.62)", fontSize: '15px' }}>
                     ไม่พบข้อมูล
                   </td>
                 </tr>
@@ -500,16 +500,16 @@ const PaperPDFViewer = () => {
                       onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(c => { c.style.backgroundColor = even ? '#fff' : '#F0F8FF'; })}
                       style={{ transition: 'background 0.15s' }}
                     >
-                      {td(<span style={{ color: '#90A4AE', fontSize: '12px' }}>#{row.paper_id}</span>)}
+                      {td(<span style={{ color: "rgba(241,244,250,.62)", fontSize: '12px' }}>#{row.paper_id}</span>)}
                       {td(
-                        <span style={{ fontWeight: '600', color: '#0F3FC4' }}>{formatDate(row.date)}</span>
+                        <span style={{ fontWeight: '600', color: "#FFB27A" }}>{formatDate(row.date)}</span>
                       )}
                       {td(<ShiftBadge shift={row.shift} />)}
                       {td(
                         <span style={{
                           display: 'inline-block',
-                          background: '#EAF0FF',
-                          color: '#0D47A1',
+                          background: "rgba(255,255,255,.05)",
+                          color: "#93C5FD",
                           borderRadius: '8px',
                           padding: '2px 10px',
                           fontSize: '12px',
@@ -521,7 +521,7 @@ const PaperPDFViewer = () => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}>
                           <span style={{
                             width: '26px', height: '26px', borderRadius: '50%',
-                            background: '#EAF0FF', color: '#0F3FC4',
+                            background: "rgba(255,255,255,.05)", color: "#FFB27A",
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: '11px', fontWeight: '700', flexShrink: 0,
                           }}>
@@ -617,7 +617,7 @@ const PaperPDFViewer = () => {
                     title="PDF Preview"
                   />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#90A4AE', fontSize: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: "rgba(241,244,250,.62)", fontSize: '16px' }}>
                     ไม่มีไฟล์ PDF
                   </div>
                 )}
@@ -627,12 +627,12 @@ const PaperPDFViewer = () => {
               <div style={{
                 padding: '10px 20px',
                 borderTop: '1px solid #EAF0FF',
-                background: '#F5F8FF',
+                background: "rgba(255,255,255,.05)",
                 display: 'flex',
                 gap: '24px',
                 flexWrap: 'wrap',
                 fontSize: '13px',
-                color: '#546E7A',
+                color: "rgba(241,244,250,.62)",
                 flexShrink: 0,
               }}>
                 {[
@@ -642,8 +642,8 @@ const PaperPDFViewer = () => {
                   ['Plant',      previewPaper.plant],
                 ].map(([label, val]) => (
                   <div key={label} style={{ display: 'flex', gap: '6px' }}>
-                    <span style={{ color: '#90A4AE' }}>{label}:</span>
-                    <span style={{ fontWeight: '600', color: '#333' }}>{val || '-'}</span>
+                    <span style={{ color: "rgba(241,244,250,.62)" }}>{label}:</span>
+                    <span style={{ fontWeight: '600', color: "#F1F4FA" }}>{val || '-'}</span>
                   </div>
                 ))}
               </div>

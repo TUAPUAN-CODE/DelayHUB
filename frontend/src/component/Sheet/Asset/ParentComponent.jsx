@@ -340,7 +340,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   }, [data.mappings, role]);
   const gatherBar = (role === "cs1" || role === "cs2") && (
     <>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: "#1B2333", whiteSpace: "nowrap" }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: "#F1F4FA", whiteSpace: "nowrap" }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
       <Tooltip title={gatherRows.length ? "" : "ติ๊กวัตถุดิบที่สถานะ \"อยู่ในห้องเย็น\" ในตารางก่อน"} arrow>
         <span>
           <Button size="small" variant="contained" color="secondary" disabled={!gatherRows.length} onClick={() => setGatherOpen(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>จัดชุด ({gatherRows.length})</Button>
@@ -350,7 +350,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   );
   const mixBar = role === "prep" && (
     <>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: "#1B2333", whiteSpace: "nowrap" }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: "#F1F4FA", whiteSpace: "nowrap" }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
       {Object.entries(MIX_KINDS).map(([k, v]) => (
         <Tooltip key={k} title={mixPicked[k].length ? "" : `ติ๊กแถว "${v.status}" ในตารางก่อน`} arrow>
           <span>
@@ -374,8 +374,8 @@ const ParentComponent = ({ role, view = "work" }) => {
     </>
   );
   const actionBar = (
-    <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#1552F0" : undefined, background: activeRow ? "#F3F7FF" : undefined }}>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#1552F0" : "text.secondary" }}>
+    <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#FF8A3D" : undefined, background: activeRow ? "rgba(255,138,61,.10)" : undefined }}>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#FFB27A" : "text.secondary" }}>
         {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
       </Typography>
       {mixBar}

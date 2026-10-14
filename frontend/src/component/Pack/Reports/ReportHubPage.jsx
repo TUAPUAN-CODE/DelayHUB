@@ -36,7 +36,7 @@ const PasswordGate = ({ onUnlock }) => {
 
   return (
     <Paper sx={{ maxWidth: 380, mx: "auto", mt: 6, p: 3, textAlign: "center" }}>
-      <LockOutlined sx={{ fontSize: 36, color: "#1552F0" }} />
+      <LockOutlined sx={{ fontSize: 36, color: "#FFB27A" }} />
       <Typography sx={{ fontSize: 17, fontWeight: 600, mb: 0.5 }}>ต้องใช้รหัสผ่านเพื่อเข้าหน้านี้</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Report สำหรับหัวหน้า (แก้ไขเวลาได้)</Typography>
       <TextField
@@ -60,7 +60,7 @@ const ReportHubPage = ({ initialView = "report" }) => {
   const [unlocked, setUnlocked] = useState(readUnlocked());
 
   return (
-    <div style={{ backgroundColor: "#fff" }} className="flex-1 overflow-auto relative z-10">
+    <div style={{ backgroundColor: "rgba(255,255,255,.07)" }} className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <Header title="Report" />
       </main>

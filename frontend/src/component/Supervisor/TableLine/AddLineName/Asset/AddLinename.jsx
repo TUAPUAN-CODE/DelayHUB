@@ -140,10 +140,10 @@ const AddLineNameModal = ({ open, onClose, onSuccess }) => {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "20px 24px 16px 24px",
-          borderBottom: "1px solid #E3E8F2",
+          borderBottom: "1px solid rgba(255,255,255,.14)",
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: "bold", color: "#333" }}>
+        <Typography variant="h6" sx={{ fontWeight: "bold", color: "#F1F4FA" }}>
           เพิ่มชื่อไลน์
         </Typography>
         <Button
@@ -152,9 +152,9 @@ const AddLineNameModal = ({ open, onClose, onSuccess }) => {
           sx={{
             minWidth: "auto",
             padding: "4px",
-            color: "#666",
+            color: "rgba(241,244,250,.62)",
             "&:hover": {
-              backgroundColor: "#F5F8FF",
+              backgroundColor: "rgba(255,255,255,.05)",
             },
           }}
         >
@@ -223,7 +223,7 @@ const AddLineNameModal = ({ open, onClose, onSuccess }) => {
           sx={{
             padding: "16px 24px 24px 24px",
             gap: "12px",
-            borderTop: "1px solid #E3E8F2",
+            borderTop: "1px solid rgba(255,255,255,.14)",
           }}
         >
           <Button
@@ -233,7 +233,7 @@ const AddLineNameModal = ({ open, onClose, onSuccess }) => {
             sx={{
               padding: "10px 24px",
               borderColor: "#d0d0d0",
-              color: "#666",
+              color: "rgba(241,244,250,.62)",
               "&:hover": {
                 borderColor: "#bbb",
                 backgroundColor: "#f8f8f8",

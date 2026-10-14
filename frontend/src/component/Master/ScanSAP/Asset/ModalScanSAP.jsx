@@ -392,7 +392,7 @@ const CameraActivationModal = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", gap: 2, p: 2, bgcolor: "#F5F8FF" }}>
+    <Box sx={{ display: "flex", height: "100vh", gap: 2, p: 2, bgcolor: "rgba(255,255,255,.05)" }}>
       {/* ฝั่งซ้าย - Scanner */}
       <Paper
         sx={{
@@ -507,7 +507,7 @@ const CameraActivationModal = ({ open, onClose }) => {
                   <Typography variant="body2" sx={{ fontWeight: "bold", mb: 0.5 }}>
                     Mapping IDs ({item.count} รายการ):
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "#1552F0", mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: "#FFB27A", mb: 0.5 }}>
                     {item.ids.join(", ")}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">

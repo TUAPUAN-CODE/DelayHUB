@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const CSMovePage = () => {
 	return (
-		<div style={{ backgroundColor: "#F5F8FF" }} className="flex-1 overflow-auto relative z-10">
+		<div style={{ backgroundColor: "rgba(255,255,255,.05)" }} className="flex-1 overflow-auto relative z-10">
 
 			<Header title={"ย้ายช่องจอดรถเข็น"}   />
 

@@ -50,8 +50,8 @@ const Row = ({
             align="center"
             style={{
               width: columnWidths[idx],
-              borderTop: '1px solid #E3E8F2',
-              borderBottom: '1px solid #E3E8F2',
+              borderTop: '1px solid rgba(255,255,255,.14)',
+              borderBottom: '1px solid rgba(255,255,255,.14)',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -60,7 +60,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
               borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0px",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
@@ -75,13 +75,13 @@ const Row = ({
         <TableCell
           style={{
             borderLeft: "1px solid #f2f2f2",
-            borderRight: "1px solid #E3E8F2",
-            borderTop: '1px solid #E3E8F2',
-            borderBottom: '1px solid #E3E8F2',
+            borderRight: "1px solid rgba(255,255,255,.14)",
+            borderTop: '1px solid rgba(255,255,255,.14)',
+            borderBottom: '1px solid rgba(255,255,255,.14)',
             fontSize: '14px',
             height: '40px',
             padding: '0px 10px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             borderTopRightRadius: "8px",
             borderBottomRightRadius: "8px",
             backgroundColor: backgroundColor // เปลี่ยนสีจาราง ขาว เทา
@@ -123,8 +123,8 @@ const CartActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -162,8 +162,8 @@ const CompleteActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -201,12 +201,12 @@ const EditActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #E3E8F2",
+        borderRight: "1px solid rgba(255,255,255,.14)",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -296,7 +296,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "8px",
@@ -321,33 +321,33 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
 
 
               {/* เปลี่ยนชื่อคอลัมน์ที่นี่ */}
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Material</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "400px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "400px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>รายชื่อวัตถุดิบ</Box> {/* mat_name */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "400px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "400px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Level Eu</Box> {/* mat_name */}
               </TableCell>
 
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "120px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "120px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>แผนการผลิต</Box> {/* production */}
               </TableCell>
 
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "120px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "120px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ป้ายทะเบียน</Box> {/* CookedDateTime */}
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "120px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderLeft: "0px solid ", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "120px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>น้ำหนัก/รถเข็น</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "120px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderLeft: "0px solid ", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "120px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>จำนวนถาด</Box>
               </TableCell>
-              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "150px" }}>
+              <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "150px" }}>
                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>สถานะวัตถุดิบ</Box>
               </TableCell>
             </TableRow>
@@ -372,7 +372,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -385,7 +385,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             padding: "0px",
           }
         }}

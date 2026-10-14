@@ -40,7 +40,7 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
         <Typography variant="body2" color="text.secondary">การตั้งค่านี้จำแยกตามบัญชีของคุณ</Typography>
       </DialogTitle>
       {pages && (
-        <Tabs value={Math.min(tab, pages.length)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: "1px solid #E3E9F6" }}>
+        <Tabs value={Math.min(tab, pages.length)} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: "1px solid rgba(255,255,255,.14)" }}>
           <Tab label="1. คอลัมน์" sx={{ textTransform: "none", fontWeight: 600 }} />
           {pages.map((p, i) => <Tab key={p.key} label={`${i + 2}. ${p.label}`} sx={{ textTransform: "none", fontWeight: 600 }} />)}
         </Tabs>
@@ -80,7 +80,7 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
                     <FormControlLabel sx={{ m: 0, flex: 1 }} control={<Checkbox size="small" checked={set.has(c.key)} onChange={() => toggle(c.key)} />} label={(
                       <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
                         <span style={{ fontSize: 13 }}>{c.label}</span>
-                        <span style={{ fontSize: 10.5, color: "#6B7489" }}>{`${g.label} · ${c.kind === "tool" ? "เครื่องมือ" : TYPE_NAME[c.type] || TYPE_NAME.text}`}</span>
+                        <span style={{ fontSize: 10.5, color: "rgba(241,244,250,.62)" }}>{`${g.label} · ${c.kind === "tool" ? "เครื่องมือ" : TYPE_NAME[c.type] || TYPE_NAME.text}`}</span>
                       </span>
                     )} />
                     {onPinsChange && (

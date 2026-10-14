@@ -181,7 +181,7 @@ const WorkAreaTable = ({
                         bgcolor: LIGHT_BLUE_COLOR
                       },
                       '&:nth-of-type(even)': {
-                        bgcolor: '#ffffff'
+                        bgcolor: "rgba(255,255,255,.07)"
                       },
                       '&:hover': {
                         bgcolor: 'rgba(0, 120, 255, 0.1)'

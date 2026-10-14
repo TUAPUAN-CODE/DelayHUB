@@ -64,7 +64,7 @@ const ViewProdInfoModal = ({ isOpen, onClose, data }) => {
               รายการแผนการผลิตทั้งหมด ({data.prod_info.length} รายการ)
             </Typography>
             
-            <Paper elevation={0} sx={{ border: "1px solid #E3E8F2", borderRadius: "8px" }}>
+            <Paper elevation={0} sx={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: "8px" }}>
               <List disablePadding>
                 {data.prod_info.map(({ prod_id, details }, idx) => (
                   <React.Fragment key={idx}>

@@ -61,14 +61,14 @@ const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
         />
       )}
       <Paper variant="outlined" sx={{ flex: 1, minWidth: 0, borderRadius: "16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ minHeight: 40, borderBottom: "1px solid #E3E9F6", flexShrink: 0, "& .MuiTab-root": { minHeight: 40, textTransform: "none", fontWeight: 700 } }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ minHeight: 40, borderBottom: "1px solid rgba(255,255,255,.14)", flexShrink: 0, "& .MuiTab-root": { minHeight: 40, textTransform: "none", fontWeight: 700 } }}>
           <Tab label="เครื่องมือ" />
           <Tab label="รายละเอียด" />
         </Tabs>
         <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
           {tab === 1 && (row
             ? <RowDetail row={row} columns={columns} />
-            : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>)}
+            : <Typography sx={{ p: 2, color: "rgba(241,244,250,.62)" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>)}
           {tab === 0 && (
             <Box sx={{
               p: 1.5,

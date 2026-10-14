@@ -130,7 +130,7 @@ const TableList = ({
   const renderBasketSection = () => {
     if (basketItems.length === 0) {
       return (
-        <Box sx={{ mb: 4, p: 2, backgroundColor: '#F5F8FF', borderRadius: 1 }}>
+        <Box sx={{ mb: 4, p: 2, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 1 }}>
           <Typography variant="body1">
             ยังไม่มีวัตถุดิบในตะกร้า
           </Typography>
@@ -142,7 +142,7 @@ const TableList = ({
       <TableContainer component={Paper} sx={{ mb: 4 }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
+            <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
               <TableCell sx={{ textAlign: 'center' }}>ชื่อวัตถุดิบ</TableCell>
               <TableCell sx={{ textAlign: 'center' }}>เวลาเตรียมเสร็จ</TableCell>
               <TableCell sx={{ textAlign: 'center' }}>Batch</TableCell>
@@ -214,7 +214,7 @@ const TableList = ({
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
+            <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
               <TableCell>
                 {/* ไม่มี "เลือกทั้งหมด": ติ๊กทีละแถว กันเลือกเกินโดยไม่ตั้งใจ */}
                 เลือก

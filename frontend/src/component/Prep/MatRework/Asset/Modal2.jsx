@@ -317,7 +317,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
       if (reason === 'backdropClick') return;
       onClose();
     }} fullWidth maxWidth="xs">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
         <DialogContent sx={{ padding: '8px 16px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', marginTop: "10px" }}>
             <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#545454", marginBottom: "10px" }}>
@@ -463,10 +463,10 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
                 padding: locationError ? '8px' : '0',
                 marginBottom: '16px'
               }}>
-                <Typography style={{ color: "#666", marginRight: "16px" }}>สถานที่จัดส่ง</Typography>
+                <Typography style={{ color: "rgba(241,244,250,.62)", marginRight: "16px" }}>สถานที่จัดส่ง</Typography>
                 <RadioGroup row name="location" value={deliveryLocation} onChange={handleDeliveryLocationChange}>
-                  <FormControlLabel value="ไปบรรจุ" control={<Radio />} style={{ color: "#666" }} label="บรรจุ" />
-                  <FormControlLabel value="เข้าห้องเย็น" control={<Radio />} style={{ color: "#666" }} label="ห้องเย็น" />
+                  <FormControlLabel value="ไปบรรจุ" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="บรรจุ" />
+                  <FormControlLabel value="เข้าห้องเย็น" control={<Radio />} style={{ color: "rgba(241,244,250,.62)" }} label="ห้องเย็น" />
                 </RadioGroup>
               </Box>
 

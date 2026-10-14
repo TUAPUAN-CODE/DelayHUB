@@ -74,7 +74,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -85,7 +85,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
             <Typography color="rgba(0, 0, 0, 0.6)">ผู้อนุมัติ: {editorName}</Typography>
 
             {currentProdDetails && (
-              <Paper elevation={0} sx={{ p: 1, bgcolor: "#F5F8FF", mb: 1 }}>
+              <Paper elevation={0} sx={{ p: 1, bgcolor: "rgba(255,255,255,.05)", mb: 1 }}>
                 <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                   แผนการผลิตเดิม:
                 </Typography>
@@ -100,7 +100,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
               </Paper>
             )}
 
-            <Paper elevation={0} sx={{ p: 1, bgcolor: "#EAF0FF", mb: 1 }}>
+            <Paper elevation={0} sx={{ p: 1, bgcolor: "rgba(255,255,255,.05)", mb: 1 }}>
               <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                 แผนการผลิตใหม่:
               </Typography>
@@ -351,7 +351,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
       }} fullWidth maxWidth="sm">
         <DialogContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }}>
+            <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }}>
               แก้ไขแผนการผลิต
             </Typography>
             <IconButton onClick={toggleDropdowns} size="small">
@@ -378,7 +378,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
             <Typography color="rgba(0, 0, 0, 0.6)">Batch: {batch}</Typography>
 
             {currentProdDetails && (
-              <Paper elevation={1} sx={{ p: 2, borderRadius: 1, bgcolor: "#F5F8FF" }}>
+              <Paper elevation={1} sx={{ p: 2, borderRadius: 1, bgcolor: "rgba(255,255,255,.05)" }}>
                 <Typography color="#333" fontWeight="bold" gutterBottom>
                   แผนการผลิตปัจจุบัน
                 </Typography>
@@ -402,9 +402,9 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                 gap: 2,
                 mb: 2,
                 p: 2,
-                border: '1px solid #eee',
+                border: '1px solid rgba(255,255,255,.14)',
                 borderRadius: 1,
-                backgroundColor: '#F5F8FF'
+                backgroundColor: "rgba(255,255,255,.05)"
               }}>
                 <Typography color="#333" fontWeight="bold" gutterBottom>
                   แผนการผลิตใหม่
@@ -440,7 +440,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                           {option.code} ({option.doc_no})
                         </Typography>
                         <IconButton onClick={() => handlePlanSelect(option)} sx={{ ml: "auto" }}>
-                          <FaCheck style={{ color: "#1552F0" }} />
+                          <FaCheck style={{ color: "#FFB27A" }} />
                         </IconButton>
                       </Box>
                     )}
@@ -470,7 +470,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                           {option.line_name}
                         </Typography>
                         <IconButton onClick={() => handleLineSelect(option)} sx={{ ml: "auto" }}>
-                          <FaCheck style={{ color: "#1552F0" }} />
+                          <FaCheck style={{ color: "#FFB27A" }} />
                         </IconButton>
                       </Box>
                     )}
@@ -513,7 +513,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                         {option.rm_group_name}
                       </Typography>
                       <IconButton onClick={() => handleGroupSelect(option)} sx={{ ml: "auto" }}>
-                        <FaCheck style={{ color: "#1552F0" }} />
+                        <FaCheck style={{ color: "#FFB27A" }} />
                       </IconButton>
                     </Box>
                   )}
@@ -522,7 +522,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
             )}
 
             {!editLimitReached && !showDropdowns && selectedPlan && (
-              <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 1, backgroundColor: '#F5F8FF' }}>
+              <Box sx={{ p: 2, border: '1px solid rgba(255,255,255,.14)', borderRadius: 1, backgroundColor: "rgba(255,255,255,.05)" }}>
                 <Typography fontWeight="bold" gutterBottom>
                   แผนการผลิตใหม่
                 </Typography>

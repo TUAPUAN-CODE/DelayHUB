@@ -204,7 +204,7 @@ const EditRawmat = ({ isOpen, onClose, onSuccess, rawmatData }) => {
                     maxHeight: 200,
                     overflowY: "auto",
                     padding: 1,
-                    border: "1px solid #ccc",
+                    border: "1px solid rgba(255,255,255,.14)",
                     borderRadius: "5px",
                   }}
                 >
@@ -247,7 +247,7 @@ const EditRawmat = ({ isOpen, onClose, onSuccess, rawmatData }) => {
                     overflowY: "auto",
                     padding: 1,
                     margin: 1,
-                    border: "1px solid #ccc",
+                    border: "1px solid rgba(255,255,255,.14)",
                     display: "flex",
                     flexDirection: "column", // จัดให้อยู่ใน 1 คอลัมน์
                     borderRadius: "5px",

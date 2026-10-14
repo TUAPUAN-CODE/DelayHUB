@@ -128,8 +128,8 @@ const QualityCheckModal = ({
     const renderStep1 = () => (
         <>
             <DialogTitle sx={{
-                backgroundColor: '#F5F8FF',
-                borderBottom: '1px solid #E3E8F2',
+                backgroundColor: "rgba(255,255,255,.05)",
+                borderBottom: '1px solid rgba(255,255,255,.14)',
                 padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center'
@@ -239,7 +239,7 @@ const QualityCheckModal = ({
                 />
                 
             </DialogContent>
-            <DialogActions sx={{ padding: '16px', borderTop: '1px solid #E3E8F2' }}>
+            <DialogActions sx={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,.14)' }}>
                 <Button onClick={handleClose} color="inherit">
                     ยกเลิก
                 </Button>
@@ -258,8 +258,8 @@ const QualityCheckModal = ({
     const renderStep2 = () => (
         <>
             <DialogTitle sx={{
-                backgroundColor: '#F5F8FF',
-                borderBottom: '1px solid #E3E8F2',
+                backgroundColor: "rgba(255,255,255,.05)",
+                borderBottom: '1px solid rgba(255,255,255,.14)',
                 padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center'
@@ -275,7 +275,7 @@ const QualityCheckModal = ({
                 </Typography>
 
                 <Box sx={{
-                    backgroundColor: '#F5F8FF',
+                    backgroundColor: "rgba(255,255,255,.05)",
                     borderRadius: '8px',
                     padding: '16px',
                     mb: 3
@@ -301,7 +301,7 @@ const QualityCheckModal = ({
                     เมื่อยืนยันแล้ว ระบบจะบันทึกผลการตรวจสอบและอัปเดตสถานะวัตถุดิบ
                 </Typography>
             </DialogContent>
-            <DialogActions sx={{ padding: '16px', borderTop: '1px solid #E3E8F2' }}>
+            <DialogActions sx={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,.14)' }}>
                 <Button onClick={handleBack} color="inherit">
                     ย้อนกลับ
                 </Button>

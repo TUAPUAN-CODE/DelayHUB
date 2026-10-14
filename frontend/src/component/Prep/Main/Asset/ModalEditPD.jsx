@@ -56,7 +56,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, prodId
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -157,7 +157,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
             กรุณาเลือกแผนการผลิต
           </Typography>
 
@@ -203,7 +203,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                         {plan.code} ({plan.doc_no} - {plan.line_name})
                       </Typography>
                       <IconButton onClick={() => handlePlanSelect(plan)}>
-                        <FaCheck style={{ color: "#1552F0" }} />
+                        <FaCheck style={{ color: "#FFB27A" }} />
                       </IconButton>
                     </Box>
                   </MenuItem>

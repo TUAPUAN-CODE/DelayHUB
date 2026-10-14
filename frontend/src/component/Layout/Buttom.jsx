@@ -3,7 +3,7 @@ const Buttom = ({ title }) => {
     <footer
       className="glass"
       style={{
-        color: "#6B7489",
+        color: "rgba(241,244,250,.62)",
         borderRadius: 14,
         padding: "8px 15px",
         fontSize: 11,

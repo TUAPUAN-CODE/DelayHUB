@@ -73,7 +73,7 @@ const Header = ({ title }) => {
     <header
       className="header-container glass"
       style={{
-        color: "#1B2333",
+        color: "#F1F4FA",
         marginTop: 10,
         borderRadius: 14,
         minHeight: 52,
@@ -89,7 +89,7 @@ const Header = ({ title }) => {
         className="header-title"
         style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: ".1px", display: "flex", alignItems: "center", gap: 10 }}
       >
-        <span style={{ width: 4, height: 20, borderRadius: 4, background: "#1552F0", display: "inline-block" }} />
+        <span style={{ width: 4, height: 20, borderRadius: 4, background: "linear-gradient(180deg, #FFB27A, #F26B1D)", display: "inline-block" }} />
         {title}
       </h6>
 
@@ -98,14 +98,14 @@ const Header = ({ title }) => {
       {/* User Card */}
       <div
         className="user-card"
-        style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px", borderRadius: 12, background: "rgba(255,255,255,.55)", fontSize: 11, color: "#6B7489" }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px", borderRadius: 12, background: "rgba(255,255,255,.08)", fontSize: 11, color: "rgba(241,244,250,.62)" }}
       >
         <div
           style={{
             width: 32,
             height: 32,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #4D7BF5, #1552F0)",
+            background: "linear-gradient(135deg, #FF9A4D, #F26B1D)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -118,7 +118,7 @@ const Header = ({ title }) => {
           {initial}
         </div>
         <div style={{ whiteSpace: "nowrap", lineHeight: 1.3 }}>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: "#1B2333" }}>{user?.name || "ไม่พบรายชื่อ"}</p>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: "#F1F4FA" }}>{user?.name || "ไม่พบรายชื่อ"}</p>
           <p style={{ margin: 0 }}>
             {position || "ตำแหน่งไม่พบ"} | {workplace || "จุดทำงานไม่พบ"} {rawmatType || ""}
           </p>

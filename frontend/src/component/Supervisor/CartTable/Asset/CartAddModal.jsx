@@ -215,7 +215,7 @@ const CartAddModal = ({ open, onClose, onSuccess }) => {
       }}
     >
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#1552F0" }}>
+        <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#FFB27A" }}>
           เพิ่มรถเข็น
         </Typography>
         <Tabs 

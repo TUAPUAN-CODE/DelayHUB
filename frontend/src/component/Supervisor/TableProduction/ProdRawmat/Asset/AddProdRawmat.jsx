@@ -201,7 +201,7 @@ const AddProdRawmat = ({ isOpen, onClose, onSuccess }) => {
           sx={{
             maxHeight: 200, // กำหนดความสูงสูงสุดของกรอบ
             overflowY: "auto", // เปิดใช้งาน scrollbar แนวตั้ง
-            border: "1px solid #ccc", // ขอบกรอบ
+            border: "1px solid rgba(255,255,255,.14)", // ขอบกรอบ
             borderRadius: "4px", // มุมกรอบกลม
             marginTop: 1,
           }}

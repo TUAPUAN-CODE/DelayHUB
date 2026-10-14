@@ -91,7 +91,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         sx={{ "& .MuiDialog-paper": { borderRadius: "8px" } }}
       >
         <DialogContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontSize: "20px", color: "#1552F0", mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h6" sx={{ fontSize: "20px", color: "#FFB27A", mb: 3, fontWeight: "bold" }}>
             กรุณาตรวจสอบข้อมูลก่อนรับวัตถุดิบ
           </Typography>
 
@@ -101,35 +101,35 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             </Box>
           ) : (
             <Box sx={{ mb: 3 }}>
-              <Paper elevation={1} sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F5F8FF" }}>
-                <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
+              <Paper elevation={1} sx={{ p: 2, borderRadius: "8px", backgroundColor: "rgba(255,255,255,.05)" }}>
+                <Typography variant="h6" sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", mb: 2 }}>
                   ข้อมูลรถเข็น {tro_id}
                 </Typography>
                 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E3E8F2", pb: 1 }}>
-                    <Typography variant="body1" sx={{ color: "#6B7489", fontWeight: "medium" }}>ป้ายทะเบียน</Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,.14)", pb: 1 }}>
+                    <Typography variant="body1" sx={{ color: "rgba(241,244,250,.62)", fontWeight: "medium" }}>ป้ายทะเบียน</Typography>
                     <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                       {tro_id || "-"}
                     </Typography>
                   </Box>
                   
-                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E3E8F2", pb: 1 }}>
-                    <Typography variant="body1" sx={{ color: "#6B7489", fontWeight: "medium" }}>แผนการผลิต</Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,.14)", pb: 1 }}>
+                    <Typography variant="body1" sx={{ color: "rgba(241,244,250,.62)", fontWeight: "medium" }}>แผนการผลิต</Typography>
                     <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                       {production || "-"}
                     </Typography>
                   </Box>
                   
-                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E3E8F2", pb: 1 }}>
-                    <Typography variant="body1" sx={{ color: "#6B7489", fontWeight: "medium" }}>น้ำหนัก/คัน</Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,.14)", pb: 1 }}>
+                    <Typography variant="body1" sx={{ color: "rgba(241,244,250,.62)", fontWeight: "medium" }}>น้ำหนัก/คัน</Typography>
                     <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                       {total_weight ? `${total_weight} kg` : "-"}
                     </Typography>
                   </Box>
                   
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body1" sx={{ color: "#6B7489", fontWeight: "medium" }}>จำนวนถาด/คัน</Typography>
+                    <Typography variant="body1" sx={{ color: "rgba(241,244,250,.62)", fontWeight: "medium" }}>จำนวนถาด/คัน</Typography>
                     <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                       {tray_count || "0"}
                     </Typography>

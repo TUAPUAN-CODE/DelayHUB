@@ -215,7 +215,7 @@ const CartMain = () => {
               height: "45px",
               fontSize: "16px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "10px",
@@ -289,7 +289,7 @@ const CartMain = () => {
                   align="center"
                   sx={{
                     backgroundColor: "#1552F0",
-                    border: "1px solid #E3E8F2",
+                    border: "1px solid rgba(255,255,255,.14)",
                     margin: 0,
                     padding: "16px",
                     minWidth: index === 0 ? "200px" : "150px",
@@ -427,7 +427,7 @@ const CartMain = () => {
             "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
               {
                 fontSize: "12px",
-                color: "#6B7489",
+                color: "rgba(241,244,250,.62)",
                 padding: "8px",
               },
             margin: 0,

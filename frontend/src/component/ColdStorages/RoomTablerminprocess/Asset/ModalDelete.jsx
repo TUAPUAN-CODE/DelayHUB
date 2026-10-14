@@ -79,7 +79,7 @@ const ModalDelete = ({ open, onClose, data, onSuccess }) => {
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <DeleteIcon color="error" />
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#E5484D" }}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "#FCA5A5" }}>
             ยืนยันการลบข้อมูล
           </Typography>
         </Box>
@@ -91,7 +91,7 @@ const ModalDelete = ({ open, onClose, data, onSuccess }) => {
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        <Stack spacing={1.5} sx={{ bgcolor: "#F5F8FF", p: 2, borderRadius: 1 }}>
+        <Stack spacing={1.5} sx={{ bgcolor: "rgba(255,255,255,.05)", p: 2, borderRadius: 1 }}>
           <Box>
             <Typography variant="caption" color="text.secondary">Material:</Typography>
             <Typography variant="body2" fontWeight={500}>{data.mat || "-"}</Typography>

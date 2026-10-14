@@ -400,13 +400,13 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
               sx={{
                 p: 2,
                 borderRadius: '8px',
-                border: '1px solid #E3E8F2',
+                border: '1px solid rgba(255,255,255,.14)',
                 mb: 2
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <InfoIcon sx={{ mr: 1, color: '#1552F0' }} />
-                <Typography variant="h6" sx={{ fontSize: '18px', color: '#1552F0', fontWeight: 600 }}>
+                <InfoIcon sx={{ mr: 1, color: "#FFB27A" }} />
+                <Typography variant="h6" sx={{ fontSize: '18px', color: "#FFB27A", fontWeight: 600 }}>
                   ข้อมูลการย้ายวัตถุดิบ
                 </Typography>
               </Box>
@@ -438,12 +438,12 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
                     sx={{
                       p: 1.5,
                       borderRadius: '6px',
-                      bgcolor: '#EAF0FF',
+                      bgcolor: "rgba(255,255,255,.05)",
                       mb: 1.5
                     }}
                   >
                     <Typography sx={{ display: 'flex', alignItems: 'center' }}>
-                      <WarehouseIcon sx={{ mr: 1, color: '#1552F0' }} />
+                      <WarehouseIcon sx={{ mr: 1, color: "#FFB27A" }} />
                       <strong>ห้องเย็นปลายทาง:</strong> {data?.ColdMove || "ไม่ระบุ"}
                     </Typography>
                   </Box>
@@ -451,7 +451,7 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
                     sx={{
                       p: 1.5,
                       borderRadius: '6px',
-                      bgcolor: '#fff8e1',
+                      bgcolor: "rgba(251,191,36,.14)",
                       mb: 1.5
                     }}
                   >
@@ -472,12 +472,12 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
               sx={{
                 p: 2,
                 borderRadius: '8px',
-                border: '1px solid #E3E8F2'
+                border: '1px solid rgba(255,255,255,.14)'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <LocalShippingIcon sx={{ mr: 1, color: '#1552F0' }} />
-                <Typography variant="h6" sx={{ fontSize: '18px', color: '#1552F0', fontWeight: 600 }}>
+                <LocalShippingIcon sx={{ mr: 1, color: "#FFB27A" }} />
+                <Typography variant="h6" sx={{ fontSize: '18px', color: "#FFB27A", fontWeight: 600 }}>
                   รายละเอียดการย้าย
                 </Typography>
               </Box>
@@ -490,7 +490,7 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   p: 2,
-                  bgcolor: '#F5F8FF',
+                  bgcolor: "rgba(255,255,255,.05)",
                   borderRadius: '8px',
                   border: '1px solid #e3e6f0'
                 }}
@@ -534,7 +534,7 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
 
                 {/* ลูกศร */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <ArrowForwardIcon sx={{ fontSize: 40, color: '#1552F0' }} />
+                  <ArrowForwardIcon sx={{ fontSize: 40, color: "#FFB27A" }} />
                   <Chip
                     label={`${data?.weight || 0} กก.`}
                     color="info"
@@ -586,7 +586,7 @@ const MoveRawMatModal = ({ data, slot, onClose, onBack }) => {
         </Grid>
       </DialogContent>
 
-      <Box sx={{ px: 3, py: 2, borderTop: '1px solid #E3E8F2', bgcolor: '#F5F8FF' }}>
+      <Box sx={{ px: 3, py: 2, borderTop: '1px solid rgba(255,255,255,.14)', bgcolor: "rgba(255,255,255,.05)" }}>
         <Grid container spacing={2} justifyContent="space-between">
           {/* ปุ่มด้านซ้าย */}
           <Grid item>

@@ -130,7 +130,7 @@ const Modal1 = ({ open, onClose, onNext }) => {
       onClose(); // ปิดเมื่อกดปุ่มหรือในกรณีอื่นๆ
     }}>
       <ModalContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
           <Typography sx={{ fontSize: "18px", fontWeight: 500,color: "#545454", marginBottom: "10px" }}>
             กรุณากรอกข้อมูลหรือสแกนป้ายทะเบียน
           </Typography>

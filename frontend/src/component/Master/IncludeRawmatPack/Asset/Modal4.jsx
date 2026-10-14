@@ -273,7 +273,7 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ backgroundColor: "#F5F8FF" }}>
+                <TableHead sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
                   <TableRow>
                     <TableCell align="center">ลำดับ</TableCell>
                     <TableCell>รหัสวัตถุดิบ</TableCell>
@@ -338,7 +338,7 @@ const Modal4 = ({ open, onClose, onSuccess }) => {
               sx={{
                 mt: 2,
                 p: 2,
-                backgroundColor: "#F5F8FF",
+                backgroundColor: "rgba(255,255,255,.05)",
                 borderRadius: 1,
                 display: "flex",
                 justifyContent: "space-between",

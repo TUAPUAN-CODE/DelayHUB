@@ -14,7 +14,7 @@ const orderStats = {
 const CSCheckOutPage = () => {
 	return (
 
-		<div style={{ backgroundColor: "#fff" }} className="flex-1 overflow-auto relative z-10">
+		<div style={{ backgroundColor: "rgba(255,255,255,.07)" }} className="flex-1 overflow-auto relative z-10">
 		  <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
 		  <Header title={"ส่งออก"} />
 				</main>

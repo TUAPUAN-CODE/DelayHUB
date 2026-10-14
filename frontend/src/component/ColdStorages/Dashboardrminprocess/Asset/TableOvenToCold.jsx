@@ -43,31 +43,31 @@ const StatCard = ({ icon, label, value, sub, color, bg }) => (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
       <Box sx={{ fontSize: '28px', lineHeight: 1 }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: '11px', color: '#888', fontWeight: 600, mb: 0.25 }}>{label}</Typography>
+        <Typography sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)", fontWeight: 600, mb: 0.25 }}>{label}</Typography>
         <Typography sx={{ fontSize: '26px', fontWeight: 800, color, lineHeight: 1 }}>{value}</Typography>
-        {sub && <Typography sx={{ fontSize: '11px', color: '#999', mt: 0.5 }}>{sub}</Typography>}
+        {sub && <Typography sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)", mt: 0.5 }}>{sub}</Typography>}
       </Box>
     </Box>
   </Paper>
 );
 
 const SectionTitle = ({ children }) => (
-  <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#444', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+  <Typography sx={{ fontSize: '13px', fontWeight: 700, color: "#F1F4FA", mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
     {children}
   </Typography>
 );
 
 const BreakdownRow = ({ label, count, weight, color, pct }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75, borderBottom: '1px solid #f0f0f0' }}>
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75, borderBottom: '1px solid rgba(255,255,255,.14)' }}>
     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
-    <Typography sx={{ flex: 1, fontSize: '12px', color: '#444', fontWeight: 500 }}>{label || '-'}</Typography>
-    <Typography sx={{ fontSize: '12px', color: '#777', minWidth: '40px', textAlign: 'right' }}>{count} รายการ</Typography>
+    <Typography sx={{ flex: 1, fontSize: '12px', color: "#F1F4FA", fontWeight: 500 }}>{label || '-'}</Typography>
+    <Typography sx={{ fontSize: '12px', color: "rgba(241,244,250,.62)", minWidth: '40px', textAlign: 'right' }}>{count} รายการ</Typography>
     {weight != null && (
-      <Typography sx={{ fontSize: '12px', color: '#999', minWidth: '65px', textAlign: 'right' }}>{weight.toLocaleString()} kg</Typography>
+      <Typography sx={{ fontSize: '12px', color: "rgba(241,244,250,.62)", minWidth: '65px', textAlign: 'right' }}>{weight.toLocaleString()} kg</Typography>
     )}
     {pct != null && (
       <Box sx={{ minWidth: '48px' }}>
-        <Box sx={{ height: 6, bgcolor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+        <Box sx={{ height: 6, bgcolor: "rgba(255,255,255,.05)", borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ height: '100%', width: `${Math.min(pct, 100)}%`, bgcolor: color, borderRadius: 3 }} />
         </Box>
       </Box>
@@ -160,11 +160,11 @@ const TableMainPrep = ({ data }) => {
   const ROOM_COLORS = ['#0F3FC4', '#0277BD', '#1552F0', '#1E88E5', '#42A5F5', '#90CAF9'];
 
   return (
-    <Box sx={{ p: 2, bgcolor: '#f4f6fa', minHeight: '100%' }}>
+    <Box sx={{ p: 2, bgcolor: "rgba(255,255,255,.05)", minHeight: '100%' }}>
 
       {/* ── Header ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#0F3FC4' }}>
+        <Typography sx={{ fontSize: '15px', fontWeight: 700, color: "#FFB27A" }}>
           📊 Dashboard วิเคราะห์ข้อมูล — ห้องเย็นใหญ่ (In Process)
         </Typography>
         <Chip label={`${stats.total} รายการ`} color="primary" size="small" sx={{ fontWeight: 700 }} />
@@ -272,12 +272,12 @@ const TableMainPrep = ({ data }) => {
                   const startTime = r[startKey];
                   const elapsed = startTime ? calcMin(startTime) : null;
                   return (
-                    <Box key={r.mapping_id} sx={{ bgcolor: '#E0F7FA', border: '1px solid #80DEEA', borderRadius: '8px', px: 1.5, py: 1, minWidth: '160px', maxWidth: '200px' }}>
+                    <Box key={r.mapping_id} sx={{ bgcolor: "rgba(45,212,191,.14)", border: '1px solid #80DEEA', borderRadius: '8px', px: 1.5, py: 1, minWidth: '160px', maxWidth: '200px' }}>
                       <Typography sx={{ fontSize: '11px', color: '#006064', fontWeight: 700 }}>{r.mat_name || r.mat}</Typography>
-                      <Typography sx={{ fontSize: '11px', color: '#555' }}>Batch: {r.batch || '-'}</Typography>
-                      <Typography sx={{ fontSize: '11px', color: '#555' }}>ป้าย: {r.tro_id || '-'} | รอบ {round}</Typography>
+                      <Typography sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)" }}>Batch: {r.batch || '-'}</Typography>
+                      <Typography sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)" }}>ป้าย: {r.tro_id || '-'} | รอบ {round}</Typography>
                       {elapsed != null && (
-                        <Typography sx={{ fontSize: '11px', color: '#C62828', fontWeight: 600 }}>
+                        <Typography sx={{ fontSize: '11px', color: "#FCA5A5", fontWeight: 600 }}>
                           ละลายมาแล้ว {formatTime(elapsed)}
                         </Typography>
                       )}

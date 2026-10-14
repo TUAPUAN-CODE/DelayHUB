@@ -50,7 +50,7 @@ const SlotPickerDialog = ({ open, title, subtitle, currentSlot, onPick, onClose 
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>
         {title}
-        {subtitle && <Typography sx={{ fontSize: 13, color: "#6B7489", fontWeight: 400 }}>{subtitle}</Typography>}
+        {subtitle && <Typography sx={{ fontSize: 13, color: "rgba(241,244,250,.62)", fontWeight: 400 }}>{subtitle}</Typography>}
       </DialogTitle>
       <DialogContent dividers sx={{ minHeight: 320 }}>
         {loading && <Box sx={{ display: "grid", placeItems: "center", py: 8 }}><CircularProgress /></Box>}
@@ -63,10 +63,10 @@ const SlotPickerDialog = ({ open, title, subtitle, currentSlot, onPick, onClose 
             <Box sx={{ overflowX: "auto" }}>
               <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: `48px repeat(${grid.cols.length}, minmax(86px, 1fr))`, minWidth: 48 + grid.cols.length * 90 }}>
                 <Box />
-                {grid.cols.map((c) => <Typography key={c} align="center" sx={{ fontWeight: 600, color: "#6B7489" }}>{c}</Typography>)}
+                {grid.cols.map((c) => <Typography key={c} align="center" sx={{ fontWeight: 600, color: "rgba(241,244,250,.62)" }}>{c}</Typography>)}
                 {grid.rowKeys.map((rk) => (
                   <Box key={rk} sx={{ display: "contents" }}>
-                    <Typography sx={{ fontWeight: 600, color: "#6B7489", alignSelf: "center" }}>{rk}</Typography>
+                    <Typography sx={{ fontWeight: 600, color: "rgba(241,244,250,.62)", alignSelf: "center" }}>{rk}</Typography>
                     {grid.cols.map((c) => {
                       const slot = grid.rows[rk]?.[c];
                       if (!slot) return <Box key={c} />;
@@ -100,7 +100,7 @@ const SlotPickerDialog = ({ open, title, subtitle, currentSlot, onPick, onClose 
             </Box>
           </>
         )}
-        {!loading && !error && rooms.length === 0 && <Typography sx={{ color: "#6B7489" }}>ไม่พบช่องจอด</Typography>}
+        {!loading && !error && rooms.length === 0 && <Typography sx={{ color: "rgba(241,244,250,.62)" }}>ไม่พบช่องจอด</Typography>}
       </DialogContent>
       <DialogActions><Button onClick={onClose}>ยกเลิก</Button></DialogActions>
     </Dialog>

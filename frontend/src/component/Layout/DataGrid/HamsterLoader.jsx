@@ -22,7 +22,7 @@ const HamsterLoader = ({ text = "กำลังโหลดข้อมูล..
       </div>
       <div className="spoke" />
     </div>
-    <Typography sx={{ color: "#5B6B8C", fontWeight: 600 }}>{text}</Typography>
+    <Typography sx={{ color: "rgba(241,244,250,.62)", fontWeight: 600 }}>{text}</Typography>
   </Box>
 );
 

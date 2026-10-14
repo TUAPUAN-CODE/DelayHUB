@@ -180,7 +180,7 @@ const MainRawmat = () => {
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "8px",
@@ -242,7 +242,7 @@ const MainRawmat = () => {
                   align="center"
                   style={{
                     backgroundColor: "#1552F0",
-                    border: "1px solid #E3E8F2",
+                    border: "1px solid rgba(255,255,255,.14)",
                     margin: 0,
                     borderRadius:
                       index === 0
@@ -335,7 +335,7 @@ const MainRawmat = () => {
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar":
             {
               fontSize: "10px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
               padding: "0px",
             },
         }}

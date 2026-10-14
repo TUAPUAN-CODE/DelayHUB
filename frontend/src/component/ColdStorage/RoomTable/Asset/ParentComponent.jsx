@@ -168,7 +168,7 @@ const ParentComponent = () => {
       <div style={{ 
         marginBottom: '25px', 
         padding: '20px', 
-        backgroundColor: 'white', 
+        backgroundColor: "rgba(255,255,255,.07)", 
         borderRadius: '10px',
         boxShadow: '0 2px 10px rgba(255, 255, 255, 0.08)',
         border: '1px solid rgb(212, 211, 211)'
@@ -225,7 +225,7 @@ const ParentComponent = () => {
             {isFiltering && (
               <span style={{
                 fontSize: '14px', 
-                color: '#1552F0', 
+                color: "#FFB27A", 
                 backgroundColor: 'rgba(0, 123, 255, 0.1)', 
                 padding: '4px 10px', 
                 borderRadius: '20px',
@@ -253,7 +253,7 @@ const ParentComponent = () => {
               display: 'block', 
               marginBottom: '8px', 
               fontSize: '14px', 
-              color: '#4a5568',
+              color: "rgba(241,244,250,.62)",
               fontWeight: '500'
             }}>
               วันที่เริ่มต้น
@@ -266,7 +266,7 @@ const ParentComponent = () => {
               <div style={{
                 position: 'absolute',
                 left: '12px',
-                color: '#718096'
+                color: "rgba(241,244,250,.62)"
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -280,10 +280,10 @@ const ParentComponent = () => {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 style={{ 
-                  color: '#000000',
+                  color: "#F1F4FA",
                   padding: '10px 12px 10px 38px', 
                   borderRadius: '8px', 
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid rgba(255,255,255,.14)',
                   width: '100%',
                   fontSize: '14px',
                   transition: 'all 0.2s',
@@ -298,7 +298,7 @@ const ParentComponent = () => {
               display: 'block', 
               marginBottom: '8px', 
               fontSize: '14px', 
-              color: '#4a5568',
+              color: "rgba(241,244,250,.62)",
               fontWeight: '500'
             }}>
               วันที่สิ้นสุด
@@ -311,7 +311,7 @@ const ParentComponent = () => {
               <div style={{
                 position: 'absolute',
                 left: '12px',
-                color: '#718096'
+                color: "rgba(241,244,250,.62)"
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -325,7 +325,7 @@ const ParentComponent = () => {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 style={{ 
-                  color: '#000000',
+                  color: "#F1F4FA",
                   padding: '10px 12px 10px 38px', 
                   borderRadius: '8px', 
                   border: '1px solidrgb(13, 32, 56)',
@@ -366,8 +366,8 @@ const ParentComponent = () => {
               onClick={resetFilter}
               style={{
                 padding: '10px 18px',
-                backgroundColor: 'white',
-                color: '#6B7280',
+                backgroundColor: "rgba(255,255,255,.07)",
+                color: "rgba(241,244,250,.62)",
                 border: '1px solidrgb(15, 16, 16)',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -395,34 +395,34 @@ const ParentComponent = () => {
           <div style={{ 
             marginTop: '16px', 
             fontSize: '14px', 
-            color: '#000000',
-            backgroundColor: '#ffffff',
+            color: "#F1F4FA",
+            backgroundColor: "rgba(255,255,255,.07)",
             padding: '12px 16px',
             borderRadius: '8px',
   border: '1px solid #000000', // แก้ไขตรงนี้ (เพิ่มช่องว่างระหว่าง solid กับสี และใช้ # แทน rgb)
             display: 'flex',
             alignItems: 'center'
           }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px', color: '#4a5568' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px', color: "rgba(241,244,250,.62)" }}>
               <path d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <div>
               <span style={{ fontWeight: '500' }}>กำลังแสดงผลการค้นหา: </span> 
-              <span style={{ fontWeight: '600', color: '#1552F0' }}>{filteredData.length}</span> รายการ
+              <span style={{ fontWeight: '600', color: "#FFB27A" }}>{filteredData.length}</span> รายการ
               {startDate && endDate && (
                 <span style={{ marginLeft: '4px' }}>
-                  ระหว่างวันที่ <span style={{ fontWeight: '500' , color: '#1552F0'}}>{new Date(startDate).toLocaleDateString('th-TH')}</span> ถึง 
-                  <span style={{ fontWeight: '500' , color: '#1552F0' }}> {new Date(endDate).toLocaleDateString('th-TH')}</span>
+                  ระหว่างวันที่ <span style={{ fontWeight: '500' , color: "#FFB27A"}}>{new Date(startDate).toLocaleDateString('th-TH')}</span> ถึง 
+                  <span style={{ fontWeight: '500' , color: "#FFB27A" }}> {new Date(endDate).toLocaleDateString('th-TH')}</span>
                 </span>
               )}
               {startDate && !endDate && (
                 <span style={{ marginLeft: '4px' }}>
-                  ตั้งแต่วันที่ <span style={{ fontWeight: '500' ,color: '#1552F0' }}>{new Date(startDate).toLocaleDateString('th-TH')}</span>
+                  ตั้งแต่วันที่ <span style={{ fontWeight: '500' ,color: "#FFB27A" }}>{new Date(startDate).toLocaleDateString('th-TH')}</span>
                 </span>
               )}
               {!startDate && endDate && (
                 <span style={{ marginLeft: '4px' }}>
-                  จนถึงวันที่ <span style={{ fontWeight: '500' ,color: '#1552F0'}}>{new Date(endDate).toLocaleDateString('th-TH')}</span>
+                  จนถึงวันที่ <span style={{ fontWeight: '500' ,color: "#FFB27A"}}>{new Date(endDate).toLocaleDateString('th-TH')}</span>
                 </span>
               )}
             </div>
@@ -435,7 +435,7 @@ const ParentComponent = () => {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 150px)' }}>
-          <p style={{ color: '#6B7489', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
+          <p style={{ color: "rgba(241,244,250,.62)", fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
         </div>
       ) : (
         <TableMainPrep

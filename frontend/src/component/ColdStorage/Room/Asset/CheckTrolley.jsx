@@ -66,7 +66,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedSlot, selectedOption
       <DialogContent>
       <Divider sx={{mb:2}} />
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, fontSize: "15px", color: "#555" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Typography fontWeight={500}>ป้ายทะเบียน:</Typography>
             <Typography color="rgba(0, 0, 0, 0.6)">

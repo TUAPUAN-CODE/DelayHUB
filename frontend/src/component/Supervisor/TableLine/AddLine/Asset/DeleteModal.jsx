@@ -85,7 +85,7 @@ const DeleteLineModal = ({ open, onClose, onSuccess, selectedLineType }) => {
           <WarningAmberIcon 
             sx={{ 
               fontSize: "28px", 
-              color: "#f44336" 
+              color: "#FCA5A5" 
             }} 
           />
           <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
@@ -121,7 +121,7 @@ const DeleteLineModal = ({ open, onClose, onSuccess, selectedLineType }) => {
             </Typography>
             
             {selectedLineType && (
-              <Box sx={{ mt: 2, p: 2, backgroundColor: "white", borderRadius: "4px" }}>
+              <Box sx={{ mt: 2, p: 2, backgroundColor: "rgba(255,255,255,.07)", borderRadius: "4px" }}>
                 <Typography variant="body2" color="text.secondary">
                   ID: {selectedLineType.line_type_id}
                 </Typography>

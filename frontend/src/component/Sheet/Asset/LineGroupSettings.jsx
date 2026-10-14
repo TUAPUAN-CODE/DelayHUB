@@ -14,7 +14,7 @@ const LineGroupSettings = ({ ext, setExt, lines }) => {
   const knownOwners = [...new Set(groups.flatMap((g) => g.owners || []))];
 
   return (
-    <Box sx={{ p: 1.5, border: "1px solid #E3E9F6", borderRadius: 2, background: "#F8FAFF" }}>
+    <Box sx={{ p: 1.5, border: "1px solid rgba(255,255,255,.14)", borderRadius: 2, background: "rgba(255,255,255,.05)" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 14 }}>ไลน์นี้ใครดูแล (ใช้จัดกลุ่มและแบ่งสีในเมนูคอลัมน์ "ไลน์")</Typography>
         <Button size="small" startIcon={<AddIcon />} onClick={add}>เพิ่มกลุ่ม</Button>
@@ -26,7 +26,7 @@ const LineGroupSettings = ({ ext, setExt, lines }) => {
       {groups.map((g, i) => {
         const pal = LINE_PALETTE[i % LINE_PALETTE.length];
         return (
-          <Box key={g.id} sx={{ mb: 1.5, p: 1.25, borderRadius: 2, background: "#fff", border: `2px solid ${pal.bg}` }}>
+          <Box key={g.id} sx={{ mb: 1.5, p: 1.25, borderRadius: 2, background: "rgba(255,255,255,.07)", border: `2px solid ${pal.bg}` }}>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1 }}>
               <span style={{ width: 14, height: 14, borderRadius: 4, background: pal.bg, flexShrink: 0 }} />
               <TextField size="small" label="ชื่อกลุ่ม" value={g.name} onChange={(e) => patch(g.id, { name: e.target.value })} sx={{ width: 220 }} />

@@ -121,7 +121,7 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
   return (
     <Dialog open={open} onClose={running ? undefined : onClose} fullWidth maxWidth="xl" fullScreen={compact}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        <AddShoppingCartIcon sx={{ color: "#1552F0" }} />
+        <AddShoppingCartIcon sx={{ color: "#FFB27A" }} />
         <span>จัดชุดวัตถุดิบ</span>
         <Chip icon={<LocalShippingIcon />} label={`รวมเข้ารถเข็น ${currentTroId}`} color="primary" variant="outlined" />
         <Box sx={{ flex: 1 }} />
@@ -138,27 +138,27 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
           </Box>
           {loading && <Box sx={{ display: "grid", placeItems: "center", py: 6 }}><CircularProgress /></Box>}
           {error && <Alert severity="error" action={<Button color="inherit" size="small" onClick={load}>ลองใหม่</Button>}>{error}</Alert>}
-          {!loading && !error && groups.length === 0 && <Typography sx={{ color: "#6B7489", py: 4, textAlign: "center" }}>ไม่พบวัตถุดิบ</Typography>}
+          {!loading && !error && groups.length === 0 && <Typography sx={{ color: "rgba(241,244,250,.62)", py: 4, textAlign: "center" }}>ไม่พบวัตถุดิบ</Typography>}
           {groups.map((g) => {
             const n = g.rows.filter((r) => picked[r.mapping_id] !== undefined).length;
             const open = openGroups[g.tro_id] ?? Boolean(term.trim());
             return (
-              <Box key={g.tro_id} sx={{ border: "1px solid #E3E8F2", borderRadius: 2, mb: 1, overflow: "hidden", bgcolor: n ? "#F5F8FF" : "#fff" }}>
+              <Box key={g.tro_id} sx={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 2, mb: 1, overflow: "hidden", bgcolor: n ? "#F5F8FF" : "#fff" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.5 }}>
                   <Tooltip title="เลือกทั้งรถเข็น"><Checkbox size="small" checked={n === g.rows.length} indeterminate={n > 0 && n < g.rows.length} onChange={() => toggleGroup(g)} /></Tooltip>
                   <Box sx={{ flex: 1, cursor: "pointer" }} onClick={() => setOpenGroups((o) => ({ ...o, [g.tro_id]: !open }))}>
                     <Typography sx={{ fontWeight: 600, fontSize: 14 }}>รถเข็น {g.tro_id}</Typography>
-                    <Typography sx={{ fontSize: 12, color: "#6B7489" }}>{g.cs_name ? `${g.cs_name} · ` : ""}ช่อง {g.slot_id ?? "-"} · {g.rows.length} รายการ{n ? ` · เลือก ${n}` : ""}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "rgba(241,244,250,.62)" }}>{g.cs_name ? `${g.cs_name} · ` : ""}ช่อง {g.slot_id ?? "-"} · {g.rows.length} รายการ{n ? ` · เลือก ${n}` : ""}</Typography>
                   </Box>
                   <IconButton size="small" onClick={() => setOpenGroups((o) => ({ ...o, [g.tro_id]: !open }))}><ExpandMoreIcon sx={{ transform: open ? "rotate(180deg)" : "none", transition: ".2s" }} /></IconButton>
                 </Box>
                 <Collapse in={open} unmountOnExit>
                   {g.rows.map((r) => (
-                    <Box key={r.mapping_id} onClick={() => toggleRow(r)} sx={{ display: "flex", alignItems: "center", gap: 1, pl: 2, pr: 1.5, py: 0.5, borderTop: "1px dashed #E3E8F2", cursor: "pointer", "&:hover": { bgcolor: "#F5F8FF" } }}>
+                    <Box key={r.mapping_id} onClick={() => toggleRow(r)} sx={{ display: "flex", alignItems: "center", gap: 1, pl: 2, pr: 1.5, py: 0.5, borderTop: "1px dashed rgba(255,255,255,.14)", cursor: "pointer", "&:hover": { bgcolor: "rgba(255,255,255,.05)" } }}>
                       <Checkbox size="small" checked={picked[r.mapping_id] !== undefined} />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 500 }} noWrap>{r.mat_name}</Typography>
-                        <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>{r.isMixed ? "ผสม" : `Batch ${r.batch || "-"}`} · {r.production}</Typography>
+                        <Typography sx={{ fontSize: 12, color: "rgba(241,244,250,.62)" }} noWrap>{r.isMixed ? "ผสม" : `Batch ${r.batch || "-"}`} · {r.production}</Typography>
                       </Box>
                       <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{fmt(parseFloat(r.weight_RM))} kg</Typography>
                     </Box>
@@ -172,14 +172,14 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
         {/* selection */}
         <Box sx={{ flex: 1, minWidth: 0, p: 2, bgcolor: "#FAFBFF", overflow: "auto" }}>
           <Typography sx={{ fontWeight: 600, mb: 1 }}>ที่เลือกไว้ ({selected.length} รายการ · {fmt(totalWeight)} kg)</Typography>
-          {selected.length === 0 && <Typography sx={{ color: "#6B7489", fontSize: 13 }}>ติ๊กวัตถุดิบหรือทั้งรถเข็นทางซ้าย น้ำหนักที่ย้ายตั้งต้นเป็นน้ำหนักทั้งหมด แก้ได้ที่นี่</Typography>}
+          {selected.length === 0 && <Typography sx={{ color: "rgba(241,244,250,.62)", fontSize: 13 }}>ติ๊กวัตถุดิบหรือทั้งรถเข็นทางซ้าย น้ำหนักที่ย้ายตั้งต้นเป็นน้ำหนักทั้งหมด แก้ได้ที่นี่</Typography>}
           {selected.map((r) => {
             const err = weightError(r);
             return (
               <Box key={r.mapping_id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.75, borderBottom: "1px solid #EEF2F9" }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 500 }} noWrap>{r.mat_name}</Typography>
-                  <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>จากรถเข็น {r.tro_id} · มี {fmt(parseFloat(r.weight_RM))} kg</Typography>
+                  <Typography sx={{ fontSize: 12, color: "rgba(241,244,250,.62)" }} noWrap>จากรถเข็น {r.tro_id} · มี {fmt(parseFloat(r.weight_RM))} kg</Typography>
                 </Box>
                 <TextField size="small" value={picked[r.mapping_id]} error={Boolean(err)} helperText={err || " "} onChange={(e) => setPicked((p) => ({ ...p, [r.mapping_id]: e.target.value }))}
                   sx={{ width: 110, "& .MuiFormHelperText-root": { mt: 0.25, fontSize: 11 } }} inputProps={{ inputMode: "decimal" }}

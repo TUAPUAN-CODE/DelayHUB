@@ -136,14 +136,14 @@ const DelayBreakdownDialog = ({ open, onClose, row }) => {
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '15px', fontWeight: 'bold', pb: 0 }}>
         รายละเอียดการคำนวณ Delay Time
-        <Typography sx={{ fontSize: '12px', color: '#888', fontWeight: 'normal', mt: 0.3 }}>
+        <Typography sx={{ fontSize: '12px', color: "rgba(241,244,250,.62)", fontWeight: 'normal', mt: 0.3 }}>
           {row.mat_name || '-'} ({row.mat || '-'}) &nbsp;|&nbsp; Batch: {row.batch || '-'}
         </Typography>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#EAF0FF' }}>
+            <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>รอบ</TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>เข้าห้องเย็น</TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '12px' }}>ออกห้องเย็น</TableCell>
@@ -169,7 +169,7 @@ const DelayBreakdownDialog = ({ open, onClose, row }) => {
             ))}
           </TableBody>
         </Table>
-        <Box sx={{ m: 2, p: 2, backgroundColor: '#F5F8FF', borderRadius: 1 }}>
+        <Box sx={{ m: 2, p: 2, backgroundColor: "rgba(255,255,255,.05)", borderRadius: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
             <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px' }}>รวมเวลาในห้องเย็นทั้งหมด</Typography>
             <Typography sx={{ fontFamily: 'Prompt, Kanit, sans-serif', fontSize: '13px', fontWeight: 'bold' }}>{fmtMin(totalMinutes)}</Typography>
@@ -440,11 +440,11 @@ const Row = ({
           style={{
             width: CUSTOM_COLUMN_WIDTHS.delayTime,
             textAlign: 'center',
-            borderTop: '1px solid #E3E8F2',
-            borderBottom: '1px solid #E3E8F2',
+            borderTop: '1px solid rgba(255,255,255,.14)',
+            borderBottom: '1px solid rgba(255,255,255,.14)',
             height: '36px',
             padding: '0px 0px',
-            borderRight: "0px solid #E3E8F2",
+            borderRight: "0px solid rgba(255,255,255,.14)",
             borderTopLeftRadius: "8px",
             borderBottomLeftRadius: "8px",
             borderLeft: `5px solid ${borderColor}`,
@@ -463,7 +463,7 @@ const Row = ({
             {!row.mix_time && !row.remaining_rework_time && (
               <Tooltip title="ดูรายละเอียดการคำนวณ">
                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); setBreakdownOpen(true); }}
-                  sx={{ p: 0.2, color: '#90caf9', '&:hover': { color: '#0F3FC4' } }}>
+                  sx={{ p: 0.2, color: '#90caf9', '&:hover': { color: "#FFB27A" } }}>
                   <InfoOutlinedIcon sx={{ fontSize: '14px' }} />
                 </IconButton>
               </Tooltip>
@@ -479,8 +479,8 @@ const Row = ({
             style={{
               width: column.width,
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid #E3E8F2',
-              borderBottom: '1px solid #E3E8F2',
+              borderTop: '1px solid rgba(255,255,255,.14)',
+              borderBottom: '1px solid rgba(255,255,255,.14)',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -504,9 +504,9 @@ const Row = ({
           onClick={handleDetailClick}
           align="center"
           sx={{
-            borderLeft: "1px solid #E3E8F2", // เพิ่มเส้นขอบด้านซ้ายให้ชัดเจนขึ้น
-            borderTop: '1px solid #E3E8F2',
-            borderBottom: '1px solid #E3E8F2',
+            borderLeft: "1px solid rgba(255,255,255,.14)", // เพิ่มเส้นขอบด้านซ้ายให้ชัดเจนขึ้น
+            borderTop: '1px solid rgba(255,255,255,.14)',
+            borderBottom: '1px solid rgba(255,255,255,.14)',
             fontSize: '13px',
             height: '36px',
             padding: '0px',
@@ -516,7 +516,7 @@ const Row = ({
               backgroundColor: 'rgba(33, 150, 243, 0.2)' // เพิ่มความเข้มของสีพื้นหลังเมื่อ hover
             },
             '&:hover .view-details-icon': {
-              color: '#0D47A1',
+              color: "#93C5FD",
               transform: 'scale(1.2)' // เพิ่มขนาดไอคอนเมื่อ hover
             }
           }}
@@ -528,7 +528,7 @@ const Row = ({
               alignItems: 'center',
               height: '100%',
               width: '100%', // ให้ Box ขยายเต็มความกว้าง
-              color: '#1552F0',
+              color: "#FFB27A",
               padding: '8px', // เพิ่ม padding เพื่อเพิ่มพื้นที่คลิก
               transition: 'all 0.2s ease' // เพิ่ม transition effect
             }}
@@ -551,10 +551,10 @@ const Row = ({
           }}
           align="center"
           sx={{
-            borderLeft: "1px solid #E3E8F2", // เพิ่มเส้นขอบด้านซ้ายให้ชัดเจนขึ้น
-            borderRight: "1px solid #E3E8F2",
-            borderTop: '1px solid #E3E8F2',
-            borderBottom: '1px solid #E3E8F2',
+            borderLeft: "1px solid rgba(255,255,255,.14)", // เพิ่มเส้นขอบด้านซ้ายให้ชัดเจนขึ้น
+            borderRight: "1px solid rgba(255,255,255,.14)",
+            borderTop: '1px solid rgba(255,255,255,.14)',
+            borderBottom: '1px solid rgba(255,255,255,.14)',
             fontSize: '13px',
             height: '36px',
             padding: '0px',
@@ -621,20 +621,20 @@ const Row = ({
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1, borderRadius: '8px', overflow: 'hidden', borderTop: '1px solid #E8EDF6', borderLeft: '1px solid #E8EDF6', borderBottom: "1px solid #E8EDF6", borderRight: '1px solid #E8EDF6', maxWidth: '100%' }}>
               <Box sx={{ padding: 0 }}>
-                <Box sx={{ backgroundColor: "#F5F8FF", padding: "8px", borderBottom: '1px solid #E8EDF6' }}>
-                  <Typography sx={{ fontSize: "14px", fontWeight: 'bold', color: "#555555" }}>รายละเอียดมูลในรถเข็น {row.tro_id}</Typography>
+                <Box sx={{ backgroundColor: "rgba(255,255,255,.05)", padding: "8px", borderBottom: '1px solid #E8EDF6' }}>
+                  <Typography sx={{ fontSize: "14px", fontWeight: 'bold', color: "rgba(241,244,250,.62)" }}>รายละเอียดมูลในรถเข็น {row.tro_id}</Typography>
                 </Box>
                 <Table size="small" sx={{ width: '100%' }}>
                   <TableHead>
-                    <TableRow style={{ backgroundColor: "#F5F8FF" }}>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>DelayTime</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>Batch</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>Material</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>รายชื่อวัตถุดิบ</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>Level EU</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>น้ำหนัก</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>จำนวนถาด</TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', textAlign: 'center', color: "#000000", padding: '8px' }}>สถานะวัตถุดิบ</TableCell>
+                    <TableRow style={{ backgroundColor: "rgba(255,255,255,.05)" }}>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>DelayTime</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>Batch</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>Material</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>รายชื่อวัตถุดิบ</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>Level EU</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>น้ำหนัก</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>จำนวนถาด</TableCell>
+                      <TableCell sx={{ fontSize: "12px", fontWeight: 'bold', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>สถานะวัตถุดิบ</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -649,22 +649,22 @@ const Row = ({
                       }}>
                         {statusMessage}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.batch || "-"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.mat || "-"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.mat_name || "-"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.level_eu || "-"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.weight_RM || "-"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#000000", padding: '8px' }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', color: "#F1F4FA", padding: '8px' }}>
                         {row.tray_count || "-"}
                       </TableCell>
                       <TableCell sx={{
@@ -689,134 +689,134 @@ const Row = ({
               <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
                 <Table size="small" aria-label="purchases" sx={{ width: '100%' }}>
                   <TableHead>
-                    <TableRow style={{ backgroundColor: "#F5F8FF" }}>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เวลาเบิกห้องเย็นใหญ่</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เวลาต้มอบเสร็จ</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>
+                    <TableRow style={{ backgroundColor: "rgba(255,255,255,.05)" }}>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เวลาเบิกห้องเย็นใหญ่</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เวลาต้มอบเสร็จ</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>
                         {row.isMixed ? "เวลาผสมเสร็จ" : "เวลาเตรียมเสร็จ"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า รอบ1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก รอบ1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า รอบ2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก รอบ2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า รอบ3</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก รอบ3</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS1</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS2</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS3</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS3</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS4</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS4</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS5</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS5</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS6</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS6</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS7</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS7</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS8</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS8</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS9</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS9</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เข้า CS10</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>ออก CS10</TableCell>
-                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "#6B7489", padding: '4px' }}>เวลาแก้ไข</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า รอบ1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก รอบ1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า รอบ2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก รอบ2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า รอบ3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก รอบ3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS1</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS2</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS3</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS4</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS4</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS5</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS5</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS6</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS6</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS7</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS7</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS8</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS8</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS9</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS9</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เข้า CS10</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>ออก CS10</TableCell>
+                      <TableCell sx={{ fontSize: "12px", borderRight: '1px solid #E8EDF6', textAlign: 'center', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px' }}>เวลาแก้ไข</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     <TableRow key={row.mapping_id}>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.withdraw_date ? new Date(row.withdraw_date).toLocaleString() : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cooked_date ? new Date(row.cooked_date).toLocaleString() : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.isMixed
                           ? (row.mixed_date ? new Date(row.mixed_date).toLocaleString() : "-")
                           : (row.rmit_date ? new Date(row.rmit_date).toLocaleString() : "-")
                         }
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.come_cold_date ? fmtDatetime(row.come_cold_date) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.out_cold_date ? fmtDatetime(row.out_cold_date) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.come_cold_date_two ? fmtDatetime(row.come_cold_date_two) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.out_cold_date_two ? fmtDatetime(row.out_cold_date_two) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.come_cold_date_three ? fmtDatetime(row.come_cold_date_three) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.out_cold_date_three ? fmtDatetime(row.out_cold_date_three) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date ? fmtDatetime(row.cs_come_cold_date) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date ? fmtDatetime(row.cs_out_cold_date) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_two ? fmtDatetime(row.cs_come_cold_date_two) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_two ? fmtDatetime(row.cs_out_cold_date_two) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_three ? fmtDatetime(row.cs_come_cold_date_three) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_three ? fmtDatetime(row.cs_out_cold_date_three) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_four ? fmtDatetime(row.cs_come_cold_date_four) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_four ? fmtDatetime(row.cs_out_cold_date_four) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_five ? fmtDatetime(row.cs_come_cold_date_five) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_out_date_five ? fmtDatetime(row.cs_out_out_date_five) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_six ? fmtDatetime(row.cs_come_cold_date_six) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_six ? fmtDatetime(row.cs_out_cold_date_six) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_seven ? fmtDatetime(row.cs_come_cold_date_seven) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_seven ? fmtDatetime(row.cs_out_cold_date_seven) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_eight ? fmtDatetime(row.cs_come_cold_date_eight) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_eight ? fmtDatetime(row.cs_out_cold_date_eight) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_nine ? fmtDatetime(row.cs_come_cold_date_nine) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_nine ? fmtDatetime(row.cs_out_cold_date_nine) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_come_cold_date_ten ? fmtDatetime(row.cs_come_cold_date_ten) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.cs_out_cold_date_ten ? fmtDatetime(row.cs_out_cold_date_ten) : "-"}
                       </TableCell>
-                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "#6B7489", padding: '4px', fontSize: '12px' }}>
+                      <TableCell sx={{ border: 'none', textAlign: 'center', borderRight: '1px solid #E8EDF6', verticalAlign: 'middle', color: "rgba(241,244,250,.62)", padding: '4px', fontSize: '12px' }}>
                         {row.rework_date ? fmtDatetime(row.rework_date) : "-"}
                       </TableCell>
                     </TableRow>
@@ -969,7 +969,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "36px", // ลดความสูงลง
               fontSize: "13px", // ลดขนาดฟอนต์ลง
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "6px", // ลด padding ลง
@@ -1011,11 +1011,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 <TableCell align="center" style={{
                   borderTopLeftRadius: "8px",
                   borderBottomLeftRadius: "8px",
-                  borderLeft: "1px solid #E3E8F2",
+                  borderLeft: "1px solid rgba(255,255,255,.14)",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
                   backgroundColor: "#1552F0",
-                  color: '#6B7489',
+                  color: "rgba(241,244,250,.62)",
                   padding: '4px',
                   width: CUSTOM_COLUMN_WIDTHS.delayTime
                 }}>
@@ -1026,11 +1026,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 {tableColumns.map((column) => (
                   <TableCell key={column.id} align="center" style={{
                     backgroundColor: "#1552F0",
-                    borderTop: "1px solid #E3E8F2",
-                    borderBottom: "1px solid #E3E8F2",
+                    borderTop: "1px solid rgba(255,255,255,.14)",
+                    borderBottom: "1px solid rgba(255,255,255,.14)",
                     borderRight: "1px solid #f2f2f2",
                     fontSize: '12px',
-                    color: '#6B7489',
+                    color: "rgba(241,244,250,.62)",
                     padding: '4px',
                     width: column.width
                   }}>
@@ -1041,11 +1041,11 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 {/* คอลัมน์ดูข้อมูล */}
                 <TableCell align="center" style={{
                   backgroundColor: "#1552F0",
-                  borderTop: "1px solid #E3E8F2",
-                  borderBottom: "1px solid #E3E8F2",
+                  borderTop: "1px solid rgba(255,255,255,.14)",
+                  borderBottom: "1px solid rgba(255,255,255,.14)",
                   borderRight: "1px solid #f2f2f2",
                   fontSize: '12px',
-                  color: '#6B7489',
+                  color: "rgba(241,244,250,.62)",
                   padding: '4px',
                   width: CUSTOM_COLUMN_WIDTHS.viewDetails
                 }}>
@@ -1057,12 +1057,12 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                   backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #E3E8F2",
-                  borderBottom: "1px solid #E3E8F2",
+                  borderTop: "1px solid rgba(255,255,255,.14)",
+                  borderBottom: "1px solid rgba(255,255,255,.14)",
                   borderLeft: "1px solid #f2f2f2",
-                  borderRight: "1px solid #E3E8F2",
+                  borderRight: "1px solid rgba(255,255,255,.14)",
                   fontSize: '12px',
-                  color: '#6B7489',
+                  color: "rgba(241,244,250,.62)",
                   padding: '4px',
                   width: CUSTOM_COLUMN_WIDTHS.qualityCheck
                 }}>
@@ -1091,7 +1091,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: "20px", fontSize: "14px", color: "#6B7489" }}>
+                  <TableCell colSpan={tableColumns.length + 2} align="center" sx={{ padding: "20px", fontSize: "14px", color: "rgba(241,244,250,.62)" }}>
                     ไม่มีรายการวัตถุดิบในขณะนี้
                   </TableCell>
                 </TableRow>
@@ -1104,7 +1104,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             padding: "0px",
           }
         }}

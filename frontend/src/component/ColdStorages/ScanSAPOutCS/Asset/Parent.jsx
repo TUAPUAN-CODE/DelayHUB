@@ -112,8 +112,8 @@ const Parent = () => {
           resetData();
         }}
         style={{
-          backgroundColor: "#fff",
-          color: "#6B7489",
+          backgroundColor: "rgba(255,255,255,.07)",
+          color: "rgba(241,244,250,.62)",
           padding: "10px 40px",
           fontSize: "20px",
           display: "flex",
@@ -126,19 +126,19 @@ const Parent = () => {
       >
         <div style={{ textAlign: "left" }}>
           <div
-            style={{ color: "#1552F0", paddingBottom: "5px", fontSize: "15px" }}
+            style={{ color: "#FFB27A", paddingBottom: "5px", fontSize: "15px" }}
           >
             สแกนป้าย SAP
           </div>
           <div
-            style={{ color: "#6B7489", paddingBottom: "5px", fontSize: "14px" }}
+            style={{ color: "rgba(241,244,250,.62)", paddingBottom: "5px", fontSize: "14px" }}
           >
             เพื่อรับข้อมูลวัตถุดิบ
           </div>
         </div>
         <IoBarcodeSharp
           size={40}
-          style={{ marginLeft: "50px", minWidth: "30px", color: "#1552F0" }}
+          style={{ marginLeft: "50px", minWidth: "30px", color: "#FFB27A" }}
         />
       </Button> */}
 

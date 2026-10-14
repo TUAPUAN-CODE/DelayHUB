@@ -18,7 +18,7 @@ const LogList = ({ log, filterKind, max = 30 }) => {
           }}
         >
           <span style={{ fontWeight: 700, color: l.ok ? "#047857" : "#B91C1C", minWidth: 62 }}>{l.ok ? "สำเร็จ" : "ไม่สำเร็จ"}</span>
-          <span style={{ color: "#6B7489", minWidth: 48 }}>{l.time}</span>
+          <span style={{ color: "rgba(241,244,250,.62)", minWidth: 48 }}>{l.time}</span>
           <span style={{ flex: 1 }}>
             <b>{STAMP_LABEL[l.kind]}</b>{l.hu ? ` · HU ${l.hu}` : ""} — {l.text}
           </span>

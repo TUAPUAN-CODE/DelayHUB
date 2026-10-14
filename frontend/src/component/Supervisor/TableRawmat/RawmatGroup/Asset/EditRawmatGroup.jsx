@@ -239,12 +239,12 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
                         sx={{
                           fontSize: "0.9rem",
                           padding: "5px",
-                          color: "#6B7489",
+                          color: "rgba(241,244,250,.62)",
                         }}
                       >
                         {label}
                       </TableCell>
-                      <TableCell sx={{ padding: "0px", color: "#6B7489" }}>
+                      <TableCell sx={{ padding: "0px", color: "rgba(241,244,250,.62)" }}>
                         <TextField
                           variant="outlined"
                           name={field}

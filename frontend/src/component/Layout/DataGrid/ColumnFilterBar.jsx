@@ -92,7 +92,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
                     <div
                       role="button" tabIndex={0} title="กดเพื่อเลือกทั้งกลุ่ม (ถ้ายังไม่กรอง = แสดงเฉพาะกลุ่มนี้ · ถ้ากรองอยู่ = เพิ่ม/เอากลุ่มนี้ออก)" onClick={pick}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }}
-                      style={{ margin: "8px 0 2px", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8, background: zone ? zone.bg : "#F1F3F8", color: zone ? zone.color : "#6B7489" }}
+                      style={{ margin: "8px 0 2px", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8, background: zone ? zone.bg : "rgba(255,255,255,.05)", color: zone ? zone.color : "rgba(241,244,250,.62)" }}
                     >
                       <span style={{ width: 14, height: 14, borderRadius: 3, border: "2px solid currentColor", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, lineHeight: 1, flexShrink: 0 }}>{allOn ? "✓" : someOn ? "–" : ""}</span>
                       <span style={{ flex: 1 }}>{zone ? zone.title : "อื่นๆ"}</span>
@@ -103,7 +103,7 @@ export const ColumnMenu = ({ col, rows, sort, selected, onSort, onFilter, onClos
                 <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 11px", cursor: "pointer", fontSize: 14 }}>
                   <input type="checkbox" checked={isOn(o.value)} onChange={() => toggle(o.value)} style={{ width: 16, height: 16, accentColor: zone ? zone.dot : "#1552F0", flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.value || "(ว่าง)"}>{o.value || "(ว่าง)"}</span>
-                  <span style={{ fontSize: 12, color: "#6B7489" }}>{o.count}</span>
+                  <span style={{ fontSize: 12, color: "rgba(241,244,250,.62)" }}>{o.count}</span>
                 </label>
               </div>
             );

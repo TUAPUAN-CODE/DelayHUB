@@ -46,16 +46,16 @@ const QrScanDialog = ({ open, onClose, onScan, title }) => {
   const [error, setError] = useState('');
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid #E3E8F2' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,.14)' }}>
         <Box sx={{ fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <QrCodeScanner sx={{ color: '#1552F0' }} />
+          <QrCodeScanner sx={{ color: "#FFB27A" }} />
           {title}
         </Box>
         <IconButton onClick={onClose} size="small"><Close fontSize="small" /></IconButton>
       </Box>
       <Box sx={{ p: 2 }}>
         {open && <QrScannerView onScan={(text) => { onScan(text); onClose(); }} onError={setError} />}
-        {error && <Box sx={{ mt: 1, color: '#c62828', fontSize: '12px' }}>❌ {error}</Box>}
+        {error && <Box sx={{ mt: 1, color: "#FCA5A5", fontSize: '12px' }}>❌ {error}</Box>}
       </Box>
     </Dialog>
   );
@@ -73,23 +73,23 @@ const WoBasketEntryRow = ({ entry, index, onChange, onRemove, onScanWo, canRemov
   return (
     <Box sx={{
       display: 'flex', gap: 1, alignItems: 'flex-start', marginBottom: 1.5,
-      padding: '10px', backgroundColor: '#F5F8FF', borderRadius: '10px', border: '1px solid #EAF0FF'
+      padding: '10px', backgroundColor: "rgba(255,255,255,.05)", borderRadius: '10px', border: '1px solid #EAF0FF'
     }}>
       {/* Input 1: WONo */}
       <Box sx={{ flex: 2 }}>
-        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>WONo</Box>
+        <Box sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)", marginBottom: 0.5 }}>WONo</Box>
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <TextField
             fullWidth size="small" value={entry.wo_no}
             onChange={(e) => set('wo_no', e.target.value)}
             placeholder="พิมพ์ หรือ Scan WONo..."
-            InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+            InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: "rgba(255,255,255,.07)" } }}
             sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
           />
           <IconButton
             onClick={() => onScanWo(index)}
             size="small"
-            sx={{ border: '1.5px solid #1552F0', borderRadius: '8px', color: '#1552F0', width: '38px', height: '38px' }}
+            sx={{ border: '1.5px solid #1552F0', borderRadius: '8px', color: "#FFB27A", width: '38px', height: '38px' }}
           >
             <QrCodeScanner fontSize="small" />
           </IconButton>
@@ -98,24 +98,24 @@ const WoBasketEntryRow = ({ entry, index, onChange, onRemove, onScanWo, canRemov
 
       {/* Input 2: Basket จาก */}
       <Box sx={{ flex: 1 }}>
-        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>Basket (จาก)</Box>
+        <Box sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)", marginBottom: 0.5 }}>Basket (จาก)</Box>
         <TextField
           fullWidth size="small" type="number" value={entry.basket_from}
           onChange={(e) => set('basket_from', e.target.value)}
           placeholder="เช่น 3"
-          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: "rgba(255,255,255,.07)" } }}
           sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
         />
       </Box>
 
       {/* Input 3: Basket ถึง (ไม่บังคับ — ถ้าไม่กรอกถือว่ามี basket เดียว) */}
       <Box sx={{ flex: 1 }}>
-        <Box sx={{ fontSize: '11px', color: '#666', marginBottom: 0.5 }}>Basket (ถึง)</Box>
+        <Box sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)", marginBottom: 0.5 }}>Basket (ถึง)</Box>
         <TextField
           fullWidth size="small" type="number" value={entry.basket_to}
           onChange={(e) => set('basket_to', e.target.value)}
           placeholder="ไม่บังคับ"
-          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#fff' } }}
+          InputProps={{ sx: { height: '38px', fontSize: '13px', borderRadius: '8px', backgroundColor: "rgba(255,255,255,.07)" } }}
           sx={{ '& .MuiOutlinedInput-root': { height: '38px' }, '& input': { padding: '8px 10px' } }}
         />
       </Box>
@@ -195,8 +195,8 @@ const MultiConfirmDialog = ({
       <DialogContent sx={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* หม้อที่ */}
         <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-            หม้อที่ <span style={{ color: '#f44336' }}>*</span>
+          <Box sx={{ marginBottom: 1, color: "#F1F4FA", fontSize: '14px', fontWeight: '500' }}>
+            หม้อที่ <span style={{ color: "#FCA5A5" }}>*</span>
           </Box>
           <TextField
             fullWidth type="number" value={group}
@@ -210,8 +210,8 @@ const MultiConfirmDialog = ({
 
         {/* เวลาบรรจุเสร็จ */}
         <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-            เวลาบรรจุเสร็จ <span style={{ color: '#f44336' }}>*</span>
+          <Box sx={{ marginBottom: 1, color: "#F1F4FA", fontSize: '14px', fontWeight: '500' }}>
+            เวลาบรรจุเสร็จ <span style={{ color: "#FCA5A5" }}>*</span>
           </Box>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
@@ -234,7 +234,7 @@ const MultiConfirmDialog = ({
 
         {/* หมายเหตุ */}
         <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>หมายเหตุ</Box>
+          <Box sx={{ marginBottom: 1, color: "#F1F4FA", fontSize: '14px', fontWeight: '500' }}>หมายเหตุ</Box>
           <TextField
             fullWidth multiline rows={3} value={remark}
             onChange={(e) => { if (e.target.value.length <= 300) setRemark(e.target.value); }}
@@ -250,7 +250,7 @@ const MultiConfirmDialog = ({
 
         {/* รหัส Ingrediant (WONO) — รองรับหลายชุด แต่ละชุดมี WONo + ช่วง Basket */}
         <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
+          <Box sx={{ marginBottom: 1, color: "#F1F4FA", fontSize: '14px', fontWeight: '500' }}>
             รหัส Ingrediant (WONO)
           </Box>
           {woEntries.map((entry, index) => (
@@ -267,18 +267,18 @@ const MultiConfirmDialog = ({
           <Button
             onClick={handleAddEntry}
             startIcon={<AddCircleOutlineIcon />}
-            sx={{ color: '#1552F0', textTransform: 'none', fontSize: '13px' }}
+            sx={{ color: "#FFB27A", textTransform: 'none', fontSize: '13px' }}
           >
             เพิ่มชุด WONo
           </Button>
           {errors.woEntries && (
-            <Box sx={{ color: '#f44336', fontSize: '12px', marginTop: 0.5 }}>{errors.woEntries}</Box>
+            <Box sx={{ color: "#FCA5A5", fontSize: '12px', marginTop: 0.5 }}>{errors.woEntries}</Box>
           )}
         </Box>
 
         {/* รหัส Package */}
         <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>รหัส Package</Box>
+          <Box sx={{ marginBottom: 1, color: "#F1F4FA", fontSize: '14px', fontWeight: '500' }}>รหัส Package</Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
               fullWidth value={matPkg} onChange={(e) => setMatPkg(e.target.value)}
@@ -288,14 +288,14 @@ const MultiConfirmDialog = ({
             />
             <IconButton
               onClick={openQrForMatPkg}
-              sx={{ border: '1.5px solid #1552F0', borderRadius: '8px', color: '#1552F0', width: '44px', height: '44px', '&:hover': { backgroundColor: '#EAF0FF' } }}
+              sx={{ border: '1.5px solid #1552F0', borderRadius: '8px', color: "#FFB27A", width: '44px', height: '44px', '&:hover': { backgroundColor: "rgba(255,255,255,.05)" } }}
             >
               <QrCodeScanner />
             </IconButton>
           </Box>
         </Box>
 
-        <Box sx={{ padding: '16px', backgroundColor: '#EAF0FF', borderRadius: '8px', fontSize: '13px', color: '#1552F0' }}>
+        <Box sx={{ padding: '16px', backgroundColor: "rgba(255,255,255,.05)", borderRadius: '8px', fontSize: '13px', color: "#FFB27A" }}>
           <strong>หมายเหตุ:</strong> น้ำหนักของแต่ละรายการจะถูกใช้ตามที่ระบุในแต่ละแถว
         </Box>
       </DialogContent>
@@ -303,7 +303,7 @@ const MultiConfirmDialog = ({
       <DialogActions sx={{ padding: '16px 24px', gap: 1 }}>
         <Button
           onClick={onClose}
-          sx={{ color: '#666', borderRadius: '8px', padding: '8px 20px', textTransform: 'none', fontSize: '14px', '&:hover': { backgroundColor: '#F5F8FF' } }}
+          sx={{ color: "rgba(241,244,250,.62)", borderRadius: '8px', padding: '8px 20px', textTransform: 'none', fontSize: '14px', '&:hover': { backgroundColor: "rgba(255,255,255,.05)" } }}
         >
           ยกเลิก
         </Button>

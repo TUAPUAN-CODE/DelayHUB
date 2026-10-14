@@ -99,8 +99,8 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
         size="small"
         label={config.location_name}
         sx={{
-          backgroundColor: '#EAF0FF',
-          color: '#0F3FC4',
+          backgroundColor: "rgba(255,255,255,.05)",
+          color: "#FFB27A",
           fontSize: '11px',
           fontWeight: 'bold',
           height: '22px',
@@ -109,12 +109,12 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
       />
 
       {/* Reader name */}
-      <Typography sx={{ fontSize: 16, fontWeight: 'bold', color: '#333', textAlign: 'center' }}>
+      <Typography sx={{ fontSize: 16, fontWeight: 'bold', color: "#F1F4FA", textAlign: 'center' }}>
         {config.name}
       </Typography>
 
       {/* IP Address */}
-      <Typography sx={{ fontSize: '10px', color: '#999', textAlign: 'center' }}>
+      <Typography sx={{ fontSize: '10px', color: "rgba(241,244,250,.62)", textAlign: 'center' }}>
         {config.ip}:{config.port}
       </Typography>
 
@@ -157,10 +157,10 @@ const ReaderCard = ({ config, online, lastResult, isPrinting, onToggle, onOpenSe
           <Typography sx={{ fontSize: '12px', color: '#ff9800' }}>กำลังพิมพ์...</Typography>
         ) : lastResult ? (
           <>
-            <Typography sx={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+            <Typography sx={{ fontSize: '14px', fontWeight: 'bold', color: "#F1F4FA" }}>
               {lastResult.tro_id}
             </Typography>
-            <Typography sx={{ fontSize: '10px', color: '#999' }}>
+            <Typography sx={{ fontSize: '10px', color: "rgba(241,244,250,.62)" }}>
               {new Date(lastResult.timestamp).toLocaleTimeString('th-TH')}
             </Typography>
           </>
@@ -243,7 +243,7 @@ const PasswordPromptDialog = ({ open, onClose, onVerify, error, hint }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth disableRestoreFocus>
-      <DialogTitle sx={{ fontWeight: 'bold', color: '#1552F0' }}>
+      <DialogTitle sx={{ fontWeight: 'bold', color: "#FFB27A" }}>
         ยืนยันสิทธิ์การตั้งค่า
       </DialogTitle>
       <DialogContent>
@@ -306,12 +306,12 @@ const ReaderFocusView = ({ config, online, lastResult, isPrinting, open, onClose
         />
 
         {/* Reader name */}
-        <Typography sx={{ fontSize: 56, fontWeight: 'bold', color: '#333', marginBottom: 1 }}>
+        <Typography sx={{ fontSize: 56, fontWeight: 'bold', color: "#F1F4FA", marginBottom: 1 }}>
           {config?.name}
         </Typography>
 
         {/* IP */}
-        <Typography sx={{ fontSize: 20, color: '#888', marginBottom: 4 }}>
+        <Typography sx={{ fontSize: 20, color: "rgba(241,244,250,.62)", marginBottom: 4 }}>
           {config?.ip}:{config?.port}
         </Typography>
 
@@ -336,10 +336,10 @@ const ReaderFocusView = ({ config, online, lastResult, isPrinting, open, onClose
             </Typography>
           ) : lastResult ? (
             <>
-              <Typography sx={{ fontSize: 46, fontWeight: 'bold', color: '#1552F0' }}>
+              <Typography sx={{ fontSize: 46, fontWeight: 'bold', color: "#FFB27A" }}>
                 🚚 รถเข็น: {lastResult.tro_id}
               </Typography>
-              <Typography sx={{ fontSize: 26, color: '#666', marginTop: 1 }}>
+              <Typography sx={{ fontSize: 26, color: "rgba(241,244,250,.62)", marginTop: 1 }}>
                 สแกนเวลา: {new Date(lastResult.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </Typography>
             </>
@@ -441,7 +441,7 @@ const ReaderSettingsModal = ({ open, onClose, config, mode = 'edit', suggestedRe
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth disableRestoreFocus>
-      <DialogTitle sx={{ fontWeight: 'bold', color: '#1552F0' }}>
+      <DialogTitle sx={{ fontWeight: 'bold', color: "#FFB27A" }}>
         {isCreate ? 'เพิ่มเครื่องอ่าน RFID ใหม่' : `ตั้งค่าเครื่องอ่าน RFID — ${config?.location_name}`}
       </DialogTitle>
       {!isCreate && (
@@ -518,7 +518,7 @@ const ReaderSettingsModal = ({ open, onClose, config, mode = 'edit', suggestedRe
               helperText="URL ของ print-agent ส่วนกลางที่จะยิงคำสั่งพิมพ์ไป (ปกติเป็นตัวเดียวกันทุกจุด)"
             />
 
-            <Typography sx={{ fontSize: 12, fontWeight: 'bold', color: '#888', marginTop: 1 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 'bold', color: "rgba(241,244,250,.62)", marginTop: 1 }}>
               ปลายทางเครื่องพิมพ์ (พิมพ์ RAW ข้าม network — ไม่ต้องรัน print-agent ที่เครื่องนั้น)
             </Typography>
             {!isCreate && (
@@ -563,7 +563,7 @@ const ReaderSettingsModal = ({ open, onClose, config, mode = 'edit', suggestedRe
               helperText="ปรับทีหลังได้ถ้าพิมพ์ครั้งแรกแล้วภาพล้นขอบ/เล็กเกินไป (ปล่อยว่างไว้ = ใช้ print-agent local แบบเดิมแทน)"
             />
             {error && (
-              <Typography sx={{ color: '#c62828', fontSize: 13 }}>{error}</Typography>
+              <Typography sx={{ color: "#FCA5A5", fontSize: 13 }}>{error}</Typography>
             )}
           </Box>
         )}
@@ -653,11 +653,11 @@ const ScanHistoryContent = ({ config }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 1 }}>
         {view === 'detail' && (
           <ArrowBackIcon
-            sx={{ cursor: 'pointer', color: '#666', '&:hover': { color: '#333' } }}
+            sx={{ cursor: 'pointer', color: "rgba(241,244,250,.62)", '&:hover': { color: "#F1F4FA" } }}
             onClick={handleBack}
           />
         )}
-        <Typography sx={{ fontWeight: 'bold', color: '#1552F0' }}>
+        <Typography sx={{ fontWeight: 'bold', color: "#FFB27A" }}>
           {view === 'detail'
             ? <>รถเข็น {selectedTroId}</>
             : <>ประวัติการสแกน — {config?.name}</>
@@ -670,9 +670,9 @@ const ScanHistoryContent = ({ config }) => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography sx={{ color: '#c62828', fontSize: 13, padding: 2 }}>{error}</Typography>
+        <Typography sx={{ color: "#FCA5A5", fontSize: 13, padding: 2 }}>{error}</Typography>
       ) : scans.length === 0 ? (
-        <Typography sx={{ color: '#999', fontSize: 13, padding: 2 }}>
+        <Typography sx={{ color: "rgba(241,244,250,.62)", fontSize: 13, padding: 2 }}>
           {view === 'detail'
             ? 'ไม่มีประวัติการสแกนสำหรับรถเข็นคันนี้'
             : 'ยังไม่มีประวัติการสแกนสำหรับเครื่องนี้'
@@ -699,7 +699,7 @@ const ScanHistoryContent = ({ config }) => {
                   onClick={() => handleClickTro(s.tro_id)}
                 >
                   <TableCell>{i + 1}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#1552F0' }}>
+                  <TableCell sx={{ fontWeight: 'bold', color: "#FFB27A" }}>
                     {s.tro_id}
                   </TableCell>
                   <TableCell>{formatTime(s.latest_scan)}</TableCell>
@@ -963,7 +963,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
     <Box sx={{ padding: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h6" sx={{ color: '#1552F0', fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ color: "#FFB27A", fontWeight: 'bold' }}>
           แผงควบคุมเครื่องอ่าน RFID
         </Typography>
 
@@ -986,7 +986,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
               />
             }
             label={slipPrinterEnabled ? "เครื่องนี้พิมพ์สลิปอัตโนมัติ (ทุกหน้า)" : "เครื่องนี้ไม่พิมพ์สลิป"}
-            sx={{ marginRight: 1, '& .MuiFormControlLabel-label': { fontSize: 13, color: '#222', fontWeight: 600 } }}
+            sx={{ marginRight: 1, '& .MuiFormControlLabel-label': { fontSize: 13, color: "#F1F4FA", fontWeight: 600 } }}
           />
           <Button
             size="small"
@@ -1007,7 +1007,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
 
       {/* Location selector */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
-        <Typography sx={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>
+        <Typography sx={{ fontSize: '13px', color: "rgba(241,244,250,.62)", fontWeight: 'bold' }}>
           เลือกจุด:
         </Typography>
         <TextField
@@ -1026,13 +1026,13 @@ const ReaderPanel = ({ fetchedData = [] }) => {
         <Chip
           size="small"
           label={`${mergedData.length} เครื่อง`}
-          sx={{ backgroundColor: '#f0f0f0', color: '#666' }}
+          sx={{ backgroundColor: "rgba(255,255,255,.05)", color: "rgba(241,244,250,.62)" }}
         />
       </Box>
 
       {/* Error message */}
       {printerError && (
-        <Typography sx={{ color: '#c62828', fontSize: '13px', marginBottom: 2 }}>
+        <Typography sx={{ color: "#FCA5A5", fontSize: '13px', marginBottom: 2 }}>
           ⚠️ {printerError}
         </Typography>
       )}
@@ -1040,7 +1040,7 @@ const ReaderPanel = ({ fetchedData = [] }) => {
       {/* Reader cards */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {mergedData.length === 0 ? (
-          <Typography sx={{ color: '#999', fontSize: 13 }}>
+          <Typography sx={{ color: "rgba(241,244,250,.62)", fontSize: 13 }}>
             ยังไม่มีเครื่องอ่านที่ตั้งค่าไว้ — กดปุ่ม ⚙️ เพื่อเพิ่มเครื่องอ่านใหม่
           </Typography>
         ) : (

@@ -51,7 +51,7 @@ const Modal2 = ({ open, onClose, onNext, data }) => {
       )}
 
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-    <Typography style={{fontSize:"18px",color:"#6B7489"}} sx={{ textAlign: 'left' }}>กรุณากรอกข้อมูล</Typography>
+    <Typography style={{fontSize:"18px",color:"rgba(241,244,250,.62)"}} sx={{ textAlign: 'left' }}>กรุณากรอกข้อมูล</Typography>
 
     </Box>
       {/* ป้ายทะเบียนและข้อมูลในบรรทัดเดียวกัน */}

@@ -55,7 +55,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, reques
     <>
       <Dialog open={open} onClose={(e, reason) => { if (reason !== 'backdropClick') onClose(); }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>กรุณาตรวจสอบข้อมูลก่อนทำรายการ</Typography>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>กรุณาตรวจสอบข้อมูลก่อนทำรายการ</Typography>
           <Typography variant="h6" style={{ fontSize: "18px", color: "#ff0000ff" }} mb={2}>ยืนยันการส่งวัตถุดิบให้ไลน์ : {from_line_name}</Typography>
           <Divider sx={{ mb: 2 }} />
           <Stack spacing={1}>
@@ -187,7 +187,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>กรุณาเลือกรถเข็น</Typography>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>กรุณาเลือกรถเข็น</Typography>
           {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
           <Stack spacing={2}>
             <Divider />

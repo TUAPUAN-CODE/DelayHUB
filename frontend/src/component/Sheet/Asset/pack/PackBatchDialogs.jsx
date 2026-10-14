@@ -30,7 +30,7 @@ const runEach = async (rows, fn, onStep) => {
 };
 
 const RowList = ({ rows, extra }) => (
-  <Box sx={{ maxHeight: 320, overflow: "auto", border: "1px solid #E3E9F6", borderRadius: 1 }}>
+  <Box sx={{ maxHeight: 320, overflow: "auto", border: "1px solid rgba(255,255,255,.14)", borderRadius: 1 }}>
     <Table size="small" stickyHeader>
       <TableHead>
         <TableRow>
@@ -160,7 +160,7 @@ export const BatchCartDialog = ({ rows, weights, onClose, onDone }) => {
               <TableCell>{r.weight_RM}</TableCell>
               <TableCell><TextField size="small" type="number" sx={{ width: 100 }} value={form[r.mapping_id].weight} disabled={runner.running || runner.done} inputProps={{ min: 0, step: 0.01 }} onChange={(e) => set(r.mapping_id, "weight", e.target.value)} /></TableCell>
               <TableCell><TextField size="small" type="number" sx={{ width: 80 }} value={form[r.mapping_id].ntray} disabled={runner.running || runner.done} inputProps={{ min: 1 }} onChange={(e) => set(r.mapping_id, "ntray", e.target.value)} /></TableCell>
-              <TableCell sx={{ color: "#C62828", whiteSpace: "nowrap" }}>{problem(r)}</TableCell>
+              <TableCell sx={{ color: "#FCA5A5", whiteSpace: "nowrap" }}>{problem(r)}</TableCell>
             </>
           ),
         }} />
@@ -247,7 +247,7 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
           </Box>
           <RowList rows={rows} extra={{
             head: <TableCell />,
-            cells: (r) => <TableCell sx={{ color: "#B26A00", whiteSpace: "nowrap" }}>{limited[r.mapping_id] ? "แก้ครบ 3 ครั้งแล้ว" : ""}</TableCell>,
+            cells: (r) => <TableCell sx={{ color: "#FCD34D", whiteSpace: "nowrap" }}>{limited[r.mapping_id] ? "แก้ครบ 3 ครั้งแล้ว" : ""}</TableCell>,
           }} />
         </>
       )}
@@ -264,7 +264,7 @@ export const BatchDeleteDialog = ({ rows, onClose, onDone }) => {
   });
   return (
     <BatchShell open title="ลบรายการ" onClose={onClose} total={rows.length} {...runner} canRun onRun={submit} runLabel={`ยืนยันลบ ${rows.length} แถว`} runColor="error">
-      <Typography sx={{ mb: 1, color: "#6B7489" }}>กรุณาตรวจสอบรายการก่อนลบ</Typography>
+      <Typography sx={{ mb: 1, color: "rgba(241,244,250,.62)" }}>กรุณาตรวจสอบรายการก่อนลบ</Typography>
       <RowList rows={rows} />
     </BatchShell>
   );

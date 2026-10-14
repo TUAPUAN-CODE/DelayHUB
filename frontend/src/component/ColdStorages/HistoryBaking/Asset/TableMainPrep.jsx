@@ -87,11 +87,11 @@ const Row = ({
         <TableCell style={{
           width: CUSTOM_COLUMN_WIDTHS.delayTime,
           textAlign: 'center',
-          borderTop: '1px solid #E3E8F2',
-          borderBottom: '1px solid #E3E8F2',
+          borderTop: '1px solid rgba(255,255,255,.14)',
+          borderBottom: '1px solid rgba(255,255,255,.14)',
           height: '40px',
           padding: '0px 5px',
-          borderRight: "0px solid #E3E8F2",
+          borderRight: "0px solid rgba(255,255,255,.14)",
           borderTopLeftRadius: "8px",
           borderBottomLeftRadius: "8px",
           borderLeft: `5px solid ${borderColor}`,
@@ -114,8 +114,8 @@ const Row = ({
             style={{
               width: columnWidths[idx],
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid #E3E8F2',
-              borderBottom: '1px solid #E3E8F2',
+              borderTop: '1px solid rgba(255,255,255,.14)',
+              borderBottom: '1px solid rgba(255,255,255,.14)',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -124,7 +124,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             }}
           >
             {value || '-'}
@@ -136,7 +136,7 @@ const Row = ({
             e.stopPropagation();
             handleOpenModal(row);
           }}
-          icon={<LiaShoppingCartSolid style={{ color: '#1552F0', fontSize: '25px' }} />}
+          icon={<LiaShoppingCartSolid style={{ color: "#FFB27A", fontSize: '25px' }} />}
         />
         <CompleteActionCell
           width={CUSTOM_COLUMN_WIDTHS.complete}
@@ -171,8 +171,8 @@ const CartActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -210,8 +210,8 @@ const CompleteActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -249,12 +249,12 @@ const EditActionCell = ({ width, onClick, icon }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #E3E8F2",
+        borderRight: "1px solid rgba(255,255,255,.14)",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -344,7 +344,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "8px",
@@ -366,21 +366,21 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
           <TableHead style={{ marginBottom: "10px" }}>
             <TableRow sx={{ height: '40px' }}>
-              <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', borderLeft: "1px solid #E3E8F2", padding: '5px', width: CUSTOM_COLUMN_WIDTHS.delayTime }}>
+              <TableCell align="center" style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", borderLeft: "1px solid rgba(255,255,255,.14)", padding: '5px', width: CUSTOM_COLUMN_WIDTHS.delayTime }}>
                 <Box style={{ fontSize: '12px' }}>DelayTime</Box>
               </TableCell>
               {columns.map((key, index) => (
-                <TableCell key={index} align="center" style={{ borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: columnWidths[index] }}>
+                <TableCell key={index} align="center" style={{ borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: columnWidths[index] }}>
                   <Box style={{ fontSize: '12px' }}>{key}</Box>
                 </TableCell>
               ))}
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.cart, borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.cart, borderLeft: "0px solid ", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>รถเข็น</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.complete, borderLeft: "0px solid ", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.complete, borderLeft: "0px solid ", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>เสร็จสิ้น</Box>
               </TableCell>
-              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.edit, borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px' }}>
+              <TableCell align="center" style={{ width: CUSTOM_COLUMN_WIDTHS.edit, borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px' }}>
                 <Box style={{ fontSize: '12px' }}>แก้ไข</Box>
               </TableCell>
             </TableRow>
@@ -403,7 +403,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
                        ))
                      ) : (
                        <TableRow>
-                         <TableCell colSpan={columns.length + 4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                         <TableCell colSpan={columns.length + 4} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                            ไม่มีรายการวัตถุดิบในขณะนี้ 
                          </TableCell>
                        </TableRow>
@@ -415,7 +415,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditMo
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             padding: "0px",
           }
         }}

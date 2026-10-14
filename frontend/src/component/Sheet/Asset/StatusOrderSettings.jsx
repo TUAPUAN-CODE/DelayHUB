@@ -49,7 +49,7 @@ const StatusOrderSettings = ({ savedOrder, onSaved }) => {
   };
 
   return (
-    <Box sx={{ mb: 2, p: 1.5, border: "1px solid #E3E9F6", borderRadius: 2, background: "#F8FAFF" }}>
+    <Box sx={{ mb: 2, p: 1.5, border: "1px solid rgba(255,255,255,.14)", borderRadius: 2, background: "rgba(255,255,255,.05)" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 14 }}>ลำดับสถานะบนแถบเหนือตาราง (ขึ้นก่อน → ขึ้นหลัง)</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>ใช้ร่วมกันทุกบัญชี · ต้องใส่รหัสผ่านก่อนบันทึก</Typography>
       {order.map((label, i) => (

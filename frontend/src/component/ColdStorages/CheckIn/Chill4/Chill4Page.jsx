@@ -8,7 +8,7 @@ const  CSChill4PageCI = () => {
 	
 	return (
 		<div
-		  style={{ backgroundColor: "#fff" }}
+		  style={{ backgroundColor: "rgba(255,255,255,.07)" }}
 		  className="flex-1 overflow-auto relative z-10"
 		>
 		  <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">

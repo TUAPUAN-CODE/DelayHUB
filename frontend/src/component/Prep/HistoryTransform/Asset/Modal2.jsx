@@ -72,7 +72,7 @@ const Modal2 = ({ open, onClose, onNext, data }) => {
       if (reason === 'backdropClick') return; // ไม่ให้ปิดเมื่อคลิกพื้นที่นอก
       onClose(); // ปิดเมื่อกดปุ่มหรือในกรณีอื่นๆ
     }} fullWidth maxWidth="xs">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
       <DialogContent sx={{ padding: '8px 16px' }}>
         {errorMessage && (
           <Alert severity="error" sx={{ mb: 2 }}>

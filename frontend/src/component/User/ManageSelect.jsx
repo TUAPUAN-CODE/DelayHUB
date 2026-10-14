@@ -129,7 +129,7 @@ const PreparationSelectWP = () => {
               sx={{
                 width: isMobile ? "100%" : "50%",
                 padding: isMobile ? 3 : 5,
-                backgroundColor: "white",
+                backgroundColor: "rgba(255,255,255,.07)",
                 overflowY: "auto",
               }}
             >

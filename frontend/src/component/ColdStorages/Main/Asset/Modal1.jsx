@@ -118,7 +118,7 @@ const Modal1 = ({ open, onClose, onNext }) => {
     <StyledModal open={open} onClose={handleClose}>
       <ModalContent>
         <CloseButton aria-label="close" onClick={handleClose}><IoClose /></CloseButton>
-        <Typography style={{ fontSize: "18px", color: "#6B7489" }} sx={{ textAlign: 'left' }}>
+        <Typography style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} sx={{ textAlign: 'left' }}>
           กรุณากรอกข้อมูล
         </Typography>
 

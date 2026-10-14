@@ -1063,12 +1063,12 @@ const ViewActionCell = ({ width, onClick, icon, backgroundColor, status }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
-        borderRight: "1px solid #E3E8F2",
+        borderRight: "1px solid rgba(255,255,255,.14)",
         cursor: 'pointer',
         transition: 'background-color 0.2s ease-in-out',
         borderTopRightRadius: "8px",
@@ -1172,8 +1172,8 @@ const Row = ({
               borderLeft: idx === 0 ? `5px solid ${textColor}` : "1px solid #f2f2f2",
               borderTopLeftRadius: idx === 0 ? "8px" : "0",
               borderBottomLeftRadius: idx === 0 ? "8px" : "0",
-              borderTop: '1px solid #E3E8F2',
-              borderBottom: '1px solid #E3E8F2',
+              borderTop: '1px solid rgba(255,255,255,.14)',
+              borderBottom: '1px solid rgba(255,255,255,.14)',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -1182,7 +1182,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 15px',
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
               backgroundColor: backgroundColor
             }}
           >
@@ -1208,7 +1208,7 @@ const Row = ({
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{
               margin: 1,
-              backgroundColor: "#F5F8FF",
+              backgroundColor: "rgba(255,255,255,.05)",
               padding: 2,
               borderRadius: 2,
               boxShadow: '0px 2px 4px rgba(0,0,0,0.1)'
@@ -1220,7 +1220,7 @@ const Row = ({
                 sx={{
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: "#F1F4FA",
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1
@@ -1232,13 +1232,13 @@ const Row = ({
 
 
               <Table size="small" sx={{
-                backgroundColor: 'white',
+                backgroundColor: "rgba(255,255,255,.07)",
                 borderRadius: '8px',
                 overflow: 'hidden',
-                border: '1px solid #E3E8F2'
+                border: '1px solid rgba(255,255,255,.14)'
               }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#F5F8FF' }}>
+                  <TableRow sx={{ backgroundColor: "rgba(255,255,255,.05)" }}>
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>สถานะเวลา</TableCell>
                     {/* <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>สถานะห้องเย็นไปบรรจุ</TableCell> */}
                     <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '14px' }}>Batch</TableCell>
@@ -1264,8 +1264,8 @@ const Row = ({
                         <TableRow
                           key={`${material.rmfp_id}-${idx}`}
                           sx={{
-                            '&:nth-of-type(odd)': { backgroundColor: '#F5F8FF' },
-                            '&:hover': { backgroundColor: '#F5F8FF' }
+                            '&:nth-of-type(odd)': { backgroundColor: "rgba(255,255,255,.05)" },
+                            '&:hover': { backgroundColor: "rgba(255,255,255,.05)" }
                           }}
                         >
                           {/* สถานะเวลา */}
@@ -1593,7 +1593,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "8px",
@@ -1636,8 +1636,8 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
                   align="center"
                   style={{
                     backgroundColor: "#1552F0",
-                    borderTop: "1px solid #E3E8F2",
-                    borderBottom: "1px solid #E3E8F2",
+                    borderTop: "1px solid rgba(255,255,255,.14)",
+                    borderBottom: "1px solid rgba(255,255,255,.14)",
                     borderRight: "1px solid #f2f2f2",
                     borderTopLeftRadius: index === 0 ? "8px" : "0",
                     borderBottomLeftRadius: index === 0 ? "8px" : "0",
@@ -1659,9 +1659,9 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
                   backgroundColor: "#1552F0",
                   borderTopRightRadius: "8px",
                   borderBottomRightRadius: "8px",
-                  borderTop: "1px solid #E3E8F2",
-                  borderBottom: "1px solid #E3E8F2",
-                  borderRight: "1px solid #E3E8F2",
+                  borderTop: "1px solid rgba(255,255,255,.14)",
+                  borderBottom: "1px solid rgba(255,255,255,.14)",
+                  borderRight: "1px solid rgba(255,255,255,.14)",
                   fontSize: '16px',
                   color: '#ffffff',
                   padding: '10px',
@@ -1677,7 +1677,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
           <TableBody sx={{ '& > tr': { marginBottom: '8px' } }}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                   กำลังโหลดข้อมูล...
                 </TableCell>
               </TableRow>
@@ -1696,7 +1696,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                <TableCell colSpan={6} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                   ไม่มีรายการวัตถุดิบในขณะนี้
                 </TableCell>
               </TableRow>
@@ -1708,7 +1708,7 @@ const TableOvenToCold = ({ handleOpenModal, handleOpenEditModal, handleOpenSucce
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             padding: "0px",
           }
         }}

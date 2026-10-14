@@ -173,7 +173,7 @@ const QcCheck = ({
       <Dialog open={open} onClose={(_, r) => { if (r !== 'backdropClick') onClose(); }}
         fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", mb: 2 }}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -188,10 +188,10 @@ const QcCheck = ({
             รายการวัตถุดิบในรถเข็น: {tro_id}
           </Typography>
 
-          <Box sx={{ mb: 2, maxHeight: 350, overflow: 'auto', border: '1px solid #E3E8F2', borderRadius: '4px', p: 2 }}>
+          <Box sx={{ mb: 2, maxHeight: 350, overflow: 'auto', border: '1px solid rgba(255,255,255,.14)', borderRadius: '4px', p: 2 }}>
             {materials?.length > 0 ? materials.map((item, i) => (
               <Box key={i} sx={{ mb: 3, pb: 2, borderBottom: i < materials.length - 1 ? '1px dashed #ccc' : 'none' }}>
-                <Typography sx={{ fontWeight: 'bold', mb: 1, color: '#1552F0', fontSize: '14px' }}>
+                <Typography sx={{ fontWeight: 'bold', mb: 1, color: "#FFB27A", fontSize: '14px' }}>
                   วัตถุดิบที่ {i + 1}
                 </Typography>
                 <Stack spacing={0.5}>
@@ -369,7 +369,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
       <Dialog open={open} onClose={(_, r) => { if (r !== 'backdropClick') onClose(); }}
         fullWidth maxWidth="md">
         <DialogContent>
-          <Typography variant="h6" sx={{ fontSize: "18px", color: "#6B7489", mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: "18px", color: "rgba(241,244,250,.62)", mb: 2 }}>
             กรุณากรอกข้อมูล
           </Typography>
 
@@ -393,7 +393,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                       'หมายเหตุแก้ไข','ประวัติแก้ไข'
                     ].map(h => (
                       <TableCell key={h} sx={{ fontSize: '11px', fontWeight: 600,
-                        whiteSpace: 'nowrap', backgroundColor: '#F5F8FF' }}>{h}</TableCell>
+                        whiteSpace: 'nowrap', backgroundColor: "rgba(255,255,255,.05)" }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -444,9 +444,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
                     {[
-                      { value: 'ฝากเก็บเพื่อรอผลิต', color: '#1552F0' },
-                      { value: 'ฟรีสเพื่อจัดเก็บ', color: '#7b1fa2' },
-                      { value: 'ส่งคืน', color: '#c62828' },
+                      { value: 'ฝากเก็บเพื่อรอผลิต', color: "#FFB27A" },
+                      { value: 'ฟรีสเพื่อจัดเก็บ', color: "#D8B4FE" },
+                      { value: 'ส่งคืน', color: "#FCA5A5" },
                     ].map(({ value, color }) => {
                       const selected = storagePurpose === value;
                       return (
@@ -472,17 +472,17 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                       .map((item, i) => (
                         <Box key={item.mapping_id || i} sx={{
                           display: 'flex', alignItems: 'center', gap: 2,
-                          bgcolor: '#fff', border: '1px solid #BBDEFB',
+                          bgcolor: "rgba(255,255,255,.07)", border: '1px solid #BBDEFB',
                           borderRadius: '8px', p: 1.5
                         }}>
                           <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0F3FC4' }}>
+                            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: "#FFB27A" }}>
                               วัตถุดิบที่ {i + 1}
                             </Typography>
-                            <Typography sx={{ fontSize: '12px', color: '#555' }}>
+                            <Typography sx={{ fontSize: '12px', color: "rgba(241,244,250,.62)" }}>
                               {item.batch || batch} — {item.materialName || materialName}
                             </Typography>
-                            <Typography sx={{ fontSize: '11px', color: '#999' }}>
+                            <Typography sx={{ fontSize: '11px', color: "rgba(241,244,250,.62)" }}>
                               mapping_id: {item.mapping_id}
                             </Typography>
                           </Box>
@@ -503,7 +503,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                             sx={{ width: '160px' }}
                             InputProps={{
                               endAdornment: histamineMap[item.mapping_id]
-                                ? <Typography sx={{ fontSize: '12px', color: '#888', pr: 0.5 }}>ppm</Typography>
+                                ? <Typography sx={{ fontSize: '12px', color: "rgba(241,244,250,.62)", pr: 0.5 }}>ppm</Typography>
                                 : null
                             }}
                           />
@@ -521,7 +521,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
                     InputLabelProps={{ shrink: true }}
-                    sx={{ width: '220px', mb: 3, bgcolor: '#fff' }}
+                    sx={{ width: '220px', mb: 3, bgcolor: "rgba(255,255,255,.07)" }}
                   />
 
                   {/* 4. หมายเหตุ */}
@@ -535,14 +535,14 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                     placeholder="กรอกหมายเหตุ (ถ้ามี)"
                     value={remark}
                     onChange={(e) => setRemark(e.target.value)}
-                    sx={{ bgcolor: '#fff' }}
+                    sx={{ bgcolor: "rgba(255,255,255,.07)" }}
                   />
               </Box>
             </Box>
 
             {/* ── Operator ── */}
             <Box sx={{ pl: 1.5 }}>
-              <Typography sx={{ color: "#666", mb: 1 }}>ผู้ดำเนินการ</Typography>
+              <Typography sx={{ color: "rgba(241,244,250,.62)", mb: 1 }}>ผู้ดำเนินการ</Typography>
               <TextField label="กรอกชื่อผู้ทำรายการ" variant="outlined" fullWidth
                 value={operator} size="small" onChange={(e) => setoperator(e.target.value)}
                 sx={{ mb: 2 }} />

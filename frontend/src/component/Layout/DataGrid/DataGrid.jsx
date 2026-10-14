@@ -21,39 +21,41 @@ import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
 import { registerSettings } from "./settingsBus";
 
-const ROW_BG = { green: "#E8F5E9", yellow: "#FFF8E1", red: "#FDECEA", blue: "#DCEBFF" }; // blue = a finished (Done) row
-// glass: scrolling cells are translucent (the frosted table panel shows through); frozen cells stay solid so the scrolled cells never show through them
-const GLASS_ROW_BG = { white: "rgba(255,255,255,.45)", green: "rgba(232,245,233,.78)", yellow: "rgba(255,248,225,.80)", red: "rgba(253,236,234,.80)", blue: "rgba(220,235,255,.80)" };
-const SOLID_ROW_BG = { white: "#F8FAFF", ...ROW_BG };
+// dark glass: delay colours are tinted glass. Scrolling cells are translucent; frozen cells use the same tint but solid,
+// so the scrolled cells never show through them. Hover colours are solid for the same reason.
+const ROW_BG = { white: "rgba(255,255,255,.03)", green: "rgba(52,211,153,.16)", yellow: "rgba(251,191,36,.16)", red: "rgba(248,113,113,.18)", blue: "rgba(96,165,250,.18)" }; // blue = a finished (Done) row
+const SOLID_ROW_BG = { white: "#1A1E27", green: "#1B3A33", yellow: "#3A3423", red: "#3D2429", blue: "#1E2F48" };
+const HOVER_BG = { white: "#262B36", green: "#22473E", yellow: "#4A422B", red: "#4B2C32", blue: "#253A58" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
-const COLOR_FG = { green: "#2E7D32", yellow: "#B26A00", red: "#C62828" };
-const GRID = "2px solid #263238";
-// opaque hover colours: the theme's translucent hover colour would let the scrolled cells show through the frozen columns
-const HOVER_BG = { white: "#E6EEFF", green: "#CDE8D0", yellow: "#FFE9A8", red: "#F8CFC9", blue: "#C4DCFB" };
+const COLOR_FG = { green: "#6EE7B7", yellow: "#FCD34D", red: "#FCA5A5" };
+const GRID = "1px solid rgba(255,255,255,.14)";
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
-const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "6px 8px", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" };
+const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.12)", padding: "6px 8px", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" };
+const HEAD_BG = "#20242E";        // normal column (solid: the header is sticky)
+const HEAD_SORT_BG = "#4A3021";   // sorted column (orange tint)
+const HEAD_FILTER_BG = "#B4531A"; // filtered column (orange)
 
 const DefaultCell = ({ col, row }) => {
   const v = cellValue(col, row);
   const empty = v === null || v === undefined || v === "" || v === "-";
-  if (empty) return <span style={{ color: "#C5CCD9" }}>-</span>;
+  if (empty) return <span style={{ color: "rgba(241,244,250,.28)" }}>-</span>;
   if (col.type === "time") return <span style={{ whiteSpace: "nowrap" }}>{shortTime(v)}</span>;
   return <span>{String(v)}</span>;
 };
 
 // Body cells are plain <td> (with the MUI class names, so the table-level border / hover rules still apply) and the tick box is a native input:
 // a MUI TableCell + Checkbox per cell made every render of a few hundred rows take seconds. Rows are memoised: every prop is a primitive or a stable reference.
-const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#1B2333", padding: "3px 8px", verticalAlign: "inherit", display: "table-cell" };
+const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#F1F4FA", padding: "3px 8px", verticalAlign: "inherit", display: "table-cell" };
 const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, solidBg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
   <TableRow
     hover onClick={onPick ? () => onPick(row) : undefined}
-    sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 3px 0 #1552F0, inset 0 -3px 0 #1552F0" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
+    sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 2px 0 #FF8A3D, inset 0 -2px 0 #FF8A3D" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
       <td className="MuiTableCell-root MuiTableCell-body" onClick={(e) => e.stopPropagation()}
         style={{ ...CELL, position: "sticky", left: 0, zIndex: 2, background: solidBg, padding: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W, textAlign: "center" }}>
-        <input type="checkbox" checked={checked} disabled={!canSelect} onChange={() => onToggle(rowId)} style={{ width: 16, height: 16, cursor: canSelect ? "pointer" : "default", accentColor: "#1552F0", verticalAlign: "middle" }} />
+        <input type="checkbox" checked={checked} disabled={!canSelect} onChange={() => onToggle(rowId)} style={{ width: 16, height: 16, cursor: canSelect ? "pointer" : "default", accentColor: "#FF8A3D", verticalAlign: "middle" }} />
       </td>
     )}
     {cols.map((c) => {
@@ -193,7 +195,7 @@ const DataGrid = ({
       const last = out[out.length - 1];
       if (last && last.key === c.group) last.span += 1; else out.push({ key: c.group, span: 1 });
     });
-    return out.map((g) => ({ ...g, ...(groups.find((x) => x.key === g.key) || { label: "", color: "#1552F0" }) }));
+    return out.map((g) => ({ ...g, ...(groups.find((x) => x.key === g.key) || { label: "", color: HEAD_BG }) }));
   }, [cols, groups]);
   const frozenCount = cols.filter((c) => c.frozen).length;
   const tableWidth = useMemo(() => (selectable ? CHECK_W : 0) + cols.reduce((sum, c) => sum + (c.width || 110), 0), [cols, selectable]);
@@ -256,7 +258,7 @@ const DataGrid = ({
         <Tooltip key={k} title={colorOnly === k ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
           <Chip
             clickable label={counts[k]} onClick={() => { setColorOnly(colorOnly === k ? null : k); setPage(0); }}
-            sx={{ fontWeight: 700, minWidth: 52, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
+            sx={{ fontWeight: 700, minWidth: 52, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#15181F" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
           />
         </Tooltip>
       ))}
@@ -306,7 +308,7 @@ const DataGrid = ({
               <Chip
                 key={c.label} size="small" clickable onClick={() => pickStatus(c.label)}
                 label={c.label}
-                sx={{ flexShrink: 0, fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.95)" } }}
+                sx={{ flexShrink: 0, fontWeight: 700, background: on ? c.color : `${c.color}33`, color: "#fff", border: `1px solid ${c.color}`, "&:hover": { background: on ? c.color : `${c.color}55` } }}
               />
             );
           })}
@@ -324,7 +326,7 @@ const DataGrid = ({
       <Paper sx={{ position: "relative", borderRadius: "16px", overflow: "hidden", ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
         {/* โหลดครั้งแรก / รีเฟรช: ยังไม่มีข้อมูลสักแถว -> แสดงหน้าโหลดทับพื้นที่ตาราง (โหลดซ้ำตอนมีข้อมูลแล้วไม่บังตาราง) */}
         {loading && !rows.length && (
-          <Box sx={{ position: "absolute", inset: 0, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", minHeight: 260 }}>
+          <Box sx={{ position: "absolute", inset: 0, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,18,24,.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", minHeight: 260 }}>
             <HamsterLoader />
           </Box>
         )}
@@ -338,7 +340,7 @@ const DataGrid = ({
               "& .MuiTableCell-root": { borderRight: GRID, borderBottom: GRID },
               "& thead tr:first-of-type .MuiTableCell-root": { borderTop: GRID },
               "& .MuiTableCell-root:first-of-type": { borderLeft: GRID },
-              "& .MuiTableCell-root.frozen-edge": { borderRight: "3px solid #000" },
+              "& .MuiTableCell-root.frozen-edge": { borderRight: "2px solid rgba(255,138,61,.55)" },
             }}
           >
             <colgroup>
@@ -348,7 +350,7 @@ const DataGrid = ({
             <TableHead>
               <TableRow>
                 {(selectable || frozenCount > 0) && (
-                  <TableCell colSpan={frozenCount + (selectable ? 1 : 0)} sx={{ ...HEAD, background: "#0F3FC4", position: "sticky", left: 0, top: 0, zIndex: 6, height: HEAD_H }}>ทำรายการ</TableCell>
+                  <TableCell colSpan={frozenCount + (selectable ? 1 : 0)} sx={{ ...HEAD, background: HEAD_SORT_BG, position: "sticky", left: 0, top: 0, zIndex: 6, height: HEAD_H }}>ทำรายการ</TableCell>
                 )}
                 {headGroups.map((g, i) => (
                   <TableCell key={`${g.key}-${i}`} colSpan={g.span} align="center" sx={{ ...HEAD, background: g.color, top: 0, height: HEAD_H }}>{g.label}</TableCell>
@@ -356,7 +358,7 @@ const DataGrid = ({
               </TableRow>
               <TableRow>
                 {selectable && (
-                  <TableCell sx={{ ...HEAD, background: "#1552F0", position: "sticky", left: 0, top: HEAD_H, zIndex: 6, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
+                  <TableCell sx={{ ...HEAD, background: HEAD_BG, position: "sticky", left: 0, top: HEAD_H, zIndex: 6, p: 0, width: CHECK_W, minWidth: CHECK_W, maxWidth: CHECK_W }}>
                     {/* ไม่มีช่อง "เลือกทุกแถว": ต้องติ๊กทีละแถว กันเลือกเกินโดยไม่ตั้งใจ */}
                   </TableCell>
                 )}
@@ -370,7 +372,7 @@ const DataGrid = ({
                       onClick={c.kind !== "tool" ? () => setMenuKey(c.key) : undefined}
                       title={c.kind !== "tool" ? "คลิกเพื่อเรียงลำดับ / ค้นหา / กรองคอลัมน์นี้" : undefined}
                       sx={{
-                        ...HEAD, background: filters[c.key] ? "#C2410C" : s ? "#0F3FC4" : "#1552F0", top: HEAD_H, cursor: c.kind !== "tool" ? "pointer" : undefined,
+                        ...HEAD, background: filters[c.key] ? HEAD_FILTER_BG : s ? HEAD_SORT_BG : HEAD_BG, top: HEAD_H, cursor: c.kind !== "tool" ? "pointer" : undefined,
                         "&:hover": c.kind !== "tool" ? { filter: "brightness(1.15)" } : undefined,
                         ...(sticky ? { position: "sticky", left, zIndex: 6, width: c.width, minWidth: c.width, maxWidth: c.width } : { minWidth: c.width }),
                       }}
@@ -391,14 +393,14 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={GLASS_ROW_BG[color || "white"]} solidBg={SOLID_ROW_BG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
+                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={ROW_BG[color || "white"]} solidBg={SOLID_ROW_BG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
                     active={activeKey !== null && activeKey === key} onPick={stablePick} onCell={stableCell}
                   />
                 );
               })}
               {!pageRows.length && (
-                <TableRow><TableCell colSpan={cols.length + (selectable ? 1 : 0)} align="center" sx={{ py: 5, color: "#90A4AE", ...(loading && !rows.length ? { height: 280 } : {}) }}>{loading ? "" : emptyText}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={cols.length + (selectable ? 1 : 0)} align="center" sx={{ py: 5, color: "rgba(241,244,250,.5)", ...(loading && !rows.length ? { height: 280 } : {}) }}>{loading ? "" : emptyText}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

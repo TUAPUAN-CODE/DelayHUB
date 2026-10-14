@@ -220,7 +220,7 @@ const Modal2 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, level_eu
       fullWidth
       maxWidth="xs"
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "#555" }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: "15px", color: "rgba(241,244,250,.62)" }}>
         <DialogContent sx={{ padding: '8px 16px' }}>
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2 }}>

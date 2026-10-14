@@ -41,8 +41,8 @@ const Row = ({
                         align="center"
                         style={{
                             width: columnWidths[idx],
-                            borderTop: '1px solid #E3E8F2',
-                            borderBottom: '1px solid #E3E8F2',
+                            borderTop: '1px solid rgba(255,255,255,.14)',
+                            borderBottom: '1px solid rgba(255,255,255,.14)',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             overflow: 'hidden',
@@ -51,7 +51,7 @@ const Row = ({
                             height: '40px',
                             lineHeight: '1.5',
                             padding: '0px 10px',
-                            color: "#6B7489",
+                            color: "rgba(241,244,250,.62)",
                             borderLeft: idx === 0 ? "1px solid #E3E8F2" : "1px solid #f2f2f2",
                             borderTopLeftRadius: idx === 0 ? "8px" : "0px",
                             borderBottomLeftRadius: idx === 0 ? "8px" : "0px",
@@ -68,7 +68,7 @@ const Row = ({
                         e.stopPropagation();
                         handleOpenEditRemark(row);
                     }}
-                    icon={<EditIcon style={{ color: "#1552F0", fontSize: "18px" }} />}
+                    icon={<EditIcon style={{ color: "#FFB27A", fontSize: "18px" }} />}
                     backgroundColor={backgroundColor}
                 />
 
@@ -95,8 +95,8 @@ const EditActionCell = ({ onClick, icon, backgroundColor }) => {
         <TableCell
             style={{
                 textAlign: 'center',
-                borderTop: '1px solid #E3E8F2',
-                borderBottom: '1px solid #E3E8F2',
+                borderTop: '1px solid rgba(255,255,255,.14)',
+                borderBottom: '1px solid rgba(255,255,255,.14)',
                 borderLeft: '1px solid #f2f2f2',
                 height: '40px',
                 padding: '0px',
@@ -134,10 +134,10 @@ const CompleteActionCell = ({ onClick, icon, backgroundColor }) => {
         <TableCell
             style={{
                 textAlign: 'center',
-                borderTop: '1px solid #E3E8F2',
-                borderBottom: '1px solid #E3E8F2',
+                borderTop: '1px solid rgba(255,255,255,.14)',
+                borderBottom: '1px solid rgba(255,255,255,.14)',
                 borderLeft: '1px solid #f2f2f2',
-                borderRight: '1px solid #E3E8F2',
+                borderRight: '1px solid rgba(255,255,255,.14)',
                 borderTopRightRadius: "8px",
                 borderBottomRightRadius: "8px",
                 height: '40px',
@@ -223,7 +223,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                     }}
                     sx={{
                         "& .MuiOutlinedInput-root": {
-                            height: "40px", fontSize: "14px", borderRadius: "8px", color: "#6B7489",
+                            height: "40px", fontSize: "14px", borderRadius: "8px", color: "rgba(241,244,250,.62)",
                         },
                         "& input": { padding: "8px" },
                     }}
@@ -243,29 +243,29 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                 <Table stickyHeader style={{ tableLayout: 'auto' }} sx={{ minWidth: '1270px', width: 'max-content' }}>
                     <TableHead style={{ marginBottom: "10px" }}>
                         <TableRow sx={{ height: '40px' }}>
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px", border: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Batch</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Material</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>HU</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>Remark</Box>
                             </TableCell>
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "200px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "200px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>เวลาส่งจากห้องเย็นใหญ่</Box>
                             </TableCell>
 
                             {/* ✅ Header: ปุ่ม Edit */}
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "70px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid #f2f2f2", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "70px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ReMark</Box>
                             </TableCell>
 
                             {/* Header: ปุ่ม ลบ */}
-                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid #E3E8F2", borderBottom: "1px solid #E3E8F2", borderRight: "1px solid #E3E8F2", fontSize: '12px', color: '#6B7489', padding: '5px', width: "70px" }}>
+                            <TableCell align="center" style={{ backgroundColor: "#1552F0", borderTopRightRadius: "8px", borderBottomRightRadius: "8px", borderTop: "1px solid rgba(255,255,255,.14)", borderBottom: "1px solid rgba(255,255,255,.14)", borderRight: "1px solid rgba(255,255,255,.14)", fontSize: '12px', color: "rgba(241,244,250,.62)", padding: '5px', width: "70px" }}>
                                 <Box style={{ fontSize: '16px', color: '#ffffff' }}>ลบ</Box>
                             </TableCell>
                         </TableRow>
@@ -288,7 +288,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                                <TableCell colSpan={columns.length + 11} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                                     ไม่มีรายการวัตถุดิบในขณะนี้
                                 </TableCell>
                             </TableRow>
@@ -299,7 +299,7 @@ const TableMainPrep = ({ handleOpenModal, data, handleRowClick, handleOpenEditRe
             <TablePagination
                 sx={{
                     "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
-                        fontSize: '10px', color: "#6B7489", padding: "0px",
+                        fontSize: '10px', color: "rgba(241,244,250,.62)", padding: "0px",
                     }
                 }}
                 rowsPerPageOptions={[20, 50, 100]}

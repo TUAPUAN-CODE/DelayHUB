@@ -79,7 +79,7 @@ const Modalchill4 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, des
       </AppBar>
 
       <DialogContent>
-        <Box sx={{ mb: 3, p: 2, borderRadius: '8px', bgcolor: '#F5F8FF', border: '1px solid #e3e6f0' }}>
+        <Box sx={{ mb: 3, p: 2, borderRadius: '8px', bgcolor: "rgba(255,255,255,.05)", border: '1px solid #e3e6f0' }}>
           <Typography variant="h6" gutterBottom>ข้อมูลการย้ายวัตถุดิบ</Typography>
           <Divider sx={{ mb: 2 }} />
 
@@ -112,7 +112,7 @@ const Modalchill4 = ({ open, onClose, onNext, data, rmfp_id, CookedDateTime, des
         <ParentComponentChill4 onSelectOption={handleSlotSelect} />
       </DialogContent>
 
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e3e6f0', bgcolor: '#F5F8FF' }}>
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e3e6f0', bgcolor: "rgba(255,255,255,.05)" }}>
         <Button
           variant="contained"
           startIcon={<CancelIcon />}

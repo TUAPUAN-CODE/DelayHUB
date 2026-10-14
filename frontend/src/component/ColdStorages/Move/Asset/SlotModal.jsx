@@ -81,7 +81,7 @@ const SlotModal = ({ slot, onClose }) => {
             justifyContent: "space-between",
             alignItems: "center",
             p: 2,
-            backgroundColor: "#F5F8FF",
+            backgroundColor: "rgba(255,255,255,.05)",
             borderBottom: "1px solid #e3e6f0",
           }}
         >
@@ -133,7 +133,7 @@ const SlotModal = ({ slot, onClose }) => {
             display: "flex",
             justifyContent: "flex-end",
             borderTop: "1px solid #e3e6f0",
-            backgroundColor: "#F5F8FF",
+            backgroundColor: "rgba(255,255,255,.05)",
           }}
         >
           <Button

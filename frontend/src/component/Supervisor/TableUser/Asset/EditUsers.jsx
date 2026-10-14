@@ -345,7 +345,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
                     display: "flex",
                     flexDirection: "column",
                     gap: 1,
-                    border: "1px solid #ccc", // เพิ่ม border เพื่อทำให้กล่องดูชัดเจนขึ้น
+                    border: "1px solid rgba(255,255,255,.14)", // เพิ่ม border เพื่อทำให้กล่องดูชัดเจนขึ้น
                     borderRadius: "5px", // ทำให้มุมของกล่องมีความโค้ง
                   }}
                 >

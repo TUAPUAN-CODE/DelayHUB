@@ -68,7 +68,7 @@ const ConfirmProdModal = ({
       <DialogContent>
         <Typography
           variant="h6"
-          style={{ fontSize: "18px", color: "#6B7489" }}
+          style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }}
           mb={2}
         >
           ข้อมูลการยืนยันการผลิต
@@ -205,7 +205,7 @@ const ModalEditPD = ({ open, onClose, data }) => {
         <DialogContent>
           <Typography
             variant="h6"
-            style={{ fontSize: "18px", color: "#6B7489" }}
+            style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }}
             mb={2}
           >
             กรุณาเลือกแผนการผลิต และสถานที่จัดส่ง
@@ -252,7 +252,7 @@ const ModalEditPD = ({ open, onClose, data }) => {
                         {plan.code} ({plan.doc_no} - {plan.line_name})
                       </Typography>
                       <IconButton onClick={() => handlePlanSelect(plan)}>
-                        <FaCheck style={{ color: "#1552F0" }} />
+                        <FaCheck style={{ color: "#FFB27A" }} />
                       </IconButton>
                     </Box>
                   </MenuItem>
@@ -274,14 +274,14 @@ const ModalEditPD = ({ open, onClose, data }) => {
                       borderRadius: "4px",
                       border: "1px solid #c9c9c9",
                     }}
-                    sx={{ backgroundColor: "#fff", color: "#6B7489" }}
+                    sx={{ backgroundColor: "rgba(255,255,255,.07)", color: "rgba(241,244,250,.62)" }}
                   />
                 </Box>
               ))}
             </Box>
 
             {/* <Box sx={{ display: "flex", alignItems: "center", pl: 1 }}>
-              <Typography style={{ color: "#666", mr: 2 }}>สถานที่จัดส่ง</Typography>
+              <Typography style={{ color: "rgba(241,244,250,.62)", mr: 2 }}>สถานที่จัดส่ง</Typography>
               <RadioGroup
                 row
                 value={deliveryLocation}
@@ -291,13 +291,13 @@ const ModalEditPD = ({ open, onClose, data }) => {
                   value="จุดเตรียม"
                   control={<Radio />}
                   label="จุดเตรียม"
-                  style={{ color: "#666" }}
+                  style={{ color: "rgba(241,244,250,.62)" }}
                 />
                 <FormControlLabel
                   value="ห้องเย็น"
                   control={<Radio />}
                   label="ห้องเย็น"
-                  style={{ color: "#666" }}
+                  style={{ color: "rgba(241,244,250,.62)" }}
                 />
               </RadioGroup>
             </Box> */}

@@ -62,9 +62,9 @@ const getLatestCsComeColdDateObj = (row) => {
 const selectStyle = {
   padding: '6px 8px',
   borderRadius: '4px',
-  border: '1px solid #ccc',
-  color: '#000',
-  backgroundColor: '#fff',
+  border: '1px solid rgba(255,255,255,.14)',
+  color: "#F1F4FA",
+  backgroundColor: "rgba(255,255,255,.07)",
 };
 
 // ─── helper: แปลง { date, hour } → Date object ───────────────────────────────
@@ -90,7 +90,7 @@ const buildDateFromParts = (dateStr, hourStr) => {
 // ─── HourDatePicker: date input + select 1–24 ────────────────────────────────
 const HourDatePicker = ({ label, dateValue, hourValue, onDateChange, onHourChange }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <label style={{ fontSize: '13px', color: '#555', marginBottom: '2px' }}>{label}</label>
+    <label style={{ fontSize: '13px', color: "rgba(241,244,250,.62)", marginBottom: '2px' }}>{label}</label>
     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
       {/* วันที่ */}
       <input
@@ -293,12 +293,12 @@ const ParentComponent = () => {
         style={{
           display: 'flex', flexWrap: 'wrap', gap: '12px',
           alignItems: 'flex-end', marginBottom: '16px',
-          padding: '12px', border: '1px solid #E3E8F2', borderRadius: '8px',
+          padding: '12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: '8px',
         }}
       >
         {/* สถานะ */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontSize: '13px', color: '#555', marginBottom: '4px' }}>สถานะการรับเข้า</label>
+          <label style={{ fontSize: '13px', color: "rgba(241,244,250,.62)", marginBottom: '4px' }}>สถานะการรับเข้า</label>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
             <option value="all">ทั้งหมด ({tableData.length})</option>
             <option value="received">อยู่ในห้องเย็นแล้ว ({tableData.filter((r) => r.dest === DEST_RECEIVED).length})</option>
@@ -308,7 +308,7 @@ const ParentComponent = () => {
 
         {/* field1 */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontSize: '13px', color: '#555', marginBottom: '4px' }}>เวลาที่ 1 (input1)</label>
+          <label style={{ fontSize: '13px', color: "rgba(241,244,250,.62)", marginBottom: '4px' }}>เวลาที่ 1 (input1)</label>
           <select value={field1} onChange={(e) => setField1(e.target.value)} style={{ ...selectStyle, minWidth: '220px' }}>
             <option value="">-- เลือกฟิลด์เวลา --</option>
             {DATE_FIELD_GROUPS.map((group) => (
@@ -323,7 +323,7 @@ const ParentComponent = () => {
 
         {/* field2 */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontSize: '13px', color: '#555', marginBottom: '4px' }}>เวลาที่ 2 (input2)</label>
+          <label style={{ fontSize: '13px', color: "rgba(241,244,250,.62)", marginBottom: '4px' }}>เวลาที่ 2 (input2)</label>
           <select value={field2} onChange={(e) => setField2(e.target.value)} style={{ ...selectStyle, minWidth: '220px' }}>
             <option value="">-- เลือกฟิลด์เวลา --</option>
             {DATE_FIELD_GROUPS.map((group) => (
@@ -338,27 +338,27 @@ const ParentComponent = () => {
 
         {/* threshold */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontSize: '13px', color: '#555', marginBottom: '4px' }}>เวลาที่กำหนด (นาที)</label>
+          <label style={{ fontSize: '13px', color: "rgba(241,244,250,.62)", marginBottom: '4px' }}>เวลาที่กำหนด (นาที)</label>
           <input
             type="number" min="0" step="1"
             value={thresholdHours}
             onChange={(e) => setThresholdHours(e.target.value)}
             placeholder="เช่น 60"
-            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc', width: '100px', color: '#000' }}
+            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,.14)', width: '100px', color: "#F1F4FA" }}
           />
         </div>
 
         <button onClick={handleSortByTime} style={{ padding: '7px 16px', borderRadius: '4px', border: 'none', backgroundColor: '#2563eb', color: '#fff', cursor: 'pointer' }}>
           sort
         </button>
-        <button onClick={handleResetTimeFilter} style={{ padding: '7px 16px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}>
+        <button onClick={handleResetTimeFilter} style={{ padding: '7px 16px', borderRadius: '4px', border: '1px solid rgba(255,255,255,.14)', backgroundColor: "rgba(255,255,255,.07)", color: "#F1F4FA", cursor: 'pointer' }}>
           ล้างตัวกรองเวลา
         </button>
       </div>
 
-      {sortError && <div style={{ color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{sortError}</div>}
+      {sortError && <div style={{ color: "#FCA5A5", fontSize: '13px', marginBottom: '12px' }}>{sortError}</div>}
       {diffFilter && (
-        <div style={{ color: '#15803d', fontSize: '13px', marginBottom: '12px' }}>
+        <div style={{ color: "#6EE7B7", fontSize: '13px', marginBottom: '12px' }}>
           กำลังแสดงแถวที่ diff ระหว่าง "{getFieldLabel(diffFilter.field1)}" กับ "{getFieldLabel(diffFilter.field2)}" เกิน {diffFilter.threshold} นาที
         </div>
       )}
@@ -368,7 +368,7 @@ const ParentComponent = () => {
         style={{
           display: 'flex', flexWrap: 'wrap', gap: '16px',
           alignItems: 'flex-end', marginBottom: '16px',
-          padding: '12px', border: '1px solid #E3E8F2', borderRadius: '8px',
+          padding: '12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: '8px',
         }}
       >
         <HourDatePicker
@@ -390,14 +390,14 @@ const ParentComponent = () => {
         <button onClick={handleSortByDateRange} style={{ padding: '7px 16px', borderRadius: '4px', border: 'none', backgroundColor: '#15803d', color: '#fff', cursor: 'pointer' }}>
           sort
         </button>
-        <button onClick={handleResetDateRangeFilter} style={{ padding: '7px 16px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}>
+        <button onClick={handleResetDateRangeFilter} style={{ padding: '7px 16px', borderRadius: '4px', border: '1px solid rgba(255,255,255,.14)', backgroundColor: "rgba(255,255,255,.07)", color: "#F1F4FA", cursor: 'pointer' }}>
           ล้างตัวกรองช่วงวันที่
         </button>
       </div>
 
-      {rangeError && <div style={{ color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{rangeError}</div>}
+      {rangeError && <div style={{ color: "#FCA5A5", fontSize: '13px', marginBottom: '12px' }}>{rangeError}</div>}
       {dateRangeFilter && (
-        <div style={{ color: '#15803d', fontSize: '13px', marginBottom: '12px' }}>
+        <div style={{ color: "#6EE7B7", fontSize: '13px', marginBottom: '12px' }}>
           กำลังแสดงแถวที่วันเวลาเข้าห้องเย็นใหญ่ล่าสุด อยู่ระหว่าง{' '}
           {fmtRangeDate(dateRangeFilter.start)} ถึง {fmtRangeDate(dateRangeFilter.end)}
         </div>
@@ -406,7 +406,7 @@ const ParentComponent = () => {
       {/* ── Table ── */}
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 150px)' }}>
-          <p style={{ color: '#6B7489', fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
+          <p style={{ color: "rgba(241,244,250,.62)", fontSize: '16px' }}>กำลังโหลดข้อมูล...</p>
         </div>
       ) : (
         <TableMainPrep
@@ -421,7 +421,7 @@ const ParentComponent = () => {
       )}
 
       {pendingError && (
-        <div style={{ color: '#B45309', fontSize: 13, margin: '8px 0' }}>
+        <div style={{ color: "#FCD34D", fontSize: 13, margin: '8px 0' }}>
           โหลดรายการ "รอรับเข้า" ไม่สำเร็จ — แสดงเฉพาะรายการที่อยู่ในห้องเย็นแล้ว
         </div>
       )}

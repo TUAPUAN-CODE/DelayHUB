@@ -131,8 +131,8 @@ const Row = ({
             style={{
               width: columnWidths[idx],
               borderLeft: "1px solid #f2f2f2",
-              borderTop: '1px solid #E3E8F2',
-              borderBottom: '1px solid #E3E8F2',
+              borderTop: '1px solid rgba(255,255,255,.14)',
+              borderBottom: '1px solid rgba(255,255,255,.14)',
               whiteSpace: 'normal',
               wordWrap: 'break-word',
               overflow: 'hidden',
@@ -141,7 +141,7 @@ const Row = ({
               height: '40px',
               lineHeight: '1.5',
               padding: '0px 10px',
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
               backgroundColor: backgroundColor
             }}
           >
@@ -186,10 +186,10 @@ const DeleteCart = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
-        borderRight: "1px solid #E3E8F2",
+        borderRight: "1px solid rgba(255,255,255,.14)",
         height: '40px',
         padding: '0px',
         cursor: 'pointer',
@@ -227,8 +227,8 @@ const Packdetail = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
         height: '40px',
         padding: '0px',
@@ -291,10 +291,10 @@ const Packsend = ({ width, onClick, icon, backgroundColor }) => {
       style={{
         width,
         textAlign: 'center',
-        borderTop: '1px solid #E3E8F2',
-        borderBottom: '1px solid #E3E8F2',
+        borderTop: '1px solid rgba(255,255,255,.14)',
+        borderBottom: '1px solid rgba(255,255,255,.14)',
         borderLeft: '1px solid #f2f2f2',
-        borderRight: "1px solid #E3E8F2",
+        borderRight: "1px solid rgba(255,255,255,.14)",
         borderTopRightRadius: "8px",
         borderBottomRightRadius: "8px",
         height: '40px',
@@ -431,7 +431,7 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
               height: "40px",
               fontSize: "14px",
               borderRadius: "8px",
-              color: "#6B7489",
+              color: "rgba(241,244,250,.62)",
             },
             "& input": {
               padding: "8px",
@@ -487,11 +487,11 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
                   align="center"
                   style={{
                     backgroundColor: "#1552F0",
-                    borderTop: "1px solid #E3E8F2",
-                    borderBottom: "1px solid #E3E8F2",
+                    borderTop: "1px solid rgba(255,255,255,.14)",
+                    borderBottom: "1px solid rgba(255,255,255,.14)",
                     borderRight: "1px solid #f2f2f2",
                     fontSize: '12px',
-                    color: '#6B7489',
+                    color: "rgba(241,244,250,.62)",
                     padding: '5px',
                     width: "calc(100% - 80px)", // Adjusted for two buttons
                     borderRadius: '8px 0 0 8px',
@@ -504,11 +504,11 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
                   style={{
                     backgroundColor: "#1552F0",
                     borderLeft: "0px solid ",
-                    borderTop: "1px solid #E3E8F2",
-                    borderBottom: "1px solid #E3E8F2",
-                    borderRight: "1px solid #E3E8F2",
+                    borderTop: "1px solid rgba(255,255,255,.14)",
+                    borderBottom: "1px solid rgba(255,255,255,.14)",
+                    borderRight: "1px solid rgba(255,255,255,.14)",
                     fontSize: '12px',
-                    color: '#6B7489',
+                    color: "rgba(241,244,250,.62)",
                     padding: '5px',
                     width: "40px",
                   }}
@@ -520,11 +520,11 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
                   style={{
                     backgroundColor: "#1552F0",
                     borderLeft: "0px solid ",
-                    borderTop: "1px solid #E3E8F2",
-                    borderBottom: "1px solid #E3E8F2",
-                    borderRight: "1px solid #E3E8F2",
+                    borderTop: "1px solid rgba(255,255,255,.14)",
+                    borderBottom: "1px solid rgba(255,255,255,.14)",
+                    borderRight: "1px solid rgba(255,255,255,.14)",
                     fontSize: '12px',
-                    color: '#6B7489',
+                    color: "rgba(241,244,250,.62)",
                     padding: '5px',
                     width: "40px",
                     borderRadius: '0 8px 8px 0',
@@ -556,7 +556,7 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length + 8} align="center" sx={{ padding: "20px", fontSize: "16px", color: "#6B7489" }}>
+                  <TableCell colSpan={columns.length + 8} align="center" sx={{ padding: "20px", fontSize: "16px", color: "rgba(241,244,250,.62)" }}>
                     ไม่มีรายการวัตถุดิบในขณะนี้
                   </TableCell>
                 </TableRow>
@@ -570,7 +570,7 @@ const TableMainPrep = ({ handleOpenModal, handleopenModal1, data, handleRowClick
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '10px',
-            color: "#6B7489",
+            color: "rgba(241,244,250,.62)",
             padding: "0px",
           }
         }}

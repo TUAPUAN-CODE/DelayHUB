@@ -434,7 +434,7 @@ const ParentComponent = () => {
     return (
         <Box sx={{
             p: { xs: 2, md: 3 },
-            bgcolor: '#fafafa',
+            bgcolor: "rgba(255,255,255,.05)",
             borderRadius: 2,
             boxShadow: '0 2px 12px rgba(0,0,0,0.08)'
         }}>

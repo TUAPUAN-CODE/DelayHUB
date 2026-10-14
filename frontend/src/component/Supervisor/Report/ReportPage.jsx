@@ -225,7 +225,7 @@ const ReportPage = () => {
   }
 
   return (
-    <div style={{ backgroundColor: "#fff" }} className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
+    <div style={{ backgroundColor: "rgba(255,255,255,.07)" }} className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
       <main className="max-w-8xl w-full mx-auto pt-2 pb-1 px-1 lg:px-8 flex-1 min-h-0 flex flex-col">
         {controls}
         {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}

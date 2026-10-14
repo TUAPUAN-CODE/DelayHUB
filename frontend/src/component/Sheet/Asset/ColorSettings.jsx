@@ -30,7 +30,7 @@ const ColorSettings = ({ ext, setExt }) => {
   const off = mode === -1;
   const num = (v, fallback) => { const n = Number(v); return Number.isFinite(n) ? n : fallback; };
   return (
-    <Box sx={{ mb: 2, p: 1.5, border: "1px solid #E3E9F6", borderRadius: 2, background: "#F8FAFF" }}>
+    <Box sx={{ mb: 2, p: 1.5, border: "1px solid rgba(255,255,255,.14)", borderRadius: 2, background: "rgba(255,255,255,.05)" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>สีของแถว (เขียว / เหลือง / แดง) ตาม Delay</Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
         <Box>

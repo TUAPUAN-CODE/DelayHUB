@@ -101,7 +101,7 @@ const CartEditModal = ({ open, onClose, onSuccess, cartData }) => {
       }}
     >
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#ed6c02" }}>
+        <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: "#FDBA74" }}>
           แก้ไขข้อมูลรถเข็น
         </Typography>
       </DialogTitle>
@@ -152,9 +152,9 @@ const CartEditModal = ({ open, onClose, onSuccess, cartData }) => {
             {cartData && (
               <Box sx={{ 
                 p: 2, 
-                backgroundColor: "#F5F8FF", 
+                backgroundColor: "rgba(255,255,255,.05)", 
                 borderRadius: "8px",
-                border: "1px solid #E3E8F2"
+                border: "1px solid rgba(255,255,255,.14)"
               }}>
                 <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
                   ข้อมูลเดิม:

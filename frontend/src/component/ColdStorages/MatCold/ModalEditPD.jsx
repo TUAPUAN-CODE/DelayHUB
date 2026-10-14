@@ -74,7 +74,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
         onClose();
       }} fullWidth maxWidth="xs">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
             กรุณาตรวจสอบข้อมูลก่อนทำรายการ
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -85,7 +85,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
             <Typography color="rgba(0, 0, 0, 0.6)">ผู้อนุมัติ: {editorName}</Typography>
 
             {currentProdDetails && (
-              <Box sx={{ p: 1, bgcolor: "#F5F8FF", mb: 1 }}>
+              <Box sx={{ p: 1, bgcolor: "rgba(255,255,255,.05)", mb: 1 }}>
                 <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                   แผนการผลิตเดิม:
                 </Typography>
@@ -100,7 +100,7 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
               </Box>
             )}
 
-            <Box sx={{ p: 1, bgcolor: "#EAF0FF", mb: 1 }}>
+            <Box sx={{ p: 1, bgcolor: "rgba(255,255,255,.05)", mb: 1 }}>
               <Typography color="rgba(0, 0, 0, 0.6)" fontWeight="bold">
                 แผนการผลิตใหม่:
               </Typography>
@@ -340,7 +340,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         onClose();
       }} fullWidth maxWidth="md">
         <DialogContent>
-          <Typography variant="h6" style={{ fontSize: "18px", color: "#6B7489" }} mb={2}>
+          <Typography variant="h6" style={{ fontSize: "18px", color: "rgba(241,244,250,.62)" }} mb={2}>
             กรุณาเลือกแผนการผลิต
           </Typography>
 
@@ -367,7 +367,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             </Box>
             
             {currentProdDetails && (
-              <Box sx={{ p: 2, bgcolor: "#F5F8FF", borderRadius: 1 }}>
+              <Box sx={{ p: 2, bgcolor: "rgba(255,255,255,.05)", borderRadius: 1 }}>
                 <Typography color="#333" fontWeight="bold" gutterBottom>
                   แผนการผลิตปัจจุบัน
                 </Typography>
@@ -395,9 +395,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Box
                 sx={{
                   p: 2,
-                  border: '1px solid #eee',
+                  border: '1px solid rgba(255,255,255,.14)',
                   borderRadius: 1,
-                  backgroundColor: '#F5F8FF'
+                  backgroundColor: "rgba(255,255,255,.05)"
                 }}
               >
                 <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' } }}>
@@ -459,9 +459,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
               <Box
                 sx={{
                   p: 2,
-                  border: '1px solid #eee',
+                  border: '1px solid rgba(255,255,255,.14)',
                   borderRadius: 1,
-                  backgroundColor: '#F5F8FF'
+                  backgroundColor: "rgba(255,255,255,.05)"
                 }}
               >
                 <Typography>

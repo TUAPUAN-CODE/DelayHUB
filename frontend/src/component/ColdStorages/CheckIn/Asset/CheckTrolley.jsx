@@ -98,13 +98,13 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedCsId }) => {
             flexDirection: "column",
             gap: 2,
             fontSize: "15px",
-            color: "#555",
+            color: "rgba(241,244,250,.62)",
           }}
         >
           {/* Success Badge */}
           <Box
             sx={{
-              bgcolor: "#f0fdf4",
+              bgcolor: "rgba(52,211,153,.14)",
               border: "1px solid #bbf7d0",
               borderRadius: "10px",
               px: 2,
@@ -116,7 +116,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedCsId }) => {
           >
             <Typography sx={{ fontSize: "20px" }}>✅</Typography>
             <Typography
-              sx={{ fontSize: "14px", fontWeight: 600, color: "#16a34a" }}
+              sx={{ fontSize: "14px", fontWeight: 600, color: "#6EE7B7" }}
             >
               {message || "รับเข้าห้องเย็นสำเร็จ"}
             </Typography>
@@ -137,7 +137,7 @@ const CheckTrolley = ({ open, onClose, trolleyData, selectedCsId }) => {
           <Box sx={{ display: "flex", gap: 1 }}>
             <Typography fontWeight={500}>ช่องจอดที่ได้รับ:</Typography>
             <Typography
-              sx={{ fontWeight: 700, color: "#2563eb" }}
+              sx={{ fontWeight: 700, color: "#93C5FD" }}
             >
               {slot_id}
             </Typography>

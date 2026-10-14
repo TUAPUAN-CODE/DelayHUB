@@ -153,9 +153,9 @@ const ScanCheckinPage = () => {
             >
               <Box>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-                  {result.mat   && <Chip label={`Mat: ${result.mat}`}   size="small" sx={{ fontSize: "11px", bgcolor: "#EAF0FF", color: "#0F3FC4" }} />}
-                  {result.batch && <Chip label={`Batch: ${result.batch}`} size="small" sx={{ fontSize: "11px", bgcolor: "#f3e5f5", color: "#6a1b9a" }} />}
-                  {result.hu    && <Chip label={`HU: ${result.hu}`}     size="small" sx={{ fontSize: "11px", bgcolor: "#e8f5e9", color: "#2e7d32" }} />}
+                  {result.mat   && <Chip label={`Mat: ${result.mat}`}   size="small" sx={{ fontSize: "11px", bgcolor: "rgba(255,255,255,.05)", color: "#FFB27A" }} />}
+                  {result.batch && <Chip label={`Batch: ${result.batch}`} size="small" sx={{ fontSize: "11px", bgcolor: "rgba(167,139,250,.16)", color: "#D8B4FE" }} />}
+                  {result.hu    && <Chip label={`HU: ${result.hu}`}     size="small" sx={{ fontSize: "11px", bgcolor: "rgba(52,211,153,.14)", color: "#6EE7B7" }} />}
                 </Box>
                 <Typography sx={{ fontSize: "13px" }}>{result.message}</Typography>
               </Box>
@@ -164,7 +164,7 @@ const ScanCheckinPage = () => {
 
           {/* Manual input form */}
           <form onSubmit={handleManualSubmit}>
-            <Typography sx={{ fontSize: "13px", color: "#555", mb: 1, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: "13px", color: "rgba(241,244,250,.62)", mb: 1, fontWeight: 600 }}>
               กรอก HU หรือ Scan ด้วย Scanner USB
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -195,7 +195,7 @@ const ScanCheckinPage = () => {
           </form>
 
           <Divider sx={{ my: 2.5 }}>
-            <Chip label="หรือ Scan QR Code" size="small" sx={{ fontSize: "11px", color: "#999" }} />
+            <Chip label="หรือ Scan QR Code" size="small" sx={{ fontSize: "11px", color: "rgba(241,244,250,.62)" }} />
           </Divider>
 
           {/* Camera */}
@@ -205,7 +205,7 @@ const ScanCheckinPage = () => {
                 variant="outlined"
                 startIcon={<CameraAltIcon />}
                 onClick={startCamera}
-                sx={{ borderRadius: "8px", borderColor: "#0F3FC4", color: "#0F3FC4", px: 3 }}
+                sx={{ borderRadius: "8px", borderColor: "#0F3FC4", color: "#FFB27A", px: 3 }}
               >
                 เปิดกล้อง Scan QR
               </Button>
@@ -229,7 +229,7 @@ const ScanCheckinPage = () => {
                     <StopIcon />
                   </IconButton>
                 </Box>
-                <Typography sx={{ fontSize: "12px", color: "#888", mt: 1 }}>
+                <Typography sx={{ fontSize: "12px", color: "rgba(241,244,250,.62)", mt: 1 }}>
                   ชี้กล้องไปที่ QR Code — ระบบจะสแกนและบันทึกอัตโนมัติ
                 </Typography>
               </Box>

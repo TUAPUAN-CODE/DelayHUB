@@ -14,11 +14,11 @@ const RowDetail = ({ row, columns = [], title = "รายละเอียด�
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography sx={{ fontWeight: 700, mb: 1.5, color: "#1552F0" }}>{title}</Typography>
+      <Typography sx={{ fontWeight: 700, mb: 1.5, color: "#FFB27A" }}>{title}</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: "minmax(120px, 40%) 1fr", columnGap: 1.5, rowGap: 1 }}>
         {keys.map((k) => (
           <Box key={k} sx={{ display: "contents" }}>
-            <Typography variant="caption" sx={{ color: "#5B6B8C", fontWeight: 600, wordBreak: "break-word", alignSelf: "center" }}>
+            <Typography variant="caption" sx={{ color: "rgba(241,244,250,.62)", fontWeight: 600, wordBreak: "break-word", alignSelf: "center" }}>
               {labelOf[k]}
             </Typography>
             <Typography variant="body2" sx={{ wordBreak: "break-word", fontWeight: 500 }}>{shown(row[k])}</Typography>
