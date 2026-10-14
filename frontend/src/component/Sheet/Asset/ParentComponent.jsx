@@ -361,7 +361,6 @@ const ParentComponent = ({ role, view = "work" }) => {
           </span>
         </Tooltip>
       )))}
-      {activeRow && <Button size="small" onClick={() => setActiveKey(null)}>ยกเลิกการเลือก</Button>}
     </Paper>
   );
 
