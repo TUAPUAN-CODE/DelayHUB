@@ -21,12 +21,13 @@ import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
 import { registerSettings } from "./settingsBus";
 
-const ROW_BG = { white: "#FFFFFF", green: "#EAF7EE", yellow: "#FFF7E0", red: "#FDEDEC", blue: "#E3EEFF" }; // blue = a finished (Done) row
+// vivid delay colours (dark text stays readable on them); blue = a finished (Done) row
+const ROW_BG = { white: "#FFFFFF", green: "#4ADE80", yellow: "#FACC15", red: "#F87171", blue: "#60A5FA" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
-const COLOR_FG = { green: "#15803D", yellow: "#B45309", red: "#C62828" };
-const GRID = "1px solid #DCE5F5";
+const COLOR_FG = { green: "#22C55E", yellow: "#FACC15", red: "#EF4444" }; // the round colour buttons
+const GRID = "1px solid #334155";
 // solid hover colours: a translucent hover colour would let the scrolled cells show through the frozen columns
-const HOVER_BG = { white: "#F1F6FF", green: "#DDF2E3", yellow: "#FFEFC2", red: "#FADCDA", blue: "#D3E4FF" };
+const HOVER_BG = { white: "#EAF1FF", green: "#22C55E", yellow: "#EAB308", red: "#EF4444", blue: "#3B82F6" };
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
@@ -249,17 +250,29 @@ const DataGrid = ({
 
   const activeFilters = Object.keys(filters).length + (search.trim() ? 1 : 0) + (colorOnly ? 1 : 0);
 
-  // only the three colour buttons (number inside, the colour says which); a click shows just that colour, a second click shows all
+  // three round colour buttons like the window buttons of macOS (no number); a click shows just that colour, a second click shows all
   const colorChips = counts && (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
-      {["red", "yellow", "green"].map((k) => (
-        <Tooltip key={k} title={colorOnly === k ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
-          <Chip
-            clickable label={counts[k]} onClick={() => { setColorOnly(colorOnly === k ? null : k); setPage(0); }}
-            sx={{ fontWeight: 700, minWidth: 52, background: colorOnly === k ? COLOR_FG[k] : ROW_BG[k], color: colorOnly === k ? "#fff" : COLOR_FG[k], border: `1px solid ${COLOR_FG[k]}` }}
-          />
-        </Tooltip>
-      ))}
+    <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", px: 0.5, ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
+      {["red", "yellow", "green"].map((k) => {
+        const on = colorOnly === k;
+        return (
+          <Tooltip key={k} title={on ? "กดอีกครั้งเพื่อดูทุกสี" : `แสดงเฉพาะแถวสี${COLOR_LABEL[k]}`} arrow>
+            <Box
+              component="button" type="button" aria-label={`แถวสี${COLOR_LABEL[k]}`} aria-pressed={on}
+              onClick={() => { setColorOnly(on ? null : k); setPage(0); }}
+              sx={{
+                width: 18, height: 18, p: 0, borderRadius: "50%", cursor: "pointer", flexShrink: 0,
+                background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 55%), ${COLOR_FG[k]}`,
+                border: "1px solid rgba(0,0,0,.18)",
+                boxShadow: on ? `0 0 0 2px #fff, 0 0 0 4px ${COLOR_FG[k]}` : "inset 0 -1px 1px rgba(0,0,0,.15)",
+                opacity: colorOnly && !on ? 0.35 : 1,
+                transition: "box-shadow .15s, opacity .15s, transform .1s",
+                "&:hover": { transform: "scale(1.12)" },
+              }}
+            />
+          </Tooltip>
+        );
+      })}
     </Box>
   );
 
@@ -291,13 +304,6 @@ const DataGrid = ({
         {detail && <Button variant={detailOpen ? "contained" : "outlined"} color={detailOpen ? "secondary" : "primary"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)} sx={{ flexShrink: 0, whiteSpace: "nowrap", ml: "auto" }}>Detail</Button>}
       </Box>
 
-      <Box sx={{ display: "flex", flexDirection: detail && narrow ? "column" : "row", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", ...(fill ? { minHeight: 0 } : {}) }}>
-      {/* detail: เครื่องมือของแถว/ผสม อยู่ในแท็บ "เครื่องมือ" ของกล่องขวาแทน */}
-      {!detail && actionBar}
-
-      {!fill && colorChips}
-
       {fill && chipsOrdered && (
         <Box sx={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", gap: 0.75, mb: 1, pb: 0.5, flexShrink: 0 }}>
           {chipsOrdered.map((c) => {
@@ -312,6 +318,15 @@ const DataGrid = ({
           })}
         </Box>
       )}
+
+      {/* table and the right box in one row: both start and end at the same height */}
+      <Box sx={{ display: "flex", flexDirection: detail && narrow ? "column" : "row", gap: 1, alignItems: "stretch", ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", ...(fill ? { minHeight: 0 } : {}) }}>
+      {/* detail: เครื่องมือของแถว/ผสม อยู่ในแท็บ "เครื่องมือ" ของกล่องขวาแทน */}
+      {!detail && actionBar}
+
+      {!fill && colorChips}
+
       {!fill && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexShrink: 0 }}>
         {!fill && <Typography variant="caption" color="text.secondary">
           {activeFilters || sorted.length !== rows.length ? `แสดง ${sorted.length} จาก ${rows.length} แถว` : `${rows.length} แถว`}{caption ? ` · ${caption}` : ""}
@@ -338,7 +353,7 @@ const DataGrid = ({
               "& .MuiTableCell-root": { borderRight: GRID, borderBottom: GRID },
               "& thead tr:first-of-type .MuiTableCell-root": { borderTop: GRID },
               "& .MuiTableCell-root:first-of-type": { borderLeft: GRID },
-              "& .MuiTableCell-root.frozen-edge": { borderRight: "2px solid #9DB7F5" },
+              "& .MuiTableCell-root.frozen-edge": { borderRight: "2px solid #0F172A" },
             }}
           >
             <colgroup>
