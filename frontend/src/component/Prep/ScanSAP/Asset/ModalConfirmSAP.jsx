@@ -32,6 +32,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import ProductionDialog from "../../../Supervisor/TableProduction/Production/ProductionDialog";
 import axios from "axios";
 axios.defaults.withCredentials = true;
 import { height, styled } from "@mui/system";
@@ -359,6 +360,7 @@ const DataReviewSAP = ({ open, onClose, material, batch, hu }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [allLinesByType, setAllLinesByType] = useState({});
   const [showDropdowns, setShowDropdowns] = useState(true);
+  const [prodDialogOpen, setProdDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState(null);
   const [level_eu, setEuLevel] = useState("-");  // Added EU level state
@@ -898,6 +900,10 @@ useEffect(() => {
                   >
                     เพิ่มแผน
                   </Button>
+                  {/* no plan in the list: open the production plan table (/sup/Production only) to add it, then the list is re-loaded */}
+                  <Button onClick={() => setProdDialogOpen(true)} variant="text" size="small" color="secondary" sx={{ ml: 1 }}>
+                    ไม่มีแผนการผลิต?
+                  </Button>
                 </Box>
               </Box>
 
@@ -1096,6 +1102,7 @@ useEffect(() => {
         </ModalContent>
       </Dialog>
 
+      <ProductionDialog open={prodDialogOpen} onClose={() => { setProdDialogOpen(false); fetchProduction(); }} />
       <ConfirmProdModal
         open={isConfirmProdOpen}
         onClose={() => setIsConfirmProdOpen(false)}

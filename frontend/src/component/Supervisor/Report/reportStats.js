@@ -105,3 +105,26 @@ export const totals = (rows, dbsIdx) => {
   }
   return { n, over, overPct: n ? (over / n) * 100 : 0, avg: n ? sum / n : null };
 };
+
+/**
+ * P (the chosen percentile) of every DBS side by side: for each DBS, the P of each group, then the average / highest / lowest of those P values
+ * (and which group they belong to), plus the P of all the items together (not grouped).
+ */
+export const dbsPercentileSummary = (rows, groupBy, pct = 80) => [0, 1, 2, 3].map((i) => {
+  const stats = groupStats(rows, groupBy, i, pct).filter((s) => s.pct !== null);
+  const all = [];
+  for (const r of rows) {
+    const d = r.__dbs?.[i];
+    if (d && d.minutes !== null && d.minutes !== undefined && !Number.isNaN(d.minutes)) all.push(d.minutes);
+  }
+  all.sort((a, b) => a - b);
+  if (!stats.length) return { dbs: i, groups: 0, items: all.length, avgP: null, maxP: null, maxKey: "", minP: null, minKey: "", allP: percentile(all, pct) };
+  const hi = stats.reduce((m, s) => (s.pct > m.pct ? s : m), stats[0]);
+  const lo = stats.reduce((m, s) => (s.pct < m.pct ? s : m), stats[0]);
+  return {
+    dbs: i, groups: stats.length, items: all.length,
+    avgP: stats.reduce((sum, s) => sum + s.pct, 0) / stats.length,
+    maxP: hi.pct, maxKey: hi.key, minP: lo.pct, minKey: lo.key,
+    allP: percentile(all, pct),
+  };
+});

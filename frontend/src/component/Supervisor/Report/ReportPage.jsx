@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Button, Chip, MenuItem, Paper, Select, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Collapse, MenuItem, Paper, Select, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Typography } from "@mui/material";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import { buildRows } from "../../Sheet/Asset/buildRows";
 import { prepareSheetRows } from "../../Sheet/Asset/prepareRows";
 import { columnsForRole, defaultVisible, GROUPS } from "../../Sheet/Asset/columns";
 import { DEFAULT_EXT, rowColorOf } from "../../Sheet/Asset/ColorSettings";
-import { fmtMin, GROUP_BY, groupStats, paretoOf, PARETO_MEASURES, totals } from "./reportStats";
+import { dbsPercentileSummary, fmtMin, GROUP_BY, groupStats, paretoOf, PARETO_MEASURES, totals } from "./reportStats";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -41,6 +41,7 @@ const ReportPage = () => {
   const [measure, setMeasure] = useState("excess");
   const [view, setView] = useState("tie");
   const [mappings, setMappings] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +71,7 @@ const ReportPage = () => {
   const groupLabel = GROUP_BY.find((g) => g.key === groupBy)?.label || "";
   const stats = useMemo(() => groupStats(rows, groupBy, dbsIdx, pct), [rows, groupBy, dbsIdx, pct]);
   const pareto = useMemo(() => paretoOf(stats, measure), [stats, measure]);
+  const dbsSummary = useMemo(() => dbsPercentileSummary(rows, groupBy, pct), [rows, groupBy, pct]);
   const tot = useMemo(() => totals(rows, dbsIdx), [rows, dbsIdx]);
   const trend = useMemo(() => groupStats(rows, "day", dbsIdx, pct).filter((s) => s.key !== "(ไม่ระบุ)").sort((a, b) => a.key.localeCompare(b.key))
     .map((s) => ({ day: s.key.slice(5), avg: Math.round(s.avg), pct: Math.round(s.pct), overPct: Math.round(s.overPct), count: s.count })), [rows, dbsIdx, pct]);
@@ -148,6 +150,47 @@ const ReportPage = () => {
       <Card label="เกินมาตรฐาน" value={tot.over.toLocaleString()} sub={`${tot.overPct.toFixed(1)}% ของรายการที่วัด`} color={tot.overPct >= 50 ? "#B91C1C" : tot.overPct >= 20 ? "#B45309" : "#047857"} />
       <Card label={`จำนวนกลุ่ม (${groupLabel})`} value={stats.length.toLocaleString()} />
     </Box>
+  );
+
+  // P of DBS 1-4 side by side (the table below shows one DBS at a time) + what every column means
+  const SC = { py: 0.5, px: 1, fontSize: 13, whiteSpace: "nowrap" };
+  const tieSummary = mappings !== null && view === "tie" && (
+    <Paper variant="outlined" sx={{ mb: 1, flexShrink: 0, overflowX: "auto" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1.5, pt: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 14, flex: 1 }}>สรุป P{pct} ของ DBS 1-4 (จัดกลุ่มตาม{groupLabel})</Typography>
+        <Button size="small" onClick={() => setShowHelp((v) => !v)}>{showHelp ? "ซ่อนคำอธิบาย" : "แต่ละคอลัมน์คืออะไร?"}</Button>
+      </Box>
+      <Collapse in={showHelp}>
+        <Box sx={{ px: 1.5, py: 1, fontSize: 13, color: "text.secondary", lineHeight: 1.7 }}>
+          <div><b>หน่วยเวลา</b> ทุกตัวเลขคือเวลาของช่วง DBS ที่เลือก (นาที / ชม.) ของแต่ละรายการ (1 รายการ = 1 แถวรถเข็นในตาราง)</div>
+          <div><b>จำนวน</b> = จำนวนรายการในกลุ่มที่มีเวลาของ DBS นี้ · <b>เฉลี่ย</b> = เวลาเฉลี่ยของทุกรายการในกลุ่ม</div>
+          <div><b>P{pct}</b> = เวลาที่ {pct}% ของรายการในกลุ่มใช้ไม่เกินค่านี้ (อีก {100 - pct}% ใช้นานกว่า) — ไม่ถูกดึงด้วยรายการที่นานผิดปกติเพียงไม่กี่รายการเหมือนค่าเฉลี่ย</div>
+          <div><b>สูงสุด / ต่ำสุด</b> = รายการที่ใช้เวลานานที่สุด / น้อยที่สุดในกลุ่ม · <b>มาตรฐาน (เฉลี่ย)</b> = เวลามาตรฐานของกลุ่มวัตถุดิบ (เฉลี่ยถ้ามีหลายค่า)</div>
+          <div><b>เกินมาตรฐาน</b> = จำนวนรายการที่ใช้เวลานานกว่ามาตรฐาน · <b>% เกินมาตรฐาน</b> = สัดส่วนของรายการที่เกิน · <b>เวลาเกินรวม</b> = ผลรวมของเวลาที่เกินมาตรฐาน</div>
+          <div><b>ตารางสรุปนี้</b>: เฉลี่ย / สูงสุด / ต่ำสุด ของค่า P{pct} ของทุกกลุ่ม (สูงสุด/ต่ำสุดบอกชื่อกลุ่มด้วย) และ P{pct} ของทุกรายการรวมกันโดยไม่แบ่งกลุ่ม · สีแถวในตารางล่าง: แดง = เกินมาตรฐาน ≥50%, เหลือง ≥20%, เขียว &lt;20%</div>
+        </Box>
+      </Collapse>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            {["DBS", "จำนวนกลุ่ม", "จำนวนรายการ", `เฉลี่ย P${pct} ของกลุ่ม`, `P${pct} สูงสุด`, `P${pct} ต่ำสุด`, `P${pct} ทุกรายการรวม`].map((h) => <TableCell key={h} sx={SC}>{h}</TableCell>)}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {dbsSummary.map((d) => (
+            <TableRow key={d.dbs} selected={d.dbs === dbsIdx} hover sx={{ cursor: "pointer" }} onClick={() => setDbsIdx(d.dbs)}>
+              <TableCell sx={{ ...SC, fontWeight: 600 }}>{DBS_LABEL[d.dbs]}</TableCell>
+              <TableCell sx={SC} align="right">{d.groups.toLocaleString()}</TableCell>
+              <TableCell sx={SC} align="right">{d.items.toLocaleString()}</TableCell>
+              <TableCell sx={{ ...SC, fontWeight: 700 }} align="right">{fmtMin(d.avgP)}</TableCell>
+              <TableCell sx={SC}>{fmtMin(d.maxP)}{d.maxKey ? <span style={{ color: "#5B6B8C" }}> · {d.maxKey}</span> : null}</TableCell>
+              <TableCell sx={SC}>{fmtMin(d.minP)}{d.minKey ? <span style={{ color: "#5B6B8C" }}> · {d.minKey}</span> : null}</TableCell>
+              <TableCell sx={SC} align="right">{fmtMin(d.allP)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Paper>
   );
 
   const gridCommon = { fill: true, groups: SUMMARY_GROUPS, defaultExt: DEFAULT_EXT, ctx: NO_TOOLS, hideReload: true, loading };
@@ -241,6 +284,7 @@ const ReportPage = () => {
         </Box>
         {viewOptions}
         {cards}
+        {tieSummary}
         <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: view === "trend" ? "auto" : undefined }}>
           <div style={view === "trend" ? undefined : { position: "absolute", inset: 0 }}>{body}</div>
         </div>
