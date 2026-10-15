@@ -40,6 +40,7 @@ import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows, statusOf } from "./buildRows";
 import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
 import StatusStyleSettings, { statusLook } from "./StatusStyleSettings";
+import RowColorSettings from "./RowColorSettings";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -571,8 +572,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
     { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings savedOrder={globalOrder} labels={globalSettings.statusLabels} onSaved={setGlobalSettings} /> },
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
+    { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
+  const sharedGrid = { rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>

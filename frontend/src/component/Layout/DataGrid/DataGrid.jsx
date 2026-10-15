@@ -22,15 +22,20 @@ import useGridPrefs from "./useGridPrefs";
 import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
 import { registerSettings } from "./settingsBus";
+import { ROW_BG, ROW_FG } from "./rowColors";
 
-// light delay colours with dark text (easy to read); blue = a finished (Done) row
-const ROW_BG = { white: "#FFFFFF", green: "#BBF7D0", yellow: "#FEF08A", red: "#FECACA", blue: "#BFDBFE" };
-const ROW_FG = { white: "#13213F", green: "#13213F", yellow: "#13213F", red: "#13213F", blue: "#13213F" };
 const COLOR_LABEL = { green: "เขียว", yellow: "เหลือง", red: "แดง" };
 const COLOR_FG = { green: "#22C55E", yellow: "#FACC15", red: "#EF4444" }; // the round colour buttons
 const GRID = "1px solid #334155";
 // solid hover colours: a translucent hover colour would let the scrolled cells show through the frozen columns
 const HOVER_BG = { white: "#EAF1FF", green: "#86EFAC", yellow: "#FDE047", red: "#FCA5A5", blue: "#93C5FD" };
+// a custom row colour gets a hover colour a bit darker than itself
+const darker = (hex, k = 0.12) => {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.round(v * (1 - k))).toString(16).padStart(2, "0");
+  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+};
+const HEX6 = /^#[0-9a-fA-F]{6}$/;
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
 const HEAD_H = 32;
@@ -97,6 +102,8 @@ const DataGrid = ({
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
   // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
   detail = false,
+  // rowPalette: { green|yellow|red|blue: { bg, fg } } custom row colours (empty = the built-in colour)
+  rowPalette,
   // statusChips: [{ label, name, color, bg, onBg, onFg }] ของคอลัมน์สถานะ (เรียงตามลำดับกระบวนการ) แสดงเหนือตาราง (โหมด fill); กดแล้วแสดงเฉพาะสถานะนั้น (row.__status.label)
   statusChips,
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
@@ -169,6 +176,15 @@ const DataGrid = ({
   const searched = useMemo(() => (dSearch.trim() ? rows.filter((r) => matchesSearch(hayOf(r), dSearch)) : rows), [rows, dSearch, hayOf]);
   const filtered = useMemo(() => searched.filter((r) => passFilters(r)), [searched, passFilters]);
 
+  const palette = useMemo(() => {
+    const bg = { ...ROW_BG }; const fg = { ...ROW_FG }; const hover = { ...HOVER_BG };
+    Object.entries(rowPalette || {}).forEach(([k, v]) => {
+      if (!(k in ROW_BG) || !v) return;
+      if (HEX6.test(v.bg || "")) { bg[k] = v.bg; hover[k] = darker(v.bg); }
+      if (HEX6.test(v.fg || "")) fg[k] = v.fg;
+    });
+    return { bg, fg, hover };
+  }, [rowPalette]);
   const colorOf = useCallback((row) => (rowColor ? rowColor(row, prefs.ext) : null), [rowColor, prefs.ext]);
 
   const counts = useMemo(() => {
@@ -426,7 +442,7 @@ const DataGrid = ({
                 const color = colorOf(row);
                 return (
                   <GridRow
-                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={ROW_BG[color || "white"]} fg={ROW_FG[color || "white"]} hoverBg={HOVER_BG[color || "white"]}
+                    key={key} rowId={key} row={row} cols={cols} frozenLeft={frozenLeft} bg={palette.bg[color || "white"]} fg={palette.fg[color || "white"]} hoverBg={palette.hover[color || "white"]}
                     selectable={selectable} checked={selSet.has(key)} canSelect={isSelectable ? isSelectable(row) : true} onToggle={toggleOne} ctx={ctx} sig={rowSig ? rowSig(row) : undefined}
                     active={activeKey !== null && activeKey === key} onPick={stablePick} onCell={stableCell}
                   />
