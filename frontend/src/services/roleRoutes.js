@@ -3,7 +3,7 @@ export const WORKPLACE_ROUTES = {
   1: "/oven",
   2: "/prep",
   3: "/qualitycontrol",
-  4: "/line/selectwp",
+  4: "/packaging/Sheet", // the line is picked in the Sheet toolbar (no "select line" page)
   5: "/coldStorage",
   6: "/sup",
   7: "/coldStorages",

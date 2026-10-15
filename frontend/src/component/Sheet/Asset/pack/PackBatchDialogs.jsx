@@ -145,6 +145,7 @@ export const BatchCartDialog = ({ rows, weights, onClose, onDone }) => {
   return (
     <>
       <BatchShell open title="ใส่รถเข็น" onClose={onClose} total={rows.length} {...runner} canRun={allValid} onRun={submit} runLabel={`ใส่รถเข็น ${trolley?.tro_id || ""}`.trim()}>
+        {!localStorage.getItem("line_id") && <Alert severity="warning" sx={{ mb: 1.5 }}>ยังไม่ได้เลือกไลน์ จึงไม่มีรายการรถเข็น กรุณากด "เลือกไลน์" ที่แถบด้านบนก่อน</Alert>}
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1.5, flexWrap: "wrap" }}>
           <Autocomplete
             sx={{ width: 220 }} size="small" options={trolleys} value={trolley} disabled={runner.running || runner.done}

@@ -36,7 +36,7 @@ const AddTrolleyDialog = ({ open, onClose, onAdded }) => {
     }
     const lineId = localStorage.getItem("line_id");
     if (!lineId) {
-      setError("ไม่พบไลน์ที่เลือก กรุณาเลือกสถานที่ทำงานใหม่");
+      setError("ยังไม่ได้เลือกไลน์ กรุณากด \"เลือกไลน์\" ที่แถบด้านบนก่อน");
       return;
     }
 

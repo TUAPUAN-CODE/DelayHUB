@@ -908,9 +908,6 @@ const ModalEditPD = ({ open, onClose, data, onSuccess, showModal }) => {
 
             <Divider />
             <Typography color="rgba(0, 0, 0, 0.6)">เลขรถเข็น: {tro_id}</Typography>
-            {/* <Typography color="rgba(0, 0, 0, 0.6)">ไลน์ผลิต: {line_name || "-"}</Typography> */}
-            {/* <Typography color="rgba(0, 0, 0, 0.6)">สถานะรถเข็นในห้องเย็น: {rm_cold_status}</Typography> */}
-            <Typography color="rgba(0, 0, 0, 0.6)">ไลน์ผลิต: {rmm_line_name || "-"}</Typography>
             <Divider />
 
 

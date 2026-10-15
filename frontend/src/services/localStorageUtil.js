@@ -1,7 +1,8 @@
 // ค่าที่ผูกกับ "เครื่อง/เบราว์เซอร์นี้" ไม่ใช่กับผู้ใช้ — ต้องไม่หายตอน login/logout
 // (เดิม Login.jsx และ Logout.jsx เรียก localStorage.clear() ทำให้สวิตช์ "พิมพ์สลิปอัตโนมัติ" ถูกปิดเองทุกครั้งที่มีคนออกจากระบบ/เปิดหน้า login)
 export const SLIP_PRINTER_ENABLE_KEY = "pfcm_rfid_slip_printer_enabled";
-const DEVICE_KEYS = [SLIP_PRINTER_ENABLE_KEY];
+// line_id: the packing line of this tablet (picked in the Sheet toolbar, no more "select line" page after every login)
+const DEVICE_KEYS = [SLIP_PRINTER_ENABLE_KEY, "line_id"];
 // settings of the tables ("gridPrefs:<user_id>:<table>") are per user and are kept on purpose: they are the copy the table uses when the server has none
 // (before: logging out wiped them, so the columns an account had chosen came back to the default after the next login)
 const KEEP_PREFIXES = ["gridPrefs:"];

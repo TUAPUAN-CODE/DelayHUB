@@ -50,6 +50,7 @@ import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
 import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
+import LinePicker from "./pack/LinePicker";
 import ReworkFlows from "./prep/ReworkFlows";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
 import ModalStampBoil from "../../Prep/TimeStampMain/Asset/stamp/ModalStampBoil";
@@ -92,7 +93,6 @@ const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date &
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
-const MY_LINE = parseInt(localStorage.getItem("line_id"), 10);
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
 // "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
@@ -116,6 +116,14 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [error, setError] = useState("");
   const [range, setRange] = useState(defaultRange); // the range that is loaded (and refreshed every minute)
   const [pick, setPick] = useState(defaultRange);   // what is typed in the date boxes, loaded when the button is pressed
+  // the line of this packing tablet (picked in the toolbar; kept on the device)
+  const [lineId, setLineId] = useState(() => localStorage.getItem("line_id") || "");
+  const MY_LINE = parseInt(lineId, 10);
+  const changeLine = (id) => {
+    try { if (id) localStorage.setItem("line_id", id); else localStorage.removeItem("line_id"); } catch (err) { console.error("[Sheet] save line error:", err); }
+    setLineId(id);
+    setMyLine(!!id);
+  };
   const [myLine, setMyLine] = useState(role === "pack" && !Number.isNaN(MY_LINE));
   const [batch, setBatch] = useState(null); // { kind: "cart" | "edit" | "delete", rows }
   const [selected, setSelected] = useState(() => new Set());
@@ -369,7 +377,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     let list = allRows;
     if (myLine && role === "pack") list = list.filter((r) => r.__kind === "map" && (r.line_id === MY_LINE || (r.__stage === "trolley" && Number(r.pack_line_id) === MY_LINE)));
     return list;
-  }, [allRows, myLine, role]);
+  }, [allRows, myLine, role, MY_LINE]);
 
   // ── action bar above the table: the tools of the chosen row ──
   const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
@@ -546,6 +554,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       ))}
       {role === "pack" && (
         <>
+          <LinePicker lineId={lineId} onChange={changeLine} />
           {!Number.isNaN(MY_LINE) && <Chip icon={<PersonPinCircleOutlinedIcon />} label="ไลน์ของฉัน" clickable color={myLine ? "primary" : "default"} variant={myLine ? "filled" : "outlined"} onClick={() => setMyLine((v) => !v)} />}
           <Button variant="contained" size="small" startIcon={<AddShoppingCartOutlinedIcon />} onClick={() => packRef.current?.addTrolley()}>เพิ่มรถเข็น</Button>
         </>
