@@ -143,7 +143,7 @@ const MultiConfirmDialog = ({
   group, setGroup, prepDateTime, setPrepDateTime,
   remark, setRemark,
   woEntries, setWoEntries,
-  matPkg, setMatPkg,
+  setMatPkg,
   errors
 }) => {
   const [qrOpen, setQrOpen] = useState(false);
@@ -161,7 +161,6 @@ const MultiConfirmDialog = ({
   };
 
   const openQrForWo = (index) => { setQrField({ type: 'wo', index }); setQrOpen(true); };
-  const openQrForMatPkg = () => { setQrField({ type: 'matPkg' }); setQrOpen(true); };
 
   const handleEntryChange = (index, newEntry) => {
     const updated = [...woEntries];
@@ -276,25 +275,7 @@ const MultiConfirmDialog = ({
           )}
         </Box>
 
-        {/* รหัส Package */}
-        <Box>
-          <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>รหัส Package</Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              fullWidth value={matPkg} onChange={(e) => setMatPkg(e.target.value)}
-              placeholder="พิมพ์ หรือ Scan รหัส Package..."
-              InputProps={{ sx: { height: '44px', fontSize: '14px', borderRadius: '8px' } }}
-              sx={{ '& .MuiOutlinedInput-root': { height: '44px', fontSize: '14px' }, '& input': { padding: '10px 14px' } }}
-            />
-            <IconButton
-              onClick={openQrForMatPkg}
-              sx={{ border: '1.5px solid #1552F0', borderRadius: '8px', color: '#1552F0', width: '44px', height: '44px', '&:hover': { backgroundColor: '#EAF0FF' } }}
-            >
-              <QrCodeScanner />
-            </IconButton>
-          </Box>
-        </Box>
-
+        {/* รหัส Package: removed from the form (not used on the floor); mat_pkg is sent as null */}
         <Box sx={{ padding: '16px', backgroundColor: '#EAF0FF', borderRadius: '8px', fontSize: '13px', color: '#1552F0' }}>
           <strong>หมายเหตุ:</strong> น้ำหนักของแต่ละรายการจะถูกใช้ตามที่ระบุในแต่ละแถว
         </Box>
