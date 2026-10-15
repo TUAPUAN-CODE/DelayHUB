@@ -73,9 +73,23 @@ const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
             <Box sx={{
               p: 1.5,
               // เรียงทีละแถว: ข้อความ/ปุ่มแต่ละอันเต็มความกว้างของกล่อง
-              "& > .MuiPaper-root": { border: "none", background: "transparent", p: 0, mb: 0, flexDirection: "column", alignItems: "stretch", flexWrap: "nowrap" },
+              "& > .MuiPaper-root": { border: "none", background: "transparent", boxShadow: "none", p: 0, mb: 0, gap: 1, flexDirection: "column", alignItems: "stretch", flexWrap: "nowrap" },
               "& > .MuiPaper-root > span, & > .MuiPaper-root > div": { width: "100%" },
-              "& .MuiButton-root": { width: "100%", justifyContent: "flex-start" },
+              "& > .MuiPaper-root > .MuiTypography-root": { fontSize: 12.5, fontWeight: 600, color: "text.secondary", mt: 0.5 },
+              // ปุ่มเครื่องมือ: การ์ดสูง กดง่ายบนแท็บเล็ต ไอคอนอยู่ในกรอบมนด้านซ้าย
+              "& .MuiButton-root": {
+                width: "100%", justifyContent: "flex-start", minHeight: 46, borderRadius: "14px !important", px: 1.25, py: 0.75,
+                fontSize: 14, fontWeight: 600, letterSpacing: 0, textAlign: "left", lineHeight: 1.3,
+                boxShadow: "0 1px 2px rgba(19,33,63,.06), 0 4px 12px rgba(19,33,63,.06)", transition: "transform .12s, box-shadow .12s, filter .12s",
+                "&:hover": { transform: "translateY(-1px)", boxShadow: "0 6px 16px rgba(19,33,63,.12)" },
+                "&.Mui-disabled": { boxShadow: "none", transform: "none" },
+              },
+              "& .MuiButton-startIcon": {
+                width: 30, height: 30, borderRadius: "9px", ml: 0, mr: 1.25, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.22)",
+              },
+              "& .MuiButton-outlined .MuiButton-startIcon": { background: "#EAF0FF" },
+              "& .Mui-disabled .MuiButton-startIcon": { background: "rgba(163,175,198,.18)" },
             }}>
               {tools}
             </Box>

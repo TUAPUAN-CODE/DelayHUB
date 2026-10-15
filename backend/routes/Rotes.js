@@ -1,4 +1,19 @@
 const { safeRollback } = require("../lib/safeRollback");
+// prod_rm_id of (plan, material); the link (ProdRawMat) is created when it does not exist yet, so a material is not limited to the plans linked in the master data
+async function ensureProdRmId(pool, prodId, mat) {
+  const sql = require("mssql");
+  const found = await pool.request()
+    .input("prod_id", sql.Int, prodId)
+    .input("mat", sql.VarChar(50), mat)
+    .query(`SELECT TOP 1 prod_rm_id FROM ProdRawMat WHERE prod_id = @prod_id AND mat = @mat ORDER BY prod_rm_id`);
+  if (found.recordset.length) return found.recordset[0].prod_rm_id;
+  const created = await pool.request()
+    .input("prod_id", sql.Int, prodId)
+    .input("mat", sql.VarChar(50), mat)
+    .query(`INSERT INTO ProdRawMat (mat, prod_id) OUTPUT INSERTED.prod_rm_id VALUES (@mat, @prod_id)`);
+  return created.recordset[0].prod_rm_id;
+}
+
 module.exports = (io) => {
   const express = require("express");
   const sql = require("mssql");
@@ -1373,21 +1388,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
 
       // ตรวจสอบว่ามีแผนการผลิตสำหรับวัตถุดิบที่เลือกหรือไม่
-      const result = await pool.request()
-        .input("prod_id", ProdID)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id FROM ProdRawMat
-        WHERE prod_id = @prod_id AND mat = @mat
-      `);
-
-
-      if (result.recordset.length === 0) {
-        return res.status(400).json({ success: false, message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้" });
-      }
-
-
-      const ProdRMID = result.recordset[0].prod_rm_id;
+      // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
+      const ProdRMID = await ensureProdRmId(pool, ProdID, mat);
 
 
       // อัปเดตข้อมูลในตาราง RMForProd
@@ -1957,22 +1959,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
 
       // ตรวจสอบว่ามีแผนการผลิตสำหรับวัตถุดิบที่เลือกหรือไม่
-      const result = await pool.request()
-        .input("prod_id", ProdID)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_id = @prod_id AND mat = @mat
-      `);
-
-
-      if (result.recordset.length === 0) {
-        return res.status(400).json({ success: false, message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้" });
-      }
-
-
-      const ProdRMID = result.recordset[0].prod_rm_id;
+      // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
+      const ProdRMID = await ensureProdRmId(pool, ProdID, mat);
 
 
       // อัปเดตข้อมูลในตาราง TrolleyRMMapping
@@ -2137,23 +2125,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       // =====================================================
       // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
       // =====================================================
-      const result = await pool.request()
-        .input("prod_id", sql.Int, ProdID)
-        .input("mat", sql.VarChar(50), mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_id = @prod_id AND mat = @mat
-      `);
-
-      if (result.recordset.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
-        });
-      }
-
-      const ProdRMID = result.recordset[0].prod_rm_id;
+      // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
+      const ProdRMID = await ensureProdRmId(pool, ProdID, mat);
 
       // =====================================================
       // 2️⃣ Update TrolleyRMMapping
@@ -2295,23 +2268,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       // =====================================================
       // 1️⃣ ตรวจสอบแผนการผลิตของวัตถุดิบ
       // =====================================================
-      const result = await pool.request()
-        .input("prod_id", sql.Int, ProdID)
-        .input("mat", sql.VarChar(50), mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_id = @prod_id AND mat = @mat
-      `);
-
-      if (result.recordset.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "ไม่มีแผนการผลิตที่เลือกสำหรับวัตถุดิบนี้"
-        });
-      }
-
-      const ProdRMID = result.recordset[0].prod_rm_id;
+      // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
+      const ProdRMID = await ensureProdRmId(pool, ProdID, mat);
 
       // =====================================================
       // 2️⃣ Update TrolleyRMMapping
@@ -2452,23 +2410,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       const pool = await connectToDatabase();
 
       // 1. Validate production plan exists for selected material
-      const prodCheck = await pool.request()
-        .input("prod_id", ProdID)
-        .input("mat", mat)
-        .query(`
-        SELECT prod_rm_id
-        FROM ProdRawMat
-        WHERE prod_id = @prod_id AND mat = @mat
-      `);
-
-      if (prodCheck.recordset.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "No production plan found for the selected material"
-        });
-      }
-
-      const ProdRMID = prodCheck.recordset[0].prod_rm_id;
+      // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
+      const ProdRMID = await ensureProdRmId(pool, ProdID, mat);
 
       // 2. Update all materials on the same trolley with new line_name
       const updateTrolley = await pool.request()

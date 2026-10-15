@@ -81,11 +81,12 @@ router.post("/auth/refresh", (req, res) => {
 });
 
 // ── ปลดล็อกหน้า Setting ─────────────────────────────────────────────────────────
-// รหัสของวัน = วัน + เดือน + ปี ค.ศ. (ไม่มีเลข 0 นำหน้า) ตามเวลาไทย เช่น 9 ต.ค. 2026 -> 9102026
-const todayKey = () => {
-  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", day: "numeric", month: "numeric", year: "numeric" }).formatToParts(new Date());
-  const get = (t) => parts.find((x) => x.type === t).value;
-  return `${get("day")}${get("month")}${get("year")}`;
+// รหัสเดียวกับหน้า "ลำดับสถานะ" = SHEET_GLOBAL_SETTING_PASSWORD ใน .env ของ backend (เดิมเป็นรหัสรายวัน)
+const crypto = require("crypto");
+const sameSecret = (given, expected) => {
+  const a = Buffer.from(String(given));
+  const b = Buffer.from(String(expected));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
 const attempts = new Map(); // user_id -> { n, first }
@@ -103,8 +104,10 @@ router.post("/sheet/setting-unlock", (req, res) => {
       return res.status(429).json({ success: false, error: "ใส่รหัสผิดหลายครั้ง กรุณารอ 15 นาที", code: "TOO_MANY_ATTEMPTS" });
     }
 
+    const expected = process.env.SHEET_GLOBAL_SETTING_PASSWORD;
+    if (!expected) return res.status(503).json({ success: false, error: "ยังไม่ได้ตั้งรหัส SHEET_GLOBAL_SETTING_PASSWORD ใน .env ของ backend" });
     const given = String((req.body && req.body.password) || "").trim();
-    if (given !== todayKey()) {
+    if (!sameSecret(given, expected)) {
       const fresh = rec && now - rec.first < WINDOW_MS ? rec : { n: 0, first: now };
       fresh.n += 1;
       attempts.set(userId, fresh);

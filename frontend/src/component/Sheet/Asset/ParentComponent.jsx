@@ -40,6 +40,7 @@ import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
 import { buildRows, statusOf } from "./buildRows";
 import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
+import StatusStyleSettings, { statusLook } from "./StatusStyleSettings";
 import { planStamp } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 // tools that already exist as flows of each Role
 import PackFlows from "../../Pack/ManageRawmat/Asset/flow/PackFlows";
@@ -131,12 +132,14 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [editTarget, setEditTarget] = useState(null);
   const [planPick, setPlanPick] = useState(null);
   // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
-  const [globalOrder, setGlobalOrder] = useState([]);
+  // ค่ากลางของทุกบัญชี: ลำดับสถานะ (statusOrder), ชื่อที่แสดง (statusLabels), สีปุ่ม/ตัวอักษร (statusStyles)
+  const [globalSettings, setGlobalSettings] = useState({});
+  const globalOrder = useMemo(() => globalSettings.statusOrder || [], [globalSettings]);
   useEffect(() => {
     const loadGlobal = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/sheet/global-settings`);
-        setGlobalOrder(res.data.data?.statusOrder || []);
+        setGlobalSettings(res.data.data || {});
       } catch (err) {
         console.error("[Sheet] global settings error:", err.message);
       }
@@ -291,6 +294,10 @@ const ParentComponent = ({ role, view = "work" }) => {
         out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
         out.push({ col: "t_bar", key: "edit-plan", label: "เปลี่ยนแผนการผลิต", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
       }
+      // a plan can fill several trolleys: it stays "รอใส่รถเข็น" until the last one is done, then it is closed here
+      if (r.__kind === "plan" && r.__trolleys > 0) {
+        out.push({ col: "t_bar", key: "ok-plan", label: `ใส่รถเข็นครบแล้ว (${r.__trolleys} คัน)`, color: "#2E7D32", title: "ปิดแผนนี้: ไม่ใส่รถเข็นเพิ่มแล้ว", run: () => manageRef.current?.openComplete(r.__plans[0]) });
+      }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
         const ref = mixRefs[kind];
@@ -340,7 +347,22 @@ const ParentComponent = ({ role, view = "work" }) => {
   // a row only has to render again when what its cells show changed: the weight input of the Pack confirm
   const rowSig = useCallback((r) => (role === "pack" ? `${weights[r.mapping_id] ?? ""}|${selected.has(r.__key) ? 1 : 0}` : ""), [role, weights, selected]);
 
-  const allRows = useMemo(() => buildRows(data.hus, data.mappings, mix, plans, now, mixed), [data, mix, plans, now, mixed]);
+  // built-in colour of each status (for the settings page) + the global names / colours put on every row (the original label stays for the rules)
+  const { allRows, statusDefaults } = useMemo(() => {
+    const built = buildRows(data.hus, data.mappings, mix, plans, now, mixed);
+    const defaults = {};
+    const names = globalSettings.statusLabels || {};
+    const styles = globalSettings.statusStyles || {};
+    built.forEach((r) => {
+      const st = r.__status;
+      if (!st?.label) return;
+      if (!defaults[st.label]) defaults[st.label] = { color: st.color, bg: st.bg };
+      const look = statusLook(st.label, st, styles);
+      const styled = !!styles[st.label];
+      r.__status = { ...st, name: names[st.label] || st.label, color: look.fg, bg: look.bg, onBg: look.onBg, onFg: look.onFg, styled };
+    });
+    return { allRows: built, statusDefaults: defaults };
+  }, [data, mix, plans, now, mixed, globalSettings]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const rows = useMemo(() => {
@@ -495,7 +517,10 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (!look.has(st.label)) look.set(st.label, st);
     });
     const order = [...new Set([...fullStatusOrder(globalOrder), ...count.keys()])];
-    return order.filter((label) => count.get(label)).map((label) => ({ label, count: count.get(label), color: look.get(label).color, bg: look.get(label).bg }));
+    return order.filter((label) => count.get(label)).map((label) => {
+      const st = look.get(label);
+      return { label, name: st.name, count: count.get(label), color: st.color, bg: st.bg, onBg: st.onBg, onFg: st.onFg };
+    });
   }, [rows, globalOrder]);
   const toolbarExtra = (
     <>
@@ -535,8 +560,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "color", label: "สีแถว", node: <PasswordGate><ColorSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "status", label: "พื้นที่สถานะ", node: <PasswordGate><StatusZoneSettings ext={ext} setExt={setExt} /></PasswordGate> },
     { key: "line", label: "ผู้ดูแลไลน์", node: <PasswordGate><LineGroupSettings ext={ext} setExt={setExt} lines={lineNames} /></PasswordGate> },
-    { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings savedOrder={globalOrder} onSaved={setGlobalOrder} /> },
-  ], [lineNames, globalOrder]);
+    { key: "statusOrder", label: "ลำดับสถานะ", node: <StatusOrderSettings savedOrder={globalOrder} labels={globalSettings.statusLabels} onSaved={setGlobalSettings} /> },
+    { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
+  ], [lineNames, globalOrder, globalSettings, statusDefaults]);
   const sharedGrid = { columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
 
   return (

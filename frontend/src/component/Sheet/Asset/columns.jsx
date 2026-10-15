@@ -41,13 +41,13 @@ const tool = (key, label, width, roles) => ({
 
 export const STATUS_COLUMN = {
   key: "status", label: "สถานะ", group: "tool", kind: "data", type: "text", frozen: true, width: 150,
-  text: (r) => r.__status?.label || "",
+  text: (r) => r.__status?.name || r.__status?.label || "",
   sortValue: (r) => (r.__status ? r.__status.rank : null), // sort follows the areas, not the alphabet
   optionMeta: (r) => (r.__status ? { rank: r.__status.rank, zone: r.__status.zone, zones: r.__status.zones } : null), // the dropdown groups its values by area, in this order
   render: (r) => (r.__status ? (
-    <span title={r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, border: `1px solid ${r.__status.color}40`, borderRadius: 999, padding: "2px 9px 2px 7px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>
+    <span title={r.__status.name || r.__status.label} style={{ background: r.__status.bg, color: r.__status.color, border: `1px solid ${r.__status.color}40`, borderRadius: 999, padding: "2px 9px 2px 7px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: r.__status.color, flexShrink: 0 }} />
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{r.__status.label}</span>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{r.__status.name || r.__status.label}</span>
     </span>
   ) : null),
 };

@@ -12,6 +12,8 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Fragment } from "react";
 import DetailPanel from "./DetailPanel";
 import HamsterLoader from "./HamsterLoader";
 import { ColumnMenu } from "./ColumnFilterBar";
@@ -95,8 +97,8 @@ const DataGrid = ({
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
   // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
   detail = false,
-  // statusChips: [{ label, count, color, bg }] ของคอลัมน์สถานะ (เรียงตามลำดับกระบวนการ) แสดงแทนแถบล้างค้นหา (โหมด fill) · statusKey: key ของคอลัมน์สถานะ
-  statusChips, statusKey = "status",
+  // statusChips: [{ label, name, color, bg, onBg, onFg }] ของคอลัมน์สถานะ (เรียงตามลำดับกระบวนการ) แสดงเหนือตาราง (โหมด fill); กดแล้วแสดงเฉพาะสถานะนั้น (row.__status.label)
+  statusChips,
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
   onCellEdit,
 }) => {
@@ -127,10 +129,10 @@ const DataGrid = ({
   const pinSet = useMemo(() => new Set(prefs.pins ?? columns.filter((c) => c.frozen).map((c) => c.key)), [prefs.pins, columns]);
   const pinnedKeys = useMemo(() => columns.filter((c) => pinSet.has(c.key)).map((c) => c.key), [columns, pinSet]);
 
-  // visible columns: frozen ones first (in registry order), the rest in registry order
+  // visible columns: frozen ones first, then the rest — both in the order the account chose (column settings "ลำดับคอลัมน์")
   const visibleCols = useMemo(() => {
-    const on = new Set(prefs.visible);
-    const list = columns.filter((c) => on.has(c.key)).map((c) => ({ ...c, frozen: pinSet.has(c.key) }));
+    const byKey = new Map(columns.map((c) => [c.key, c]));
+    const list = [...new Set(prefs.visible)].filter((k) => byKey.has(k)).map((k) => ({ ...byKey.get(k), frozen: pinSet.has(k) }));
     return [...list.filter((c) => c.frozen), ...list.filter((c) => !c.frozen)];
   }, [columns, prefs.visible, pinSet]);
 
@@ -176,11 +178,9 @@ const DataGrid = ({
     return c;
   }, [filtered, rowColor, colorOf]);
 
-  const shownRows = useMemo(() => (colorOnly ? filtered.filter((r) => colorOf(r) === colorOnly) : filtered), [filtered, colorOnly, colorOf]);
-  const sorted = useMemo(
-    () => sortRows(shownRows, prefs.sorts, colByKey, leadStatus ? (r) => (r.__status?.label === leadStatus ? 0 : 1) : null),
-    [shownRows, prefs.sorts, colByKey, leadStatus],
-  );
+  // a status chip that is pressed shows only the rows of that status
+  const shownRows = useMemo(() => filtered.filter((r) => (!colorOnly || colorOf(r) === colorOnly) && (!leadStatus || r.__status?.label === leadStatus)), [filtered, colorOnly, colorOf, leadStatus]);
+  const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
 
   const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
   const onTableScroll = (e) => {
@@ -212,13 +212,12 @@ const DataGrid = ({
     setPage(0);
   }, []);
   const clearAll = () => { setSearch(""); setFilters({}); setColorOnly(null); setLeadStatus(null); prefs.setSorts([]); setPage(0); };
-  // กดชิปสถานะ: เรียงคอลัมน์สถานะ แล้วขึ้นต้นด้วยสถานะนั้น (กดอีกครั้ง = ยกเลิก)
+  // กดชิปสถานะ: แสดงเฉพาะแถวของสถานะนั้น (กดอีกครั้ง = แสดงทุกสถานะ)
   // ลำดับชิปมาจากหน้าที่ส่งมา (หน้า Sheet ใช้ค่ากลางลำดับสถานะของทุกบัญชี)
   const chipsOrdered = statusChips || null;
   const pickStatus = (label) => {
-    if (leadStatus === label) { setLeadStatus(null); return; }
-    setLeadStatus(label);
-    setSort(statusKey, "asc");
+    setLeadStatus((cur) => (cur === label ? null : label));
+    setPage(0);
   };
 
   // selection
@@ -253,7 +252,7 @@ const DataGrid = ({
 
   // three round colour buttons like the window buttons of macOS (no number); a click shows just that colour, a second click shows all
   const colorChips = counts && (
-    <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", px: 0.5, ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
+    <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", px: 0.75, ...(fill ? {} : { mb: 1, flexShrink: 0, width: "100%" }) }}>
       {["red", "yellow", "green"].map((k) => {
         const on = colorOnly === k;
         return (
@@ -262,7 +261,7 @@ const DataGrid = ({
               component="button" type="button" aria-label={`แถวสี${COLOR_LABEL[k]}`} aria-pressed={on}
               onClick={() => { setColorOnly(on ? null : k); setPage(0); }}
               sx={{
-                width: 18, height: 18, p: 0, borderRadius: "50%", cursor: "pointer", flexShrink: 0,
+                width: 28, height: 28, p: 0, borderRadius: "50%", cursor: "pointer", flexShrink: 0, touchAction: "manipulation",
                 background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 55%), ${COLOR_FG[k]}`,
                 border: "1px solid rgba(0,0,0,.18)",
                 boxShadow: on ? `0 0 0 2px #fff, 0 0 0 4px ${COLOR_FG[k]}` : "inset 0 -1px 1px rgba(0,0,0,.15)",
@@ -288,6 +287,15 @@ const DataGrid = ({
           "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
           "& .MuiChip-root": { height: 28 },
         } : {}) }}>
+        {onReload && fill && (
+          <Tooltip title="รีเฟรชข้อมูล" arrow>
+            <span>
+              <Button variant="outlined" aria-label="รีเฟรช" onClick={onReload} disabled={loading} sx={{ minWidth: 0, width: 40, height: 40, p: 0, borderRadius: "12px !important" }}>
+                <RefreshIcon sx={{ fontSize: 22, animation: loading ? "dgspin 1s linear infinite" : "none", "@keyframes dgspin": { to: { transform: "rotate(360deg)" } } }} />
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <TextField
           size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 200 : 240 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -301,20 +309,31 @@ const DataGrid = ({
             <Button variant="outlined" startIcon={<PictureAsPdfIcon />} disabled={exporting || !sorted.length} onClick={() => doExport("pdf")}>PDF</Button>
           </>
         )}
-        {onReload && !hideReload && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
+        {onReload && !hideReload && !fill && <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onReload} disabled={loading}>รีเฟรช</Button>}
         {detail && <Button variant={detailOpen ? "contained" : "outlined"} color={detailOpen ? "secondary" : "primary"} startIcon={<InfoOutlinedIcon />} onClick={() => setDetailOpen((v) => !v)} sx={{ flexShrink: 0, whiteSpace: "nowrap", ml: "auto" }}>Detail</Button>}
       </Box>
 
       {fill && chipsOrdered && (
-        <Box sx={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", gap: 0.75, mb: 1, pb: 0.5, flexShrink: 0 }}>
-          {chipsOrdered.map((c) => {
+        // statuses in process order, with an arrow from each step to the next; a press shows only that status (a second press shows all)
+        <Box sx={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", gap: 0.25, mb: 1, px: 1, py: 0.75, flexShrink: 0,
+          background: "#fff", border: "1px solid #E1E9FA", borderRadius: "14px", boxShadow: "0 1px 2px rgba(19,33,63,.04)" }}>
+          {chipsOrdered.map((c, i) => {
             const on = leadStatus === c.label;
+            const onBg = c.onBg || c.color;
+            const onFg = c.onFg || c.bg; // default: the two colours swap, so the text never disappears into the button
             return (
-              <Chip
-                key={c.label} size="small" clickable onClick={() => pickStatus(c.label)}
-                label={c.label}
-                sx={{ flexShrink: 0, fontWeight: 700, background: on ? c.color : c.bg, color: on ? "#fff" : c.color, border: `1px solid ${c.color}55`, "&::before": { content: '""', width: 7, height: 7, borderRadius: "50%", background: on ? "#fff" : c.color, ml: 1.25, mr: -0.5, flexShrink: 0 }, "&:hover": { background: on ? c.color : c.bg, filter: "brightness(.96)" } }}
-              />
+              <Fragment key={c.label}>
+                {i > 0 && <ChevronRightIcon sx={{ fontSize: 18, color: "#A3B3CF", flexShrink: 0 }} />}
+                <Chip
+                  size="small" clickable onClick={() => pickStatus(c.label)} label={c.name || c.label}
+                  sx={{
+                    flexShrink: 0, height: 30, fontWeight: 700, fontSize: 12.5, background: on ? onBg : c.bg, color: on ? onFg : c.color,
+                    border: `1px solid ${on ? onBg : `${c.color}55`}`, boxShadow: on ? `0 3px 10px ${onBg}55` : "none",
+                    "&::before": { content: '""', width: 8, height: 8, borderRadius: "50%", background: on ? onFg : c.color, ml: 1.25, mr: -0.5, flexShrink: 0 },
+                    "&:hover": { background: on ? onBg : c.bg, filter: "brightness(.96)" },
+                  }}
+                />
+              </Fragment>
             );
           })}
         </Box>

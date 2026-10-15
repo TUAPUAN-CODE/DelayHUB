@@ -186,7 +186,7 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
     const load = async () => {
       try {
         const [prod, ...hist] = await Promise.all([
-          axios.get(`${API_URL}/api/fetchProduction`, { params: { mat } }),
+          axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1 } }),
           ...rows.map((r) => axios.get(`${API_URL}/api/checkEditHistoryOnTrolley/${r.mapping_id}`).catch((err) => {
             console.error("[BatchEditPlanDialog] edit history:", err);
             return null;

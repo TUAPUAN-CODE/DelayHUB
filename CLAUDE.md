@@ -991,7 +991,7 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 - ตารางสิทธิ์ route ต่อ Role: ร่างจากโค้ด `node backend/scripts/derive-role-draft.js` → `config/rolePolicy.draft.json`; ร่างจากการใช้งานจริง `GET /api/auth/policy-draft` (หลังใช้งานจริง 1–2 สัปดาห์) — ตรวจแล้วบันทึกเป็น `rolePolicy.json`
 - Role ที่จัดการผู้ใช้ได้: wp_id 6 (Supervisor) และ 8 (Master) — ค่า `ADMIN_ROLES`
 
-**หน้า Setting (รหัสรายวัน)**: ตรวจที่ `POST /api/sheet/setting-unlock` (เวลาไทย) ได้ใบอนุญาต `x-setting-unlock` ที่ `authClient` แนบไปกับ `PUT /api/sheet/prefs`; server เทียบค่า colorMode/greenPct/yellowPct/statusZones/statusAreas/lineGroups ของเดิมกับใหม่ ถ้าเปลี่ยนโดยไม่มีใบอนุญาต → 403 `SETTING_LOCKED` (โหมด enforce)
+**หน้า Setting (รหัสผ่าน = `SHEET_GLOBAL_SETTING_PASSWORD` ใน .env, ใช้ร่วมกับลำดับ/ชื่อ/สีสถานะใน `/api/sheet/global-settings`)**: ตรวจที่ `POST /api/sheet/setting-unlock` ได้ใบอนุญาต `x-setting-unlock` ที่ `authClient` แนบไปกับ `PUT /api/sheet/prefs`; server เทียบค่า colorMode/greenPct/yellowPct/statusZones/statusAreas/lineGroups ของเดิมกับใหม่ ถ้าเปลี่ยนโดยไม่มีใบอนุญาต → 403 `SETTING_LOCKED` (โหมด enforce)
 
 **Rate limit** (`lib/rateLimiters.js`): นับต่อผู้ใช้จาก token (ไม่ใช่ต่อ IP, ไม่ข้าม IP ภายในที่มี token), login ผิดนับต่อ IP+user_id, `TRUST_PROXY` สำหรับอยู่หลัง nginx
 

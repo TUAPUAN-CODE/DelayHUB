@@ -377,7 +377,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
   const [production, setProduction] = useState([]);
   const [emulsion, setemulsion] = useState("false");
   const [batchmix, setbatchmix] = useState("false");
-  const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("จุดเตรียม"); // มีที่เดียว: เลือกไว้ให้เลย ไม่ต้องกด
   const [weighttotal, setWeighttotal] = useState("");
   const [group, setGroup] = useState([]);
   const [operator, setOperator] = useState("");
@@ -535,7 +535,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
   const fetchProduction = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material, all: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});
@@ -641,7 +641,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
   };
   const resetForm = () => {
     setSelectedPlanSets([]);
-    setDeliveryLocation("");
+    setDeliveryLocation("จุดเตรียม");
     setbatchmix("");
     setOperator("");
     setemulsion("");

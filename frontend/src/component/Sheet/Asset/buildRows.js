@@ -47,7 +47,7 @@ export const packStage = (r) => {
 export const statusOf = (r) => withZone(baseStatusOf(r));
 
 const baseStatusOf = (r) => {
-  if (r.__kind === "mixed") return { label: "ผสมแล้ว", color: "#6B21A8", bg: "#E9D5FF" }; // mixed with emulsions, not in a trolley yet (the old "รายการผสมวัตถุดิบ" page)
+  if (r.__kind === "mixed") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // mixed with emulsions, not in a trolley yet: it waits for a trolley like a plan row
   if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
   if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
@@ -156,7 +156,8 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
     merged.__dbs = safeDbs(merged, now);
     merged.__stage = packStage(merged);
-    merged.__plans = plansOf(h);
+    // a plan can go into several trolleys: the trolley row does not take the plan row away (it stays "รอใส่รถเข็น" until it is closed with "ใส่รถเข็นครบแล้ว")
+    merged.__plans = [];
     merged.__rework = reworkKind(merged);
     // field names the forms of the old pages expect
     merged.production = merged.code;
@@ -173,19 +174,30 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     rows.push({ ...h, ...stdFields, __key: `hu:${h.hu}`, __kind: "hu", __hu: h, __dbs: [], __plans: [] });
   });
   // scanned production-plan rows that no HU row picked up (e.g. a batch typed by hand, no HU): they are their own rows, so a scan is never "lost"
+  // trolleys (mapping rows) already made from each plan, and the weight they hold
+  const inTrolley = new Map();
+  (mappings || []).forEach((m) => {
+    if (!m.rmfp_id || noTro(m.tro_id)) return;
+    const cur = inTrolley.get(String(m.rmfp_id)) || { count: 0, weight: 0 };
+    inTrolley.set(String(m.rmfp_id), { count: cur.count + 1, weight: cur.weight + (Number(m.weight_RM) || 0) });
+  });
   (plans || []).forEach((p) => {
     if (consumed.has(p.rmfp_id)) return;
     consumed.add(p.rmfp_id);
     // the SAP times of its HU (เริ่มละลาย / ละลายเสร็จ / จ่ายลงไลน์ / ไลน์รับเข้า …) are shown on the plan row too; the HU tools stay on the HU row (__hu: null)
     const h = p.hu ? huByKey.get(String(p.hu)) : null;
     rows.push({
-      ...(h ? mergeHu(p, h) : p), weight_RM: p.weight, code: p.production, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
+      ...(h ? mergeHu(p, h) : p), weight_RM: p.weight, code: p.production,
+      __trolleys: inTrolley.get(String(p.rmfp_id))?.count || 0, __inTrolleyKg: inTrolley.get(String(p.rmfp_id))?.weight || 0, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
     });
   });
   // mixed lots (emulsions mixed into a production-plan row) that are not in a trolley yet: rows of their own, with the emulsion text
   (mixed || []).forEach((m) => {
+    if (consumed.has(m.rmfp_id)) return; // already shown as a plan row
+    consumed.add(m.rmfp_id);
+    // a mixed lot is a production-plan row (RMForProd): the plan tools ("ใส่รถเข็น" / "เปลี่ยนแผนการผลิต") work on it
     rows.push({
-      ...m, weight_RM: m.weight, code: m.production, rmm_line_name: m.rmfp_line_name, __key: `mixed:${m.rmfp_id}`, __kind: "mixed", __dbs: [], __hu: null,
+      ...m, weight_RM: m.weight, code: m.production, rmm_line_name: m.rmfp_line_name, __key: `mixed:${m.rmfp_id}`, __kind: "mixed", __dbs: [], __hu: null, __plans: [m],
     });
   });
   // Prep mixing lists (materials waiting to be mixed). A "loaf" item is a real mapping: the tool is attached to that row instead of a new row.

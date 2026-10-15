@@ -344,7 +344,7 @@ const DataReviewSAP = ({ open, onClose, material, batch, hu }) => {
   const [selectedPlanSets, setSelectedPlanSets] = useState([]);
   const [materialName, setMaterialName] = useState("");
   const [production, setProduction] = useState([]);
-  const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("จุดเตรียม"); // มีที่เดียว: เลือกไว้ให้เลย ไม่ต้องกด
   const [emulsion, setemulsion] = useState("false");
   const [batchmix, setbatchmix] = useState("false");
   const [jobType, setJobType] = useState("ผสมวัตถุดิบ");
@@ -625,7 +625,7 @@ useEffect(() => {
   };
   const resetForm = () => {
     setSelectedPlanSets([]);
-    setDeliveryLocation("");
+    setDeliveryLocation("จุดเตรียม");
     setemulsion("false");
     setbatchmix("false");
     setOperator("");

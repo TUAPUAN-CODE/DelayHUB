@@ -3,6 +3,9 @@ import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, Dia
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import SearchIcon from "@mui/icons-material/Search";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import SortableList from "./SortableList";
 
 /** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings: a node (shown on top) or an array of pages [{ key, label, node }] that become tabs next to the column list. */
 const TYPE_NAME = { text: "ข้อความ", time: "วันเวลา", number: "ตัวเลข", dbs: "DBS" };
@@ -10,6 +13,7 @@ const TYPE_NAME = { text: "ข้อความ", time: "วันเวลา"
 const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange }) => {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(0);
+  const [mode, setMode] = useState("pick"); // pick = which columns, order = in which order
   const pages = Array.isArray(extra) ? extra : null;
   const set = useMemo(() => new Set(visible), [visible]);
   const pinSet = useMemo(() => new Set(pins), [pins]);
@@ -29,7 +33,16 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
     })).filter((g) => g.cols.length);
   }, [q, columns, groups]);
 
-  const emit = (next) => onChange(columns.filter((c) => next.has(c.key)).map((c) => c.key)); // keep the registry order
+  // keep the order the account chose; a column that is turned on is added at the end
+  const emit = (next) => {
+    const kept = visible.filter((k) => next.has(k));
+    onChange([...kept, ...columns.filter((c) => next.has(c.key) && !kept.includes(c.key)).map((c) => c.key)]);
+  };
+  const groupOf = useMemo(() => new Map(groups.map((g) => [g.key, g.label])), [groups]);
+  const orderItems = useMemo(() => {
+    const byKey = new Map(columns.map((c) => [c.key, c]));
+    return visible.filter((k) => byKey.has(k)).map((k) => ({ key: k, label: byKey.get(k).label, sub: groupOf.get(byKey.get(k).group) || "" }));
+  }, [visible, columns, groupOf]);
   const toggle = (key) => { const next = new Set(set); if (next.has(key)) next.delete(key); else next.add(key); emit(next); };
   const toggleGroup = (g, on) => { const next = new Set(set); g.cols.forEach((c) => (on ? next.add(c.key) : next.delete(c.key))); emit(next); };
 
@@ -58,6 +71,16 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
             {pinnedWidth > 900 ? " — กว้างมาก อาจเหลือที่ให้ดูคอลัมน์อื่นน้อย" : ""}
           </Alert>
         )}
+        <ToggleButtonGroup exclusive size="small" value={mode} onChange={(_, v) => v && setMode(v)} sx={{ mb: 1.5 }}>
+          <ToggleButton value="pick">เลือกคอลัมน์ที่แสดง</ToggleButton>
+          <ToggleButton value="order">ลำดับคอลัมน์ (ลากวาง)</ToggleButton>
+        </ToggleButtonGroup>
+        {mode === "order" ? (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ลากที่ไอคอนด้านซ้าย หรือกดลูกศร เพื่อให้คอลัมน์ไหนแสดงก่อน/หลัง (คอลัมน์ที่ตรึงไว้จะอยู่ซ้ายสุดเสมอ)</Typography>
+            <SortableList items={orderItems} onChange={onChange} />
+          </>
+        ) : (<>
         <TextField
           size="small" fullWidth placeholder="ค้นหาคอลัมน์..." value={q} onChange={(e) => setQ(e.target.value)} sx={{ mb: 1.5 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -96,6 +119,7 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
             </Box>
           );
         })}
+        </>)}
       </DialogContent>
       )}
       <DialogActions sx={{ px: 3, py: 1.5 }}>

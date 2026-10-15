@@ -549,7 +549,7 @@ router.get("/sheet/global-settings", async (req, res) => {
 });
 
 router.put("/sheet/global-settings", async (req, res) => {
-  const { password, statusOrder } = req.body || {};
+  const { password, statusOrder, statusLabels, statusStyles } = req.body || {};
   const expected = process.env.SHEET_GLOBAL_SETTING_PASSWORD;
   if (!expected) {
     return res.status(503).json({ success: false, error: "ยังไม่ได้ตั้งรหัส SHEET_GLOBAL_SETTING_PASSWORD ใน .env ของ backend" });
@@ -558,16 +558,32 @@ router.put("/sheet/global-settings", async (req, res) => {
     logger.warn("global_setting_bad_password", { id: req.id, by: req.user ? req.user.user_id : null });
     return res.status(401).json({ success: false, error: "รหัสผ่านไม่ถูกต้อง" });
   }
-  const validOrder = Array.isArray(statusOrder)
-    && statusOrder.length <= STATUS_ORDER_MAX
-    && statusOrder.every((l) => typeof l === "string" && l.length > 0 && l.length <= STATUS_LABEL_MAX);
-  if (!validOrder) {
+  // each part is optional: only what is sent is replaced
+  const okText = (v) => typeof v === "string" && v.trim().length > 0 && v.length <= STATUS_LABEL_MAX;
+  const okColor = (v) => v === undefined || v === null || v === "" || /^#[0-9a-fA-F]{6}$/.test(v);
+  const isMap = (o) => o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length <= STATUS_ORDER_MAX;
+  if (statusOrder === undefined && statusLabels === undefined && statusStyles === undefined) {
+    return res.status(400).json({ success: false, error: "ไม่มีค่าที่จะบันทึก" });
+  }
+  if (statusOrder !== undefined && !(Array.isArray(statusOrder) && statusOrder.length <= STATUS_ORDER_MAX && statusOrder.every(okText))) {
     return res.status(400).json({ success: false, error: "ลำดับสถานะไม่ถูกต้อง" });
+  }
+  // statusLabels: { ชื่อเดิม: ชื่อที่แสดง }
+  if (statusLabels !== undefined && !(isMap(statusLabels) && Object.entries(statusLabels).every(([k, v]) => okText(k) && okText(v)))) {
+    return res.status(400).json({ success: false, error: "ชื่อสถานะไม่ถูกต้อง" });
+  }
+  // statusStyles: { ชื่อเดิม: { bg, fg, onBg, onFg } } สี #RRGGBB (ว่าง = สีเดิม)
+  if (statusStyles !== undefined && !(isMap(statusStyles) && Object.entries(statusStyles).every(([k, v]) => okText(k) && v && typeof v === "object"
+    && ["bg", "fg", "onBg", "onFg"].every((f) => okColor(v[f])) && Object.keys(v).every((f) => ["bg", "fg", "onBg", "onFg"].includes(f))))) {
+    return res.status(400).json({ success: false, error: "สีสถานะไม่ถูกต้อง" });
   }
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-    const next = { ...(await readGlobalSettings(pool)), statusOrder: [...new Set(statusOrder)] };
+    const next = { ...(await readGlobalSettings(pool)) };
+    if (statusOrder !== undefined) next.statusOrder = [...new Set(statusOrder)];
+    if (statusLabels !== undefined) next.statusLabels = Object.fromEntries(Object.entries(statusLabels).map(([k, v]) => [k, v.trim()]));
+    if (statusStyles !== undefined) next.statusStyles = statusStyles;
     await withPrefsTable(pool, () => pool.request()
       .input("user_id", sql.Int, GLOBAL_USER_ID)
       .input("sheet_key", sql.NVarChar(50), GLOBAL_SHEET_KEY)
@@ -578,7 +594,7 @@ router.put("/sheet/global-settings", async (req, res) => {
         IF @@ROWCOUNT = 0
           INSERT INTO SheetUserPrefs (user_id, sheet_key, config) VALUES (@user_id, @sheet_key, @config);
       `));
-    logger.info("global_setting_saved", { id: req.id, by: req.user ? req.user.user_id : null, key: "statusOrder" });
+    logger.info("global_setting_saved", { id: req.id, by: req.user ? req.user.user_id : null, keys: ["statusOrder", "statusLabels", "statusStyles"].filter((k) => req.body[k] !== undefined) });
     res.json({ success: true, message: "บันทึกการตั้งค่าสำเร็จ", data: next });
   } catch (err) {
     console.error("[Route PUT /sheet/global-settings] Error:", err);

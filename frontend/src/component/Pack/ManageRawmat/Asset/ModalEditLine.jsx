@@ -239,7 +239,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
 
   const fetchProduction = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});

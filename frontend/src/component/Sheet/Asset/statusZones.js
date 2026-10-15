@@ -29,7 +29,7 @@ export const AREA_PALETTE = [
 export const STATUS_LIST = [
   ["กำลังละลาย", "bigcold"], ["ละลายเสร็จแล้ว", "bigcold"], ["จ่ายลงไลน์แล้ว", "bigcold"],
   ["อยู่ในห้องเย็น", "cold"], ["อยู่ในห้องเย็นใหญ่", "cold"], ["รอห้องเย็นรับเข้า", "cold"], ["รอรับเข้าห้องเย็น", "cold"],
-  ["รอใส่รถเข็น", "prep"], ["ผสมแล้ว", "prep"], ["รอเตรียมวัตถุดิบใหม่", "prep"], ["รอเตรียมผสมวัตถุดิบ", "prep"], ["อยู่ที่ไลน์", "prep"], ["รอแก้ไข", "prep"], ["ยังไม่มีความเคลื่อนไหว", "prep"], ["-", "prep"],
+  ["รอใส่รถเข็น", "prep"], ["รอเตรียมวัตถุดิบใหม่", "prep"], ["รอเตรียมผสมวัตถุดิบ", "prep"], ["อยู่ที่ไลน์", "prep"], ["รอแก้ไข", "prep"], ["ยังไม่มีความเคลื่อนไหว", "prep"], ["-", "prep"],
   ["รอ QC Check", "qc"],
   ["รอบรรจุเสร็จ", "pack"], ["รอบรรจุจัดส่ง", "pack"],
   ["Done", "done"],
@@ -69,7 +69,8 @@ export const rankOf = (label, zone) => zone.order * 100 + (LABEL_ORDER.get(label
 export const withZone = (st, ext) => {
   const zones = zonesOf(st.label, ext);
   const zone = zones[0];
-  return { label: st.label, color: zone.color, bg: zone.bg, zone, zones, rank: rankOf(st.label, zone) };
+  // a colour set in "ชื่อและสีสถานะ" (st.styled) wins over the colour of the area
+  return { ...st, color: st.styled ? st.color : zone.color, bg: st.styled ? st.bg : zone.bg, zone, zones, rank: rankOf(st.label, zone) };
 };
 
 /** DataGrid prepareRows: re-colour the status of every row with the account's own areas; same array when there is no change */
