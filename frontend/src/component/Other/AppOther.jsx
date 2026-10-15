@@ -13,7 +13,7 @@ function AppOther() {
         <div className="absolute inset-0 bg-gradient-to-br opacity-80" />
       </div>
       <SidebarOther />
-      <Suspense fallback={<div className="text-center mt-10 text-white">Loading...</div>}>
+      <Suspense fallback={<div className="text-center mt-10 text-gray-500">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/other/delay" replace />} />
           <Route path="/delay" element={<DelayControlPage />} />

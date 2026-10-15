@@ -96,7 +96,7 @@ function AppSup() {
       {/* ใช้ Suspense เพื่อรองรับ Lazy Loading */}
       <Suspense
         fallback={
-          <div className="text-center mt-10 text-white">Loading...</div>
+          <div className="text-center mt-10 text-gray-500">Loading...</div>
         }
       >
         <Routes>

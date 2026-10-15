@@ -6,11 +6,10 @@ import Report from "./Report/ManagePage.jsx"
 
 function AppMaster() {
   return (
-    <div className="flex flex-col h-screen text-gray-100 overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* BG */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 opacity-80" />
-        <div className="absolute inset-0 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#EAF1FF] via-[#F4F7FD] to-white" />
       </div>
 
       <SidebarPack />
