@@ -1,6 +1,6 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, Divider, Typography } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
-import { fmtAt, fmtMin, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN } from "./lotCalc";
+import { fmtAt, fmtThaiMin, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN, LIMIT_OUTSIDE_TOTAL_MIN } from "./lotCalc";
 
 // Slip of one "ออกห้องเย็น" stamp, for the 72.1 mm thermal printer (same paper as the QC Check slip).
 // Printing hides the rest of the page; only the slip (.other-slip) is printed.
@@ -19,10 +19,24 @@ const Line = ({ label, value, bold }) => (
   </Box>
 );
 
-/** slip: { lot, outAt (ms), kg, chunks: [{ kg, inAt, outAt, minutes }], outside: [{ kg, minutes }], by } */
+// one step of the timeline: "02:07 > 03:07 = 1 ชม ผ่าน"
+const Step = ({ no, title, limit, from, to, minutes, limitMin }) => {
+  const pass = minutes <= limitMin;
+  return (
+    <Box sx={{ py: 0.5 }}>
+      <div style={{ fontWeight: 700, fontSize: 12.5 }}>{no}. {title} <span style={{ fontWeight: 500 }}>· คุม {limit}</span></div>
+      <div style={{ fontSize: 12.5 }}>
+        {fmtAt(from)} &gt; {fmtAt(to)} = {fmtThaiMin(minutes)}{" "}
+        <b style={{ color: pass ? "#2E7D32" : "#C62828" }}>{pass ? "ผ่าน" : "เกิน"}</b>
+      </div>
+    </Box>
+  );
+};
+
+/** slip: { lot, outAt (ms), kg, chunks: [{ kg, inAt, outAt, minutes, prepAt, prepMin, packLeftMin, packBy }], by } */
 const OutSlip = ({ slip, onClose }) => {
   if (!slip) return null;
-  const { lot, outAt, kg, chunks, outside, by } = slip;
+  const { lot, outAt, kg, chunks, by } = slip;
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
       <style>{PRINT_CSS}</style>
@@ -36,19 +50,24 @@ const OutSlip = ({ slip, onClose }) => {
           <Line label="น้ำหนักที่ออก" value={`${kg} kg`} bold />
           <Line label="เตรียมเสร็จ" value={fmtAt(lot.prep_done_at)} />
           <Divider sx={{ my: 1, borderStyle: "dashed" }} />
-          <Typography sx={{ fontWeight: 700, fontSize: 13 }}>ในห้องเย็น (เข้า → ออก)</Typography>
           {chunks.map((c, i) => (
-            <Box key={i} sx={{ fontSize: 12.5, py: 0.25 }}>
-              <div>{c.kg} kg · {fmtMin(c.minutes)} / {fmtMin(LIMIT_INSIDE_MIN)}</div>
-              <div style={{ color: "#555" }}>{fmtAt(c.inAt)} → {fmtAt(c.outAt)}</div>
+            <Box key={i} sx={{ pb: 0.5, ...(i ? { borderTop: "1px dashed #bbb", pt: 0.5 } : {}) }}>
+              {chunks.length > 1 && <div style={{ fontWeight: 700, fontSize: 13 }}>ส่วนที่ {i + 1}: {c.kg} kg</div>}
+              <Step no={1} title="เตรียมเสร็จ → เข้าห้องเย็น" limit={fmtThaiMin(LIMIT_OUTSIDE_MIN)} from={c.prepAt} to={c.inAt} minutes={c.prepMin} limitMin={LIMIT_OUTSIDE_MIN} />
+              <Step no={2} title="ในห้องเย็น" limit={fmtThaiMin(LIMIT_INSIDE_MIN)} from={c.inAt} to={c.outAt} minutes={c.minutes} limitMin={LIMIT_INSIDE_MIN} />
+              <Box sx={{ py: 0.5 }}>
+                <div style={{ fontWeight: 700, fontSize: 12.5 }}>3. ออกห้องเย็น → บรรจุเสร็จ <span style={{ fontWeight: 500 }}>· คุม {fmtThaiMin(c.packLeftMin)}</span></div>
+                <div style={{ fontSize: 11.5, color: "#555" }}>
+                  (นอกห้องเย็นรวม {fmtThaiMin(LIMIT_OUTSIDE_TOTAL_MIN)} − ช่วงที่ 1 ใช้ {fmtThaiMin(c.prepMin)} = เหลือ {fmtThaiMin(c.packLeftMin)})
+                </div>
+                {c.packLeftMin > 0 ? (
+                  <div style={{ fontSize: 12.5 }}>{fmtAt(c.outAt)} &gt; ต้องบรรจุเสร็จภายใน <b>{fmtAt(c.packBy)}</b></div>
+                ) : (
+                  <div style={{ fontSize: 12.5, color: "#C62828", fontWeight: 700 }}>ไม่เหลือเวลา: ใช้เวลานอกห้องเย็นครบ {fmtThaiMin(LIMIT_OUTSIDE_TOTAL_MIN)} แล้ว</div>
+                )}
+              </Box>
             </Box>
           ))}
-          {outside.length > 0 && (
-            <>
-              <Typography sx={{ fontWeight: 700, fontSize: 13, mt: 0.75 }}>นอกห้องเย็น (เตรียมเสร็จ → เข้าห้องเย็น)</Typography>
-              {outside.map((c, i) => <Box key={i} sx={{ fontSize: 12.5 }}>{c.kg} kg · {fmtMin(c.minutes)} / {fmtMin(LIMIT_OUTSIDE_MIN)}</Box>)}
-            </>
-          )}
           <Divider sx={{ my: 1, borderStyle: "dashed" }} />
           <Line label="ผู้บันทึก" value={by || "-"} />
           <Line label="พิมพ์เมื่อ" value={fmtAt(Date.now())} />

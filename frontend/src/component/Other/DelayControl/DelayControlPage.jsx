@@ -92,11 +92,9 @@ const DelayControlPage = () => {
   const openSlip = (lot, outAt) => {
     const c = calcLot(lot, Date.now());
     const chunks = c.coldChunks.filter((k) => k.outAt === outAt);
-    const ins = new Set(chunks.map((k) => k.inAt));
     const move = lot.moves.find((m) => m.kind === "OUT" && msOf(m.moved_at) === outAt);
     setSlip({
-      lot, outAt, kg: Math.round(chunks.reduce((sum, k) => sum + k.kg, 0) * 100) / 100, chunks,
-      outside: c.outsideChunks.filter((k) => !k.running && ins.has(k.toAt)), by: move?.created_by || userName(),
+      lot, outAt, kg: Math.round(chunks.reduce((sum, k) => sum + k.kg, 0) * 100) / 100, chunks, by: move?.created_by || userName(),
     });
   };
   const stampOut = async (lot, values, at) => {
@@ -205,7 +203,7 @@ const DelayControlPage = () => {
                                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>ในห้องเย็น (เข้า → ออก)</Typography>
                                 {c.coldChunks.length ? (
                                   <Table size="small" sx={SUB}>
-                                    <TableHead><TableRow><TableCell align="right">น้ำหนัก</TableCell><TableCell>เวลา / เกณฑ์</TableCell><TableCell>เข้าห้องเย็น</TableCell><TableCell>ออกห้องเย็น</TableCell><TableCell /></TableRow></TableHead>
+                                    <TableHead><TableRow><TableCell align="right">น้ำหนัก</TableCell><TableCell>เวลา / เกณฑ์</TableCell><TableCell>เข้าห้องเย็น</TableCell><TableCell>ออกห้องเย็น</TableCell><TableCell>บรรจุเสร็จภายใน</TableCell><TableCell /></TableRow></TableHead>
                                     <TableBody>
                                       {c.coldChunks.map((k, i) => (
                                         <TableRow key={i}>
@@ -213,6 +211,7 @@ const DelayControlPage = () => {
                                           <TableCell><Clock chunk={k} limit={LIMIT_INSIDE_MIN} /></TableCell>
                                           <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(k.inAt)}</TableCell>
                                           <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? fmtAt(k.outAt) : <span style={{ color: "#1552F0" }}>ยังอยู่ในห้องเย็น</span>}</TableCell>
+                                          <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? (k.packLeftMin > 0 ? fmtAt(k.packBy) : <span style={{ color: "#C62828" }}>ไม่เหลือเวลา</span>) : "-"}</TableCell>
                                           <TableCell>{k.outAt && <IconButton size="small" title="พิมพ์สลิปออกห้องเย็น" onClick={() => openSlip(lot, k.outAt)}><PrintIcon fontSize="small" /></IconButton>}</TableCell>
                                         </TableRow>
                                       ))}

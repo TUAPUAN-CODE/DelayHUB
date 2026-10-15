@@ -3,6 +3,9 @@
 //   inside the cold room:  from the kg going in until they come out (limit 24 h) — kg that left in several steps are matched first-in-first-out
 export const LIMIT_OUTSIDE_MIN = 120;
 export const LIMIT_INSIDE_MIN = 24 * 60;
+// after the cold room: packing must be done within what is left of the whole outside time (2 h before + 2 h after = 4 h),
+// so time used before the cold room is taken from the time after it (used 1 h before -> 3 h left; used 3 h -> 1 h left)
+export const LIMIT_OUTSIDE_TOTAL_MIN = 2 * LIMIT_OUTSIDE_MIN;
 
 const ms = (s) => new Date(String(s).replace(" ", "T")).getTime();
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -13,6 +16,12 @@ export const levelOf = (minutes, limit) => {
   if (left > 50) return "green";
   if (left > 0) return "yellow";
   return "red";
+};
+/** outside time used before the cold room, packing time left after it, and the time packing must be done by */
+const packWindow = (prep, inAt, outAt) => {
+  const prepMin = Math.max(0, (inAt - prep) / 60000);
+  const packLeftMin = Math.max(0, LIMIT_OUTSIDE_TOTAL_MIN - prepMin);
+  return { prepAt: prep, prepMin, packLeftMin, packBy: outAt + packLeftMin * 60000 };
 };
 const RANK = { green: 0, yellow: 1, red: 2 };
 
@@ -35,7 +44,7 @@ export const calcLot = (lot, now = Date.now()) => {
     while (need > 1e-9 && queue.length) {
       const head = queue[0];
       const take = Math.min(head.kg, need);
-      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, minutes: Math.max(0, (o.at - head.at) / 60000), running: false });
+      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, minutes: Math.max(0, (o.at - head.at) / 60000), running: false, ...packWindow(prep, head.at, o.at) });
       head.kg = r2(head.kg - take);
       need = r2(need - take);
       if (head.kg <= 1e-9) queue.shift();
@@ -62,6 +71,13 @@ export const fmtMin = (min) => {
   const m = Math.round(min);
   const h = Math.floor(m / 60);
   return `${h ? `${h} h ` : ""}${m % 60} m`.trim();
+};
+/** minutes -> "1 ชม 5 นาที" (for the slip) */
+export const fmtThaiMin = (min) => {
+  const m = Math.round(min);
+  const h = Math.floor(m / 60);
+  if (!h) return `${m} นาที`;
+  return m % 60 ? `${h} ชม ${m % 60} นาที` : `${h} ชม`;
 };
 const p = (n) => String(n).padStart(2, "0");
 /** "2026-10-10 08:05:00" or ms -> "10/10/2026 08:05" (the year is always shown) */
