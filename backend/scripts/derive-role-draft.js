@@ -12,7 +12,7 @@ const ROUTES_DIR = path.join(ROOT, "backend", "routes");
 const COMPONENT_DIR = path.join(ROOT, "frontend", "src", "component");
 const OUT = path.join(ROOT, "backend", "config", "rolePolicy.draft.json");
 
-const ROLE_OF_DIR = { Oven: [1], Prep: [2], QC: [3], Pack: [4], ColdStorage: [5], Supervisor: [6], ColdStorages: [7], Master: [8], Other: [9] };
+const ROLE_OF_DIR = { Oven: [1], Prep: [2], QC: [3], Pack: [4], ColdStorage: [5], Supervisor: [6], ColdStorages: [7], Master: [8], Other: [10] };
 // โฟลเดอร์ย่อยของหน้ากลาง Sheet ที่เป็นเครื่องมือเฉพาะ Role
 const ROLE_OF_SHEET_SUB = { cold: [5, 7], pack: [4], prep: [2] };
 

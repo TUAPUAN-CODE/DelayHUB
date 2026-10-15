@@ -1,7 +1,7 @@
 {
   "version": 1,
   "note": "ร่างจากการวิเคราะห์โค้ด ไม่ได้บังคับ — ตรวจแล้วเปลี่ยนชื่อเป็น rolePolicy.json (ทุกกฎ mode=warn = log อย่างเดียว ลบ mode เมื่อมั่นใจ); ผู้ดูแล Role 6/8 ผ่านทุกกฎอยู่แล้ว",
-  "generated_at": "2026-10-10T14:34:17.576Z",
+  "generated_at": "2026-10-15T02:33:46.460Z",
   "rules": [
     {
       "method": "GET",
@@ -219,6 +219,9 @@
         "Master/PackTro",
         "Pack/CheckIn",
         "Pack/Main",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG",
         "Prep/CheckIn"
       ]
     },
@@ -267,6 +270,9 @@
         "Master/CheckIn",
         "Master/CheckOut",
         "Pack/CheckIn",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG",
         "Prep/CheckIn"
       ]
     },
@@ -350,28 +356,6 @@
       "mode": "warn",
       "callers": [
         "ColdStorages/RoomMonitor"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "^/api/all/delay/tracking/rm$",
-      "roles": [
-        6
-      ],
-      "mode": "warn",
-      "callers": [
-        "Supervisor/DelayTimeTrackingRM"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "^/api/all/delay/tracking/rm/inprocess$",
-      "roles": [
-        6
-      ],
-      "mode": "warn",
-      "callers": [
-        "Supervisor/DelayTimeTrackingIP"
       ]
     },
     {
@@ -515,6 +499,17 @@
     {
       "method": "POST",
       "path": "^/api/coldstorages/scan/sap/end/defrost$",
+      "roles": [
+        7
+      ],
+      "mode": "warn",
+      "callers": [
+        "ColdStorages/SapSheet"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/coldstorages/scan/sap/input/pd$",
       "roles": [
         7
       ],
@@ -676,7 +671,7 @@
       "method": "GET",
       "path": "^/api/other/lots$",
       "roles": [
-        9
+        10
       ],
       "mode": "warn",
       "callers": [
@@ -687,7 +682,7 @@
       "method": "POST",
       "path": "^/api/other/lots$",
       "roles": [
-        9
+        10
       ],
       "mode": "warn",
       "callers": [
@@ -698,7 +693,7 @@
       "method": "POST",
       "path": "^/api/other/lots/[^/]+/move$",
       "roles": [
-        9
+        10
       ],
       "mode": "warn",
       "callers": [
@@ -709,7 +704,7 @@
       "method": "PUT",
       "path": "^/api/other/lots/[^/]+/close$",
       "roles": [
-        9
+        10
       ],
       "mode": "warn",
       "callers": [
@@ -804,6 +799,9 @@
         "Master/TrackTrolley",
         "Oven/MatCold",
         "Pack/Main",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG",
         "Prep/CheckIn",
         "Prep/EditDataTrolley",
         "Prep/HistoryCooked",
@@ -846,7 +844,10 @@
       "mode": "warn",
       "callers": [
         "Master/CheckIn",
-        "Pack/CheckIn"
+        "Pack/CheckIn",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG"
       ]
     },
     {
@@ -1011,7 +1012,8 @@
         "Pack/ReportPull",
         "Pack/ReportRawmatEditTIME",
         "Pack/ReportRawmatNotEditTIME",
-        "Pack/RequestRawmat"
+        "Pack/RequestRawmat",
+        "Sheet/Asset"
       ]
     },
     {
@@ -1078,7 +1080,8 @@
         "Pack/ReportPull",
         "Pack/ReportRawmatEditTIME",
         "Pack/ReportRawmatNotEditTIME",
-        "Pack/RequestRawmat"
+        "Pack/RequestRawmat",
+        "Sheet/Asset"
       ]
     },
     {
@@ -1098,7 +1101,8 @@
         "Pack/ReportDelay",
         "Pack/ReportPull",
         "Pack/ReportRawmatEditTIME",
-        "Pack/ReportRawmatNotEditTIME"
+        "Pack/ReportRawmatNotEditTIME",
+        "Sheet/Asset"
       ]
     },
     {
@@ -1488,13 +1492,11 @@
       "method": "GET",
       "path": "^/api/pack/ingredient/fetch-wo$",
       "roles": [
-        4,
-        6
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Pack/ReportRawmatNotEditTIME",
-        "Supervisor/DelayTimeTrackingRM"
+        "Pack/ReportRawmatNotEditTIME"
       ]
     },
     {
@@ -1506,6 +1508,42 @@
       "mode": "warn",
       "callers": [
         "Pack/ReportRawmatNotEditTIME"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/printmaster/lines$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/PrintMaster",
+        "Pack/PrintMasters"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/printmaster/list$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/PrintMaster",
+        "Pack/PrintMasters"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/printmaster/save$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/PrintMaster",
+        "Pack/PrintMasters"
       ]
     },
     {
@@ -1580,24 +1618,136 @@
     },
     {
       "method": "GET",
-      "path": "^/api/traceback/mat-batch$",
+      "path": "^/api/pack/pkg/lines$",
       "roles": [
-        6
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Supervisor/DelayTimeTrackingRM"
+        "Pack/UsePKG"
       ]
     },
     {
       "method": "GET",
-      "path": "^/api/traceback/packaging$",
+      "path": "^/api/pack/pkg/reports/done/count$",
       "roles": [
-        6
+        4
       ],
       "mode": "warn",
       "callers": [
-        "Supervisor/DelayTimeTrackingRM"
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/pkg/reports$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/pkg/reports/done$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/pkg/reports$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "^/api/pack/pkg/reports/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/pkg/put/reports/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/pkg/reports/[^/]+/done$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/pack/pkg/reports/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "^/api/pack/pkg/scan$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "^/api/pack/pkg/details/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "^/api/pack/pkg/details/[^/]+$",
+      "roles": [
+        4
+      ],
+      "mode": "warn",
+      "callers": [
+        "Pack/UsePKG"
       ]
     },
     {
@@ -2197,6 +2347,8 @@
         "Pack/ManageRawmat",
         "Pack/ManageRequestOrder",
         "Pack/OrderRequestrawmat",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
         "Pack/PullHistory",
         "Pack/ReportDelay",
         "Pack/ReportPull",
@@ -2204,6 +2356,7 @@
         "Pack/ReportRawmatNotEditTIME",
         "Pack/RequestRawmat",
         "Pack/ScanSAP",
+        "Pack/UsePKG",
         "Prep/BatchMIX",
         "Prep/CheckIn",
         "Prep/EditDataTrolley",
@@ -2219,7 +2372,8 @@
         "Prep/TimeStampMain",
         "Prep/Timestampbroth",
         "QC/MainQC",
-        "QC/QCCheck"
+        "QC/QCCheck",
+        "Sheet/Asset"
       ]
     },
     {
@@ -2591,6 +2745,8 @@
         "Pack/ManageRawmat",
         "Pack/ManageRequestOrder",
         "Pack/OrderRequestrawmat",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
         "Pack/PullHistory",
         "Pack/ReportDelay",
         "Pack/ReportPull",
@@ -2598,6 +2754,7 @@
         "Pack/ReportRawmatNotEditTIME",
         "Pack/RequestRawmat",
         "Pack/ScanSAP",
+        "Pack/UsePKG",
         "Prep/BatchMIX",
         "Prep/CheckIn",
         "Prep/EditDataTrolley",
@@ -2837,19 +2994,6 @@
     },
     {
       "method": "GET",
-      "path": "^/api/report/rm-delay/tie/line$",
-      "roles": [
-        6
-      ],
-      "mode": "warn",
-      "callers": [
-        "Supervisor/DelayTimeTrackingByPercentage",
-        "Supervisor/DelayTimeTrackingIP",
-        "Supervisor/DelayTimeTrackingRM"
-      ]
-    },
-    {
-      "method": "GET",
       "path": "^/api/checkEditHistoryOnTrolleyAll$",
       "roles": [
         5,
@@ -2954,7 +3098,8 @@
       ],
       "mode": "warn",
       "callers": [
-        "Pack/ManageRawmat"
+        "Pack/ManageRawmat",
+        "Sheet/Asset"
       ]
     },
     {
@@ -3222,6 +3367,9 @@
         "Oven/MatCold",
         "Pack/Main",
         "Pack/ManageRawmat",
+        "Pack/PrintMaster",
+        "Pack/PrintMasters",
+        "Pack/UsePKG",
         "Prep/BatchMIX",
         "Prep/CheckIn",
         "Prep/EditDataTrolley",
