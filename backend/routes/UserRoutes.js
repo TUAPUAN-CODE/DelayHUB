@@ -395,32 +395,46 @@ router.post("/add-user", async (req, res) => {
         .json({ error: "ไม่สามารถเพิ่มได้ เนื่องจากรหัสพนักงานนี้มีอยู่แล้ว" });
     }
 
-    // เพิ่ม User ลงในฐานข้อมูล
-    await pool
-      .request()
-      .input("user_id", user_id)
-      .input("first_name", first_name)
-      .input("last_name", last_name)
-      .input("leader", leader || 0) // default = 0
-      .input("pos_id", pos_id || 1)
-      .input("wp_id", wp_id).query(`
-        INSERT INTO Users (user_id, first_name, last_name, leader, pos_id, wp_id)
-        VALUES (@user_id, @first_name, @last_name, @leader, @pos_id, @wp_id)
-      `);
+    // Users.wp_id points at Workplace: a Role without a Workplace row cannot be saved (e.g. Other = 10 before its row is added)
+    const wpCheck = await pool.request().input("wp_id", sql.Int, Number(wp_id))
+      .query("SELECT wp_id FROM Workplace WHERE wp_id = @wp_id");
+    if (wpCheck.recordset.length === 0) {
+      return res.status(400).json({ error: `ยังไม่มีสถานที่ทำงาน wp_id ${Number(wp_id)} ในตาราง Workplace กรุณาให้ผู้ดูแลเพิ่มก่อน` });
+    }
 
-    // ถ้า wp_id ไม่ใช่ 2 หรือ 3 -> เพิ่ม rm_type_id = 1 ใน WorkplaceUsers ทันที
-    if (wp_id !== 2 && wp_id !== 3) {
-      await pool.request().input("user_id", user_id).input("rm_type_id", 1)
-        .query(`
-          INSERT INTO WorkplaceUsers (user_id, rm_type_id)
-          VALUES (@user_id, @rm_type_id)
+    // Users + WorkplaceUsers in one transaction: a failure must not leave a half-created user
+    const transaction = new sql.Transaction(pool);
+    try {
+      await transaction.begin();
+      await new sql.Request(transaction)
+        .input("user_id", user_id)
+        .input("first_name", first_name)
+        .input("last_name", last_name)
+        .input("leader", leader || 0) // default = 0
+        .input("pos_id", pos_id || 1)
+        .input("wp_id", wp_id).query(`
+          INSERT INTO Users (user_id, first_name, last_name, leader, pos_id, wp_id)
+          VALUES (@user_id, @first_name, @last_name, @leader, @pos_id, @wp_id)
         `);
+
+      // ถ้า wp_id ไม่ใช่ 2 หรือ 3 -> เพิ่ม rm_type_id = 1 ใน WorkplaceUsers ทันที
+      if (wp_id !== 2 && wp_id !== 3) {
+        await new sql.Request(transaction).input("user_id", user_id).input("rm_type_id", 1)
+          .query(`
+            INSERT INTO WorkplaceUsers (user_id, rm_type_id)
+            VALUES (@user_id, @rm_type_id)
+          `);
+      }
+      await transaction.commit();
+    } catch (err) {
+      await safeRollback(transaction);
+      throw err;
     }
 
     res.status(201).json({ message: "เพิ่มผู้ใช้สำเร็จ" });
   } catch (error) {
     console.error("Add User Error:", error);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
+    res.status(500).json({ error: `เพิ่มพนักงานไม่สำเร็จ: ${error.message}` });
   }
 });
 
