@@ -62,7 +62,7 @@ const baseStatusOf = (r) => {
   if (String(r.dest || "").startsWith("บรรจุเสร็จ") || st === "สำเร็จ") return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
-  if (st === "รอแก้ไข") return { label: "รอแก้ไข", color: "#B91C1C", bg: "#FEE2E2" };
+  if (st === "รอแก้ไข") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.cs_id) return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.tro_id && (r.dest === "บรรจุ" || r.dest === "รถเข็นรอจัดส่ง")) return { label: "รอบรรจุจัดส่ง", color: "#047857", bg: "#D1FAE5" };
   // heading to a cold room ("เข้าห้องเย็น", "ห้องเย็น", "ห้องเย็นใหญ่", "รอCheckin", "เข้าห้องเย็น-รอรถเข็น" ...) and not in a slot yet
@@ -127,16 +127,6 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     planByKey.get(k).push(p);
   }));
   const consumed = new Set(); // plan rows that belong to a HU / mapping row; the others get a row of their own
-  // absorb = true: the plan rows belong to a trolley row (mapping) and are shown inside it. false: each plan row gets a row of its own (one row per plan entry)
-  const plansOf = (h, absorb = true) => {
-    if (!h) return [];
-    // a plan of another HU of the same batch belongs to that HU: only plans with no HU or this HU are taken
-    const list = [...new Map((planByKey.get(`${norm(h.mat)}|${norm(h.batch)}`) || [])
-      .filter((p) => !p.hu || String(p.hu) === String(h.hu))
-      .map((p) => [p.rmfp_id, p])).values()];
-    if (absorb) list.forEach((p) => consumed.add(p.rmfp_id));
-    return list;
-  };
   const huByKey = new Map((hus || []).map((h) => [String(h.hu), h]));
   const used = new Set();
   const isShown = (m) => {
