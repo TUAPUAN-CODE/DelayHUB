@@ -22,10 +22,10 @@ export const calcLot = (lot, now = Date.now()) => {
   const ins = lot.moves.filter((m) => m.kind === "IN").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
   const outs = lot.moves.filter((m) => m.kind === "OUT").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
 
-  const outsideChunks = ins.map((i) => ({ kg: i.kg, minutes: Math.max(0, (i.at - prep) / 60000), running: false }));
+  const outsideChunks = ins.map((i) => ({ kg: i.kg, fromAt: prep, toAt: i.at, minutes: Math.max(0, (i.at - prep) / 60000), running: false }));
   const placed = ins.reduce((s, i) => s + i.kg, 0);
   const unplaced = Math.max(0, r2(weight - placed));
-  if (unplaced > 0) outsideChunks.push({ kg: unplaced, minutes: Math.max(0, (now - prep) / 60000), running: true });
+  if (unplaced > 0) outsideChunks.push({ kg: unplaced, fromAt: prep, toAt: null, minutes: Math.max(0, (now - prep) / 60000), running: true });
 
   // first-in-first-out: every OUT takes its kg from the oldest kg that are still in the cold room
   const queue = ins.map((i) => ({ ...i }));
@@ -54,6 +54,9 @@ export const calcLot = (lot, now = Date.now()) => {
   const oldest = (list) => list.filter((c) => c.running).reduce((m, c) => (c.minutes > (m?.minutes ?? -1) ? c : m), null);
   return { weight, unplaced, inCold, outKg, outsideChunks, coldChunks, worst, done, runningOutside: oldest(outsideChunks), runningCold: oldest(coldChunks) };
 };
+
+/** "yyyy-MM-dd HH:mm:ss" (Thai time, as the server sends it) -> ms */
+export const msOf = ms;
 
 export const fmtMin = (min) => {
   const m = Math.round(min);

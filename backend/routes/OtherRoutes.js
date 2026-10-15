@@ -45,10 +45,19 @@ async function ensureTables(pool) {
   console.log("✅ [Other] ตรวจ/สร้างตาราง OtherLot, OtherLotMove เรียบร้อย");
 }
 
+// Times are kept as Thai wall-clock time (like GETDATE() everywhere else in the system).
+// Writing a JS Date through the driver stored it as UTC (7 hours early), so the page showed "7 h" for a stamp made a minute ago:
+// now every time goes in as a "yyyy-MM-dd HH:mm:ss" Thai-time text and every text read back is Thai time.
+const TZ = "+07:00";
 const parseDate = (v) => {
   if (v === undefined || v === null || v === "") return new Date();
-  const d = new Date(String(v).replace(" ", "T"));
+  const d = new Date(`${String(v).trim().replace(" ", "T")}${/[zZ]|[+-]\d\d:?\d\d$/.test(String(v).trim()) ? "" : TZ}`);
   return Number.isNaN(d.getTime()) ? null : d;
+};
+/** Date -> "yyyy-MM-dd HH:mm:ss" in Thai time, for CONVERT(DATETIME, @at, 120) */
+const thaiText = (d) => {
+  const t = new Date(d.getTime() + 7 * 3600 * 1000).toISOString();
+  return `${t.slice(0, 10)} ${t.slice(11, 19)}`;
 };
 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
 const trim = (v, max) => (v === undefined || v === null ? null : String(v).trim().slice(0, max) || null);
@@ -103,10 +112,10 @@ router.post("/other/lots", async (req, res) => {
       .input("name", sql.NVarChar(200), name)
       .input("ref", sql.NVarChar(100), trim(req.body.ref_code, 100))
       .input("w", sql.Decimal(12, 2), weight)
-      .input("at", sql.DateTime, at)
+      .input("at", sql.VarChar(19), thaiText(at))
       .input("note", sql.NVarChar(300), trim(req.body.note, 300))
       .input("by", sql.NVarChar(100), trim(req.body.user, 100))
-      .query("INSERT INTO OtherLot (lot_name, ref_code, weight_kg, prep_done_at, note, created_by) OUTPUT INSERTED.lot_id VALUES (@name, @ref, @w, @at, @note, @by)");
+      .query("INSERT INTO OtherLot (lot_name, ref_code, weight_kg, prep_done_at, note, created_by) OUTPUT INSERTED.lot_id VALUES (@name, @ref, @w, CONVERT(DATETIME, @at, 120), @note, @by)");
     res.status(201).json({ success: true, lot_id: r.recordset[0].lot_id, message: "บันทึกสำเร็จ" });
   } catch (err) {
     console.error("[Route /other/lots POST] Error:", err);
@@ -135,7 +144,7 @@ router.post("/other/lots/:id/move", async (req, res) => {
     const lot = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, closed FROM OtherLot WHERE lot_id = @id");
     if (!lot.recordset.length) { await safeRollback(transaction); return res.status(404).json({ success: false, error: "ไม่พบรายการ" }); }
     if (lot.recordset[0].closed) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "รายการนี้ปิดแล้ว" }); }
-    if (at < new Date(lot.recordset[0].prep_done_at.replace(" ", "T"))) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "เวลาต้องไม่ก่อนเวลาเตรียมเสร็จ" }); }
+    if (at < parseDate(lot.recordset[0].prep_done_at)) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "เวลาต้องไม่ก่อนเวลาเตรียมเสร็จ" }); }
     const sums = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT kind, SUM(qty_kg) AS kg FROM OtherLotMove WHERE lot_id = @id GROUP BY kind");
     const kg = { IN: 0, OUT: 0 };
     sums.recordset.forEach((s) => { kg[s.kind] = Number(s.kg) || 0; });
@@ -143,10 +152,10 @@ router.post("/other/lots/:id/move", async (req, res) => {
     if (kind === "IN" && qty > prepared - kg.IN + 1e-6) { await safeRollback(transaction); return res.status(400).json({ success: false, error: `เข้าห้องเย็นได้อีกไม่เกิน ${(prepared - kg.IN).toFixed(2)} kg` }); }
     if (kind === "OUT" && qty > kg.IN - kg.OUT + 1e-6) { await safeRollback(transaction); return res.status(400).json({ success: false, error: `ในห้องเย็นเหลือ ${(kg.IN - kg.OUT).toFixed(2)} kg` }); }
     await new sql.Request(transaction)
-      .input("id", sql.Int, lotId).input("kind", sql.VarChar(3), kind).input("qty", sql.Decimal(12, 2), qty).input("at", sql.DateTime, at).input("by", sql.NVarChar(100), trim(req.body.user, 100))
-      .query("INSERT INTO OtherLotMove (lot_id, kind, qty_kg, moved_at, created_by) VALUES (@id, @kind, @qty, @at, @by)");
+      .input("id", sql.Int, lotId).input("kind", sql.VarChar(3), kind).input("qty", sql.Decimal(12, 2), qty).input("at", sql.VarChar(19), thaiText(at)).input("by", sql.NVarChar(100), trim(req.body.user, 100))
+      .query("INSERT INTO OtherLotMove (lot_id, kind, qty_kg, moved_at, created_by) OUTPUT INSERTED.move_id VALUES (@id, @kind, @qty, CONVERT(DATETIME, @at, 120), @by)");
     await transaction.commit();
-    res.status(201).json({ success: true, message: "บันทึกสำเร็จ" });
+    res.status(201).json({ success: true, message: "บันทึกสำเร็จ", moved_at: thaiText(at) });
   } catch (err) {
     if (transaction) { try { await safeRollback(transaction); } catch (e) { /* already closed */ } }
     console.error("[Route /other/lots/:id/move] Error:", err);
