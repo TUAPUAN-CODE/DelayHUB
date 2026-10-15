@@ -59,6 +59,12 @@ const thaiText = (d) => {
   const t = new Date(d.getTime() + 7 * 3600 * 1000).toISOString();
   return `${t.slice(0, 10)} ${t.slice(11, 19)}`;
 };
+// "now" is the clock of the database (GETDATE(), Thai time, like every other stamp in the system),
+// not the clock of the API machine: a wrong clock / time zone there must not move the stamps
+const dbNow = async (runner) => {
+  const r = await runner.query("SELECT CONVERT(VARCHAR(19), GETDATE(), 120) AS now");
+  return parseDate(r.recordset[0].now);
+};
 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
 const trim = (v, max) => (v === undefined || v === null ? null : String(v).trim().slice(0, max) || null);
 const FUTURE_MS = 5 * 60 * 1000; // a stamp may not be in the future (5 minutes of clock difference are accepted)
@@ -100,14 +106,16 @@ router.post("/other/lots", async (req, res) => {
   try {
     const name = trim(req.body.lot_name, 200);
     const weight = toNum(req.body.weight_kg);
-    const at = parseDate(req.body.prep_done_at);
+    const typed = req.body.prep_done_at;
     if (!name) return res.status(400).json({ success: false, error: "กรุณาใส่ชื่อ" });
     if (!(weight > 0)) return res.status(400).json({ success: false, error: "น้ำหนักต้องมากกว่า 0" });
-    if (!at) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
-    if (at.getTime() > Date.now() + FUTURE_MS) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นอนาคต" });
+    if (typed && !parseDate(typed)) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     await ensureTables(pool);
+    const now = await dbNow(pool.request());
+    const at = typed ? parseDate(typed) : now;
+    if (at.getTime() > now.getTime() + FUTURE_MS) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นอนาคต" });
     const r = await pool.request()
       .input("name", sql.NVarChar(200), name)
       .input("ref", sql.NVarChar(100), trim(req.body.ref_code, 100))
@@ -129,16 +137,18 @@ router.post("/other/lots/:id/move", async (req, res) => {
   const lotId = parseInt(req.params.id, 10);
   const kind = String(req.body.kind || "").toUpperCase();
   const qty = toNum(req.body.qty_kg);
-  const at = parseDate(req.body.moved_at);
+  const typed = req.body.moved_at;
   if (Number.isNaN(lotId) || !["IN", "OUT"].includes(kind)) return res.status(400).json({ success: false, error: "ข้อมูลไม่ถูกต้อง" });
   if (!(qty > 0)) return res.status(400).json({ success: false, error: "น้ำหนักต้องมากกว่า 0" });
-  if (!at) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
-  if (at.getTime() > Date.now() + FUTURE_MS) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นอนาคต" });
+  if (typed && !parseDate(typed)) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
   let transaction;
   try {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     await ensureTables(pool);
+    const now = await dbNow(pool.request());
+    const at = typed ? parseDate(typed) : now;
+    if (at.getTime() > now.getTime() + FUTURE_MS) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นอนาคต" });
     transaction = new sql.Transaction(pool);
     await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE); // two people stamping the same lot at once must not both pass the weight check
     const lot = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, closed FROM OtherLot WHERE lot_id = @id");
