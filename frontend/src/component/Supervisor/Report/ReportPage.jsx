@@ -4,9 +4,7 @@ import { Alert, Box, Button, Chip, Collapse, MenuItem, Paper, Select, Tab, Table
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import { buildRows } from "../../Sheet/Asset/buildRows";
-import { prepareSheetRows } from "../../Sheet/Asset/prepareRows";
-import { columnsForRole, defaultVisible, GROUPS } from "../../Sheet/Asset/columns";
-import { DEFAULT_EXT, rowColorOf } from "../../Sheet/Asset/ColorSettings";
+import { DEFAULT_EXT } from "../../Sheet/Asset/ColorSettings";
 import { dbsPercentileSummary, fmtMin, GROUP_BY, groupStats, paretoOf, PARETO_MEASURES, totals } from "./reportStats";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -15,7 +13,6 @@ const DBS_LABEL = ["DBS1 เตรียม→ห้องเย็น", "DBS2 �
 const NO_TOOLS = { tools: () => [] };
 const keyOfStat = (r) => r.key;
 const keyOfPareto = (r) => r.key;
-const keyOfRow = (r) => r.__key;
 const SUMMARY_GROUPS = [{ key: "g", label: "สรุป", color: "#1552F0" }];
 const num = (key, label, width, get, text, extra = {}) => ({ key, label, group: "g", kind: "data", type: "number", width, align: "right", get, text, ...extra });
 
@@ -101,8 +98,6 @@ const ReportPage = () => {
   ], [groupLabel, measure]);
   const paretoColor = useCallback((r) => (r.cum - r.share < 80 ? "red" : null), []); // the "vital few": groups inside the first 80%
 
-  const tableGrid = useMemo(() => ({ columns: columnsForRole("sup"), defaultVisible: defaultVisible("sup") }), []);
-
   const controls = (
     <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, px: 1.5, py: 1, mb: 1, flexShrink: 0 }}>
       <Select size="small" value={source} onChange={(e) => { setSource(e.target.value); setMappings(null); }} sx={{ width: 190 }}>
@@ -122,7 +117,7 @@ const ReportPage = () => {
     </Paper>
   );
 
-  const viewOptions = view !== "table" && (
+  const viewOptions = (
     <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, mb: 1, flexShrink: 0 }}>
       <Select size="small" value={dbsIdx} onChange={(e) => setDbsIdx(Number(e.target.value))} sx={{ width: 210 }}>
         {DBS_LABEL.map((l, i) => <MenuItem key={l} value={i}>{l}</MenuItem>)}
@@ -143,7 +138,7 @@ const ReportPage = () => {
     </Box>
   );
 
-  const cards = mappings !== null && view !== "table" && (
+  const cards = mappings !== null && (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25, mb: 1, flexShrink: 0 }}>
       <Card label={`รายการที่วัด ${DBS_LABEL[dbsIdx].split(" ")[0]}`} value={tot.n.toLocaleString()} sub={`จากทั้งหมด ${rows.length.toLocaleString()} แถว`} />
       <Card label="เวลาเฉลี่ย" value={fmtMin(tot.avg)} />
@@ -198,13 +193,6 @@ const ReportPage = () => {
   let body = null;
   if (mappings === null) {
     body = <Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>เลือกที่มาของข้อมูลและช่วงวันที่ แล้วกด "ดึงข้อมูลรายงาน"</Paper>;
-  } else if (view === "table") {
-    body = (
-      <DataGrid
-        fill gridKey="report-table" title="Report" defaultExt={DEFAULT_EXT} rows={rows} rowKey={keyOfRow} loading={loading} hideReload ctx={NO_TOOLS} groups={GROUPS}
-        prepareRows={prepareSheetRows} rowColor={rowColorOf} searchPlaceholder="ค้นหาในผลลัพธ์ ..." {...tableGrid}
-      />
-    );
   } else if (view === "tie") {
     body = (
       <DataGrid
@@ -214,7 +202,7 @@ const ReportPage = () => {
     );
   } else if (view === "pareto") {
     body = (
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Paper variant="outlined" sx={{ height: 340, p: 1, flexShrink: 0 }}>
           {pareto.rows.length === 0 ? (
             <Typography sx={{ p: 3, textAlign: "center" }} color="text.secondary">ไม่มีข้อมูลที่เกินมาตรฐานในช่วงนี้</Typography>
@@ -235,7 +223,7 @@ const ReportPage = () => {
           )}
         </Paper>
         {pareto.groups > pareto.shown && <Alert severity="info" sx={{ flexShrink: 0 }}>แสดง {pareto.shown} กลุ่มแรกจากทั้งหมด {pareto.groups} กลุ่ม</Alert>}
-        <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+        <Box sx={{ height: "75vh", minHeight: 420, position: "relative", flexShrink: 0 }}>
           <Box sx={{ position: "absolute", inset: 0 }}>
             <DataGrid {...gridCommon} gridKey="report-pareto" title={`Pareto · ${DBS_LABEL[dbsIdx]}`} columns={paretoColumns} defaultVisible={paretoColumns.map((c) => c.key)}
               rows={pareto.rows} rowKey={keyOfPareto} rowColor={paretoColor} searchPlaceholder={`ค้นหา${groupLabel} ...`} />
@@ -278,15 +266,15 @@ const ReportPage = () => {
             <Tab value="tie" label="%Tie (Percentile)" />
             <Tab value="pareto" label="Pareto" />
             <Tab value="trend" label="แนวโน้มรายวัน" />
-            <Tab value="table" label="ตารางรายการ" />
           </Tabs>
           {mappings !== null && <Chip size="small" label={`${rows.length.toLocaleString()} แถว`} />}
         </Box>
         {viewOptions}
         {cards}
         {tieSummary}
-        <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: view === "trend" ? "auto" : undefined }}>
-          <div style={view === "trend" ? undefined : { position: "absolute", inset: 0 }}>{body}</div>
+        {/* trend and pareto (chart + table) scroll as one page; %Tie fills the rest of the screen */}
+        <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: view === "tie" ? undefined : "auto" }}>
+          <div style={view === "tie" ? { position: "absolute", inset: 0 } : undefined}>{body}</div>
         </div>
       </main>
     </div>

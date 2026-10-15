@@ -8,7 +8,6 @@ import {
   TableCell,
   Paper,
   Box,
-  TextField,
   TablePagination,
   Typography,
   Button,
@@ -17,8 +16,6 @@ import {
   IconButton,
   Divider
 } from "@mui/material";
-import { InputAdornment } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import axios from "axios";
@@ -37,7 +34,7 @@ import useTableTools from "../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const CartMain = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchTerm = ""; // the old search box was removed: the table toolbar search below covers every column
   const [carts, setCarts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -196,32 +193,6 @@ const CartMain = () => {
           margin: 0,
         }}
       >
-        <TextField
-          variant="outlined"
-          fullWidth
-          placeholder="ค้นหารหัสรถเข็น..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            sx: { height: "45px" },
-          }}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              height: "45px",
-              fontSize: "16px",
-              borderRadius: "8px",
-              color: "#6B7489",
-            },
-            "& input": {
-              padding: "10px",
-            },
-          }}
-        />
         
         <Button
           variant="contained"

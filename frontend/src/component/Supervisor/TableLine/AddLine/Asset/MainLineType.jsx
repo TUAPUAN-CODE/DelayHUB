@@ -8,14 +8,11 @@ import {
   TableCell,
   Paper,
   Box,
-  TextField,
   TablePagination,
   Divider,
   Typography,
   Button,
 } from "@mui/material";
-import { InputAdornment } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { IoIosAddCircleOutline } from "react-icons/io";
 import EditIcon from "@mui/icons-material/EditOutlined";
@@ -31,7 +28,7 @@ import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const MainLineType = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchTerm = ""; // the old search box was removed: the table toolbar search below covers every column
   const [lineTypes, setLineTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -162,32 +159,6 @@ const MainLineType = () => {
             margin: 0,
           }}
         >
-          <TextField
-            variant="outlined"
-            fullWidth
-            placeholder="พิมพ์เพื่อค้นหา..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              sx: { height: "45px" },
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                height: "45px",
-                fontSize: "16px",
-                borderRadius: "8px",
-                color: "#6B7489",
-              },
-              "& input": {
-                padding: "10px",
-              },
-            }}
-          />
           
           <Button
             variant="outlined"

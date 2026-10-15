@@ -8,7 +8,6 @@ import {
   TableCell,
   Paper,
   Box,
-  TextField,
   TablePagination,
   Divider,
   Typography,
@@ -19,8 +18,6 @@ import {
   MenuItem,
   Chip,
 } from "@mui/material";
-import { InputAdornment } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 import axios from "axios";
@@ -210,34 +207,6 @@ const LineName = () => {
             flexWrap: "wrap",
           }}
         >
-          {/* Search Field */}
-          <TextField
-            variant="outlined"
-            placeholder="พิมพ์เพื่อค้นหา..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              sx: { height: "45px" },
-            }}
-            sx={{
-              flex: 1,
-              minWidth: "200px",
-              "& .MuiOutlinedInput-root": {
-                height: "45px",
-                fontSize: "16px",
-                borderRadius: "8px",
-                color: "#6B7489",
-              },
-              "& input": {
-                padding: "10px",
-              },
-            }}
-          />
 
           {/* Line Type Filter */}
           <FormControl sx={{ minWidth: "150px", height: "45px" }}>

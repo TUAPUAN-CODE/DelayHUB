@@ -8,15 +8,12 @@ import {
   TableCell,
   Paper,
   Box,
-  TextField,
   Collapse,
   TablePagination,
   Divider,
   Typography,
   Button,
 } from "@mui/material";
-import { InputAdornment } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
@@ -33,7 +30,7 @@ import useTableTools from "../../../../../hooks/useTableTools";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const MainProcess = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchTerm = ""; // the old search box was removed: the table toolbar search below covers every column
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -128,32 +125,6 @@ const MainProcess = () => {
           minHeight: "60px",
         }}
       >
-        <TextField
-          variant="outlined"
-          fullWidth
-          placeholder="พิมพ์เพื่อค้นหา..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            sx: { height: "40px" },
-          }}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              height: "40px",
-              fontSize: "14px",
-              borderRadius: "8px",
-              color: "#6B7489",
-            },
-            "& input": {
-              padding: "8px",
-            },
-          }}
-        />
         <div
           className="text-gray-500 hover:text-white hover:bg-green-500"
           style={{
