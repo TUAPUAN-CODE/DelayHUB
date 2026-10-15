@@ -194,6 +194,7 @@ module.exports = (io) => {
     } = req.body;
 
     let transaction;
+    const createdIds = []; // rmfbatch_id of the rows made here: the Sheet opens the mixing dialog with them right away
 
     try {
       // ✅ เริ่มการเชื่อมต่อและ transaction
@@ -231,6 +232,7 @@ module.exports = (io) => {
           }
 
           const RMFBATCH_ID = rmmbatchResult.recordset[0].rmfbatch_id;
+          createdIds.push(RMFBATCH_ID);
 
           // ✅ Insert History
           const historyResult = await transaction
@@ -398,7 +400,7 @@ module.exports = (io) => {
       req.app.get("io").emit("rawBatchSaved", broadcastData);
 
       // ✅ ส่ง response
-      res.json({ success: true, message: "บันทึกข้อมูลการสแกน Batch เสร็จสิ้น" });
+      res.json({ success: true, message: "บันทึกข้อมูลการสแกน Batch เสร็จสิ้น", ids: createdIds });
 
     } catch (err) {
       if (transaction) {
@@ -1279,6 +1281,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
     } = req.body;
 
     let transaction;
+    const createdIds = []; // rmfemu_id of the rows made here: the Sheet opens the mixing dialog with them right away
 
     try {
       // เชื่อมต่อ DB และเริ่ม transaction
@@ -1317,6 +1320,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
           }
 
           const RMFEMU_ID = rmfemuResult.recordset[0].rmfemu_id;
+          createdIds.push(RMFEMU_ID);
 
           // ✅ Insert History
           const historyResult = await transaction
@@ -1484,7 +1488,7 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       req.app.get("io").emit("rawMaterialSaved", broadcastData);
 
       // Response
-      res.json({ success: true, message: "บันทึกข้อมูลการสแกนเสร็จสิ้น" });
+      res.json({ success: true, message: "บันทึกข้อมูลการสแกนเสร็จสิ้น", ids: createdIds });
     } catch (err) {
       if (transaction) {
         await safeRollback(transaction);

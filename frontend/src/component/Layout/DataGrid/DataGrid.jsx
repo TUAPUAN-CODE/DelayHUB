@@ -294,14 +294,15 @@ const DataGrid = ({
 
   return (
     <div style={fill ? { height: "100%", minHeight: 0, display: "flex", flexDirection: "column" } : undefined}>
-      {/* fill: แถวเดียวเสมอ (เลื่อนแนวนอนได้เมื่อจอแคบ) เพื่อให้ปุ่ม Detail อยู่แถวเดียวกับช่องค้นหา */}
-      <Box sx={{ display: "flex", flexWrap: fill ? "nowrap" : "wrap", overflowX: fill ? "auto" : undefined, gap: 1, alignItems: "center", mb: 1, flexShrink: 0, pb: fill ? 0.5 : 0,
+      {/* fill: everything fits the width of the screen (no sideways scroll): the search box takes a row of its own on a narrow screen
+          and the buttons wrap below it as compact boxes side by side */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1, flexShrink: 0,
         ...(fill ? {
           gap: 0.5,
-          "& > :not(.MuiTextField-root)": { flexShrink: 0 },
-          "& .MuiButton-root": { whiteSpace: "nowrap", minWidth: 0, px: 1, py: 0.5, fontSize: 13, lineHeight: 1.4 },
+          "& > .MuiTextField-root": { flex: "1 1 240px" },
+          "& .MuiButton-root": { whiteSpace: "nowrap", minWidth: 0, px: 1.25, height: 36, fontSize: 13, lineHeight: 1.2, borderRadius: "8px !important", boxShadow: "none" },
           "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
-          "& .MuiChip-root": { height: 28 },
+          "& .MuiChip-root": { height: 36, borderRadius: "8px" },
         } : {}) }}>
         {onReload && fill && (
           <Tooltip title="รีเฟรชข้อมูล" arrow>
@@ -331,21 +332,22 @@ const DataGrid = ({
 
       {fill && chipsOrdered && (
         // statuses in process order, with an arrow from each step to the next; a press shows only that status (a second press shows all)
-        <Box sx={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", gap: 0.25, mb: 1, px: 1, py: 0.75, flexShrink: 0,
-          background: "#fff", border: "1px solid #E1E9FA", borderRadius: "14px", boxShadow: "0 1px 2px rgba(19,33,63,.04)" }}>
+        // wraps onto more lines on a narrow screen (no sideways scroll)
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.25, rowGap: 0.5, mb: 1, px: 0.75, py: 0.75, flexShrink: 0,
+          background: "#fff", border: "1px solid #E1E9FA", borderRadius: "12px", boxShadow: "0 1px 2px rgba(19,33,63,.04)" }}>
           {chipsOrdered.map((c, i) => {
             const on = leadStatus === c.label;
             const onBg = c.onBg || c.color;
             const onFg = c.onFg || c.bg; // default: the two colours swap, so the text never disappears into the button
             return (
               <Fragment key={c.label}>
-                {i > 0 && <ChevronRightIcon sx={{ fontSize: 18, color: "#A3B3CF", flexShrink: 0 }} />}
+                {i > 0 && <ChevronRightIcon sx={{ fontSize: 16, color: "#A3B3CF", flexShrink: 0, mx: -0.25 }} />}
                 <Chip
                   size="small" clickable onClick={() => pickStatus(c.label)} label={c.name || c.label}
                   sx={{
-                    flexShrink: 0, height: 30, fontWeight: 700, fontSize: 12.5, background: on ? onBg : c.bg, color: on ? onFg : c.color,
+                    flexShrink: 0, height: 32, borderRadius: "8px", fontWeight: 700, fontSize: 12.5, background: on ? onBg : c.bg, color: on ? onFg : c.color,
                     border: `1px solid ${on ? onBg : `${c.color}55`}`, boxShadow: on ? `0 3px 10px ${onBg}55` : "none",
-                    "&::before": { content: '""', width: 8, height: 8, borderRadius: "50%", background: on ? onFg : c.color, ml: 1.25, mr: -0.5, flexShrink: 0 },
+                    "& .MuiChip-label": { px: 1.25 },
                     "&:hover": { background: on ? onBg : c.bg, filter: "brightness(.96)" },
                   }}
                 />

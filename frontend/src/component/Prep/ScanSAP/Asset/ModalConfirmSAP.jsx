@@ -509,7 +509,7 @@ useEffect(() => {
   const fetchGroup = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchGroup`, { params: { mat: material } });
+      const response = await axios.get(`${API_URL}/api/fetchGroup`, { params: { mat: material, all: 1 } });
       if (response.data.success) {
         setGroup(response.data.data);
       }

@@ -169,7 +169,8 @@ const ConfirmProdModal = ({
   onSuccess,
   level_eu,
   mat2x,
-  status
+  status,
+  onMix
 }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -239,6 +240,14 @@ const ConfirmProdModal = ({
 
       if (responses.every(res => res.status === 200)) {
         if (onSuccess) onSuccess();
+        // mixing (Emulsion / BatchMix): go straight to the mixing dialog with the rows just made (no "waiting to mix" step in between)
+        const mixKind = batchmix === "true" ? "batch" : emulsion === "true" ? "emu" : null;
+        const ids = responses.flatMap((res) => res.data?.ids || []);
+        if (mixKind && ids.length && onMix) {
+          onClose();
+          onMix({ kind: mixKind, ids });
+          return;
+        }
         setShowAlert(true);
         onClose();
       }
@@ -371,7 +380,7 @@ const ConfirmProdModal = ({
   );
 };
 
-const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date, hu, remark }) => {
+const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date, hu, remark, onMix }) => {
   const [selectedPlanSets, setSelectedPlanSets] = useState([]);
   const [materialName, setMaterialName] = useState("");
   const [production, setProduction] = useState([]);
@@ -550,7 +559,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
   const fetchGroup = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchGroup`, { params: { mat: material } });
+      const response = await axios.get(`${API_URL}/api/fetchGroup`, { params: { mat: material, all: 1 } });
       if (response.data.success) {
         setGroup(response.data.data);
       }
@@ -1019,6 +1028,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
         isLoading={isLoading}
         setIsLoading={setIsLoading}
         onSuccess={handleSaveSuccess}
+        onMix={onMix ? (m) => { onClose(); onMix(m); } : undefined}
       />
 
       <DeleteConfirmationDialog

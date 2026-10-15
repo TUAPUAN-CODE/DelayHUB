@@ -546,7 +546,6 @@ const ParentComponent = ({ role, view = "work" }) => {
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
             <Button variant="contained" size="small" startIcon={<IoBarcodeSharp />} onClick={() => setScan({ camera: true, review: false, mat: "", batch: "", hu: "" })}>สแกนป้าย SAP</Button>
           )}
-          <Button variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan("linein")}>สแกนไลน์รับเข้า</Button>
         </>
       )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
@@ -603,7 +602,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       {pstamp && (() => {
         const M = PREP_STAMPS[pstamp.kind];
         const sap = pstamp.hu;
-        return <M open onClose={() => { setPstamp(null); load(); }} onSuccess={load} data={sap} material={sap.mat} batch={sap.batch} sap_re_id={sap.sap_re_id} withdraw_date={sap.withdraw_date} hu={sap.hu} remark={sap.remark} />;
+        // boil with Emulsion / BatchMix: the mixing dialog opens right away with the new rows
+        const onMix = ({ kind, ids }) => { setPstamp(null); load(); mixRefs[kind]?.current?.add(ids); };
+        return <M open onClose={() => { setPstamp(null); load(); }} onSuccess={load} onMix={onMix} data={sap} material={sap.mat} batch={sap.batch} sap_re_id={sap.sap_re_id} withdraw_date={sap.withdraw_date} hu={sap.hu} remark={sap.remark} />;
       })()}
       {role === "prep" && (
         <>

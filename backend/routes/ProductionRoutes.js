@@ -201,6 +201,11 @@ router.get("/fetchGroup", async (req, res) => {
       `);
 
     if (rmGroupResult.recordset.length === 0) {
+      // all=1: a material with no cooking group linked yet can use any group (the stamp page must not be blocked by a missing link)
+      if (req.query.all === "1") {
+        const allGroups = await pool.request().query("SELECT rm_group_id, rm_group_name FROM RawMatGroup ORDER BY rm_group_name");
+        return res.json({ success: true, data: allGroups.recordset });
+      }
       return res.json({ success: true, data: [] }); // Return empty array instead of 404
     }
 

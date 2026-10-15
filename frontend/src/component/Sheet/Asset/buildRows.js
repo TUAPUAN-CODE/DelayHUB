@@ -49,7 +49,8 @@ export const statusOf = (r) => withZone(baseStatusOf(r));
 const baseStatusOf = (r) => {
   if (r.__kind === "mixed") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // mixed with emulsions, not in a trolley yet: it waits for a trolley like a plan row
   if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
-  if (r.__kind === "mix") return { label: "รอเตรียมผสมวัตถุดิบ", color: "#6A1B9A", bg: "#F3E5F5" };
+  // waiting to be mixed: still at the line (the "รอเตรียมผสมวัตถุดิบ" status was removed; the mixing tools stay on the row)
+  if (r.__kind === "mix") return { label: "อยู่ที่ไลน์", color: "#6A1B9A", bg: "#F3E5F5" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.__kind === "hu") {
     const a = analyzeRow(r);
