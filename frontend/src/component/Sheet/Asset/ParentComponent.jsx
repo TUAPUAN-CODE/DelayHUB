@@ -12,7 +12,6 @@ import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import PersonPinCircleOutlinedIcon from "@mui/icons-material/PersonPinCircleOutlined";
-import AddShoppingCartOutlinedIcon from "@mui/icons-material/AddShoppingCartOutlined";
 import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
 import BlenderOutlinedIcon from "@mui/icons-material/BlenderOutlined";
 import ShoppingCartCheckoutOutlinedIcon from "@mui/icons-material/ShoppingCartCheckoutOutlined";
@@ -88,6 +87,8 @@ const toolIcon = (it) => {
   const Icon = hit[1];
   return <Icon fontSize="small" />;
 };
+// Pack: the "ผสมวัตถุดิบ" button is hidden (asked by the users); set to true to bring it back — the mixing flow itself is unchanged
+const SHOW_PACK_MIX = false;
 const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date && (r.__stage === "ready" || r.__status?.label === "รอบรรจุเสร็จ");
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
@@ -430,7 +431,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const packBar = role === "pack" && (
     <>
       <Button variant="contained" size="small" color="secondary" startIcon={<TaskAltOutlinedIcon />} disabled={!selected.size} onClick={() => confirmSelected()}><span>บรรจุเสร็จ</span>&nbsp;({selected.size})</Button>
-      <Button variant="contained" size="small" startIcon={<BlenderOutlinedIcon />} disabled={!selected.size} onClick={() => mixSelected()}><span>ผสมวัตถุดิบ</span>&nbsp;({selected.size})</Button>
+      {SHOW_PACK_MIX && <Button variant="contained" size="small" startIcon={<BlenderOutlinedIcon />} disabled={!selected.size} onClick={() => mixSelected()}><span>ผสมวัตถุดิบ</span>&nbsp;({selected.size})</Button>}
       <Button variant="contained" size="small" startIcon={<ShoppingCartCheckoutOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
       <Button variant="outlined" size="small" startIcon={<EditNoteOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
       <Button variant="contained" size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
@@ -556,7 +557,6 @@ const ParentComponent = ({ role, view = "work" }) => {
         <>
           <LinePicker lineId={lineId} onChange={changeLine} />
           {!Number.isNaN(MY_LINE) && <Chip icon={<PersonPinCircleOutlinedIcon />} label="ไลน์ของฉัน" clickable color={myLine ? "primary" : "default"} variant={myLine ? "filled" : "outlined"} onClick={() => setMyLine((v) => !v)} />}
-          <Button variant="contained" size="small" startIcon={<AddShoppingCartOutlinedIcon />} onClick={() => packRef.current?.addTrolley()}>เพิ่มรถเข็น</Button>
         </>
       )}
     </>
