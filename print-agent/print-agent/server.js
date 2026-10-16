@@ -32,7 +32,7 @@ const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const app = express();
 app.use(cors()); // อนุญาตให้หน้าเว็บ (คนละ origin) เรียก agent นี้ได้
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "8mb" })); // /print-html carries the page styles too
 
 const PORT = 9100; // เปลี่ยนได้ถ้าพอร์ตนี้ชนกับโปรแกรมอื่นในเครื่อง
 
@@ -527,6 +527,39 @@ app.post("/print-generic", async (req, res) => {
     res.json({ ok: true, printed: identifier });
   } catch (err) {
     console.error("พิมพ์สลิป (generic) ไม่สำเร็จ:", err.message);
+    recentPrints.delete(dedupeKey);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Endpoint: the slip exactly as the web page shows it (QC check / cold storage export / ...), sent as HTML by the browser.
+// Lets a device that cannot print by itself (Android tablet, phone) print the same slip as a Windows PC:
+// the page sends { html, identifier, printerHost?, printerShare?, printerDotWidth? } and this agent prints it
+//   - printerHost + printerShare: RAW ESC/POS over the network to that printer (the html has a .container element)
+//   - otherwise: kiosk printing on the default printer of the machine running this agent
+app.post("/print-html", async (req, res) => {
+  const { html, identifier, printerHost, printerShare, printerDotWidth } = req.body || {};
+  if (typeof html !== "string" || !html.trim()) return res.status(400).json({ ok: false, error: "ไม่มี html ส่งมา" });
+  const id = String(identifier || "html");
+  const dedupeKey = `${printerHost || "local"}|${printerShare || ""}|html:${id}`;
+  const nowMs = Date.now();
+  const lastMs = recentPrints.get(dedupeKey);
+  if (PRINT_DEDUPE_MS > 0 && identifier && lastMs !== undefined && nowMs - lastMs < PRINT_DEDUPE_MS) {
+    return res.json({ ok: true, printed: id, deduped: true });
+  }
+  recentPrints.set(dedupeKey, nowMs);
+  console.log(`🖨️ รับคำขอพิมพ์ (html) identifier=${id} จาก ${req.ip}`);
+  try {
+    if (printerHost && printerShare) {
+      const result = await printHtmlToNetworkPrinter(html, { printerHost, printerShare, dotWidth: printerDotWidth, media: "print" });
+      console.log(`✅ พิมพ์สลิป (html, RAW ผ่าน network → ${result.target}) สำเร็จ identifier=${id}`);
+    } else {
+      await silentPrintHTML(html);
+      console.log(`✅ พิมพ์สลิป (html, local kiosk-printing) สำเร็จ identifier=${id}`);
+    }
+    res.json({ ok: true, printed: id });
+  } catch (err) {
+    console.error("พิมพ์สลิป (html) ไม่สำเร็จ:", err.message);
     recentPrints.delete(dedupeKey);
     res.status(500).json({ ok: false, error: err.message });
   }

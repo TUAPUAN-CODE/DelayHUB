@@ -14,3 +14,16 @@ export const registerSettings = (open) => {
 export const openSettings = () => { const last = openers[openers.length - 1]; if (last) last(); };
 /** true while a table with column settings is on the page */
 export const useHasSettings = () => useSyncExternalStore(subscribe, () => openers.length > 0, () => false);
+
+// The "แก้ไขข้อมูล" button of the top bar (next to Setting): a page with an editable table registers { on, toggle } here while it is mounted.
+let editor = null;
+const editSubs = new Set();
+const editEmit = () => editSubs.forEach((fn) => fn());
+const editSubscribe = (fn) => { editSubs.add(fn); return () => editSubs.delete(fn); };
+export const registerEditor = (value) => {
+  editor = value;
+  editEmit();
+  return () => { if (editor === value) { editor = null; editEmit(); } };
+};
+/** null when the page has no editable table, else { on, toggle } */
+export const useEditor = () => useSyncExternalStore(editSubscribe, () => editor, () => null);

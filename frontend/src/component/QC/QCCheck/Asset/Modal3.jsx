@@ -1,4 +1,7 @@
 import React from 'react';
+import { useRef as useSlipRef } from "react";
+import SlipPrintSettings from "../../../Layout/SlipPrintSettings";
+import { printSlip } from "../../../../services/slipPrint";
 import { QRCodeCanvas } from "qrcode.react";
 import { useState, useEffect } from "react";
 import {
@@ -26,6 +29,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBothDates, hasBothDates2, hasBothDates3 }) => {
+	const paperRef = useSlipRef(null); // the dialog paper: the slip that is sent to the Print Agent
 	const [qcDateTime, setQcDateTime] = useState("");
 	const [qcDate, setQcDate] = useState("");
 	const [qcTime, setQcTime] = useState("");
@@ -172,8 +176,10 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 		setErrorMessage("");
 	}, [data]);
 
-	const printPage = () => {
-		window.print();
+	// Windows: browser print · Android / tablet: sent to the Print Agent (services/slipPrint.js, set per device with the printer button)
+	const printPage = async () => {
+		const err = await printSlip(paperRef.current, data?.mapping_id);
+		if (err) alert(`พิมพ์สลิปไม่สำเร็จ: ${err}`);
 	};
 
 	const handleDateChange = (e) => {
@@ -442,7 +448,8 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 	return (
 		<>
 			<Dialog
-				open={open}
+				PaperProps={{ ref: paperRef }}
+open={open}
 				onClose={(e, reason) => {
 					if (reason === 'backdropClick') return; // ไม่ให้ปิดเมื่อคลิกพื้นที่นอก
 					onClose();
@@ -552,6 +559,7 @@ const Modal3 = ({ open, onClose, data, onEdit, dataForModal3, coldDates, hasBoth
 						>
 							กดที่นี่เพื่อ พิมพ์
 						</Button>
+						<SlipPrintSettings />
 					</Box>
 
 					<Box sx={{

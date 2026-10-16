@@ -25,7 +25,7 @@ const CSS_PX_PER_MM = 96 / 25.4;
 const PAGE_WIDTH_MM = 80; // ต้องตรงกับ PAGE_WIDTH_MM ใน buildSlipHTML (server.js)
 
 // แปลง HTML สลิป → ภาพ PNG (ถ่ายเฉพาะ .container ไม่เอาพื้นที่ว่างรอบๆ)
-async function renderHtmlToPngBuffer(html, dotWidth) {
+async function renderHtmlToPngBuffer(html, dotWidth, media) {
   const pageWidthCssPx = PAGE_WIDTH_MM * CSS_PX_PER_MM; // ~302px ที่ scale 1
   const deviceScaleFactor = dotWidth / pageWidthCssPx;
 
@@ -37,6 +37,8 @@ async function renderHtmlToPngBuffer(html, dotWidth) {
       height: 100, // แค่ค่าเริ่มต้น จะถูกแทนที่ด้วยความสูงจริงของ .container ตอน screenshot
       deviceScaleFactor,
     });
+    // media "print": the page sent by the web app (POST /print-html) is styled for printing (@media print)
+    if (media) await page.emulateMediaType(media);
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const container = await page.$(".container");
@@ -116,9 +118,9 @@ function sendRawBytesToShare(bytes, printerHost, printerShare) {
 }
 
 // ฟังก์ชันรวม: HTML → พิมพ์ผ่าน network ไปเครื่องปลายทาง
-async function printHtmlToNetworkPrinter(html, { printerHost, printerShare, dotWidth }) {
+async function printHtmlToNetworkPrinter(html, { printerHost, printerShare, dotWidth, media }) {
   const width = Number(dotWidth) > 0 ? Number(dotWidth) : DEFAULT_DOT_WIDTH;
-  const pngBuffer = await renderHtmlToPngBuffer(html, width);
+  const pngBuffer = await renderHtmlToPngBuffer(html, width, media);
   const escposBytes = await pngToEscPosRaster(pngBuffer, width);
   return await sendRawBytesToShare(escposBytes, printerHost, printerShare);
 }

@@ -178,6 +178,16 @@ const hasRole = (user, allowed) => !!user && (user.service === true || (user.rol
 const isAdmin = (user) => hasRole(user, ADMIN_ROLES);
 
 const adminOnly = (req) => (isAdmin(req.user) ? null : "admin_only");
+// Supervisor / Master, or anyone who typed the Setting password (permit from POST /api/sheet/setting-unlock, header x-setting-unlock, for this same user)
+const adminOrUnlock = (req) => {
+  if (isAdmin(req.user)) return null;
+  const t = req.headers["x-setting-unlock"];
+  if (typeof t === "string") {
+    const v = verifyToken(t);
+    if (v.ok && v.payload.typ === "setting" && req.user && v.payload.user_id === req.user.user_id) return null;
+  }
+  return "admin_or_password";
+};
 // เจ้าของข้อมูลเองหรือ admin (user_id มาจาก query / body)
 const selfOrAdmin = (pick) => (req) => {
   if (isAdmin(req.user)) return null;
@@ -198,8 +208,8 @@ const RULES = [
   { m: "GET", p: /^\/api\/auth\/(missing|policy-draft)$/, check: adminOnly },
   // Role ของตัวเอง ดูได้ แต่ดูของคนอื่นต้องเป็น admin
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
-  // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master เท่านั้น
-  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOnly },
+  // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)
+  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock },
   { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOnly },
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },

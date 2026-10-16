@@ -32,6 +32,8 @@ import ColorSettings, { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
 import StatusZoneSettings from "./StatusZoneSettings";
 import LineGroupSettings from "./LineGroupSettings";
 import PasswordGate from "./PasswordGate";
+import UnlockDialog, { hasUnlock } from "./UnlockDialog";
+import { registerEditor } from "../../Layout/DataGrid/settingsBus";
 import DonePanel from "./DonePanel";
 import EditCellDialog from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
@@ -138,7 +140,17 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
-  const [editMode, setEditMode] = useState(false); // Supervisor: double-click a cell to edit it (server allows role 6 / 8 only)
+  // "แก้ไขข้อมูล" in the top bar: after the password, double-click a cell of the in-process / done table to edit it
+  // (the server allows role 6 / 8, or anyone holding the permit of the password)
+  const [editMode, setEditMode] = useState(false);
+  const [unlockAsk, setUnlockAsk] = useState(false);
+  useEffect(() => registerEditor({
+    on: editMode,
+    toggle: () => {
+      if (editMode) { setEditMode(false); return; }
+      if (hasUnlock()) { setEditMode(true); setToast("โหมดแก้ไข: ดับเบิลคลิกที่เซลล์ที่ต้องการแก้"); } else setUnlockAsk(true);
+    },
+  }), [editMode]);
   const [editTarget, setEditTarget] = useState(null);
   const [planPick, setPlanPick] = useState(null);
   // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
@@ -535,12 +547,6 @@ const ParentComponent = ({ role, view = "work" }) => {
   const toolbarExtra = (
     <>
       {rangeBar}
-      {role === "sup" && (
-        <Chip
-          label={editMode ? "โหมดแก้ไข: ดับเบิลคลิกเซลล์เพื่อแก้" : "โหมดแก้ไข"} clickable color={editMode ? "warning" : "default"} variant={editMode ? "filled" : "outlined"}
-          onClick={() => setEditMode((v) => !v)}
-        />
-      )}
       {role === "prep" && (
         <>
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
@@ -573,7 +579,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
     { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: role === "sup" && editMode ? openCellEdit : undefined };
+  const sharedGrid = { rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -595,7 +601,8 @@ const ParentComponent = ({ role, view = "work" }) => {
       </div>
       )}
 
-      {role === "sup" && <EditCellDialog target={editTarget} onClose={() => setEditTarget(null)} onSaved={afterCellEdit} />}
+      <UnlockDialog open={unlockAsk} onClose={() => setUnlockAsk(false)} onUnlocked={() => { setUnlockAsk(false); setEditMode(true); setToast("โหมดแก้ไข: ดับเบิลคลิกที่เซลล์ที่ต้องการแก้"); }} />
+      <EditCellDialog target={editTarget} onClose={() => setEditTarget(null)} onSaved={afterCellEdit} />
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}
       <PackFlows ref={packRef} onDone={load} onNotify={setToast} />

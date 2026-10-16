@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
-import { ArrowLeftRight, ChevronDown, Settings, UserRound } from "lucide-react";
-import { openSettings, useHasSettings } from "./DataGrid/settingsBus";
+import { ArrowLeftRight, ChevronDown, Pencil, Settings, UserRound } from "lucide-react";
+import { openSettings, useEditor, useHasSettings } from "./DataGrid/settingsBus";
 import axios from "axios";
 import { WORKPLACE_ROUTES, readRoles } from "../../services/roleRoutes";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -115,6 +115,7 @@ const RoleSwitcher = () => {
 const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
   const { pathname, search } = useLocation();
   const hasSettings = useHasSettings();
+  const editor = useEditor();
   const normalized = useMemo(() => sections || [{ items: items || [] }], [sections, items]);
 
   const { main, bottom, leaves } = useMemo(() => {
@@ -144,6 +145,12 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
       </nav>
       <div className="app-top-user">
         {hasSettings && <button type="button" className="app-top-link" onClick={openSettings}><Settings size={16} className="shrink-0" /><span>Setting</span></button>}
+        {editor && (
+          <button type="button" className={`app-top-link${editor.on ? " active" : ""}`} onClick={editor.toggle} title={editor.on ? "ปิดโหมดแก้ไข" : "แก้ไขข้อมูลในตาราง (ต้องใส่รหัสผ่าน)"}
+            style={editor.on ? { background: "#F26B1D", color: "#fff", borderRadius: 999 } : undefined}>
+            <Pencil size={16} className="shrink-0" /><span>{editor.on ? "กำลังแก้ไข" : "แก้ไขข้อมูล"}</span>
+          </button>
+        )}
         {userName && <span className="app-top-name" title={userName}><UserRound size={16} className="shrink-0" /><span>{userName}</span></span>}
         <LanguageSwitcher sx={{ color: "#fff", background: "rgb(255 255 255 / .14)", height: 32, "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(255 255 255 / .45)" }, "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" }, "& .MuiSvgIcon-root": { color: "#fff" }, "& svg": { color: "#fff" } }} />
       </div>

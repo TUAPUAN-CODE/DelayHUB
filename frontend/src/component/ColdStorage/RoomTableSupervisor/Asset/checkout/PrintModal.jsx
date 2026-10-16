@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useRef as useSlipRef } from "react";
+import SlipPrintSettings from "../../../../Layout/SlipPrintSettings";
+import { printSlip } from "../../../../../services/slipPrint";
 import { Box, Button, Typography, Dialog, Divider, CircularProgress } from '@mui/material';
 import axios from "axios";
 import { QRCodeCanvas } from "qrcode.react";
@@ -26,6 +29,7 @@ const getEarliestComeColdDate = (data) => {
 };
 
 const PrintModal = ({ open, onClose, data }) => {
+    const paperRef = useSlipRef(null); // the dialog paper: the slip that is sent to the Print Agent
     const [coldHistory, setColdHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -270,8 +274,10 @@ const PrintModal = ({ open, onClose, data }) => {
         return calculateTimeDifference(qcDate, currentDateTime);
     };
 
-    const handlePrint = () => {
-        window.print();
+    // Windows: browser print · Android / tablet: sent to the Print Agent (services/slipPrint.js, set per device with the printer button)
+    const handlePrint = async () => {
+        const err = await printSlip(paperRef.current, tro_id);
+        if (err) alert(`พิมพ์สลิปไม่สำเร็จ: ${err}`);
     };
 
     const {
@@ -314,7 +320,8 @@ const PrintModal = ({ open, onClose, data }) => {
 
     return (
         <Dialog
-            open={open}
+            PaperProps={{ ref: paperRef }}
+open={open}
             onClose={(e, reason) => {
                 if (reason === 'backdropClick') return;
                 onClose();
@@ -393,6 +400,7 @@ const PrintModal = ({ open, onClose, data }) => {
                     >
                         พิมพ์
                     </Button>
+                    <SlipPrintSettings />
                 </Box>
 
                 {/* Header Section */}

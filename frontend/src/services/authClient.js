@@ -58,7 +58,10 @@ const addHeaders = (headersLike, url, method) => {
   // Role ที่กำลังใช้งาน (ปุ่มสลับ Role) — server ใช้เรียนรู้ว่า route ไหนถูกใช้โดย Role ใด ไม่ได้ใช้เพิ่มสิทธิ์
   try { const wp = localStorage.getItem("wp_id"); if (wp && !headersLike.has("X-Active-Role")) headersLike.set("X-Active-Role", wp); } catch { /* storage blocked */ }
   const unlock = getUnlockToken();
-  if (unlock && String(method).toUpperCase() === "PUT" && pathOf(url).endsWith("/api/sheet/prefs") && !headersLike.has("X-Setting-Unlock")) {
+  const m = String(method).toUpperCase();
+  const path = pathOf(url);
+  // the Setting permit goes with saving the table settings and with editing table data (button "แก้ไขข้อมูล" in the top bar)
+  if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit"))) && !headersLike.has("X-Setting-Unlock")) {
     headersLike.set("X-Setting-Unlock", unlock);
   }
 };
