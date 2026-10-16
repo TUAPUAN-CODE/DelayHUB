@@ -35,7 +35,7 @@ import PasswordGate from "./PasswordGate";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
 import { registerEditor } from "../../Layout/DataGrid/settingsBus";
 import DonePanel from "./DonePanel";
-import EditCellDialog from "./EditCellDialog";
+import EditCellDialog, { canEditColumn } from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
@@ -519,6 +519,7 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   const openCellEdit = useCallback((row, col) => {
     if (row.__kind !== "map" || !row.mapping_id) { setToast("แก้ไขได้เฉพาะแถววัตถุดิบที่อยู่ในรถเข็น (มี รายการ)"); return; }
+    if (!canEditColumn(col)) { setToast(`คอลัมน์ "${col.label}" แก้ไขไม่ได้ (เป็นค่าที่ระบบคำนวณ เช่น สถานะ / DBS)`); return; }
     setEditTarget({ row, col });
   }, []);
   const afterCellEdit = (msg) => {

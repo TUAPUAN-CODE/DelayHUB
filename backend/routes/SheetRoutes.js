@@ -85,6 +85,7 @@ const buildMappingQuery = (scope = "open") => `
       FORMAT(rmg.rework, 'N2') AS standard_rework_time,
       rm.mat,
       rm.mat_name,
+      p.prod_id,
       p.doc_no,
       CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS code,
       rmg.rm_group_id,
@@ -616,12 +617,15 @@ router.put("/sheet/global-settings", async (req, res) => {
 const EDIT_MAP = {
   dest: { t: "map", sql: () => sql.NVarChar(100) },
   stay_place: { t: "map", sql: () => sql.NVarChar(100) },
-  rm_status: { t: "map", sql: () => sql.NVarChar(100) },
   tro_id: { t: "map", sql: () => sql.VarChar(4), max: 4 },
   mix_code: { t: "map", sql: () => sql.NVarChar(100) },
   rmm_line_name: { t: "map", sql: () => sql.NVarChar(100) },
   tray_count: { t: "map", kind: "int" },
   weight_RM: { t: "map", kind: "num" },
+  // not columns of TrolleyRMMapping: batch = Batch.batch_after · mat / prod_id = the ProdRawMat row the mapping points at (tro_production_id)
+  batch: { t: "virt", kind: "batch" },
+  mat: { t: "virt", kind: "mat", max: 50 },
+  prod_id: { t: "virt", kind: "prod" },
 };
 HIST_DATES.forEach((c) => { EDIT_MAP[c] = { t: "hist", kind: "date" }; });
 HIST_TEXT.forEach((c) => { EDIT_MAP[c] = { t: "hist", sql: () => sql.NVarChar(500) }; });
@@ -696,6 +700,10 @@ router.patch("/sheet/edit", async (req, res) => {
         if (!DATETIME_RE.test(v)) return res.status(400).json({ success: false, error: `วันที่ของ ${c} ต้องเป็นรูป yyyy-MM-dd HH:mm` });
         if (v.length === 16) v += ":00";
         if (Number.isNaN(new Date(v.replace(" ", "T")).getTime())) return res.status(400).json({ success: false, error: `วันที่ของ ${c} ไม่ถูกต้อง` });
+      } else if (def.kind === "prod") {
+        const n = Number(v);
+        if (!Number.isInteger(n) || n <= 0) return res.status(400).json({ success: false, error: "แผนผลิตไม่ถูกต้อง" });
+        v = n;
       } else if (def.kind === "int") {
         const n = Number(v);
         if (!Number.isInteger(n) || n < 0 || n > 100000) return res.status(400).json({ success: false, error: `${c} ต้องเป็นจำนวนเต็ม 0-100000` });
@@ -708,6 +716,9 @@ router.patch("/sheet/edit", async (req, res) => {
         v = String(v).trim();
         if (v.length > (def.max || EDIT_TEXT_MAX)) return res.status(400).json({ success: false, error: `${c} ยาวเกิน ${def.max || EDIT_TEXT_MAX} ตัวอักษร` });
         if (v === "") v = null;
+      }
+      if (v === null && (def.kind === "mat" || def.kind === "prod" || c === "rmm_line_name" || c === "tro_id")) {
+        return res.status(400).json({ success: false, error: `${c} ต้องเลือกค่า (ล้างค่าไม่ได้)` });
       }
       todo.push({ col: c, def, value: v });
     }
@@ -730,8 +741,14 @@ router.patch("/sheet/edit", async (req, res) => {
     await tx.begin();
     try {
       const cur = await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
-        SELECT rmm.mapping_id, rmm.dest, rmm.stay_place, rmm.rm_status, rmm.tro_id, rmm.mix_code, rmm.rmm_line_name, rmm.tray_count, rmm.weight_RM
-        FROM TrolleyRMMapping rmm WITH (UPDLOCK, ROWLOCK) WHERE rmm.mapping_id = @id`);
+        SELECT rmm.mapping_id, rmm.dest, rmm.stay_place, rmm.tro_id, rmm.mix_code, rmm.rmm_line_name, rmm.tray_count, rmm.weight_RM,
+               pr.prod_id, pr.mat,
+               COALESCE(NULLIF(bx.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch
+        FROM TrolleyRMMapping rmm WITH (UPDLOCK, ROWLOCK)
+        LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = rmm.tro_production_id
+        LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+        OUTER APPLY (SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id) bx
+        WHERE rmm.mapping_id = @id`);
       if (!cur.recordset.length) { await safeRollback(tx); return res.status(404).json({ success: false, error: "ไม่พบรายการนี้" }); }
       const mapRow = cur.recordset[0];
 
@@ -759,7 +776,7 @@ router.patch("/sheet/edit", async (req, res) => {
       const conflicts = [];
       const applied = [];
       for (const it of todo) {
-        const oldVal = it.def.t === "map" ? mapRow[it.col] : histRow[it.col];
+        const oldVal = it.def.t === "hist" ? histRow[it.col] : mapRow[it.col];
         if (Object.prototype.hasOwnProperty.call(expected, it.col) && !same(expected[it.col], oldVal)) {
           conflicts.push({ column: it.col, current: oldVal ?? null });
           continue;
@@ -785,6 +802,59 @@ router.patch("/sheet/edit", async (req, res) => {
         });
         await r.query(`UPDATE TrolleyRMMapping SET ${sets.join(", ")} WHERE mapping_id = @id`);
       }
+      // values that must exist in their master table (the page offers them as a dropdown; the server refuses anything else)
+      const exists = async (query, name, type, val) => (await new sql.Request(tx).input(name, type, val).query(query)).recordset.length > 0;
+      for (const x of applied) {
+        if (x.col === "rmm_line_name" && !(await exists("SELECT TOP 1 1 AS ok FROM Line WITH (NOLOCK) WHERE line_name = @v", "v", sql.NVarChar(100), x.value))) {
+          await safeRollback(tx); return res.status(400).json({ success: false, error: `ไม่พบไลน์ "${x.value}" ในระบบ กรุณาเลือกจากรายการ` });
+        }
+        if (x.col === "tro_id" && !(await exists("SELECT TOP 1 1 AS ok FROM Trolley WITH (NOLOCK) WHERE tro_id = @v", "v", sql.VarChar(4), x.value))) {
+          await safeRollback(tx); return res.status(400).json({ success: false, error: `ไม่พบรถเข็น "${x.value}" ในระบบ กรุณาเลือกจากรายการ` });
+        }
+      }
+      const virtSets = applied.filter((x) => x.def.t === "virt");
+      let nextProd = mapRow.prod_id; let nextMat = mapRow.mat;
+      for (const x of virtSets) {
+        if (x.def.kind === "mat") nextMat = x.value;
+        if (x.def.kind === "prod") nextProd = x.value;
+        if (x.def.kind === "batch") {
+          // one value = one Batch row per item typed ("A, B"): existing rows are rewritten in turn, extra rows are emptied (no DELETE), new items are added
+          const tokens = x.value === null ? [] : String(x.value).split(/[,;]+/).map((t) => t.trim()).filter(Boolean);
+          const cnt = (await new sql.Request(tx).input("id", sql.Int, mappingId).query("SELECT COUNT(*) AS n FROM Batch WITH (UPDLOCK) WHERE mapping_id = @id")).recordset[0].n;
+          for (let i = 0; i < Math.max(cnt, tokens.length); i++) {
+            const t = tokens[i] === undefined ? null : tokens[i].slice(0, 200);
+            if (i < cnt) {
+              await new sql.Request(tx).input("id", sql.Int, mappingId).input("rn", sql.Int, i + 1).input("v", sql.NVarChar(200), t).query(
+                `;WITH b AS (SELECT batch_after, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn FROM Batch WHERE mapping_id = @id) UPDATE b SET batch_after = @v WHERE rn = @rn`);
+            } else {
+              await new sql.Request(tx).input("id", sql.Int, mappingId).input("v", sql.NVarChar(200), t).query("INSERT INTO Batch (mapping_id, batch_after) VALUES (@id, @v)");
+            }
+          }
+        }
+      }
+      if (nextMat !== mapRow.mat || nextProd !== mapRow.prod_id) {
+        if (!nextMat || !nextProd) {
+          await safeRollback(tx);
+          return res.status(400).json({ success: false, error: "รายการนี้ยังไม่มีแผนผลิต/วัตถุดิบ จึงแก้ทีละช่องไม่ได้ กรุณาให้ผู้ดูแลกำหนดแผนผลิตก่อน" });
+        }
+        if (!(await exists("SELECT TOP 1 1 AS ok FROM RawMat WITH (NOLOCK) WHERE mat = @v", "v", sql.VarChar(50), String(nextMat)))) {
+          await safeRollback(tx); return res.status(400).json({ success: false, error: `ไม่พบวัตถุดิบ "${nextMat}" ในระบบ กรุณาเลือกจากรายการ` });
+        }
+        if (!(await exists("SELECT TOP 1 1 AS ok FROM Production WITH (NOLOCK) WHERE prod_id = @v", "v", sql.Int, Number(nextProd)))) {
+          await safeRollback(tx); return res.status(400).json({ success: false, error: "ไม่พบแผนผลิตนี้ในระบบ กรุณาเลือกจากรายการ" });
+        }
+        // the plan + material pair is a ProdRawMat row: use it, or make it when this material was never linked to that plan
+        const found = await new sql.Request(tx).input("p", sql.Int, Number(nextProd)).input("m", sql.VarChar(50), String(nextMat))
+          .query("SELECT TOP 1 prod_rm_id FROM ProdRawMat WHERE prod_id = @p AND mat = @m ORDER BY prod_rm_id");
+        let prodRmId = found.recordset.length ? found.recordset[0].prod_rm_id : null;
+        if (!prodRmId) {
+          const made = await new sql.Request(tx).input("p", sql.Int, Number(nextProd)).input("m", sql.VarChar(50), String(nextMat))
+            .query("INSERT INTO ProdRawMat (mat, prod_id) OUTPUT INSERTED.prod_rm_id VALUES (@m, @p)");
+          prodRmId = made.recordset[0].prod_rm_id;
+        }
+        await new sql.Request(tx).input("id", sql.Int, mappingId).input("pr", sql.Int, prodRmId)
+          .query("UPDATE TrolleyRMMapping SET tro_production_id = @pr WHERE mapping_id = @id");
+      }
       const histSets = applied.filter((x) => x.def.t === "hist");
       if (histSets.length) {
         const r = new sql.Request(tx).input("hid", sql.Int, histId);
@@ -806,7 +876,7 @@ router.patch("/sheet/edit", async (req, res) => {
       for (const it of applied) {
         await new sql.Request(tx)
           .input("mid", sql.Int, mappingId).input("hid", sql.Int, it.def.t === "hist" ? histId : null)
-          .input("tn", sql.NVarChar(40), it.def.t === "map" ? "TrolleyRMMapping" : "History").input("cn", sql.NVarChar(60), it.col)
+          .input("tn", sql.NVarChar(40), it.def.t === "map" ? "TrolleyRMMapping" : it.def.t === "virt" ? (it.def.kind === "batch" ? "Batch" : "ProdRawMat") : "History").input("cn", sql.NVarChar(60), it.col)
           .input("ov", sql.NVarChar(600), it.oldVal === null || it.oldVal === undefined ? null : String(it.oldVal).slice(0, 600))
           .input("nv", sql.NVarChar(600), it.value === null ? null : String(it.value).slice(0, 600))
           .input("rs", sql.NVarChar(300), reason || null)
@@ -824,6 +894,35 @@ router.patch("/sheet/edit", async (req, res) => {
     }
   } catch (err) {
     console.error("❌ [Route PATCH /sheet/edit] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// master data for the dropdowns of the edit dialog (values that come from the database can only be picked, not typed)
+const OPTION_SQL = {
+  mat: { q: "SELECT TOP (10000) mat AS value, mat_name FROM RawMat WITH (NOLOCK) ORDER BY mat_name", label: (r) => `${r.mat_name || ""} (${r.value})` },
+  prod: { q: "SELECT TOP (5000) p.prod_id AS value, p.doc_no, p.code FROM Production p WITH (NOLOCK) ORDER BY p.prod_id DESC", label: (r) => `${r.doc_no || "-"} · ${r.code || ""}` },
+  line: { q: "SELECT line_name AS value FROM Line WITH (NOLOCK) ORDER BY line_name" },
+  tro: { q: "SELECT tro_id AS value FROM Trolley WITH (NOLOCK) ORDER BY tro_id" },
+  dest: { q: "SELECT DISTINCT TOP (300) dest AS value FROM TrolleyRMMapping WITH (NOLOCK) WHERE dest IS NOT NULL AND dest <> N'' ORDER BY dest" },
+  stay: { q: "SELECT DISTINCT TOP (300) stay_place AS value FROM TrolleyRMMapping WITH (NOLOCK) WHERE stay_place IS NOT NULL AND stay_place <> N'' ORDER BY stay_place" },
+};
+const optionCache = new Map(); // field -> { at, data } (5 minutes)
+router.get("/sheet/edit-options", async (req, res) => {
+  try {
+    const field = String(req.query.field || "");
+    const def = OPTION_SQL[field];
+    if (!def) return res.status(400).json({ success: false, error: "field ไม่ถูกต้อง" });
+    const hit = optionCache.get(field);
+    if (hit && Date.now() - hit.at < 5 * 60 * 1000) return res.json({ success: true, data: hit.data });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const r = await pool.request().query(def.q);
+    const data = r.recordset.map((row) => ({ value: row.value, label: def.label ? def.label(row) : String(row.value) }));
+    optionCache.set(field, { at: Date.now(), data });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/edit-options] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
