@@ -36,6 +36,7 @@ const WorkplaceSelector = lazy(() => import("../User/WorkplaceSelector.jsx"));
 const WorkplacePage = lazy(() => import("./Workplace/WorkplacePage"));
 
 const TrackTrolleyQC = lazy(() => import("./TrackTrolley/TrackTrolleyQC.jsx"));
+const TracebackPage = lazy(() => import("./Traceback/TracebackPage"));
 const ReportPage = lazy(() => import("./Report/ReportPage")); // one report: %Tie / Pareto / trend / table (replaces Delay %, Delay SC, Delay IP)
 
 
@@ -101,6 +102,7 @@ function AppSup() {
       >
         <Routes>
           <Route path="/Sheet" element={<SheetPage role="sup" />} />
+          <Route path="/Traceback" element={<TracebackPage />} />
           {/* the three old delay reports became one: old links go to the report */}
           {["/DelayTimepercentage_tie", "/DelayTimeTrackingRM", "/TrackTrolley/inprocess"].map((p) => (
             <Route key={p} path={p} element={<Navigate to="/sup/Report" replace />} />

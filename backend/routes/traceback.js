@@ -238,6 +238,11 @@ const BASE_FROM = `
         ORDER BY h.hist_id DESC
       ) htr`;
 
+// รหัสรุ่นล่าสุดของแต่ละ mapping (ใช้เฉพาะ /filters และ /search)
+const BATCH_APPLY = (tBatch) => (tBatch
+  ? `OUTER APPLY (SELECT TOP 1 x.batch_before, x.batch_after FROM [${tBatch}] x WHERE x.mapping_id = rmm.mapping_id ORDER BY x.batch_id DESC) bt`
+  : '');
+
 const BASE_WHERE = `
         rmm.dest = N'บรรจุเสร็จ'
         AND rmm.stay_place = N'บรรจุเสร็จ'
@@ -265,7 +270,8 @@ router.get('/filters', async (req, res) => {
       }
     };
 
-    const [doc_no, code, mat, mat_name, rmm_line_name, supplier] = await Promise.all([
+    const tBatchF = realTable('Batch');
+    const [doc_no, code, mat, mat_name, rmm_line_name, supplier, batch] = await Promise.all([
       q('doc_no', `SELECT DISTINCT TOP 2000 p.doc_no AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND p.doc_no IS NOT NULL ORDER BY p.doc_no DESC`),
       q('code', `SELECT DISTINCT TOP 2000 p.code AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND p.code IS NOT NULL ORDER BY p.code`),
       q('mat', `SELECT TOP 3000 rm.mat AS value, MAX(rm.mat_name) AS meta ${BASE_FROM} WHERE ${BASE_WHERE} AND rm.mat IS NOT NULL GROUP BY rm.mat ORDER BY rm.mat`),
@@ -274,11 +280,14 @@ router.get('/filters', async (req, res) => {
       suppCol
         ? q('supplier', `SELECT DISTINCT TOP 2000 ${suppCol.alias}.[${suppCol.col}] AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND ${suppCol.alias}.[${suppCol.col}] IS NOT NULL ORDER BY ${suppCol.alias}.[${suppCol.col}]`)
         : Promise.resolve([]),
+      tBatchF
+        ? q('batch', `SELECT DISTINCT TOP 3000 bt.batch_before AS value ${BASE_FROM} ${BATCH_APPLY(tBatchF)} WHERE ${BASE_WHERE} AND bt.batch_before IS NOT NULL ORDER BY bt.batch_before`)
+        : Promise.resolve([]),
     ]);
 
     res.json({
       success: true,
-      data: { doc_no, code, mat, mat_name, rmm_line_name, supplier },
+      data: { doc_no, code, mat, mat_name, rmm_line_name, supplier, batch },
       supplier_column: suppCol ? `${suppCol.table}.${suppCol.col}` : null,
     });
   } catch (err) {
@@ -293,8 +302,9 @@ router.get('/search', async (req, res) => {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
 
-    const { code, doc_no, mat, mat_name, rmm_line_name, supplier, sc_pack_date_from, sc_pack_date_to } = req.query;
+    const { code, doc_no, mat, mat_name, rmm_line_name, supplier, batch, sc_pack_date_from, sc_pack_date_to } = req.query;
     await getSchema(pool);
+    const tBatchS = realTable('Batch');
 
     const request = pool.request();
     const filters = [];
@@ -306,6 +316,11 @@ router.get('/search', async (req, res) => {
     if (S(rmm_line_name)) { filters.push("htr.rmm_line_name LIKE '%' + @rmm_line_name + '%'"); request.input('rmm_line_name', sql.NVarChar, S(rmm_line_name)); }
     if (S(sc_pack_date_from)) { filters.push('htr.sc_pack_date >= @sc_pack_date_from'); request.input('sc_pack_date_from', sql.DateTime, new Date(S(sc_pack_date_from))); }
     if (S(sc_pack_date_to)) { filters.push('htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)'); request.input('sc_pack_date_to', sql.DateTime, new Date(S(sc_pack_date_to))); }
+
+    if (S(batch) && tBatchS) {
+      filters.push("(bt.batch_before LIKE '%' + @batch + '%' OR bt.batch_after LIKE '%' + @batch + '%')");
+      request.input('batch', sql.NVarChar, S(batch));
+    }
 
     if (S(supplier)) {
       const sc = findSupplierColumn();
@@ -328,11 +343,13 @@ router.get('/search', async (req, res) => {
         SUM(rmm.weight_RM)             AS total_weight_rm,
         STRING_AGG(CONVERT(NVARCHAR(MAX), htr.rmm_line_name), ', ') AS lines_raw,
         STRING_AGG(CONVERT(NVARCHAR(MAX), rm.mat_name), ', ')       AS mat_names_raw,
+        ${tBatchS ? "STRING_AGG(CONVERT(NVARCHAR(MAX), bt.batch_before), ',')   AS batches_raw," : "CAST(NULL AS NVARCHAR(MAX)) AS batches_raw,"}
         SUM(CASE WHEN DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) > ${SEVERE_MIN} THEN 1 ELSE 0 END) AS severe_delay_count,
         SUM(CASE WHEN DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) BETWEEN ${WARN_MIN + 1} AND ${SEVERE_MIN} THEN 1 ELSE 0 END) AS warn_delay_count,
         AVG(CAST(DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) AS FLOAT)) AS avg_delay_minutes,
         MAX(DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date)) AS max_delay_minutes
       ${BASE_FROM}
+      ${BATCH_APPLY(tBatchS)}
       WHERE ${BASE_WHERE}
 ${extraWhere}
       GROUP BY p.doc_no, p.code
@@ -347,6 +364,7 @@ ${extraWhere}
       total_weight_rm: r.total_weight_rm,
       mat_names: uniqList(r.mat_names_raw).join(', '),
       lines: uniqList(r.lines_raw).join(', '),
+      batches: uniqList(r.batches_raw).join(','),
       pack_date_first: r.pack_date_first,
       pack_date_last: r.pack_date_last,
       severe_delay_count: r.severe_delay_count,
@@ -415,12 +433,18 @@ router.get('/detail', async (req, res) => {
       tBatch ? selectAll('Batch', 'b', 'b') : null,
       tMat ? selectAll('Mat', 'mt', 'mt') : null,
       tQC ? selectAll('QC', 'qc', 'qc') : null,
+      `rmg.rm_group_id AS [g__rm_group_id], rmg.rm_group_name AS [g__rm_group_name],
+        FORMAT(rmg.prep_to_cold, 'N2') AS [g__DBS1], FORMAT(rmg.cold, 'N2') AS [g__DBS2],
+        FORMAT(rmg.cold_to_pack, 'N2') AS [g__DBS3],
+        FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
+                    ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS [g__DBS4]`,
     ].filter(Boolean);
 
     const extraJoins = [
       tBatch ? `OUTER APPLY (SELECT TOP 1 * FROM [${tBatch}] x WHERE x.mapping_id = rmm.mapping_id ORDER BY x.batch_id DESC) b` : '',
       tMat ? `OUTER APPLY (SELECT TOP 1 * FROM [${tMat}] x WHERE x.mapping_id = rmm.mapping_id) mt` : '',
       tQC ? `LEFT JOIN [${tQC}] qc ON qc.qc_id = rmm.qc_id` : '',
+      'LEFT JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id',
     ].filter(Boolean).join('\n      ');
 
     const rowsRes = await pool.request()
@@ -722,6 +746,12 @@ router.get('/detail', async (req, res) => {
 
       return {
         mapping_id: mappingId,
+        rm_group_id: x.g?.rm_group_id ?? null,
+        rm_group_name: x.g?.rm_group_name ?? null,
+        DBS1: x.g?.DBS1 ?? null,
+        DBS2: x.g?.DBS2 ?? null,
+        DBS3: x.g?.DBS3 ?? null,
+        DBS4: x.g?.DBS4 ?? null,
         mat,
         mat_2x: mat2x,
         mat_name: x.rm?.mat_name ?? null,
