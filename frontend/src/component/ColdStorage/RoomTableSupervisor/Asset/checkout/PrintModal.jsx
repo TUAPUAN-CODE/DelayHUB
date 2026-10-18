@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useRef as useSlipRef } from "react";
 import SlipPrintSettings from "../../../../Layout/SlipPrintSettings";
 import { printSlip } from "../../../../../services/slipPrint";
-import { Box, Button, Typography, Dialog, Divider, CircularProgress } from '@mui/material';
+import { Box, Button, Typography, Dialog, Divider, CircularProgress, Paper } from '@mui/material';
 import axios from "axios";
 import { QRCodeCanvas } from "qrcode.react";
 axios.defaults.withCredentials = true;
@@ -28,10 +28,13 @@ const getEarliestComeColdDate = (data) => {
     return earliest.toISOString();
 };
 
-const PrintModal = ({ open, onClose, data }) => {
+// headless: the same slip without a dialog (used by the RFID auto print: RFIDSlipPrintService renders it off screen and sends it to the Print Agent,
+// so the slip of the RFID scan and the slip after a check-out on screen are the very same component). onReady(el) is called once the history is loaded.
+const PrintModal = ({ open, onClose, data, headless = false, onReady }) => {
     const paperRef = useSlipRef(null); // the dialog paper: the slip that is sent to the Print Agent
     const [coldHistory, setColdHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [historyDone, setHistoryDone] = useState(false); // history of every material has been fetched (or there is nothing to fetch)
     const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
     useEffect(() => {
@@ -94,7 +97,8 @@ const PrintModal = ({ open, onClose, data }) => {
     // Fetch cold storage history for each material item when the modal opens
     useEffect(() => {
         const fetchColdHistory = async () => {
-            if (!open || !data || (!data.rmfp_id && !(data.materials && data.materials.length > 0))) return;
+            setHistoryDone(false);
+            if (!open || !data || (!data.rmfp_id && !(data.materials && data.materials.length > 0))) { if (open) setHistoryDone(true); return; }
 
             setIsLoading(true);
 
@@ -146,11 +150,21 @@ const PrintModal = ({ open, onClose, data }) => {
                 console.error("Error fetching cold storage history:", error);
             } finally {
                 setIsLoading(false);
+                setHistoryDone(true);
             }
         };
 
         fetchColdHistory();
     }, [open, data]);
+
+    // headless: tell the owner when the slip is fully rendered (two frames after the history is in, so the DOM and the styles are settled)
+    const readyOnce = useSlipRef(false);
+    useEffect(() => {
+        if (!headless || !open || !historyDone || readyOnce.current) return undefined;
+        let r1 = 0; let r2 = 0;
+        r1 = requestAnimationFrame(() => { r2 = requestAnimationFrame(() => { if (paperRef.current && !readyOnce.current) { readyOnce.current = true; onReady?.(paperRef.current); } }); });
+        return () => { cancelAnimationFrame(r1); cancelAnimationFrame(r2); };
+    }, [headless, open, historyDone, coldHistory, onReady, paperRef, readyOnce]);
 
 
 
@@ -318,33 +332,24 @@ const PrintModal = ({ open, onClose, data }) => {
         }
     };
 
-    return (
-        <Dialog
-            PaperProps={{ ref: paperRef }}
-open={open}
-            onClose={(e, reason) => {
-                if (reason === 'backdropClick') return;
-                onClose();
-            }}
-            sx={{
-                '& .MuiDialog-paper': {
-                    width: '500px',
-                    display: 'flex',
-                    maxWidth: 'none',
-                    margin: 0,
-                    '@media print': {
-                        width: '72.1mm !important',
-                        maxWidth: '72.1mm !important',
-                        height: 'auto',
-                        minHeight: '200px',
-                        margin: '0mm !important',
-                        padding: '0mm !important',
-                        boxShadow: 'none',
-                        overflow: 'visible',
-                    },
-                },
-            }}
-        >
+    const paperSx = {
+        width: '500px',
+        display: 'flex',
+        maxWidth: 'none',
+        margin: 0,
+        '@media print': {
+            width: '72.1mm !important',
+            maxWidth: '72.1mm !important',
+            height: 'auto',
+            minHeight: '200px',
+            margin: '0mm !important',
+            padding: '0mm !important',
+            boxShadow: 'none',
+            overflow: 'visible',
+        },
+    };
+
+    const slipBody = (
             <Box
                 className="print-container"
                 sx={{
@@ -646,6 +651,24 @@ open={open}
                     )}
                 </Box>
             </Box>
+    );
+
+    if (headless) {
+        // off screen, no dialog (no focus trap / scroll lock on the page the user is working in); same classes as the dialog paper so the styles match
+        return open ? <Paper ref={paperRef} className="MuiDialog-paper" elevation={0} sx={{ ...paperSx, flexDirection: 'column', borderRadius: 0 }}>{slipBody}</Paper> : null;
+    }
+
+    return (
+        <Dialog
+            PaperProps={{ ref: paperRef }}
+            open={open}
+            onClose={(e, reason) => {
+                if (reason === 'backdropClick') return;
+                onClose();
+            }}
+            sx={{ '& .MuiDialog-paper': paperSx }}
+        >
+            {slipBody}
         </Dialog>
     );
 };

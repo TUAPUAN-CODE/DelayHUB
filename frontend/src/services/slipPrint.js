@@ -37,11 +37,43 @@ const pageStyles = () => [...document.querySelectorAll('style, link[rel="stylesh
 /** HTML of one slip element: buttons / inputs / .no-print parts are left out */
 export const slipHtml = (el) => {
   const copy = el.cloneNode(true);
+  // a cloned <canvas> is empty (the QR code would print as a blank): turn every canvas into an <img> of what it shows
+  const live = el.querySelectorAll("canvas");
+  copy.querySelectorAll("canvas").forEach((cv, i) => {
+    try {
+      const img = document.createElement("img");
+      img.src = live[i].toDataURL("image/png");
+      img.setAttribute("style", cv.getAttribute("style") || "");
+      img.width = live[i].clientWidth || live[i].width; img.height = live[i].clientHeight || live[i].height;
+      cv.replaceWith(img);
+    } catch (err) { console.error("[slipPrint] canvas to image error:", err); }
+  });
   copy.querySelectorAll(".no-print, button, .MuiDialogActions-root, input, textarea, select").forEach((n) => n.remove());
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><base href="${window.location.origin}/">${pageStyles()}
 <style>@page { size: 72.1mm auto; margin: 0; } html, body { margin: 0; padding: 0; background: #fff; width: 72.1mm; }
 .container { width: 72.1mm; padding: 1mm; box-sizing: border-box; } .container .MuiDialog-paper, .container .MuiPaper-root { box-shadow: none !important; margin: 0 !important; max-width: 72.1mm !important; width: 72.1mm !important; }</style>
 </head><body><div class="container">${copy.outerHTML}</div></body></html>`;
+};
+
+/**
+ * Sends the HTML of a slip to a Print Agent (POST /print-html). Returns "" or an error text.
+ * opts: { agentUrl, printerHost, printerShare, printerDotWidth } (the RFID auto print takes them from the reader config, the screen from the device config)
+ */
+export const sendSlipHtml = async (html, identifier, opts = {}) => {
+  const agentUrl = (opts.agentUrl || defaultAgentUrl()).replace(/\/$/, "");
+  try {
+    const res = await fetch(`${agentUrl}/print-html`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html, identifier: identifier ? String(identifier) : undefined, printerHost: opts.printerHost || undefined, printerShare: opts.printerShare || undefined, printerDotWidth: opts.printerDotWidth || undefined }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) return data.error || `Print Agent ตอบกลับ ${res.status}`;
+    return "";
+  } catch (err) {
+    console.error("[slipPrint] print agent error:", err);
+    return `เชื่อมต่อ Print Agent (${agentUrl}) ไม่ได้`;
+  }
 };
 
 /**
@@ -51,17 +83,5 @@ export const slipHtml = (el) => {
 export const printSlip = async (el, identifier) => {
   const cfg = readSlipPrintConfig();
   if (cfg.mode !== "agent" || !el) { window.print(); return ""; }
-  try {
-    const res = await fetch(`${cfg.agentUrl.replace(/\/$/, "")}/print-html`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: slipHtml(el), identifier: identifier ? String(identifier) : undefined, printerHost: cfg.printerHost || undefined, printerShare: cfg.printerShare || undefined }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) return data.error || `Print Agent ตอบกลับ ${res.status}`;
-    return "";
-  } catch (err) {
-    console.error("[slipPrint] print agent error:", err);
-    return `เชื่อมต่อ Print Agent (${cfg.agentUrl}) ไม่ได้`;
-  }
+  return sendSlipHtml(slipHtml(el), identifier, cfg);
 };

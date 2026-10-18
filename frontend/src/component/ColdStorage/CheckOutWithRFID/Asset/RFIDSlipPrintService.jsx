@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { SLIP_PRINTER_ENABLE_KEY } from "../../../../services/localStorageUtil";
+import { slipHtml, sendSlipHtml } from "../../../../services/slipPrint";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -91,19 +92,53 @@ const indexByTrolley = (regular, mixed) => {
     if (!map.has(key)) map.set(key, { ...item, materials: [] });
     const group = map.get(key);
     if (group.materials.some((m) => m.mapping_id === item.mapping_id)) return;
+    // the whole row goes into the slip (QC / remark / date fields too): the slip is the same component as the one after a check-out on screen
+    const mixed = item.rawMatType === "mixed";
     group.materials.push({
-      material_code: item.mat,
-      materialName: item.mat_name,
-      batch: item.batch,
-      batch_before: item.batch_before,
-      production: item.production,
-      mapping_id: item.mapping_id,
-      weight_RM: item.weight_RM,
-      tray_count: item.tray_count,
+      ...item,
+      material_code: mixed ? item.mix_code : item.mat,
+      materialName: mixed ? `Mixed: ${item.mix_code}` : item.mat_name,
       levelEu: item.level_eu,
     });
   });
   return map;
+};
+
+// The slip is rendered off screen by the SAME PrintModal that is shown after a check-out on screen (headless mode), then its HTML goes to the Print Agent
+// (/print-html) — so the slip of an RFID scan has the same design, fields and layout as every other check-out slip. Rejects after 25 s.
+export const renderSlipHtml = async (trolleyData) => {
+  const [{ createRoot }, { ThemeProvider }, themeModule, modalModule] = await Promise.all([
+    import("react-dom/client"),
+    import("@mui/material/styles"),
+    import("../../../../theme/dochubTheme"),
+    import("../../RoomTableSupervisor/Asset/checkout/PrintModal"),
+  ]);
+  const PrintModal = modalModule.default;
+  const theme = themeModule.default;
+  const first = trolleyData.materials?.[0] || {};
+  const data = { ...trolleyData, material_code: first.material_code, materialName: first.materialName, level_eu: trolleyData.level_eu ?? first.levelEu };
+  return new Promise((resolve, reject) => {
+    const host = document.createElement("div");
+    host.setAttribute("aria-hidden", "true");
+    host.style.cssText = "position:fixed;left:-10000px;top:0;width:520px;visibility:hidden;pointer-events:none;";
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    let timer = 0;
+    const cleanup = () => {
+      clearTimeout(timer);
+      try { root.unmount(); } catch { /* already gone */ }
+      host.remove();
+    };
+    timer = setTimeout(() => { cleanup(); reject(new Error("สร้างสลิปไม่ทันเวลา")); }, 25000);
+    const onReady = (el) => {
+      try { const html = slipHtml(el); cleanup(); resolve(html); } catch (err) { cleanup(); reject(err); }
+    };
+    root.render(
+      <ThemeProvider theme={theme}>
+        <PrintModal headless open data={data} onClose={() => {}} onReady={onReady} />
+      </ThemeProvider>
+    );
+  });
 };
 
 // ============================================
@@ -229,6 +264,25 @@ const RFIDSlipPrintService = () => {
 
         emitStatus({ readerId, status: "printing" });
         try {
+          // 1) the same slip as on screen → /print-html (same printer settings of the reader)
+          if (trolleyData) {
+            try {
+              const html = await renderSlipHtml(trolleyData);
+              const err = await sendSlipHtml(html, tro_id, {
+                agentUrl: printAgentUrl,
+                printerHost: readerConfig?.printer_host,
+                printerShare: readerConfig?.printer_share,
+                printerDotWidth: readerConfig?.printer_dot_width,
+              });
+              if (err) throw new Error(err);
+              emitStatus({ readerId, status: "done" });
+              return;
+            } catch (renderErr) {
+              // the slip still has to come out: fall back to the Print Agent's own (older) layout
+              console.warn("RFIDSlipPrintService: พิมพ์สลิปแบบเดียวกับหน้าเว็บไม่สำเร็จ ใช้แบบสำรอง:", renderErr.message);
+            }
+          }
+          // 2) fallback: the Print Agent builds its own slip
           const res = await fetch(`${printAgentUrl}/print-slip`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
