@@ -35,7 +35,7 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
   useEffect(() => {
     if (!open) return;
     const d = new Date();
-    setF({ date: `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, shift: "", line: "", plant: "", recordedBy: userName(), reviewedBy: "", qcManager: "" });
+    setF({ date: `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, shift: "", sortBy: "time", line: "", plant: "", recordedBy: userName(), reviewedBy: "", qcManager: "" });
     setMsg({ type: "", text: "" });
     setBusy(false);
   }, [open]);
@@ -43,7 +43,9 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
   const chosen = useMemo(() => (rows || [])
     .filter((r) => !f.line || r.rmm_line_name === f.line)
     .map(toReportRow)
-    .sort((a, b) => toMs(a.sc_pack_date) - toMs(b.sc_pack_date)), [rows, f.line]);
+    .sort((a, b) => (f.sortBy === "code"
+      ? String(a.code ?? "").localeCompare(String(b.code ?? ""), "th", { numeric: true }) || toMs(a.sc_pack_date) - toMs(b.sc_pack_date)
+      : toMs(a.sc_pack_date) - toMs(b.sc_pack_date))), [rows, f.line, f.sortBy]);
 
   const set = (k) => (e) => setF((v) => ({ ...v, [k]: e.target.value }));
   const thaiDate = (ymd) => { if (!ymd) return ""; const [y, m, d] = ymd.split("-"); return `${d}/${m}/${Number(y) + 543}`; };
@@ -67,7 +69,7 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
           fd.append("recorded_by", sig.recordedBy || "");
           fd.append("reviewed_by", sig.reviewedBy || "");
           fd.append("qc_manager", sig.qcManager || "");
-          fd.append("date", meta.exportDate || "");
+          fd.append("date", f.date || ""); // yyyy-mm-dd: the server reads it as a date (the printed dd/mm/bbbb text is not a valid date)
           fd.append("shift", meta.exportShift || "");
           fd.append("line", meta.exportLine || "");
           fd.append("plant", meta.exportPlant || "");
@@ -91,14 +93,18 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
           <TextField size="small" type="date" label="Date" value={f.date || ""} onChange={set("date")} InputLabelProps={{ shrink: true }} />
           <TextField size="small" select label="Shift" value={f.shift || ""} onChange={set("shift")}>
-            {["", "A", "B", "C", "เช้า", "ดึก"].map((s) => <MenuItem key={s} value={s}>{s || "-"}</MenuItem>)}
+            {["", "DS", "NS"].map((s) => <MenuItem key={s} value={s}>{s || "-"}</MenuItem>)}
           </TextField>
           <TextField size="small" select label="Line (กรองแถวตามไลน์)" value={f.line || ""} onChange={set("line")}>
             <MenuItem value="">ทุกไลน์</MenuItem>
             {lines.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
           </TextField>
           <TextField size="small" label="Plant" value={f.plant || ""} onChange={set("plant")} />
-          <TextField size="small" label="Recorded by" value={f.recordedBy || ""} onChange={set("recordedBy")} />
+          <TextField size="small" select label="เรียงตาม" value={f.sortBy || "time"} onChange={set("sortBy")}>
+            <MenuItem value="time">เวลาบรรจุเสร็จ</MenuItem>
+            <MenuItem value="code">Code</MenuItem>
+          </TextField>
+          <TextField size="small" label="Recorded by" value={f.recordedBy || ""} onChange={set("recordedBy")} InputProps={{ readOnly: !!userName() }} helperText={userName() ? "ชื่อผู้ใช้ที่ล็อกอินอยู่" : undefined} />
           <TextField size="small" label="Reviewed by" value={f.reviewedBy || ""} onChange={set("reviewedBy")} />
           <TextField size="small" label="QC Section manager" value={f.qcManager || ""} onChange={set("qcManager")} />
         </Box>
@@ -106,7 +112,7 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
           <FormControlLabel control={<Checkbox checked={saveHistory} onChange={(e) => setSaveHistory(e.target.checked)} />} label="บันทึก PDF เข้า ประวัติ Report" />
         )}
         <Typography variant="body2" color="text.secondary">
-          จะออกรายงาน {chosen.length} แถว (แถวที่ดึงมาในตาราง Done{f.line ? ` ไลน์ ${f.line}` : ""} เรียงตามเวลาบรรจุเสร็จ){kind === "excel" ? " · 17 แถวต่อหน้า เกินแล้วขึ้นชีตใหม่" : ""}
+          จะออกรายงาน {chosen.length} แถว (แถวที่ดึงมาในตาราง Done{f.line ? ` ไลน์ ${f.line}` : ""} เรียงตาม{f.sortBy === "code" ? " Code" : "เวลาบรรจุเสร็จ"}){kind === "excel" ? " · 17 แถวต่อหน้า เกินแล้วขึ้นชีตใหม่" : ""}
         </Typography>
         {msg.text && <Alert severity={msg.type || "info"}>{msg.text}</Alert>}
       </DialogContent>
