@@ -8,7 +8,7 @@ import AddIcon from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
 import StampDialog from "./Asset/StampDialog";
 import OutSlip from "./Asset/OutSlip";
-import { calcLot, fmtAt, fmtMin, msOf, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN } from "./Asset/lotCalc";
+import { calcLot, fmtAt, fmtMin, msOf, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN, LIMIT_AFTER_LID_MIN } from "./Asset/lotCalc";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -27,9 +27,10 @@ const userName = () => [localStorage.getItem("first_name"), localStorage.getItem
 const Clock = ({ chunk, limit }) => {
   if (!chunk) return <span style={{ color: "#B0BAC9" }}>-</span>;
   const c = LEVEL[chunk.level];
+  const lim = chunk.limit ?? limit;
   return (
     <Chip
-      size="small" label={`${fmtMin(chunk.minutes)} / ${fmtMin(limit)}`}
+      size="small" label={`${fmtMin(chunk.minutes)} / ${fmtMin(lim)}${chunk.lidAt ? " (เปิดฝา)" : ""}`}
       sx={{ fontWeight: 700, background: c.bg, color: c.fg, border: `1px solid ${c.border}` }}
     />
   );
@@ -42,7 +43,7 @@ const DelayControlPage = () => {
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [open, setOpen] = useState(() => new Set());
-  const [dialog, setDialog] = useState(null); // { kind: "new" | "IN" | "OUT", lot? }
+  const [dialog, setDialog] = useState(null); // { kind: "new" | "IN" | "OUT" | "LID", lot? }
   const [slip, setSlip] = useState(null); // slip of an "ออกห้องเย็น" stamp (opens right after the stamp, or again from the table)
   const lastLoad = useRef(0);
 
@@ -120,6 +121,14 @@ const DelayControlPage = () => {
       };
     }
     const c = calcLot(lot, now);
+    if (kind === "LID") {
+      return {
+        title: `เปิดฝา — ${lot.lot_name}`, timeLabel: "เวลาเปิดฝา", submitLabel: "บันทึกเปิดฝา",
+        hint: `เปิดฝาแล้วต้องเอาออกห้องเย็นภายใน ${fmtMin(LIMIT_AFTER_LID_MIN)} (และไม่เกิน ${fmtMin(LIMIT_INSIDE_MIN)} นับจากเข้าห้องเย็น)`,
+        fields: [],
+        onSubmit: ({ at }) => post(`/api/other/lots/${lot.lot_id}/lid`, { opened_at: at }),
+      };
+    }
     const isIn = kind === "IN";
     const max = isIn ? c.unplaced : c.inCold;
     return {
@@ -136,7 +145,7 @@ const DelayControlPage = () => {
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", mb: 1, flexShrink: 0 }}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ kind: "new" })}>เพิ่มรายการ</Button>
           <Typography variant="body2" color="text.secondary">
-            ควบคุม Delay: นอกห้องเย็น {fmtMin(LIMIT_OUTSIDE_MIN)} · ในห้องเย็น {fmtMin(LIMIT_INSIDE_MIN)}
+            ควบคุม Delay: นอกห้องเย็น {fmtMin(LIMIT_OUTSIDE_MIN)} · ในห้องเย็นก่อนเปิดฝา {fmtMin(LIMIT_INSIDE_MIN)} · หลังเปิดฝา {fmtMin(LIMIT_AFTER_LID_MIN)}
           </Typography>
           <Box sx={{ flex: 1 }} />
           <FormControlLabel control={<Switch size="small" checked={withClosed} onChange={(e) => setWithClosed(e.target.checked)} />} label="แสดงรายการที่ปิดแล้ว" />
@@ -152,6 +161,7 @@ const DelayControlPage = () => {
                   <TableCell sx={HEAD} align="right">เตรียม (kg)</TableCell>
                   <TableCell sx={HEAD}>เตรียมเสร็จ</TableCell>
                   <TableCell sx={HEAD}>ในห้องเย็น</TableCell>
+                  <TableCell sx={HEAD}>เปิดฝา</TableCell>
                   <TableCell sx={HEAD} align="right">ออกแล้ว (kg)</TableCell>
                   <TableCell sx={HEAD}>ทำรายการ</TableCell>
                 </TableRow>
@@ -168,11 +178,13 @@ const DelayControlPage = () => {
                         <TableCell align="right">{c.weight}</TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(lot.prep_done_at)}</TableCell>
                         <TableCell>{c.inCold > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.inCold} kg</b><Clock chunk={c.runningCold} limit={LIMIT_INSIDE_MIN} /></Box> : <span style={{ color: "#B0BAC9" }}>-</span>}</TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>{lot.lid_open_at ? <Chip size="small" color="warning" variant="outlined" label={fmtAt(lot.lid_open_at)} /> : <span style={{ color: "#B0BAC9" }}>ยังไม่เปิด</span>}</TableCell>
                         <TableCell align="right">{c.outKg}</TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>
                           {!lot.closed && (
                             <>
                               <Button size="small" variant="outlined" disabled={c.unplaced <= 0} onClick={() => setDialog({ kind: "IN", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เข้าห้องเย็น</Button>
+                              <Button size="small" variant="outlined" color="warning" disabled={c.inCold <= 0 || !!lot.lid_open_at} onClick={() => setDialog({ kind: "LID", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เปิดฝา</Button>
                               <Button size="small" variant="outlined" disabled={c.inCold <= 0} onClick={() => setDialog({ kind: "OUT", lot })} sx={{ mr: 0.5, textTransform: "none" }}>ออกห้องเย็น</Button>
                               <Button size="small" color="inherit" onClick={() => closeLot(lot)} sx={{ textTransform: "none" }}>ปิด</Button>
                             </>
@@ -182,7 +194,7 @@ const DelayControlPage = () => {
                       {isOpen && (
                         <TableRow>
                           <TableCell />
-                          <TableCell colSpan={6} sx={{ background: "#FAFBFF" }}>
+                          <TableCell colSpan={7} sx={{ background: "#FAFBFF" }}>
                             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1.4fr" }, gap: 2, py: 1 }}>
                               <div>
                                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>นอกห้องเย็น (เตรียมเสร็จ → เข้าห้องเย็น)</Typography>
@@ -227,14 +239,14 @@ const DelayControlPage = () => {
                     </Fragment>
                   );
                 })}
-                {!rows.length && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
+                {!rows.length && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
       </main>
       <OutSlip slip={slip} onClose={() => setSlip(null)} />
-      {dlg && <StampDialog open title={dlg.title} fields={dlg.fields} timeLabel={dlg.timeLabel} hint={dlg.hint} onClose={() => setDialog(null)} onSubmit={dlg.onSubmit} />}
+      {dlg && <StampDialog open title={dlg.title} fields={dlg.fields} timeLabel={dlg.timeLabel} hint={dlg.hint} submitLabel={dlg.submitLabel} onClose={() => setDialog(null)} onSubmit={dlg.onSubmit} />}
     </div>
   );
 };

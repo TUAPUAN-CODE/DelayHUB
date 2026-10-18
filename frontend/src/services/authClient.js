@@ -61,7 +61,7 @@ const addHeaders = (headersLike, url, method) => {
   const m = String(method).toUpperCase();
   const path = pathOf(url);
   // the Setting permit goes with saving the table settings and with editing table data (button "แก้ไขข้อมูล" in the top bar)
-  if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit"))) && !headersLike.has("X-Setting-Unlock")) {
+  if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit")) || (m === "PUT" && /\/api\/traceback\/holds\/\d+\/release$/.test(path))) && !headersLike.has("X-Setting-Unlock")) {
     headersLike.set("X-Setting-Unlock", unlock);
   }
 };

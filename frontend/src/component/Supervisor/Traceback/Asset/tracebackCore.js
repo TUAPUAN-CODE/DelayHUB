@@ -171,9 +171,14 @@ export const riskAssessment = (materials = []) => {
   add(over, 3, `ดีเลย์เกินมาตรฐาน ${over} ล็อต`);
   add(oos, 1, `ส่วนผสมหลุดพิกัด ${oos} ครั้ง`);
   add(noIntake, 1, `ไม่พบในระบบรับเข้า ${noIntake} ล็อต`);
+  const shelf = [...shelfLifeIssues(materials).values()].flat();
+  const expired = shelf.filter((x) => x.kind === 'expired').length;
+  const fefo = shelf.filter((x) => x.kind === 'fefo').length;
+  add(expired, 5, `ใช้วัตถุดิบหลังหมดอายุ ${expired} ล็อต`);
+  add(fefo, 2, `ผิดหลัก FEFO ${fefo} ล็อต`);
   const n = Math.max(materials.length, 1);
   const ratio = pts / n;
-  const level = qcFail || defect || ratio >= 2 ? 'high' : ratio >= 0.5 || over ? 'medium' : 'low';
+  const level = qcFail || defect || expired || ratio >= 2 ? 'high' : ratio >= 0.5 || over ? 'medium' : 'low';
   return {
     level,
     label: { high: 'สูง', medium: 'ปานกลาง', low: 'ต่ำ' }[level],
@@ -239,4 +244,78 @@ export const currentUserName = () => {
     const n = [localStorage.getItem('first_name'), localStorage.getItem('last_name')].filter(Boolean).join(' ');
     return n || localStorage.getItem('user_id') || '';
   } catch { return ''; }
+};
+
+/* ═══ อายุการเก็บ / FEFO (First Expired, First Out) ═════════════════════════
+   expired   ใช้หลังวันหมดอายุ (rmit_date > expiration_date)
+   nearExp   ใช้ตอนเหลืออายุไม่ถึง NEAR_EXPIRY_DAYS วัน
+   fefo      Mat เดียวกัน: ใช้ล็อตที่หมดอายุช้ากว่า ก่อนล็อตที่หมดอายุเร็วกว่า
+   ═══════════════════════════════════════════════════════════════════════ */
+export const NEAR_EXPIRY_DAYS = 7;
+export const shelfLifeIssues = (materials = []) => {
+  const out = new Map(); // mapping_id -> [{ kind, text }]
+  const add = (m, kind, text) => { const k = m.mapping_id; if (!out.has(k)) out.set(k, []); out.get(k).push({ kind, text }); };
+  materials.forEach((m) => {
+    const exp = toDate(m.expiration_date);
+    const use = toDate(m.rmit_date || m.sc_pack_date);
+    if (!exp || !use) return;
+    const left = (exp - use) / 86400000;
+    if (left < 0) add(m, 'expired', `ใช้หลังหมดอายุ ${Math.ceil(-left)} วัน`);
+    else if (left < NEAR_EXPIRY_DAYS) add(m, 'nearExp', `ใช้ตอนเหลืออายุ ${Math.floor(left)} วัน`);
+  });
+  const byMat = new Map();
+  materials.forEach((m) => { if (m.mat && toDate(m.expiration_date) && toDate(m.rmit_date)) { if (!byMat.has(m.mat)) byMat.set(m.mat, []); byMat.get(m.mat).push(m); } });
+  byMat.forEach((list) => {
+    const sorted = [...list].sort((a, b) => toDate(a.rmit_date) - toDate(b.rmit_date));
+    sorted.forEach((m, i) => {
+      const later = sorted.slice(i + 1).find((x) => x.batch_before !== m.batch_before && toDate(x.expiration_date) < toDate(m.expiration_date));
+      if (later) add(m, 'fefo', `ใช้ก่อนล็อต ${later.batch_before || later.mapping_id} ที่หมดอายุเร็วกว่า`);
+    });
+  });
+  return out;
+};
+
+/* ═══ รายการข้อยกเว้นรวม (Exception list) ═════════════════════════════════ */
+export const EXCEPTION_LABEL = {
+  overDbs: 'ดีเลย์เกินมาตรฐาน', qcFail: 'QC ไม่ผ่าน', defect: 'ข้อบกพร่องตอนรับเข้า', noIntake: 'ไม่พบในระบบรับเข้า',
+  noBatch: 'ไม่มีรหัสรุ่น', oos: 'ส่วนผสมหลุดพิกัด', expired: 'ใช้หลังหมดอายุ', nearExp: 'ใกล้หมดอายุ', fefo: 'ผิดหลัก FEFO',
+  noIng: 'ยังไม่ผูกส่วนผสม', noPkg: 'ไม่พบบรรจุภัณฑ์',
+};
+export const EXCEPTION_SEVERITY = { expired: 3, qcFail: 3, defect: 3, overDbs: 2, fefo: 2, oos: 2, nearExp: 1, noIntake: 1, noBatch: 1, noIng: 0, noPkg: 0 };
+export const exceptionList = (materials = []) => {
+  const shelf = shelfLifeIssues(materials);
+  const rows = [];
+  materials.forEach((m) => {
+    const push = (kind, detail) => rows.push({ m, kind, label: EXCEPTION_LABEL[kind], detail, severity: EXCEPTION_SEVERITY[kind] });
+    const d = buildDelay(m);
+    if (d.anyOver) push('overDbs', ['dbs1', 'dbs2', 'dbs3', 'dbs4'].filter((k) => d.over[k]).map((k) => `${k.toUpperCase()} ${fmtDur(d.value[k])} / ${fmtDur(d.std[k])}`).join(' · '));
+    const qcBad = [m.qccheck, m.mdcheck, m.defectcheck].filter((v) => v && String(v).trim() !== 'ผ่าน');
+    if (qcBad.length) push('qcFail', qcBad.join(' · '));
+    if (m.intake_defect) push('defect', m.intake_defect);
+    if (!m.batch_before) push('noBatch', '');
+    else if (!m.intake) push('noIntake', m.batch_before);
+    if (m.ingredient_out_of_spec) push('oos', `${m.ingredient_out_of_spec} ครั้ง`);
+    if (!m.ingredient_row_count) push('noIng', '');
+    if (!m.packaging_count) push('noPkg', '');
+    (shelf.get(m.mapping_id) || []).forEach((x) => push(x.kind, x.text));
+  });
+  return rows.sort((a, b) => b.severity - a.severity);
+};
+
+/* ═══ ตัวแปรการค้นหาที่บันทึกไว้ (Search variants) ═════════════════════════ */
+const VARIANT_KEY = 'pfcm_traceback_variants';
+export const readVariants = () => { try { return JSON.parse(localStorage.getItem(VARIANT_KEY) || '[]'); } catch { return []; } };
+export const saveVariants = (list) => { try { localStorage.setItem(VARIANT_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) { console.error('save variants error:', e); } return list; };
+
+/** CSV แบบไฟล์นำเข้า ERP (คั่นด้วย , มี BOM ให้ Excel อ่านภาษาไทยได้) */
+export const downloadCsv = (filename, header, rows) => {
+  const esc = (v) => { const s = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const text = [header.join(','), ...rows.map((r) => r.map(esc).join(','))].join('\r\n');
+  const blob = new Blob(['﻿', text], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 };

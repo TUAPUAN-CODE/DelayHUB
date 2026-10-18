@@ -75,6 +75,10 @@ const buildMappingQuery = (scope = "open") => `
       rmm.prod_mix,
       rmm.rmm_line_name,
       rmm.qc_id,
+      rmm.detail AS qc_detail,
+      qcs.color AS qc_color,
+      qcs.odor AS qc_odor,
+      qcs.texture AS qc_texture,
       l.line_id,
       ptl.line_tro AS pack_line_id,
       FORMAT(rmm.prep_to_pack_time, 'N2') AS remaining_ptp_time,
@@ -112,6 +116,7 @@ const buildMappingQuery = (scope = "open") => `
   LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
   LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
   LEFT JOIN Line l WITH (NOLOCK) ON rmm.rmm_line_name = l.line_name
+  LEFT JOIN QC qcs WITH (NOLOCK) ON qcs.qc_id = rmm.qc_id
   OUTER APPLY (
       SELECT TOP 1 pt.line_tro
       FROM PackTrolley pt WITH (NOLOCK)
@@ -711,7 +716,17 @@ router.patch("/sheet/edit", async (req, res) => {
       } else if (def.kind === "num") {
         const n = Number(v);
         if (!Number.isFinite(n) || n < 0 || n > 10000000) return res.status(400).json({ success: false, error: `${c} ต้องเป็นตัวเลข 0-10,000,000` });
+        if (!/^\d+(\.\d{1,2})?$/.test(String(v).trim())) return res.status(400).json({ success: false, error: `${c} ต้องเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง` });
         v = n;
+      } else if (def.kind === "batch") {
+        // Batch: 10 ตัวอักษร (A-Z / 0-9) ต่อ 1 Batch · หลาย Batch คั่นด้วย ,
+        v = v === null ? null : String(v).trim().toUpperCase();
+        if (v) {
+          const parts = v.split(",").map((x) => x.trim()).filter(Boolean);
+          const bad = parts.find((x) => !/^[A-Z0-9]{10}$/.test(x));
+          if (bad) return res.status(400).json({ success: false, error: `Batch "${bad}" ต้องเป็นตัวอักษร/ตัวเลข 10 หลัก` });
+          v = parts.join(",");
+        } else v = null;
       } else {
         v = String(v).trim();
         if (v.length > (def.max || EDIT_TEXT_MAX)) return res.status(400).json({ success: false, error: `${c} ยาวเกิน ${def.max || EDIT_TEXT_MAX} ตัวอักษร` });
@@ -905,6 +920,8 @@ const OPTION_SQL = {
   line: { q: "SELECT line_name AS value FROM Line WITH (NOLOCK) ORDER BY line_name" },
   tro: { q: "SELECT tro_id AS value FROM Trolley WITH (NOLOCK) ORDER BY tro_id" },
   dest: { q: "SELECT DISTINCT TOP (300) dest AS value FROM TrolleyRMMapping WITH (NOLOCK) WHERE dest IS NOT NULL AND dest <> N'' ORDER BY dest" },
+  // Code สินค้า (หน้าใช้บรรจุภัณฑ์เลือก Code จากรายการแผนผลิต)
+  prodcode: { q: "SELECT DISTINCT TOP (5000) p.code AS value FROM Production p WITH (NOLOCK) WHERE p.code IS NOT NULL AND p.code <> N'' ORDER BY p.code" },
   stay: { q: "SELECT DISTINCT TOP (300) stay_place AS value FROM TrolleyRMMapping WITH (NOLOCK) WHERE stay_place IS NOT NULL AND stay_place <> N'' ORDER BY stay_place" },
 };
 const optionCache = new Map(); // field -> { at, data } (5 minutes)
@@ -942,6 +959,88 @@ router.get("/sheet/edit-log", async (req, res) => {
     res.json({ success: true, data: r.recordset });
   } catch (err) {
     console.error("❌ [Route GET /sheet/edit-log] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ═══ วัตถุดิบนี้ผสมมาจากอะไร (แทนหน้า "รายการผสมวัตถุดิบ" เดิม) ═══════════════
+//   GET /sheet/mix-source?mapping_id=  → ส่วนประกอบจากทุกแบบการผสมที่ระบบมี
+//   Emulsion (RM_EmuMixed) · BatchMix (Mix_Batch_Prod) · ผสมที่ไลน์บรรจุ (RM_Mixed ผ่าน mix_code)
+//   · MixPeck (RM_MixPeck) · MixInclude (RM_MixInclude → MixToPack) · Loaf (RM_Mix_loaf)
+//   แต่ละแบบอ่านแยก try/catch: ตารางไหนยังไม่มีในฐานข้อมูลก็ข้ามไป
+const COMPONENT_SQL = (idSource) => `
+  SELECT cm.mapping_id, pr.mat, rm.mat_name, cm.weight_RM AS weight,
+         COALESCE(NULLIF(bt.batch_after, N''), NULLIF(CAST(rf.batch AS NVARCHAR(200)), N'')) AS batch,
+         cm.rmm_line_name AS line_name,
+         CONVERT(VARCHAR(19), h.rmit_date, 120) AS rmit_date,
+         CONVERT(VARCHAR(19), h.out_cold_date, 120) AS out_cold_date,
+         CONVERT(VARCHAR(19), h.cooked_date, 120) AS cooked_date
+  FROM (${idSource}) src
+  JOIN TrolleyRMMapping cm WITH (NOLOCK) ON cm.mapping_id = src.mapping_id
+  LEFT JOIN RMForProd rf WITH (NOLOCK) ON rf.rmfp_id = cm.rmfp_id
+  LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = cm.tro_production_id
+  LEFT JOIN RawMat rm WITH (NOLOCK) ON rm.mat = pr.mat
+  OUTER APPLY (SELECT TOP 1 b.batch_after FROM Batch b WITH (NOLOCK) WHERE b.mapping_id = cm.mapping_id ORDER BY b.batch_id DESC) bt
+  OUTER APPLY (SELECT TOP 1 hx.rmit_date, hx.out_cold_date, hx.cooked_date FROM History hx WITH (NOLOCK) WHERE hx.mapping_id = cm.mapping_id ORDER BY hx.hist_id DESC) h`;
+
+router.get("/sheet/mix-source", async (req, res) => {
+  try {
+    const id = parseInt(req.query.mapping_id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: "ต้องระบุ mapping_id" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+    const head = (await pool.request().input("id", sql.Int, id).query(`
+      SELECT rmm.mapping_id, rmm.rmfp_id, rmm.mix_code, pr.mat, rm.mat_name, rmm.weight_RM
+      FROM TrolleyRMMapping rmm WITH (NOLOCK)
+      LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = rmm.tro_production_id
+      LEFT JOIN RawMat rm WITH (NOLOCK) ON rm.mat = pr.mat
+      WHERE rmm.mapping_id = @id`)).recordset[0];
+    if (!head) return res.status(404).json({ success: false, error: "ไม่พบรายการ" });
+
+    const groups = [];
+    const errors = {};
+    const run = async (key, label, fn) => {
+      try {
+        const rows = await fn();
+        if (rows.length) groups.push({ key, label, rows });
+      } catch (err) {
+        errors[key] = err.message;
+      }
+    };
+    const rq = () => pool.request().input("id", sql.Int, id).input("rmfp", sql.Int, head.rmfp_id).input("mix", sql.NVarChar(100), head.mix_code == null ? null : String(head.mix_code));
+
+    await run("emulsion", "Emulsion ที่ผสม", async () => (await rq().query(`
+      SELECT rmfe.rmfemu_id AS ref_id, rmfe.mat, r.mat_name, rmfe.batch, rmfe.weight,
+             CONVERT(VARCHAR(19), h.withdraw_date, 120) AS withdraw_date
+      FROM RM_EmuMixed rme WITH (NOLOCK)
+      JOIN RMForEmu rmfe WITH (NOLOCK) ON rmfe.rmfemu_id = rme.rmfemu_id
+      LEFT JOIN RawMat r WITH (NOLOCK) ON r.mat = rmfe.mat
+      LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = rmfe.hist_id_rmfemu
+      WHERE @rmfp IS NOT NULL AND rme.rmfp_id = @rmfp`)).recordset);
+
+    await run("batchmix", "Batch Mix ที่ผสม", async () => (await rq().query(`
+      SELECT rmmb.rmfbatch_id AS ref_id, rmmb.mat, r.mat_name, rmmb.batch, rmmb.weight, rmmb.hu
+      FROM Mix_Batch_Prod mbp WITH (NOLOCK)
+      JOIN RMMixBatch rmmb WITH (NOLOCK) ON rmmb.rmfbatch_id = mbp.rmfbatch_id
+      LEFT JOIN RawMat r WITH (NOLOCK) ON r.mat = rmmb.mat
+      WHERE @rmfp IS NOT NULL AND mbp.rmfp_id = @rmfp`)).recordset);
+
+    await run("packmix", "ผสมที่ไลน์บรรจุ (mix code)", async () => (await rq().query(
+      COMPONENT_SQL("SELECT DISTINCT x.mapping_id FROM RM_Mixed x WITH (NOLOCK) WHERE @mix IS NOT NULL AND CAST(x.mixed_code AS NVARCHAR(100)) = @mix AND x.mapping_id <> @id"))).recordset);
+
+    await run("mixpeck", "วัตถุดิบที่ผสมเข้าแผนนี้", async () => (await rq().query(
+      COMPONENT_SQL("SELECT DISTINCT x.mapping_id FROM RM_MixPeck x WITH (NOLOCK) WHERE @rmfp IS NOT NULL AND x.rmfp_id = @rmfp AND x.mapping_id <> @id"))).recordset);
+
+    await run("mixinclude", "วัตถุดิบที่รวมเข้า (Include)", async () => (await rq().query(
+      COMPONENT_SQL("SELECT DISTINCT mtp.from_mapping_id AS mapping_id FROM RM_MixInclude x WITH (NOLOCK) JOIN MixToPack mtp WITH (NOLOCK) ON mtp.mixtp_id = x.mixtp_id WHERE @rmfp IS NOT NULL AND x.rmfp_id = @rmfp AND mtp.from_mapping_id IS NOT NULL"))).recordset);
+
+    await run("loaf", "Loaf ทำจาก", async () => (await rq().query(
+      COMPONENT_SQL("SELECT DISTINCT x.mapping_id_source AS mapping_id FROM RM_Mix_loaf x WITH (NOLOCK) WHERE x.mapping_id = @id"))).recordset);
+
+    res.json({ success: true, data: { head, groups, mixed: groups.length > 0 }, errors });
+  } catch (err) {
+    console.error("[Route /sheet/mix-source] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

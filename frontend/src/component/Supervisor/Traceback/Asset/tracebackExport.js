@@ -32,13 +32,21 @@ export const drawLogo = (doc, logo, x, y, h) => {
 };
 
 /** ท้ายทุกหน้า: ผู้พิมพ์ + เวลา + เลขหน้า (ใช้เป็นหลักฐาน audit trail) */
-const stampFooter = (doc) => {
+const stampFooter = (doc, watermark = '') => {
   const n = doc.getNumberOfPages();
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const who = currentUserName();
   for (let i = 1; i <= n; i++) {
     doc.setPage(i);
+    if (watermark) {
+      // ลายน้ำสถานะเอกสาร (สำเนาควบคุม / ไม่ควบคุม / ใช้ภายใน)
+      doc.saveGraphicsState();
+      if (doc.GState) doc.setGState(new doc.GState({ opacity: 0.12 }));
+      doc.setFont('Sarabun', 'bold'); doc.setFontSize(60); doc.setTextColor(168, 30, 20);
+      doc.text(watermark, W / 2, H / 2, { align: 'center', angle: 30 });
+      doc.restoreGraphicsState();
+    }
     doc.setFont('Sarabun', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(60, 80, 100);
@@ -337,7 +345,7 @@ export const exportRecordPDF = async (data, docNo, code, sign, opts = {}) => {
   }
 
   appendixPages(doc, data, { docNo, code, logo, qr: opts.qr, link: opts.link });
-  stampFooter(doc);
+  stampFooter(doc, sign?.watermark || '');
   doc.save(`Traceback_${docNo || s.doc_no || 'record'}_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 

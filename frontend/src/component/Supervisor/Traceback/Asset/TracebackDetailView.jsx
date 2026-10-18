@@ -5,8 +5,10 @@ import {
   WARN_MIN, SEVERE_MIN, diffMin, fmtDT, fmtD, fmtRange, fmtNum, fmtDur, uniq, buildDelay, STAGE_LABEL, DBS_LABEL,
 } from './tracebackCore';
 import { exportRecordPDF, exportDetailExcel } from './tracebackExport';
-import { chainCompleteness, riskAssessment } from './tracebackCore';
+import { chainCompleteness, riskAssessment, currentUserName, exceptionList } from './tracebackCore';
 import { Ring } from './TraceAtoms';
+import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TraceTree from './TraceTree';
 import TraceTimeline from './TraceTimeline';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -625,8 +627,9 @@ const IntakePanel = ({ m }) => {
 
 /* ── กล่องกรอกลายเซ็นก่อน export ─────────────────────────────────────────── */
 const SignDialog = ({ open, onClose, onExport }) => {
-  const [v, setV] = useState({ recordedBy: '', reviewedBy: '', qcManager: '' });
+  const [v, setV] = useState({ recordedBy: currentUserName(), reviewedBy: '', qcManager: '', watermark: 'สำเนาควบคุม' });
   if (!open) return null;
+  // เรียกเป็นฟังก์ชัน (ไม่ใช่ <F/>) — ถ้าเป็น component ที่สร้างใหม่ทุก render ช่องกรอกจะหลุดโฟกัสทุกตัวอักษร
   const F = ({ k, label, sub }) => (
     <div style={{ flex: 1, minWidth: 190 }}>
       <div style={{ fontSize: 12, color: T.blueDeep, fontWeight: 600, marginBottom: 5 }}>{label}</div>
@@ -648,9 +651,18 @@ const SignDialog = ({ open, onClose, onExport }) => {
           ระบุผู้ลงนามก่อนออกเอกสาร
         </div>
         <div style={{ padding: 18, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <F k="recordedBy" label="ผู้จัดทำ" sub="Recorded by (Production Staff)" />
-          <F k="reviewedBy" label="ผู้ตรวจสอบ" sub="Reviewed by (Section Manager)" />
-          <F k="qcManager" label="ผู้อนุมัติ" sub="QC Section Manager" />
+          {F({ k: 'recordedBy', label: 'ผู้จัดทำ', sub: 'Recorded by (Production Staff)' })}
+          {F({ k: 'reviewedBy', label: 'ผู้ตรวจสอบ', sub: 'Reviewed by (Section Manager)' })}
+          {F({ k: 'qcManager', label: 'ผู้อนุมัติ', sub: 'QC Section Manager' })}
+        </div>
+        <div style={{ padding: '0 18px 14px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: T.blueDeep, fontWeight: 600 }}>สถานะเอกสาร (ลายน้ำ):</span>
+          {['สำเนาควบคุม', 'สำเนาไม่ควบคุม', 'ใช้ภายในเท่านั้น', ''].map(w => (
+            <button key={w || 'none'} type="button" onClick={() => setV(p => ({ ...p, watermark: w }))} style={{
+              border: `1.5px solid ${v.watermark === w ? T.orange : T.line}`, background: v.watermark === w ? T.orangeSoft : T.white,
+              color: v.watermark === w ? T.orange : T.text2, borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+            }}>{w || 'ไม่ใส่ลายน้ำ'}</button>
+          ))}
         </div>
         <div style={{ padding: '0 18px 18px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{
@@ -1178,6 +1190,9 @@ const DetailTab = ({ data, onOpenTrace }) => {
                 ]}
               />
             </Panel>
+            <Panel title="ประวัติการแก้ไขข้อมูลของล็อตนี้ (Audit trail)" tone="orange">
+              <LotAudit mappingId={m.mapping_id} />
+            </Panel>
             <Panel title="บรรจุภัณฑ์ที่ใช้ตอนบรรจุ">
               <DataTable
                 rows={m.packaging || []} getKey={(p, i) => p.detail_id ?? i}
@@ -1294,8 +1309,14 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
   const [focus, setFocus] = useState(null);
   const [signOpen, setSignOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [loadMs, setLoadMs] = useState(null);
   const qrWrap = useRef(null);
   const goBack = onBack || onClose;
+  const navigate = useNavigate();
+  const location = useLocation();
+  // เจาะลึก (drill-down): จากรหัสรุ่นในใบนี้ ไปสอบไปข้างหน้าข้ามเอกสาร
+  const goForward = (code, type) => navigate(`${location.pathname}?mode=forward&code=${encodeURIComponent(code)}&type=${type}`);
 
   // ลิงก์ตรงมาที่ใบสอบกลับนี้ (แชร์ให้ QA / ใส่ใน QR ของ PDF)
   const shareLink = useMemo(() => {
@@ -1311,8 +1332,9 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
     (async () => {
       try {
         setLoading(true); setError(null); setData(null);
+        const t0 = performance.now();
         const res = await axios.get(`${API_URL}/api/traceback/detail`, { params: { doc_no: docNo, code } });
-        if (!cancel) setData(res.data?.data || null);
+        if (!cancel) { setData(res.data?.data || null); setLoadMs(Math.round(performance.now() - t0)); }
       } catch (e) {
         console.error('Traceback detail error:', e);
         if (!cancel) setError(e.response?.data?.error || e.message);
@@ -1354,6 +1376,8 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
     { key: 'flow', label: 'แผนผังสอบกลับ' },
     { key: 'tree', label: 'ผังต้นไม้' },
     { key: 'timeline', label: 'ไทม์ไลน์' },
+    { key: 'docflow', label: 'Document flow' },
+    { key: 'exceptions', label: `ข้อยกเว้น${materials?.length ? ` (${exceptionList(materials).filter(x => x.severity >= 2).length})` : ''}` },
     { key: 'detail', label: `ชั้นรายละเอียด${materials?.length ? ` (${materials.length})` : ''}` },
   ];
 
@@ -1405,6 +1429,8 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
           <button onClick={() => setSignOpen(true)} disabled={!data} style={btn(T.orange, T.orange, T.white)}>ออกเอกสาร PDF</button>
           <button onClick={() => exportDetailExcel(data, docNo, code)} disabled={!data} style={btn(T.white, T.ok, T.ok)}>Excel</button>
           <button onClick={copyLink} style={btn(T.white, T.blue, T.blue)}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}</button>
+          <button onClick={() => setQrOpen(true)} disabled={!data} style={btn(T.white, T.blue, T.blue)}>ป้าย QR รายล็อต</button>
+          {loadMs != null && <span style={{ alignSelf: 'center', fontSize: 12, color: T.text2 }}>รวบรวมข้อมูล {(loadMs / 1000).toFixed(2)} วินาที</span>}
           <button onClick={() => window.print()} style={btn(T.white, T.line, T.text2)}>พิมพ์หน้าจอ</button>
         </div>
         <div className="tb-noprint" style={{ display: 'flex', gap: 4, padding: '0 14px', overflowX: 'auto' }} role="tablist">
@@ -1437,12 +1463,15 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
 
         {!loading && !error && data && (
           <>
+            <HoldBanner docNo={s.doc_no || docNo} />
             <RecordHeader s={s} docNo={docNo} code={code} />
             <ScoreStrip materials={materials || []} />
             <DataGaps s={s} meta={data.meta} materials={materials || []} />
             {tab === 'summary' && <SummaryTab data={data} onOpenTrace={openTrace} />}
             {tab === 'flow' && <FlowTab data={data} focus={focus} setFocus={setFocus} />}
-            {tab === 'tree' && <TraceTree data={data} />}
+            {tab === 'tree' && <TraceTree data={data} onForward={goForward} />}
+            {tab === 'docflow' && <DocumentFlow data={data} onForward={goForward} />}
+            {tab === 'exceptions' && <ExceptionsPanel materials={materials || []} />}
             {tab === 'timeline' && <TraceTimeline materials={materials || []} />}
             {tab === 'detail' && <DetailTab data={data} onOpenTrace={openTrace} />}
 
@@ -1455,6 +1484,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
       </div>
 
       <SignDialog open={signOpen} onClose={() => setSignOpen(false)} onExport={exportPdf} />
+      {data && <QrLabelsDialog open={qrOpen} onClose={() => setQrOpen(false)} data={data} linkBase={`${window.location.origin}${location.pathname}?doc_no=`} />}
     </div>
   );
 };

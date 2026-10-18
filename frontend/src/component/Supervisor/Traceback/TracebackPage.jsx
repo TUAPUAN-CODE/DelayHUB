@@ -5,6 +5,8 @@ import Buttom from "../../Layout/Buttom";
 import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
 import MockRecall from "./Asset/MockRecall";
+import HoldList from "./Asset/HoldList";
+import UniversalSearch from "./Asset/UniversalSearch";
 import { T } from "./Asset/tracebackUI";
 import logoUrl from "../../../assets/brand/itail-logo.png";
 
@@ -12,10 +14,12 @@ import logoUrl from "../../../assets/brand/itail-logo.png";
 //   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง
 //   ?mode=forward&code=&type=   สอบไปข้างหน้าจากรหัสรุ่น/Lot
 //   ?mode=recall                 จำลองการเรียกคืน
+//   ?mode=holds                  รายการกักสินค้า
 const MODES = [
   { key: "backward", title: "สอบย้อนกลับ", en: "Trace Backward", desc: "จากสินค้า / เอกสารผลิต → วัตถุดิบ ส่วนผสม บรรจุภัณฑ์ ผู้ขาย" },
   { key: "forward", title: "สอบไปข้างหน้า", en: "Trace Forward", desc: "จากรหัสรุ่น / Lot → สินค้าทุกเอกสารที่ได้รับผลกระทบ" },
   { key: "recall", title: "จำลองการเรียกคืน", en: "Mock Recall", desc: "จับเวลา เช็กลิสต์ สมดุลมวล และออกโปรโตคอล PDF" },
+  { key: "holds", title: "รายการกักสินค้า", en: "Hold / QN", desc: "เอกสารที่ถูกกักจากผลสอบกลับ · ปลดกักพร้อมเหตุผล" },
 ];
 
 const TracebackPage = () => {
@@ -38,10 +42,18 @@ const TracebackPage = () => {
   }, [onSelect]);
 
   const onForwardQuery = useCallback(({ code, type }) => {
-    setParams({ mode: "forward", code, type }, { replace: true });
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("mode", "forward"); next.set("code", code); next.set("type", type);
+      return next;
+    }, { replace: true });
   }, [setParams]);
 
   const clearSeed = useCallback(() => setRecallSeed(null), []);
+
+  const goForward = useCallback((code, type) => {
+    setParams({ mode: "forward", code, type, go: String(Date.now()) }); // go: เปิดหน้า forward ใหม่แล้วค้นหาทันที
+  }, [setParams]);
 
   const startRecall = (fwd) => {
     setRecallSeed(fwd);
@@ -70,7 +82,8 @@ const TracebackPage = () => {
                 <div style={{ fontSize: 13, color: T.text2 }}>วัตถุดิบ · ส่วนผสม · บรรจุภัณฑ์ — ย้อนกลับ ไปข้างหน้า และจำลองการเรียกคืน</div>
               </div>
             </div>
-            <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10, padding: "0 20px 16px" }}>
+            <UniversalSearch onOpenRecord={openRecord} onForward={goForward} />
+            <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10, padding: "0 20px 16px" }}>
               {MODES.map((m) => {
                 const on = mode === m.key;
                 return (
@@ -96,12 +109,18 @@ const TracebackPage = () => {
           {mode === "forward" && (
             <div style={{ paddingTop: 16 }}>
               <ForwardTrace
+                key={params.get("go") || "0"}
                 initialCode={params.get("code") || ""}
                 initialType={params.get("type") || "auto"}
                 onOpenRecord={openRecord}
                 onStartRecall={startRecall}
                 onQueryChange={onForwardQuery}
               />
+            </div>
+          )}
+          {mode === "holds" && (
+            <div style={{ paddingTop: 16 }}>
+              <HoldList onOpenRecord={openRecord} />
             </div>
           )}
           {mode === "recall" && (

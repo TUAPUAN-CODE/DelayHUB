@@ -101,7 +101,7 @@ const DataGrid = ({
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
   // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
-  detail = false,
+  detail = false, detailTabs,
   // rowPalette: { green|yellow|red|blue: { bg, fg } } custom row colours (empty = the built-in colour)
   rowPalette,
   // statusChips: [{ label, name, color, bg, onBg, onFg }] ของคอลัมน์สถานะ (เรียงตามลำดับกระบวนการ) แสดงเหนือตาราง (โหมด fill); กดแล้วแสดงเฉพาะสถานะนั้น (row.__status.label)
@@ -460,7 +460,7 @@ const DataGrid = ({
       </Box>
 
       {detail && detailOpen && (
-        <DetailPanel row={activeRow} columns={columns} tools={actionBar} narrow={narrow} fill={fill} maxHeight={maxHeight} />
+        <DetailPanel row={activeRow} columns={columns} tools={actionBar} narrow={narrow} fill={fill} maxHeight={maxHeight} extraTabs={detailTabs} />
       )}
       </Box>
 

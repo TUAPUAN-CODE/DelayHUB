@@ -33,6 +33,7 @@ const { getRefs, clearCache: clearDecoderCache, decodePair, refsStats } = requir
 const tracebackBatchRouter = require('./Tracebackbatch');
 const { decodeBatches } = require('./Tracebackbatch');
 const { fetchIntakeByBatch } = require('./Tracebackwiseup');
+const { safeRollback } = require('../lib/safeRollback');
 
 const WARN_MIN = 120;            // 2 ชม.
 const SEVERE_MIN = 480;          // 8 ชม.
@@ -1205,6 +1206,7 @@ async function forwardPKG(pool, code) {
 }
 
 router.get('/forward', async (req, res) => {
+  const startedAt = Date.now();
   try {
     const code = S(req.query.code);
     const type = S(req.query.type) || 'auto';
@@ -1261,6 +1263,17 @@ router.get('/forward', async (req, res) => {
         `)).recordset;
     }
 
+    // ถอดรหัส batch วัตถุดิบ (ข้อมูลหลักของ batch แบบ Batch Master) — เฉพาะเมื่อพบเป็นรหัสรุ่นวัตถุดิบ
+    let decoded = null;
+    if (matchedTypes.includes('rm')) {
+      try {
+        const dmap = await decodeBatches(pool, [{ batch_code: code, mat: lots[0]?.mat || null }]);
+        decoded = dmap.get(code.toUpperCase()) || null;
+      } catch (e) {
+        errors.decode = e.message;
+      }
+    }
+
     const byProduct = new Map();
     for (const l of lots) {
       const key = `${l.doc_no}|${l.code}`;
@@ -1302,12 +1315,204 @@ router.get('/forward', async (req, res) => {
         sources,
         products,
         lots,
+        decoded,
         errors,
+        elapsed_ms: Date.now() - startedAt,
       },
     });
   } catch (err) {
     console.error('❌ [traceback/forward]', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ═══ 3.10) GET /lookup — ค้นหาอัจฉริยะ (Batch Information Cockpit) ═══════════
+//   พิมพ์/สแกนอะไรก็ได้: เลขเอกสาร, Code สินค้า, รหัสรุ่น, Lot บรรจุภัณฑ์, เลขรายการ (mapping)
+//   → บอกว่าพบเป็นอะไรบ้าง เพื่อพาไปหน้าที่ถูกต้อง
+router.get('/lookup', async (req, res) => {
+  try {
+    const q = S(req.query.q).slice(0, 100);
+    if (q.length < 2) return res.status(400).json({ success: false, error: 'พิมพ์อย่างน้อย 2 ตัวอักษร' });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+    await getSchema(pool);
+    const like = `%${q.replace(/[[%_]/g, c => `[${c}]`)}%`;
+    const out = { q, docs: [], batch: null, pkg: null, mapping: null };
+    const tBatch = realTable('Batch');
+
+    const safe = async (fn) => { try { return await fn(); } catch (e) { console.warn('⚠️ [traceback/lookup]', e.message); return null; } };
+
+    out.docs = (await safe(async () => (await pool.request().input('like', sql.NVarChar(110), like).query(`
+      SELECT TOP 20 p.doc_no, p.code, MAX(CONVERT(VARCHAR, htr.sc_pack_date, 120)) AS pack_last, COUNT(*) AS lots
+      ${BASE_FROM}
+      WHERE ${BASE_WHERE} AND (p.doc_no LIKE @like OR p.code LIKE @like)
+      GROUP BY p.doc_no, p.code
+      ORDER BY MAX(htr.sc_pack_date) DESC`)).recordset)) || [];
+
+    out.batch = await safe(async () => {
+      const r = await pool.request().input('c', sql.NVarChar(100), q.toUpperCase()).query(`
+        SELECT COUNT(*) AS n FROM (
+          ${tBatch ? `SELECT b.mapping_id FROM [${tBatch}] b WHERE b.batch_before = @c OR b.batch_after = @c UNION` : ''}
+          SELECT rmm.mapping_id FROM TrolleyRMMapping rmm JOIN RMForProd rmf ON rmf.rmfp_id = rmm.rmfp_id WHERE rmf.batch = @c
+        ) x`);
+      return r.recordset[0].n ? { count: r.recordset[0].n } : null;
+    });
+
+    out.pkg = await safe(async () => {
+      const r = await pool.request().input('c', sql.NVarChar(100), q).query(`
+        SELECT COUNT(*) AS n FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
+        LEFT JOIN [PFCMv2].[dbo].[PrintMasterSlip] s ON s.slip_id = d.slip_id
+        WHERE d.batch_no = @c OR d.lot_no = @c OR s.batch_no = @c OR s.lot = @c`);
+      return r.recordset[0].n ? { count: r.recordset[0].n } : null;
+    });
+
+    if (/^\d+$/.test(q)) {
+      out.mapping = await safe(async () => (await pool.request().input('id', sql.Int, parseInt(q, 10)).query(`
+        SELECT TOP 1 rmm.mapping_id, p.doc_no, p.code, rm.mat, rm.mat_name
+        FROM TrolleyRMMapping rmm
+        JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
+        JOIN RawMat rm ON rm.mat = pr.mat
+        JOIN Production p ON p.prod_id = pr.prod_id
+        WHERE rmm.mapping_id = @id`)).recordset[0] || null);
+    }
+
+    res.json({ success: true, data: out });
+  } catch (err) {
+    console.error('❌ [traceback/lookup]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ═══ 3.11) รายการกักสินค้า (Hold) — แบบ Quality Notification ของ SAP ════════════
+//   สร้างจากผลสอบกลับไปข้างหน้า → เก็บว่าเอกสารผลิตใดถูกกัก เพราะอะไร ใครกัก · ปลดกักพร้อมบันทึก
+//   ตารางสร้างให้อัตโนมัติครั้งแรก (ไม่ต้องรัน SQL เอง)
+let holdTableChecked = false;
+async function ensureHoldTable(pool) {
+  if (holdTableChecked) return;
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.TracebackHold', N'U') IS NULL
+    BEGIN
+      CREATE TABLE dbo.TracebackHold (
+        hold_id      INT IDENTITY(1,1) PRIMARY KEY,
+        source_type  VARCHAR(10)    NULL,
+        source_code  NVARCHAR(100)  NULL,
+        doc_no       NVARCHAR(100)  NOT NULL,
+        code         NVARCHAR(200)  NULL,
+        reason       NVARCHAR(500)  NOT NULL,
+        status       VARCHAR(10)    NOT NULL CONSTRAINT DF_TracebackHold_status DEFAULT ('HOLD'),
+        created_by   NVARCHAR(100)  NULL,
+        created_at   DATETIME       NOT NULL CONSTRAINT DF_TracebackHold_created DEFAULT (GETDATE()),
+        released_by  NVARCHAR(100)  NULL,
+        released_at  DATETIME       NULL,
+        release_note NVARCHAR(500)  NULL
+      );
+      CREATE INDEX IX_TracebackHold_doc ON dbo.TracebackHold (doc_no, status);
+    END`);
+  holdTableChecked = true;
+  console.log('✅ [traceback] ตรวจ/สร้างตาราง TracebackHold เรียบร้อย');
+}
+const userOf = (req) => S(req.user?.name || req.user?.username || req.body?.user || '').slice(0, 100) || null;
+
+router.get('/holds', async (req, res) => {
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+    await ensureHoldTable(pool);
+    const status = S(req.query.status).toUpperCase();
+    const doc = S(req.query.doc_no);
+    const r = await pool.request()
+      .input('status', sql.VarChar(10), ['HOLD', 'RELEASED'].includes(status) ? status : null)
+      .input('doc', sql.NVarChar(100), doc || null)
+      .query(`
+        SELECT TOP 1000 hold_id, source_type, source_code, doc_no, code, reason, status, created_by,
+               CONVERT(VARCHAR(19), created_at, 120) AS created_at, released_by,
+               CONVERT(VARCHAR(19), released_at, 120) AS released_at, release_note
+        FROM TracebackHold WITH (NOLOCK)
+        WHERE (@status IS NULL OR status = @status) AND (@doc IS NULL OR doc_no = @doc)
+        ORDER BY CASE WHEN status = 'HOLD' THEN 0 ELSE 1 END, hold_id DESC`);
+    res.json({ success: true, data: r.recordset });
+  } catch (err) {
+    console.error('❌ [traceback/holds GET]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// { source_type, source_code, reason, items: [{ doc_no, code }] }
+router.post('/holds', async (req, res) => {
+  let transaction;
+  try {
+    const reason = S(req.body.reason).slice(0, 500);
+    const items = Array.isArray(req.body.items) ? req.body.items.filter(i => S(i?.doc_no)).slice(0, 500) : [];
+    if (!reason) return res.status(400).json({ success: false, error: 'กรุณาระบุเหตุผลการกัก' });
+    if (!items.length) return res.status(400).json({ success: false, error: 'ไม่มีเอกสารที่จะกัก' });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+    await ensureHoldTable(pool);
+    transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    let created = 0;
+    for (const it of items) {
+      const r = await new sql.Request(transaction)
+        .input('t', sql.VarChar(10), S(req.body.source_type).slice(0, 10) || null)
+        .input('src', sql.NVarChar(100), S(req.body.source_code).slice(0, 100) || null)
+        .input('doc', sql.NVarChar(100), S(it.doc_no).slice(0, 100))
+        .input('code', sql.NVarChar(200), S(it.code).slice(0, 200) || null)
+        .input('reason', sql.NVarChar(500), reason)
+        .input('by', sql.NVarChar(100), userOf(req))
+        .query(`
+          IF NOT EXISTS (SELECT 1 FROM TracebackHold WHERE doc_no = @doc AND ISNULL(code, N'') = ISNULL(@code, N'') AND status = 'HOLD')
+            INSERT INTO TracebackHold (source_type, source_code, doc_no, code, reason, created_by) VALUES (@t, @src, @doc, @code, @reason, @by)`);
+      created += r.rowsAffected?.[0] || 0;
+    }
+    await transaction.commit();
+    res.status(201).json({ success: true, message: `กักสินค้าแล้ว ${created} เอกสาร (ที่กักอยู่แล้วไม่ซ้ำ)`, created });
+  } catch (err) {
+    await safeRollback(transaction);
+    console.error('❌ [traceback/holds POST]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/holds/:id/release', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const note = S(req.body.note).slice(0, 500);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'hold_id ไม่ถูกต้อง' });
+    if (!note) return res.status(400).json({ success: false, error: 'กรุณาบันทึกเหตุผลการปลดกัก' });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+    await ensureHoldTable(pool);
+    const r = await pool.request().input('id', sql.Int, id).input('note', sql.NVarChar(500), note).input('by', sql.NVarChar(100), userOf(req))
+      .query(`UPDATE TracebackHold SET status = 'RELEASED', released_by = @by, released_at = GETDATE(), release_note = @note WHERE hold_id = @id AND status = 'HOLD'`);
+    if (!r.rowsAffected?.[0]) return res.status(404).json({ success: false, error: 'ไม่พบรายการกัก หรือปลดกักไปแล้ว' });
+    res.json({ success: true, message: 'ปลดกักแล้ว' });
+  } catch (err) {
+    console.error('❌ [traceback/holds release]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ═══ 3.12) POST /notify — ส่งสรุปผลกระทบเข้ากลุ่ม LINE (บอทเดียวกับแจ้งเตือน Delay) ═══
+//   { text } · ส่งได้ไม่ถี่กว่า 1 ครั้ง / 30 วินาที ต่อผู้ใช้
+const notifyAt = new Map();
+router.post('/notify', async (req, res) => {
+  try {
+    const text = S(req.body.text).slice(0, 4500);
+    if (!text) return res.status(400).json({ success: false, error: 'ไม่มีข้อความ' });
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const group = process.env.LINE_GROUP_ID;
+    if (!token || !group) return res.status(503).json({ success: false, error: 'ยังไม่ได้ตั้งค่า LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID' });
+    const who = String(req.user?.user_id || req.ip);
+    if (Date.now() - (notifyAt.get(who) || 0) < 30000) return res.status(429).json({ success: false, error: 'ส่งถี่เกินไป กรุณารอ 30 วินาที' });
+    notifyAt.set(who, Date.now());
+    const axios = require('axios');
+    await axios.post(process.env.LINE_PUSH_URL || 'https://api.line.me/v2/bot/message/push',
+      { to: group, messages: [{ type: 'text', text: `${text}\n\nส่งโดย ${userOf(req) || '-'} จากหน้า Traceback` }] },
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, timeout: 20000 });
+    res.json({ success: true, message: 'ส่งเข้ากลุ่ม LINE แล้ว' });
+  } catch (err) {
+    console.error('❌ [traceback/notify]', err.response?.status || '', err.message);
+    res.status(500).json({ success: false, error: err.response?.data?.message || err.message });
   }
 });
 

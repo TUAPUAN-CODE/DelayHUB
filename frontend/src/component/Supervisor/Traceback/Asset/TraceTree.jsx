@@ -31,7 +31,14 @@ const Branch = ({ label, meta, tone = 'blue', open, onToggle, children, depth = 
   );
 };
 
-const TraceTree = ({ data }) => {
+const Fwd = ({ code, type, onForward }) => (code && onForward ? (
+  <button type="button" title="สอบไปข้างหน้าข้ามเอกสาร" onClick={(e) => { e.stopPropagation(); onForward(code, type); }}
+    style={{ border: `1px solid ${T.orangeLine}`, background: T.orangeSoft, color: T.orange, borderRadius: 6, padding: '1px 8px', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>
+    ใช้ที่ไหนอีก ↗
+  </button>
+) : null);
+
+const TraceTree = ({ data, onForward }) => {
   const s = data.summary || {};
   const materials = useMemo(() => data.materials || [], [data]);
   const [open, setOpen] = useState({ root: true });
@@ -76,6 +83,7 @@ const TraceTree = ({ data }) => {
                 badge={<>
                   <Tag tone="plain">{g.lots.length} ล็อต</Tag>
                   {over > 0 && <Tag tone="bad">เกิน DBS {over}</Tag>}
+                  <Fwd code={g.batch} type="rm" onForward={onForward} />
                 </>}>
                 <div>
                   <Branch depth={2} tone={f.intake ? 'ok' : 'plain'}
@@ -99,7 +107,8 @@ const TraceTree = ({ data }) => {
                                 {m.ingredient_summary.map(gi => (
                                   <Branch key={`${gi.material_code}|${gi.batch_no}`} depth={4} tone={gi.out_of_spec_count ? 'bad' : 'ok'}
                                     label={`${gi.material_code} · ${gi.material_name || ''}`}
-                                    meta={`Batch ${gi.batch_no || '-'} · ${fmtNum(gi.net_weight, 3)} kg · ${gi.basket_count} ตะกร้า`} />
+                                    meta={`Batch ${gi.batch_no || '-'} · ${fmtNum(gi.net_weight, 3)} kg · ${gi.basket_count} ตะกร้า`}
+                                    badge={<Fwd code={gi.batch_no} type="ing" onForward={onForward} />} />
                                 ))}
                               </div>
                             ) : null}
@@ -111,7 +120,8 @@ const TraceTree = ({ data }) => {
                                 {m.packaging.map(pk => (
                                   <Branch key={pk.detail_id} depth={4} tone="orange"
                                     label={`${pk.code || pk.material_no || '-'}`}
-                                    meta={`Batch ${pk.batch_no || '-'} · Lot ${pk.lot_no || '-'} · ${fmtDT(pk.start_time)} → ${fmtDT(pk.stop_time)}`} />
+                                    meta={`Batch ${pk.batch_no || '-'} · Lot ${pk.lot_no || '-'} · ${fmtDT(pk.start_time)} → ${fmtDT(pk.stop_time)}`}
+                                    badge={<Fwd code={pk.lot_no || pk.batch_no} type="pkg" onForward={onForward} />} />
                                 ))}
                               </div>
                             ) : null}

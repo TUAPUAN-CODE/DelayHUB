@@ -209,6 +209,8 @@ const RULES = [
   // Traceback: ล้าง cache และ debug เฉพาะผู้ดูแล
   { m: "POST", p: /^\/api\/traceback\/refs\/reload$/, check: adminOnly },
   { m: "GET", p: /^\/api\/traceback\/debug\//, check: adminOnly },
+  // ปลดกักสินค้า: หัวหน้า (6/8) หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว
+  { m: "PUT", p: /^\/api\/traceback\/holds\/\d+\/release$/, check: adminOrUnlock },
   // Role ของตัวเอง ดูได้ แต่ดูของคนอื่นต้องเป็น admin
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
   // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)

@@ -17,6 +17,10 @@
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
  *   DELAY_ALERT_INTERVAL_SEC    how often to check (default 60)
  *   DELAY_ALERT_LINK            optional link printed at the end of the message (e.g. the Master Sheet address)
+ *   TRANSIT_ALERT_MIN           out of the cold room -> into the large cold room: alert after this many minutes (default 30; 0 = off)
+ * Transit alert (same LINE group): a row counts as "on the way to the large cold room" when dest = 'ห้องเย็นใหญ่'
+ *   or (stay_place = 'ออกห้องเย็น' and dest = 'รอCheckin'). One message when it has been on the way longer than TRANSIT_ALERT_MIN,
+ *   and one more when it is received late (with the minutes it took). Each field is on its own line.
  * The first run only remembers the colours of the rows (no immediate messages), so starting the worker does not flood the group.
  */
 require("dotenv").config();
@@ -40,6 +44,7 @@ const cfg = () => ({
   summaryMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN)) ? parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN) : 60) * 60000,
   intervalMs: Math.max(15, parseInt(process.env.DELAY_ALERT_INTERVAL_SEC, 10) || 60) * 1000,
   link: process.env.DELAY_ALERT_LINK || "",
+  transitMin: Number.isFinite(parseFloat(process.env.TRANSIT_ALERT_MIN)) ? parseFloat(process.env.TRANSIT_ALERT_MIN) : 30,
   stateFile: process.env.DELAY_ALERT_STATE || path.join(__dirname, "logs", "delay-alert-state.json"),
 });
 
@@ -100,6 +105,98 @@ const push = async (messages, c) => {
   await axios.post(c.pushUrl, { to: c.group, messages }, { headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" }, timeout: 20000 });
 };
 
+
+/* ═══ out of the cold room -> large cold room (transit) ═══════════════════ */
+const T_ = (v) => String(v || "").trim();
+const isTransit = (r) => T_(r.dest) === "ห้องเย็นใหญ่" || (T_(r.stay_place) === "ออกห้องเย็น" && T_(r.dest) === "รอCheckin");
+const toMs = (v) => { if (!v) return null; const d = new Date(String(v).replace(" ", "T")); return Number.isNaN(d.getTime()) ? null : d.getTime(); };
+const OUT_KEYS = ["out_cold_date", "out_cold_date_two", "out_cold_date_three", "cs_out_cold_date", "cs_out_cold_date_two", "cs_out_cold_date_three", "cs_out_cold_date_four"];
+const IN_KEYS = ["come_cold_date", "come_cold_date_two", "come_cold_date_three", "cs_come_cold_date", "cs_come_cold_date_two", "cs_come_cold_date_three", "cs_come_cold_date_four"];
+const latest = (r, keys) => keys.map((k) => toMs(r[k])).filter((x) => x !== null).sort((a, b) => b - a)[0] ?? null;
+// the activity times printed in the message, in this order (only the ones that have a value)
+const ACTIVITY = [
+  ["cooked_date", "ต้ม/อบเสร็จ"], ["rmit_date", "เตรียมเสร็จ"], ["qc_date", "QC ตรวจ"],
+  ["come_cold_date", "เข้าห้องเย็น 1"], ["out_cold_date", "ออกห้องเย็น 1"],
+  ["come_cold_date_two", "เข้าห้องเย็น 2"], ["out_cold_date_two", "ออกห้องเย็น 2"],
+  ["come_cold_date_three", "เข้าห้องเย็น 3"], ["out_cold_date_three", "ออกห้องเย็น 3"],
+  ["cs_come_cold_date", "เข้าห้องเย็นใหญ่ 1"], ["cs_out_cold_date", "ออกห้องเย็นใหญ่ 1"],
+  ["cs_come_cold_date_two", "เข้าห้องเย็นใหญ่ 2"], ["cs_out_cold_date_two", "ออกห้องเย็นใหญ่ 2"],
+];
+const p2 = (n) => String(n).padStart(2, "0");
+const fmtAt = (ms) => { const d = new Date(ms); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear() + 543} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} ชม. ${m % 60} นาที` : `${m} นาที`);
+
+/** one block per row, every field on its own line */
+const transitBlock = (r, outMs, extra) => {
+  const rows = [
+    `mat name : ${r.mat_name || "-"}`,
+    `mat : ${r.mat || "-"}`,
+    `batch : ${r.batch_after || r.batch || "-"}`,
+  ];
+  if (r.tro_id) rows.push(`รถเข็น : ${r.tro_id}`);
+  if (r.code || r.production) rows.push(`แผนผลิต : ${r.code || r.production}`);
+  rows.push(`สถานะ : ${[T_(r.stay_place), T_(r.dest)].filter(Boolean).join(" → ") || "-"}`);
+  rows.push("ช่วงเวลากิจกรรมต่างๆของวัตถุดิบ :");
+  ACTIVITY.forEach(([k, label]) => { const ms = toMs(r[k]); if (ms !== null) rows.push(`  - ${label} : ${fmtAt(ms)}`); });
+  if (outMs !== null && !ACTIVITY.some(([k]) => toMs(r[k]) === outMs)) rows.push(`  - ออกห้องเย็น : ${fmtAt(outMs)}`);
+  rows.push(extra);
+  rows.push(`รายการ : ${r.mapping_id}`);
+  return rows.join("\n");
+};
+
+const joinBlocks = (title, blocks, c) => {
+  const footer = c.link ? `\n\nดูตาราง: ${c.link}` : "";
+  let text = title; let left = 0;
+  blocks.forEach((b) => {
+    const add = `\n━━━━━━━━━━\n${b}`;
+    if (text.length + add.length + footer.length + 60 > MAX_CHARS) left += 1; else text += add;
+  });
+  if (left) text += `\n…และอีก ${left} รายการ`;
+  return { type: "text", text: text + footer };
+};
+
+/**
+ * state.transit = { mapping_id: { out: ms, alerted: bool } }
+ * returns { next, messages }
+ */
+const transitCheck = (rows, prevTransit, now, c, baseline) => {
+  const limitMs = c.transitMin * 60000;
+  const next = {};
+  const late = [];
+  const arrived = [];
+  const byId = new Map(rows.map((r) => [String(r.mapping_id), r]));
+  rows.forEach((r) => {
+    if (!isTransit(r)) return;
+    const id = String(r.mapping_id);
+    const old = prevTransit[id];
+    const out = old?.out ?? latest(r, OUT_KEYS) ?? now;   // no out time recorded: start counting now
+    const over = now - out >= limitMs;
+    const alerted = !!old?.alerted || (baseline && over);   // first run: remember, do not flood the group
+    if (over && !alerted) late.push({ r, out });
+    next[id] = { out, alerted: alerted || over };
+  });
+  // rows that were on the way and are not any more = received (or moved elsewhere)
+  Object.entries(prevTransit).forEach(([id, t]) => {
+    if (next[id]) return;
+    const r = byId.get(id);
+    if (!r) return;                                     // left the list (finished / deleted): nothing to say
+    const come = latest(r, IN_KEYS);
+    const at = come !== null && come >= t.out ? come : now;
+    const took = Math.round((at - t.out) / 60000);
+    if (took > c.transitMin) arrived.push({ r, out: t.out, took, at });
+  });
+  const messages = [];
+  if (late.length) {
+    messages.push(joinBlocks(`🚚 แจ้งเตือน: ออกห้องเย็นแล้วยังไม่เข้าห้องเย็นใหญ่ เกิน ${c.transitMin} นาที (${late.length} รายการ)`,
+      late.map(({ r, out }) => transitBlock(r, out, `ผ่านไปแล้ว : ${fmtMin(Math.round((now - out) / 60000))} (เกินเกณฑ์ ${c.transitMin} นาที)`)), c));
+  }
+  if (arrived.length) {
+    messages.push(joinBlocks(`✅ รับเข้าห้องเย็นใหญ่แล้ว แต่ใช้เวลาเกิน ${c.transitMin} นาที (${arrived.length} รายการ)`,
+      arrived.map(({ r, out, took, at }) => transitBlock(r, out, `รับเข้า : ${fmtAt(at)}\nใช้เวลาออก→เข้า : ${fmtMin(took)}`)), c));
+  }
+  return { next, messages };
+};
+
 const STALE_STATE_MS = (parseInt(process.env.DELAY_ALERT_STALE_MIN, 10) || 30) * 60000;
 let libPromise = null;
 const loadLib = () => { if (!libPromise) libPromise = import("./lib/dbs.mjs"); return libPromise; };
@@ -147,9 +244,24 @@ const runOnce = async (now = Date.now()) => {
     toSend = [];
   }
   let sent = 0;
+  // ออกห้องเย็น → ห้องเย็นใหญ่ เกินเวลา (ข้อความแยก ไม่ผูกกับการหน่วงของข้อความเปลี่ยนสี)
+  let transitNext = prev?.transit || {};
+  if (c.transitMin > 0) {
+    const tr = transitCheck(res.data.mappings || [], prev?.transit || {}, now, c, baseline);
+    if (tr.messages.length) {
+      if (!c.token || !c.group) {
+        console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือนห้องเย็นใหญ่");
+      } else {
+        await push(tr.messages.slice(0, 5), c);
+        console.log(`✅ [delayAlert] ส่งแจ้งเตือนออกห้องเย็น→ห้องเย็นใหญ่ ${tr.messages.length} ข้อความ`);
+        transitNext = tr.next;
+      }
+    } else transitNext = tr.next;
+  }
   if (toSend.length) {
     if (!c.token || !c.group) {
       console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
+      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext });
       return { sent: 0, summary: false };
     }
     const title = summaryDue
@@ -159,7 +271,7 @@ const runOnce = async (now = Date.now()) => {
     sent = toSend.length;
     console.log(`✅ [delayAlert] ส่ง${summaryDue ? "สรุป" : "แจ้งเตือน"} ${sent} รายการ`);
   }
-  writeState(c.stateFile, { savedAt: now, levels: next, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), immediateAt: sent > 0 ? now : (prev?.immediateAt || 0) });
+  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), immediateAt: sent > 0 ? now : (prev?.immediateAt || 0) });
   return { sent, summary: summaryDue && sent > 0 };
 };
 
@@ -188,4 +300,4 @@ const start = () => {
 };
 
 if (require.main === module) start();
-module.exports = { runOnce, levelOf, buildMessages };
+module.exports = { runOnce, levelOf, buildMessages, transitCheck, isTransit };

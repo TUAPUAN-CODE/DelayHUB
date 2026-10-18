@@ -3,6 +3,9 @@
 //   inside the cold room:  from the kg going in until they come out (limit 24 h) — kg that left in several steps are matched first-in-first-out
 export const LIMIT_OUTSIDE_MIN = 120;
 export const LIMIT_INSIDE_MIN = 24 * 60;
+// lid of the container opened while in the cold room: from then on it must leave the cold room within 12 h
+// (and still within the 24 h of the cold room) — the lid has to be opened within those 24 h
+export const LIMIT_AFTER_LID_MIN = 12 * 60;
 // after the cold room: packing must be done within what is left of the whole outside time (2 h before + 2 h after = 4 h),
 // so time used before the cold room is taken from the time after it (used 1 h before -> 3 h left; used 3 h -> 1 h left)
 export const LIMIT_OUTSIDE_TOTAL_MIN = 2 * LIMIT_OUTSIDE_MIN;
@@ -24,9 +27,17 @@ const packWindow = (prep, inAt, outAt) => {
   return { prepAt: prep, prepMin, packLeftMin, packBy: outAt + packLeftMin * 60000 };
 };
 const RANK = { green: 0, yellow: 1, red: 2 };
+/** cold room limit of kg that went in at inAt: 24 h, or until 12 h after the lid was opened (whichever comes first) */
+export const coldLimitOf = (inAt, lidAt) => {
+  if (lidAt === null || lidAt === undefined || Number.isNaN(lidAt)) return { limit: LIMIT_INSIDE_MIN, lidAt: null };
+  const effLid = Math.max(lidAt, inAt);
+  const deadline = Math.min(inAt + LIMIT_INSIDE_MIN * 60000, effLid + LIMIT_AFTER_LID_MIN * 60000);
+  return { limit: Math.max(0, (deadline - inAt) / 60000), lidAt: effLid, deadline };
+};
 
 export const calcLot = (lot, now = Date.now()) => {
   const prep = ms(lot.prep_done_at);
+  const lid = lot.lid_open_at ? ms(lot.lid_open_at) : null;
   const weight = Number(lot.weight_kg);
   const ins = lot.moves.filter((m) => m.kind === "IN").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
   const outs = lot.moves.filter((m) => m.kind === "OUT").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
@@ -44,16 +55,16 @@ export const calcLot = (lot, now = Date.now()) => {
     while (need > 1e-9 && queue.length) {
       const head = queue[0];
       const take = Math.min(head.kg, need);
-      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, minutes: Math.max(0, (o.at - head.at) / 60000), running: false, ...packWindow(prep, head.at, o.at) });
+      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, minutes: Math.max(0, (o.at - head.at) / 60000), running: false, ...packWindow(prep, head.at, o.at), ...coldLimitOf(head.at, lid !== null && lid <= o.at ? lid : null) });
       head.kg = r2(head.kg - take);
       need = r2(need - take);
       if (head.kg <= 1e-9) queue.shift();
     }
   });
-  queue.forEach((q) => coldChunks.push({ kg: q.kg, inAt: q.at, outAt: null, minutes: Math.max(0, (now - q.at) / 60000), running: true }));
+  queue.forEach((q) => coldChunks.push({ kg: q.kg, inAt: q.at, outAt: null, minutes: Math.max(0, (now - q.at) / 60000), running: true, ...coldLimitOf(q.at, lid) }));
 
   outsideChunks.forEach((c) => { c.level = levelOf(c.minutes, LIMIT_OUTSIDE_MIN); });
-  coldChunks.forEach((c) => { c.level = levelOf(c.minutes, LIMIT_INSIDE_MIN); });
+  coldChunks.forEach((c) => { c.level = c.limit > 0 ? levelOf(c.minutes, c.limit) : "red"; });
 
   const inCold = r2(queue.reduce((s, q) => s + q.kg, 0));
   const outKg = r2(outs.reduce((s, o) => s + o.kg, 0));
@@ -61,7 +72,7 @@ export const calcLot = (lot, now = Date.now()) => {
   const worst = all.reduce((w, c) => (RANK[c.level] > RANK[w] ? c.level : w), "green");
   const done = unplaced === 0 && inCold === 0;
   const oldest = (list) => list.filter((c) => c.running).reduce((m, c) => (c.minutes > (m?.minutes ?? -1) ? c : m), null);
-  return { weight, unplaced, inCold, outKg, outsideChunks, coldChunks, worst, done, runningOutside: oldest(outsideChunks), runningCold: oldest(coldChunks) };
+  return { lid, weight, unplaced, inCold, outKg, outsideChunks, coldChunks, worst, done, runningOutside: oldest(outsideChunks), runningCold: oldest(coldChunks) };
 };
 
 /** "yyyy-MM-dd HH:mm:ss" (Thai time, as the server sends it) -> ms */

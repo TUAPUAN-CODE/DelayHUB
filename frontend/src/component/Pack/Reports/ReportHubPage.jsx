@@ -3,7 +3,6 @@ import { Box, ToggleButton, ToggleButtonGroup, TextField, Button, Typography, Pa
 import { LockOutlined } from "@mui/icons-material";
 import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
-import ReportUser from "../ReportRawmatNotEditTIME/Asset/ParentComponent";
 import ReportHistory from "../ReportPull/Asset/ParentComponent";
 import ReportSup from "../ReportRawmatEditTIME/Asset/ParentComponent";
 
@@ -15,8 +14,8 @@ const readUnlocked = () => {
   try { return sessionStorage.getItem(UNLOCK_KEY) === "1"; } catch { return false; }
 };
 
+// แท็บ "Report" (ผู้ใช้) ถูกตัดออก: ออกรายงาน Delay (PDF / Excel F3PFPV04) จากหน้า "ดำเนินการเสร็จสิ้น" แทน
 const VIEWS = [
-  { key: "report", label: "Report" },
   { key: "history", label: "ประวัติ Report" },
   { key: "sup", label: "Report (หัวหน้า / แก้ไขเวลา)" },
 ];
@@ -55,8 +54,8 @@ const PasswordGate = ({ onUnlock }) => {
   );
 };
 
-const ReportHubPage = ({ initialView = "report" }) => {
-  const [view, setView] = useState(initialView);
+const ReportHubPage = ({ initialView = "history" }) => {
+  const [view, setView] = useState(VIEWS.some((v) => v.key === initialView) ? initialView : "history");
   const [unlocked, setUnlocked] = useState(readUnlocked());
 
   return (
@@ -83,7 +82,6 @@ const ReportHubPage = ({ initialView = "report" }) => {
           </ToggleButtonGroup>
         </Box>
 
-        {view === "report" && <ReportUser />}
         {view === "history" && <ReportHistory />}
         {view === "sup" && (unlocked ? <ReportSup /> : <PasswordGate onUnlock={() => setUnlocked(true)} />)}
       </main>

@@ -40,6 +40,9 @@ async function ensureTables(pool) {
       );
       CREATE INDEX IX_OtherLotMove_lot ON dbo.OtherLotMove (lot_id);
     END
+    -- เวลาเปิดฝา (เปิดแล้วต้องออกห้องเย็นภายใน 12 ชม.)
+    IF COL_LENGTH(N'dbo.OtherLot', N'lid_open_at') IS NULL
+      ALTER TABLE dbo.OtherLot ADD lid_open_at DATETIME NULL;
   `);
   tablesChecked = true;
   console.log("✅ [Other] ตรวจ/สร้างตาราง OtherLot, OtherLotMove เรียบร้อย");
@@ -77,7 +80,7 @@ router.get("/other/lots", async (req, res) => {
     await ensureTables(pool);
     const withClosed = req.query.closed === "1";
     const lots = await pool.request().query(`
-      SELECT TOP (500) lot_id, lot_name, ref_code, weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, note, closed, created_by
+      SELECT TOP (500) lot_id, lot_name, ref_code, weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, CONVERT(VARCHAR(19), lid_open_at, 120) AS lid_open_at, note, closed, created_by
       FROM OtherLot WITH (NOLOCK)
       ${withClosed ? "" : "WHERE closed = 0"}
       ORDER BY lot_id DESC
@@ -169,6 +172,40 @@ router.post("/other/lots/:id/move", async (req, res) => {
   } catch (err) {
     if (transaction) { try { await safeRollback(transaction); } catch (e) { /* already closed */ } }
     console.error("[Route /other/lots/:id/move] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// stamp "lid opened" (once per lot): { opened_at? (empty = now), user? }
+//   only while kg are in the cold room, not before they went in, not in the future
+router.post("/other/lots/:id/lid", async (req, res) => {
+  try {
+    const lotId = parseInt(req.params.id, 10);
+    const typed = req.body.opened_at;
+    if (Number.isNaN(lotId)) return res.status(400).json({ success: false, error: "ข้อมูลไม่ถูกต้อง" });
+    if (typed && !parseDate(typed)) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureTables(pool);
+    const now = await dbNow(pool.request());
+    const at = typed ? parseDate(typed) : now;
+    if (at.getTime() > now.getTime() + FUTURE_MS) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นอนาคต" });
+    const lot = await pool.request().input("id", sql.Int, lotId).query(`
+      SELECT l.closed, l.lid_open_at,
+             (SELECT CONVERT(VARCHAR(19), MIN(moved_at), 120) FROM OtherLotMove m WHERE m.lot_id = l.lot_id AND m.kind = 'IN') AS first_in,
+             (SELECT ISNULL(SUM(CASE WHEN kind = 'IN' THEN qty_kg ELSE -qty_kg END), 0) FROM OtherLotMove m WHERE m.lot_id = l.lot_id) AS in_cold
+      FROM OtherLot l WHERE l.lot_id = @id`);
+    const l = lot.recordset[0];
+    if (!l) return res.status(404).json({ success: false, error: "ไม่พบรายการ" });
+    if (l.closed) return res.status(400).json({ success: false, error: "รายการนี้ปิดแล้ว" });
+    if (l.lid_open_at) return res.status(400).json({ success: false, error: "บันทึกเปิดฝาไปแล้ว" });
+    if (!(Number(l.in_cold) > 0) || !l.first_in) return res.status(400).json({ success: false, error: "ยังไม่มีวัตถุดิบในห้องเย็น" });
+    if (at < parseDate(l.first_in)) return res.status(400).json({ success: false, error: "เวลาเปิดฝาต้องไม่ก่อนเวลาเข้าห้องเย็น" });
+    await pool.request().input("id", sql.Int, lotId).input("at", sql.VarChar(19), thaiText(at))
+      .query("UPDATE OtherLot SET lid_open_at = CONVERT(DATETIME, @at, 120) WHERE lot_id = @id AND lid_open_at IS NULL");
+    res.json({ success: true, message: "บันทึกเปิดฝาสำเร็จ", lid_open_at: thaiText(at) });
+  } catch (err) {
+    console.error("[Route /other/lots/:id/lid] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

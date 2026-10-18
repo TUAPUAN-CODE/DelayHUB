@@ -17,6 +17,9 @@ import {
   BarChart, TableChart,
 } from '@mui/icons-material';
 
+import { registerEditor } from '../../../Layout/DataGrid/settingsBus';
+import UnlockDialog, { hasUnlock } from '../../../Sheet/Asset/UnlockDialog';
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const SHIFTS    = ['DS', 'NS'];
@@ -1930,8 +1933,15 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty }) => 
 };
 
 // ─── Document Detail View ──────────────────────────────────────────────────────
-const DocumentDetailView = ({ report, onBack, isDone }) => {
+// ฟิลด์ที่แก้ในตารางได้ตอนเปิดโหมดแก้ไข (ปุ่ม "แก้ไขข้อมูล" บนแถบด้านบน) — ตรงกับ PUT /api/pack/pkg/details/:id
+const INLINE_INT_FIELDS = ['qty_received', 'qty_used', 'qty_damaged', 'qty_remaining'];
+const inlineInputSx = { '& .MuiInputBase-root': { fontSize: '12px', backgroundColor: '#FFF8E1' }, '& input': { py: 0.5, px: 0.75 } };
+
+const DocumentDetailView = ({ report, onBack, isDone, editMode = false }) => {
   const { t } = useLang();
+  const [drafts,      setDrafts]      = useState({}); // { detail_id: { field: value } }
+  const [savingEdits, setSavingEdits] = useState(false);
+  const [codeOptions, setCodeOptions] = useState([]);
   const [details,     setDetails]     = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [saving,      setSaving]      = useState(false);
@@ -1968,6 +1978,73 @@ const DocumentDetailView = ({ report, onBack, isDone }) => {
     setTimeout(() => scanRef.current?.focus(), 100);
   }, [fetchDetails]);
 
+  // Code มาจากระบบ (แผนผลิต): เลือกจากรายการเท่านั้น
+  useEffect(() => {
+    if (!editMode) { setDrafts({}); return; }
+    axios.get(`${API_URL}/api/sheet/edit-options`, { params: { field: 'prodcode' } })
+      .then(res => setCodeOptions((res.data?.data || []).map(o => String(o.value))))
+      .catch(err => console.error('code options error:', err));
+  }, [editMode]);
+
+  const draftVal = (d, f) => (drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : d[f]);
+  const setDraft = (d, f, v) => setDrafts(prev => {
+    const row = { ...(prev[d.detail_id] || {}) };
+    const orig = d[f] === null || d[f] === undefined ? '' : (['start_time', 'stop_time'].includes(f) ? fmtDT(d[f]) : String(d[f]));
+    if (String(v ?? '') === orig || (orig === '-' && !v)) delete row[f]; else row[f] = v;
+    const next = { ...prev };
+    if (Object.keys(row).length) next[d.detail_id] = row; else delete next[d.detail_id];
+    return next;
+  });
+  const changedCount = Object.keys(drafts).length;
+
+  const saveEdits = async () => {
+    // ตรวจชนิดข้อมูลก่อนบันทึก: จำนวนต้องเป็นจำนวนเต็ม ≥ 0, เวลาเลิกใช้ต้องไม่ก่อนเวลาเริ่ม
+    for (const [id, row] of Object.entries(drafts)) {
+      const d = details.find(x => String(x.detail_id) === String(id));
+      for (const f of INLINE_INT_FIELDS) {
+        if (f in row && row[f] !== '' && row[f] !== null && !/^\d+$/.test(String(row[f]).trim())) {
+          alert(`แถว #${details.indexOf(d) + 1}: ${f} ต้องเป็นจำนวนเต็ม`); return;
+        }
+      }
+      const st = 'start_time' in row ? row.start_time : (d?.start_time ? fmtDT(d.start_time) : '');
+      const sp = 'stop_time' in row ? row.stop_time : (d?.stop_time ? fmtDT(d.stop_time) : '');
+      if (st && sp && sp < st) { alert(`แถว #${details.indexOf(d) + 1}: เวลาเลิกใช้ต้องไม่ก่อนเวลาเริ่มใช้`); return; }
+    }
+    setSavingEdits(true);
+    try {
+      for (const [id, row] of Object.entries(drafts)) {
+        const payload = {};
+        Object.entries(row).forEach(([f, v]) => {
+          if (INLINE_INT_FIELDS.includes(f)) payload[f] = v === '' || v === null ? null : Number(v);
+          else payload[f] = v === '' ? null : v;
+        });
+        await axios.put(`${API_URL}/api/pack/pkg/details/${id}`, payload);
+      }
+      setDrafts({});
+      await fetchDetails();
+      alert(`บันทึกการแก้ไขแล้ว ${changedCount} แถว`);
+    } catch (err) {
+      alert(t('msg.saveFailed') + (err.response?.data?.error || err.message));
+    } finally { setSavingEdits(false); }
+  };
+
+  // เซลล์แก้ไขได้ในโหมดแก้ไข
+  const textEditor = (d, f, width = 110) => (
+    <TextField size="small" value={draftVal(d, f) ?? ''} onChange={e => setDraft(d, f, e.target.value)} sx={{ ...inlineInputSx, width }} />
+  );
+  const intEditor = (d, f) => (
+    <TextField size="small" value={draftVal(d, f) ?? ''} onChange={e => setDraft(d, f, e.target.value.replace(/[^0-9]/g, ''))}
+      inputProps={{ inputMode: 'numeric' }} sx={{ ...inlineInputSx, width: 80 }} />
+  );
+  const timeEditor = (d, f) => {
+    const v = drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : (d[f] ? fmtDT(d[f]) : '');
+    return <Box sx={{ backgroundColor: '#FFF8E1', borderRadius: 1, p: 0.25 }}><DateTimeEditor value={v} onChange={nv => setDraft(d, f, nv)} /></Box>;
+  };
+  const codeEditor = (d) => (
+    <Autocomplete size="small" options={codeOptions} value={draftVal(d, 'code') || null}
+      onChange={(_e, v) => setDraft(d, 'code', v || '')} sx={{ width: 190, ...inlineInputSx }}
+      renderInput={params => <TextField {...params} placeholder="เลือก Code" />} noOptionsText="ไม่พบ Code" />
+  );
   const handleStartScan = async (raw) => {
     const slipId = String(raw).trim();
     if (!slipId || scanLockRef.current) return;
@@ -2110,6 +2187,20 @@ const DocumentDetailView = ({ report, onBack, isDone }) => {
         )}
       </Box>
 
+      {editMode && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, backgroundColor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFB74D', flexWrap: 'wrap' }}>
+          <Edit sx={{ color: '#E65100' }} />
+          <Typography sx={{ fontSize: '13px', fontWeight: 'bold', color: '#E65100', flex: 1 }}>
+            โหมดแก้ไข: แก้ Code / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก {changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
+          </Typography>
+          <Button size="small" onClick={() => setDrafts({})} disabled={!changedCount || savingEdits}>ยกเลิกการแก้ไข</Button>
+          <Button size="small" variant="contained" color="warning" onClick={saveEdits} disabled={!changedCount || savingEdits}
+            startIcon={savingEdits ? <CircularProgress size={12} color="inherit" /> : <CheckCircle />}>
+            บันทึกการแก้ไข
+          </Button>
+        </Box>
+      )}
+
       <Paper sx={{ p: 1.5, mb: 2, backgroundColor: '#f0f7ff', borderRadius: '8px', border: '1px solid #bbdefb' }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, fontSize: '12px', color: '#333' }}>
           {[[t('col.date'), fmtDate(report.report_date)], [t('col.shift'), report.shift], [t('col.plant'), report.plant],
@@ -2160,9 +2251,9 @@ const DocumentDetailView = ({ report, onBack, isDone }) => {
                 </TableRow>
               ) : details.map((d, i) => (
                 <TableRow key={d.detail_id}
-                  sx={{ backgroundColor: i % 2 === 0 ? '#fff' : '#f9f9f9', '&:hover': { backgroundColor: '#e3f2fd' } }}>
+                  sx={{ backgroundColor: drafts[d.detail_id] ? '#FFF3E0' : i % 2 === 0 ? '#fff' : '#f9f9f9', '&:hover': { backgroundColor: '#e3f2fd' } }}>
                   <TableCell sx={{ ...cellSx, color: '#888' }}>{i + 1}</TableCell>
-                  <TableCell sx={cellSx}>{d.code || '-'}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? codeEditor(d) : (d.code || '-')}</TableCell>
                   <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{d.material_no || '-'}</TableCell>
                   <TableCell sx={cellSx}>{d.lot_no || '-'}</TableCell>
                   <TableCell sx={cellSx}>{d.box_no || '-'}</TableCell>
@@ -2170,15 +2261,17 @@ const DocumentDetailView = ({ report, onBack, isDone }) => {
                   <TableCell sx={cellSx}>{fmtDate(d.receive_date)}</TableCell>
                   <TableCell sx={cellSx}>{d.batch_no || '-'}</TableCell>
                   <TableCell sx={cellSx}>{d.hu_no || '-'}</TableCell>
-                  {pouch && POUCH_FIELDS_MID.map(f => (
-                    <PouchCell key={f} value={d[f]} field={f} isDate={POUCH_DATE_FIELDS.includes(f)} disabled={isDone} onClick={() => setEditDetail(d)} />
+                  {pouch && POUCH_FIELDS_MID.map(f => (editMode
+                    ? <TableCell key={f} sx={cellSx}>{textEditor(d, f, 90)}</TableCell>
+                    : <PouchCell key={f} value={d[f]} field={f} isDate={POUCH_DATE_FIELDS.includes(f)} disabled={isDone} onClick={() => setEditDetail(d)} />
                   ))}
-                  <TableCell sx={{ ...cellSx, color: d.start_time ? '#2e7d32' : '#ccc', fontFamily: 'monospace', fontSize: '11px' }}>{fmtDT(d.start_time)}</TableCell>
-                  <TableCell sx={{ ...cellSx, color: d.stop_time ? '#c62828' : '#ccc', fontFamily: 'monospace', fontSize: '11px' }}>{fmtDT(d.stop_time)}</TableCell>
+                  <TableCell sx={{ ...cellSx, color: d.start_time ? '#2e7d32' : '#ccc', fontFamily: 'monospace', fontSize: '11px' }}>{editMode ? timeEditor(d, 'start_time') : fmtDT(d.start_time)}</TableCell>
+                  <TableCell sx={{ ...cellSx, color: d.stop_time ? '#c62828' : '#ccc', fontFamily: 'monospace', fontSize: '11px' }}>{editMode ? timeEditor(d, 'stop_time') : fmtDT(d.stop_time)}</TableCell>
                   <TableCell sx={{ ...cellSx, textAlign: 'center' }}>{d.qty ?? '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.remark || '-'}</TableCell>
-                  {showQty && POUCH_FIELDS_END.map(f => (
-                    <PouchCell key={f} value={d[f]} field={f} disabled={isDone} onClick={() => setEditDetail(d)} />
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'remark', 160) : (d.remark || '-')}</TableCell>
+                  {showQty && POUCH_FIELDS_END.map(f => (editMode
+                    ? <TableCell key={f} sx={cellSx}>{intEditor(d, f)}</TableCell>
+                    : <PouchCell key={f} value={d[f]} field={f} disabled={isDone} onClick={() => setEditDetail(d)} />
                   ))}
                   <TableCell sx={{ ...cellSx, whiteSpace: 'nowrap', minWidth: 160, py: 0.6 }}>
                     {!isDone && (
@@ -2235,6 +2328,16 @@ const TableMainPrep = () => {
   const [createOpen,     setCreateOpen]     = useState(false);
   const [editReport,     setEditReport]     = useState(null);
   const [pwdDialog,      setPwdDialog]      = useState({ open: false, onConfirm: null });
+  // ปุ่ม "แก้ไขข้อมูล" บนแถบด้านบน (เหมือนหน้า /prep): ใส่รหัสผ่านครั้งเดียว แล้วแก้ข้อมูลในตารางของเอกสารได้เลย
+  const [editMode,       setEditMode]       = useState(false);
+  const [unlockAsk,      setUnlockAsk]      = useState(false);
+  useEffect(() => registerEditor({
+    on: editMode,
+    toggle: () => {
+      if (editMode) { setEditMode(false); return; }
+      if (hasUnlock()) setEditMode(true); else setUnlockAsk(true);
+    },
+  }), [editMode]);
 
   const [activeFilters,            setActiveFilters]            = useState(EMPTY_FILTERS);
   const [doneFilters,              setDoneFilters]              = useState(EMPTY_FILTERS);
@@ -2421,7 +2524,7 @@ const TableMainPrep = () => {
   let content;
   if (view === 'detail' && selectedReport) {
     content = (
-      <DocumentDetailView report={selectedReport} onBack={handleBack} isDone={selectedReport.status === 'done'} />
+      <DocumentDetailView report={selectedReport} onBack={handleBack} isDone={selectedReport.status === 'done'} editMode={editMode} />
     );
   } else {
     content = (
@@ -2540,6 +2643,12 @@ const TableMainPrep = () => {
 
   return (
     <LanguageContext.Provider value={{ lang, t, setLang }}>
+      {editMode && view !== 'detail' && (
+        <Box sx={{ mb: 1.5, p: 1, backgroundColor: '#FFF3E0', border: '1px solid #FFB74D', borderRadius: '8px', fontSize: '13px', color: '#E65100', fontWeight: 'bold' }}>
+          โหมดแก้ไขเปิดอยู่ — กดเปิดเอกสารที่ต้องการ แล้วแก้ข้อมูลในตารางได้เลย (แก้หัวเอกสารใช้ปุ่มดินสอในรายการ)
+        </Box>
+      )}
+      <UnlockDialog open={unlockAsk} onClose={() => setUnlockAsk(false)} onUnlocked={() => { setUnlockAsk(false); setEditMode(true); }} />
       {content}
     </LanguageContext.Provider>
   );

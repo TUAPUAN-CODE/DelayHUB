@@ -54,7 +54,8 @@ const OutSlip = ({ slip, onClose }) => {
             <Box key={i} sx={{ pb: 0.5, ...(i ? { borderTop: "1px dashed #bbb", pt: 0.5 } : {}) }}>
               {chunks.length > 1 && <div style={{ fontWeight: 700, fontSize: 13 }}>ส่วนที่ {i + 1}: {c.kg} kg</div>}
               <Step no={1} title="เตรียมเสร็จ → เข้าห้องเย็น" limit={fmtThaiMin(LIMIT_OUTSIDE_MIN)} from={c.prepAt} to={c.inAt} minutes={c.prepMin} limitMin={LIMIT_OUTSIDE_MIN} />
-              <Step no={2} title="ในห้องเย็น" limit={fmtThaiMin(LIMIT_INSIDE_MIN)} from={c.inAt} to={c.outAt} minutes={c.minutes} limitMin={LIMIT_INSIDE_MIN} />
+              <Step no={2} title={c.lidAt ? "ในห้องเย็น (เปิดฝาแล้ว)" : "ในห้องเย็น"} limit={fmtThaiMin(c.limit ?? LIMIT_INSIDE_MIN)} from={c.inAt} to={c.outAt} minutes={c.minutes} limitMin={c.limit ?? LIMIT_INSIDE_MIN} />
+              {c.lidAt ? <div style={{ fontSize: 11.5, color: "#555" }}>เปิดฝา {fmtAt(c.lidAt)} → ต้องออกภายใน 12 ชม (ไม่เกิน 24 ชม นับจากเข้าห้องเย็น)</div> : null}
               <Box sx={{ py: 0.5 }}>
                 <div style={{ fontWeight: 700, fontSize: 12.5 }}>3. ออกห้องเย็น → บรรจุเสร็จ <span style={{ fontWeight: 500 }}>· คุม {fmtThaiMin(c.packLeftMin)}</span></div>
                 <div style={{ fontSize: 11.5, color: "#555" }}>

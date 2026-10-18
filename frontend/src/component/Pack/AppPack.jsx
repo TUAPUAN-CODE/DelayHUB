@@ -55,7 +55,7 @@ function AppPack() {
         <Route path="/CheckInPagePack" element={<Navigate to="/packaging/Sheet" replace />} />
         <Route path="/Pull_History" element={<Pull_History />} />
         <Route path="/ReportPull" element={<ReportHubPage initialView="history" />} />
-        <Route path="/ReportRawmatPackuser" element={<ReportHubPage initialView="report" />} />
+        <Route path="/ReportRawmatPackuser" element={<Navigate to="/packaging/Sheet?view=done" replace />} />
         {/* หน้าเดิมที่รวมเข้าตาราง Delay แล้ว */}
         <Route path="/TrackTrolley" element={<Navigate to="/packaging/Sheet" replace />} />
         <Route path="/CheckOut" element={<Navigate to="/packaging/Sheet" replace />} />

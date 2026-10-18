@@ -18,8 +18,11 @@ const readWidth = () => {
   }
 };
 
-const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
-  const [tab, setTab] = useState(0);
+// extraTabs: [{ key, label, render(row) }] แท็บเพิ่มของหน้านั้นๆ (เช่น "ผสมจาก") · ไม่มีเครื่องมือ = ไม่แสดงแท็บเครื่องมือ
+const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight, extraTabs = [] }) => {
+  const tabs = [...(tools ? [{ key: "tools", label: "เครื่องมือ" }] : []), { key: "detail", label: "รายละเอียด" }, ...extraTabs];
+  const [tabKey, setTabKey] = useState(tabs[0].key);
+  const tab = tabs.some((t) => t.key === tabKey) ? tabKey : tabs[0].key;
   const [width, setWidth] = useState(readWidth);
   const drag = useRef(null);
 
@@ -61,15 +64,15 @@ const DetailPanel = ({ row, columns, tools, narrow, fill, maxHeight }) => {
         />
       )}
       <Paper variant="outlined" sx={{ flex: 1, minWidth: 0, borderRadius: "16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ minHeight: 40, borderBottom: "1px solid #E3E9F6", flexShrink: 0, "& .MuiTab-root": { minHeight: 40, textTransform: "none", fontWeight: 700 } }}>
-          <Tab label="เครื่องมือ" />
-          <Tab label="รายละเอียด" />
+        <Tabs value={tab} onChange={(_, v) => setTabKey(v)} variant="fullWidth" sx={{ minHeight: 40, borderBottom: "1px solid #E3E9F6", flexShrink: 0, "& .MuiTab-root": { minHeight: 40, textTransform: "none", fontWeight: 700 } }}>
+          {tabs.map((t) => <Tab key={t.key} value={t.key} label={t.label} />)}
         </Tabs>
         <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-          {tab === 1 && (row
+          {extraTabs.map((t) => (tab === t.key ? <Box key={t.key}>{row ? t.render(row) : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางก่อน</Typography>}</Box> : null))}
+          {tab === "detail" && (row
             ? <RowDetail row={row} columns={columns} />
             : <Typography sx={{ p: 2, color: "#90A4AE" }}>คลิกแถวในตารางเพื่อดูรายละเอียดทั้งหมดของแถวนั้น</Typography>)}
-          {tab === 0 && (
+          {tab === "tools" && (
             <Box sx={{
               p: 1.5,
               // เรียงทีละแถว: ข้อความ/ปุ่มแต่ละอันเต็มความกว้างของกล่อง

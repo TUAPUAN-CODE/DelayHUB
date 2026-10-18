@@ -3,7 +3,11 @@ import axios from "axios";
 import { Alert, Box, Button, MenuItem, Paper, Select, TextField } from "@mui/material";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import { buildRows } from "./buildRows";
-import { DEFAULT_EXT, rowColorOf } from "./ColorSettings";
+import { DEFAULT_EXT } from "./ColorSettings";
+import HamsterLoader from "../../Layout/DataGrid/HamsterLoader";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import DoneExportDialog from "./DoneExportDialog";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -24,6 +28,8 @@ const DonePanel = ({ gridKey, gridProps }) => {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeKey, setActiveKey] = useState(null);
+  const [exportKind, setExportKind] = useState(null); // "pdf" | "excel"
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -70,21 +76,31 @@ const DonePanel = ({ gridKey, gridProps }) => {
           {[500, 2000, 5000, 10000].map((n) => <MenuItem key={n} value={n}>สูงสุด {n.toLocaleString()} แถว</MenuItem>)}
         </Select>
         <Button variant="contained" onClick={search} disabled={loading || (!!from && !!to && from > to)}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
+        <Box sx={{ flex: 1 }} />
+        <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
+        <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
       </Paper>
+      <DoneExportDialog open={!!exportKind} kind={exportKind} rows={mappings || []} onClose={() => setExportKind(null)} />
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (
         <Alert severity="warning" sx={{ mb: 1 }}>ข้อมูลถึงเพดาน {info.limit.toLocaleString()} แถว อาจยังมีแถวที่ไม่ได้แสดง — ลดช่วงวันที่หรือใส่คำค้นให้แคบลง หรือเพิ่มจำนวนสูงสุด</Alert>
       )}
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         <div style={{ position: "absolute", inset: 0 }}>
-          {mappings === null ? (
+          {loading && !mappings?.length ? (
+            <Paper variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1, borderRadius: "16px" }}>
+              <HamsterLoader />
+              <span style={{ color: "#5B6B8C", fontWeight: 600 }}>กำลังดึงข้อมูลดำเนินการเสร็จสิ้น...</span>
+            </Paper>
+          ) : mappings === null ? (
             <Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
               ยังไม่ได้ดึงข้อมูล — พิมพ์คำค้น (ค้นทุกคอลัมน์ ทุกวันที่) หรือเลือกช่วงวันที่ แล้วกด "ดึงข้อมูล Done"
             </Paper>
           ) : (
             <DataGrid
-              fill gridKey={gridKey} title="Done" defaultExt={DEFAULT_EXT} rows={rows} rowKey={noKey} loading={loading} hideReload ctx={NO_TOOLS}
-              searchPlaceholder="ค้นหาในผลลัพธ์ที่ดึงมา ..." rowColor={rowColorOf} {...gridProps}
+              fill detail gridKey={gridKey} title="Done" defaultExt={DEFAULT_EXT} rows={rows} rowKey={noKey} loading={loading} hideReload ctx={NO_TOOLS}
+              activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
+              searchPlaceholder="ค้นหาในผลลัพธ์ที่ดึงมา ... (คลิกแถวแล้วกด Detail → ผสมจาก เพื่อดูว่าผสมมาจากอะไร)" {...gridProps}
             />
           )}
         </div>

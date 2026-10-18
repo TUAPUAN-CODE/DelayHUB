@@ -86,8 +86,23 @@ const EditCellDialog = ({ target, onClose, onSaved }) => {
     return value === "" ? null : value;
   }, [pick, picked, isTime, time, value]);
 
+  // ข้อมูลที่ผู้ใช้พิมพ์เอง: ตรวจชนิดและจำนวนหลักก่อนบันทึก (server ตรวจซ้ำอีกชั้น)
+  const checkTyped = () => {
+    if (pick || isTime || nextValue === null) return "";
+    const v = String(nextValue).trim();
+    if (col.key === "batch") {
+      const bad = v.toUpperCase().split(",").map((x) => x.trim()).filter(Boolean).find((x) => !/^[A-Z0-9]{10}$/.test(x));
+      return bad ? `Batch "${bad}" ต้องเป็นตัวอักษร/ตัวเลข 10 หลัก` : "";
+    }
+    if (col.key === "weight_RM") return /^\d+(\.\d{1,2})?$/.test(v) ? "" : "น้ำหนักต้องเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง";
+    if (col.key === "tray_count") return /^\d+$/.test(v) ? "" : "จำนวนถาดต้องเป็นจำนวนเต็ม";
+    return "";
+  };
+
   const save = async () => {
     if (pick && !picked) { setError("กรุณาเลือกจากรายการ"); return; }
+    const typedErr = checkTyped();
+    if (typedErr) { setError(typedErr); return; }
     setSaving(true);
     setError("");
     try {
@@ -147,7 +162,7 @@ const EditCellDialog = ({ target, onClose, onSaved }) => {
                 autoFocus size="small" label="ค่าใหม่ (เว้นว่าง = ล้างค่า)" value={value} onChange={(e) => setValue(e.target.value)}
                 type={isNumber ? "number" : "text"} InputLabelProps={{ shrink: true }}
                 inputProps={isNumber ? { min: 0, step: col.key === "tray_count" ? 1 : "any" } : { maxLength: 500 }}
-                helperText={col?.key === "batch" ? "หลาย Batch คั่นด้วยเครื่องหมาย ," : undefined}
+                helperText={col?.key === "batch" ? "Batch ละ 10 หลัก (A-Z / 0-9) · หลาย Batch คั่นด้วยเครื่องหมาย ," : col?.key === "weight_RM" ? "ตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" : col?.key === "tray_count" ? "จำนวนเต็ม" : undefined}
               />
             )}
 

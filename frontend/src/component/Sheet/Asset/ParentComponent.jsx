@@ -35,6 +35,10 @@ import PasswordGate from "./PasswordGate";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
 import { registerEditor } from "../../Layout/DataGrid/settingsBus";
 import DonePanel from "./DonePanel";
+import MixSource from "./MixSource";
+
+// แท็บ "ผสมจาก" ในกล่อง Detail (ตารางกำลังดำเนินการ และ ดำเนินการเสร็จสิ้น)
+const MIX_TABS = [{ key: "mix", label: "ผสมจาก", render: (row) => <MixSource row={row} /> }];
 import EditCellDialog, { canEditColumn } from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
@@ -580,7 +584,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
     { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined };
+  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
