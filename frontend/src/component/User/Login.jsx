@@ -141,8 +141,6 @@ const Login = () => {
         aria-hidden="true"
         sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
       />
-      {/* ฉากหลังมืด — ให้การ์ดกระจกอ่านง่าย */}
-      <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,24,60,.35) 0%, rgba(6,24,60,.75) 100%)" }} />
 
       <Box
         component="section"
@@ -155,18 +153,18 @@ const Login = () => {
           py: { xs: 4.5, sm: 5.5 },
           borderRadius: "24px",
           color: "#fff",
-          background: "linear-gradient(155deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.08) 45%, rgba(255,255,255,.14) 100%)",
-          backdropFilter: "blur(22px) saturate(140%)",
-          WebkitBackdropFilter: "blur(22px) saturate(140%)",
-          border: "1px solid rgba(255,255,255,.35)",
-          boxShadow: "0 30px 60px -15px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3)",
+          background: "linear-gradient(155deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.03) 45%, rgba(255,255,255,.05) 100%)",
+          backdropFilter: "blur(8px) saturate(120%)",
+          WebkitBackdropFilter: "blur(8px) saturate(120%)",
+          border: "1px solid rgba(255,255,255,.2)",
+          boxShadow: "0 30px 60px -15px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.15)",
           animation: "pageIn .6s cubic-bezier(.22,1,.36,1) both",
           transition: "transform .5s cubic-bezier(.22,.9,.3,1)",
           "@media (hover: hover) and (prefers-reduced-motion: no-preference)": {
             perspective: "1200px",
             "&:hover": { transform: "rotateX(2deg) rotateY(-3deg) translateY(-2px)" },
           },
-          "@media (max-width: 480px)": { backdropFilter: "blur(14px)" },
+          "@media (max-width: 480px)": { backdropFilter: "blur(6px)" },
         }}
       >
         <Box sx={{ textAlign: "center", mb: 3.5, mt: 1 }}>
