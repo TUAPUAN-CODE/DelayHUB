@@ -1,4 +1,4 @@
-import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Alert, Box, Button, Chip, InputAdornment, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography, useMediaQuery,
 } from "@mui/material";
@@ -38,6 +38,9 @@ const darker = (hex, k = 0.12) => {
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
 const CHECK_W = 44;
 const EMPTY_SET = new Set();
+const EST_ROW_H = 48;          // height used for rows that were never on screen yet
+const WINDOW_MIN_ROWS = 60;    // fewer rows than this: render all of them
+const WINDOW_BUFFER_PX = 700;  // rows rendered above / below the visible part
 const HEAD_H = 32;
 const HEAD = { color: "#fff", fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", borderColor: "rgba(255,255,255,.18)", padding: "8px 10px", letterSpacing: ".2px" };
 const HEAD_BG = "#1552F0";        // normal column
@@ -57,7 +60,7 @@ const DefaultCell = ({ col, row }) => {
 const CELL = { fontFamily: "inherit", fontSize: 12.5, lineHeight: 1.43, color: "#13213F", padding: "5px 10px", verticalAlign: "inherit", display: "table-cell" };
 const GridRow = memo(({ row, rowId, cols, frozenLeft, bg, fg, hoverBg, selectable, checked, canSelect, onToggle, ctx, active, onPick, onCell }) => (
   <TableRow
-    hover onClick={onPick ? () => onPick(row) : undefined}
+    data-rk={rowId} hover onClick={onPick ? () => onPick(row) : undefined}
     sx={{ cursor: onPick ? "pointer" : undefined, "& td": active ? { boxShadow: "inset 0 2px 0 #F26B1D, inset 0 -2px 0 #F26B1D" } : undefined, "&.MuiTableRow-root.MuiTableRow-hover:hover > .MuiTableCell-root": { background: `${hoverBg} !important` } }}>
     {selectable && (
       <td className="MuiTableCell-root MuiTableCell-body" onClick={(e) => e.stopPropagation()}
@@ -199,10 +202,63 @@ const DataGrid = ({
   const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
 
   const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
+  // windowing: only the rows near the visible part of the table are in the DOM (the rest are two spacer rows). Hundreds of rows x dozens of cells
+  // made every horizontal / vertical scroll frame repaint thousands of cells (sticky columns included) -> the table stuttered.
+  const wrapRef = useRef(null);
+  const bodyRef = useRef(null);
+  const heights = useRef(new Map()); // measured height of the rows that were rendered once (key -> px)
+  const avgH = useRef(EST_ROW_H);
+  const lastTop = useRef(0);
+  const raf = useRef(0);
+  const [view, setView] = useState({ top: 0, h: 900 });
   const onTableScroll = (e) => {
     const el = e.currentTarget;
     if (limit < sorted.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 900) setLimit((l) => l + Math.max(50, Math.round(pageSize / 2)));
+    if (el.scrollTop === lastTop.current) return; // horizontal scroll only: nothing to re-render
+    lastTop.current = el.scrollTop;
+    if (raf.current) return;
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      const box = wrapRef.current;
+      if (box) setView({ top: box.scrollTop, h: box.clientHeight });
+    });
   };
+  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
+  useLayoutEffect(() => { // first size of the box (and when the number of rows changes the box can be a different height)
+    const box = wrapRef.current;
+    if (box && Math.abs(box.clientHeight - view.h) > 40) setView({ top: box.scrollTop, h: box.clientHeight });
+  }, [pageRows.length, view.h]);
+
+  const windowed = useMemo(() => {
+    const n = pageRows.length;
+    if (n <= WINDOW_MIN_ROWS) return { start: 0, end: n, topPad: 0, bottomPad: 0 };
+    const hs = heights.current; const avg = avgH.current;
+    const from = view.top - WINDOW_BUFFER_PX; const to = view.top + view.h + WINDOW_BUFFER_PX;
+    let y = 0; let start = 0; let topPad = 0; let end = n; let found = false;
+    for (let i = 0; i < n; i += 1) {
+      const h = hs.get(rowKey(pageRows[i])) ?? avg;
+      if (!found && y + h >= from) { start = i; topPad = y; found = true; }
+      if (found && y > to) { end = i; break; }
+      y += h;
+    }
+    if (!found) { start = Math.max(0, n - 1); topPad = Math.max(0, y - avg); }
+    let bottomPad = 0;
+    for (let i = end; i < n; i += 1) bottomPad += hs.get(rowKey(pageRows[i])) ?? avg;
+    return { start, end, topPad, bottomPad };
+  }, [pageRows, view, rowKey]);
+
+  // measure the rows that are on screen: spacers use the real heights (rows that wrap are taller than the others)
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const hs = heights.current;
+    let sum = 0; let count = 0;
+    body.querySelectorAll("tr[data-rk]").forEach((tr) => {
+      const h = tr.offsetHeight;
+      if (h > 0) { hs.set(tr.getAttribute("data-rk"), h); sum += h; count += 1; }
+    });
+    if (count) avgH.current = Math.round(sum / count);
+  });
 
   // header groups over the columns that are actually shown
   const headGroups = useMemo(() => {
@@ -381,7 +437,7 @@ const DataGrid = ({
             <HamsterLoader />
           </Box>
         )}
-        <TableContainer onScroll={onTableScroll} sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
+        <TableContainer ref={wrapRef} onScroll={onTableScroll} sx={fill ? { flex: 1, minHeight: 0 } : { maxHeight }}>
           <Table
             stickyHeader size="small"
             sx={{
@@ -438,8 +494,9 @@ const DataGrid = ({
                 })}
               </TableRow>
             </TableHead>
-            <TableBody>
-              {pageRows.map((row) => {
+            <TableBody ref={bodyRef}>
+              {windowed.topPad > 0 && <tr aria-hidden="true" style={{ height: windowed.topPad }}><td colSpan={cols.length + (selectable ? 1 : 0)} style={{ padding: 0, border: 0 }} /></tr>}
+              {pageRows.slice(windowed.start, windowed.end).map((row) => {
                 const key = rowKey(row);
                 const color = colorOf(row);
                 return (
@@ -450,6 +507,7 @@ const DataGrid = ({
                   />
                 );
               })}
+              {windowed.bottomPad > 0 && <tr aria-hidden="true" style={{ height: windowed.bottomPad }}><td colSpan={cols.length + (selectable ? 1 : 0)} style={{ padding: 0, border: 0 }} /></tr>}
               {!pageRows.length && (
                 <TableRow><TableCell colSpan={cols.length + (selectable ? 1 : 0)} align="center" sx={{ py: 5, color: "#90A4AE", ...(loading && !rows.length ? { height: 280 } : {}) }}>{loading ? "" : emptyText}</TableCell></TableRow>
               )}

@@ -25,16 +25,20 @@ export const TOKENS = {
 
 const FONT = "'Prompt', 'Noto Sans Thai', system-ui, sans-serif";
 
-/** GLASS = cards / tables / panels (almost opaque white: easy to read on the floor), GLASS_STRONG = dialogs / menus */
+/**
+ * GLASS = cards / tables / panels (almost opaque white: easy to read on the floor), GLASS_STRONG = dialogs / menus.
+ * Only the short-lived surfaces (GLASS_STRONG) blur what is behind them: a backdrop-filter on every card / table panel made scrolling a big table
+ * (the work table) re-blur the whole page background at every frame -> stutter. The panels are .88 white, so the blur was hardly visible anyway.
+ */
 export const GLASS = {
   backgroundColor: "rgba(255,255,255,.88)",
-  backdropFilter: "blur(12px) saturate(140%)",
-  WebkitBackdropFilter: "blur(12px) saturate(140%)",
   border: `1px solid ${TOKENS.border}`,
   boxShadow: "0 1px 2px rgba(19,33,63,.04), 0 6px 24px rgba(21,82,240,.08)",
 };
 export const GLASS_STRONG = {
   ...GLASS,
+  backdropFilter: "blur(12px) saturate(140%)",
+  WebkitBackdropFilter: "blur(12px) saturate(140%)",
   backgroundColor: "rgba(255,255,255,.96)",
   boxShadow: "0 24px 64px rgba(19,33,63,.22)",
 };
