@@ -345,7 +345,7 @@ const Modal1 = ({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <TextField
                       fullWidth
-                      label={batchArray.length > 1 ? `Batch ${idx + 1} (10 ตัวอักษร)` : "Batch (10 ตัวอักษร)"}
+                      label={batchArray.length > 1 ? `Batch แปลง ${idx + 1} (10 ตัวอักษร)` : "Batch แปลง (10 ตัวอักษร)"}
                       value={batchInputs[b] || ""}
                       onChange={(e) => handleBatchInputChange(b, e.target.value)}
                       size="small"

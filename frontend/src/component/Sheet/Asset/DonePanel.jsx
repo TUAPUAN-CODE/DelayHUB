@@ -63,7 +63,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
         <TextField size="small" type="date" label="ตั้งแต่วันที่" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField size="small" type="date" label="ถึงวันที่" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
         <TextField
-          size="small" label="ค้นหาทุกคอลัมน์ (ไม่สนช่วงวันที่)" value={q} onChange={(e) => setQ(e.target.value)}
+          size="small" label="ค้นหาข้อมูลทั้งหมด" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") search(); }} sx={{ width: 330 }}
         />
         <Select size="small" value={limit} onChange={(e) => setLimit(Number(e.target.value))} sx={{ width: 130 }}>

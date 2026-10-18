@@ -13,7 +13,7 @@ const NUM_RE = /\d+(?:[.,]\d+)*/g;
 const ATTRS = ["placeholder", "title", "aria-label", "alt"];
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "CODE"]);
 
-let lang = "en"; // the default language of the system is English
+let lang = "th"; // the default language of the system is Thai (a user who picked another language keeps it: saved on this device)
 let observer = null;
 const listeners = new Set();
 const textRec = new WeakMap(); // Text node -> { orig, out }
@@ -148,9 +148,9 @@ export const setLang = (next) => {
 
 export const initI18n = () => {
   patchNative();
-  let saved = "en";
-  try { saved = localStorage.getItem(STORAGE_KEY) || "en"; } catch { /* ignore */ }
-  lang = LANGS.some((l) => l.code === saved) ? saved : "en";
+  let saved = "th";
+  try { saved = localStorage.getItem(STORAGE_KEY) || "th"; } catch { /* ignore */ }
+  lang = LANGS.some((l) => l.code === saved) ? saved : "th";
   document.documentElement.lang = lang;
   startObserver();
   if (lang !== "th") walk(document.body);
