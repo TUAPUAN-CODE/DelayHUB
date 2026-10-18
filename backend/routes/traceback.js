@@ -405,9 +405,24 @@ router.get('/detail', async (req, res) => {
     const batch     = S(req.query.batch);
     const pkgBatch  = S(req.query.pkg_batch);
     const ingBatch  = S(req.query.ing_batch);
-    meta.filters = { doc_no, code, batch, pkg_batch: pkgBatch, ing_batch: ingBatch };
+    // ── โหมดตามตัวกรองจากหน้าค้นหา (scope=1) ────────────────────────────
+    //   ใช้เงื่อนไขเดียวกับ /search (LIKE) และไม่ผูกกับเอกสารเดียว: ใส่ batch = ทุก code/ไลน์ที่ใช้ batch นี้,
+    //   ใส่ code = ทุก batch/ไลน์ของ code นี้, ใส่ทั้งคู่ = ทุกไลน์ที่ใช้ code+batch นี้ · line/mat/ผู้ขาย/ช่วงวันบรรจุ ใช้บังคับเพิ่มได้
+    const scoped = S(req.query.scope) === '1';
+    const fLine = S(req.query.line);
+    const fMat = S(req.query.mat);
+    const fMatName = S(req.query.mat_name);
+    const fSupplier = S(req.query.supplier);
+    const fPackFrom = S(req.query.pack_from);
+    const fPackTo = S(req.query.pack_to);
+    const okYmd = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+    meta.filters = {
+      doc_no, code, batch, pkg_batch: pkgBatch, ing_batch: ingBatch,
+      ...(scoped ? { scope: true, line: fLine, mat: fMat, mat_name: fMatName, supplier: fSupplier, pack_from: fPackFrom, pack_to: fPackTo } : {}),
+    };
 
-    if (!doc_no && !code && !batch && !pkgBatch && !ingBatch) {
+    const hasScopeFilter = scoped && (fLine || fMat || fMatName || fSupplier || okYmd(fPackFrom) || okYmd(fPackTo));
+    if (!doc_no && !code && !batch && !pkgBatch && !ingBatch && !hasScopeFilter) {
       return res.status(400).json({
         success: false,
         error: 'ต้องระบุอย่างน้อย 1 อย่าง: doc_no, code, batch, pkg_batch หรือ ing_batch',
@@ -448,12 +463,29 @@ router.get('/detail', async (req, res) => {
       'LEFT JOIN RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id',
     ].filter(Boolean).join('\n      ');
 
-    const rowsRes = await pool.request()
+    const detailReq = pool.request()
       .input('doc_no', sql.NVarChar(100), doc_no)
       .input('batch', sql.NVarChar(100), batch)
-      .input('code', sql.NVarChar(100), code)
+      .input('code', sql.NVarChar(100), code);
+    // เงื่อนไขเพิ่มของโหมดตามตัวกรอง (parameterized ทั้งหมด)
+    const scopeWhere = [];
+    if (scoped) {
+      if (fLine) { scopeWhere.push("htr.rmm_line_name LIKE '%' + @f_line + '%'"); detailReq.input('f_line', sql.NVarChar(100), fLine); }
+      if (fMat) { scopeWhere.push("rm.mat LIKE '%' + @f_mat + '%'"); detailReq.input('f_mat', sql.NVarChar(100), fMat); }
+      if (fMatName) { scopeWhere.push("rm.mat_name LIKE '%' + @f_mat_name + '%'"); detailReq.input('f_mat_name', sql.NVarChar(200), fMatName); }
+      if (fSupplier && suppCol) { scopeWhere.push(`${suppCol.alias}.[${suppCol.col}] LIKE '%' + @f_supplier + '%'`); detailReq.input('f_supplier', sql.NVarChar(200), fSupplier); }
+      if (okYmd(fPackFrom)) { scopeWhere.push('htr.sc_pack_date >= @f_pack_from'); detailReq.input('f_pack_from', sql.DateTime, new Date(fPackFrom)); }
+      if (okYmd(fPackTo)) { scopeWhere.push('htr.sc_pack_date < DATEADD(day, 1, @f_pack_to)'); detailReq.input('f_pack_to', sql.DateTime, new Date(fPackTo)); }
+    }
+    const docCond = scoped ? "@doc_no = '' OR p.doc_no LIKE '%' + @doc_no + '%'" : "@doc_no = '' OR p.doc_no = @doc_no";
+    const codeCond = scoped ? "@code = '' OR p.code LIKE '%' + @code + '%'" : "@code   = '' OR p.code   = @code";
+    const batchCond = scoped
+      ? "@batch = '' OR b.batch_before LIKE '%' + @batch + '%' OR b.batch_after LIKE '%' + @batch + '%'"
+      : "@batch  = '' OR b.batch_before = @batch OR b.batch_after = @batch";
+
+    const rowsRes = await detailReq
       .query(`
-      SELECT
+      SELECT ${scoped ? 'TOP (2000)' : ''}
         ${selectAll('TrolleyRMMapping', 'rmm', 'rmm')},
         ${selectAll('RMForProd', 'rmf', 'rmf')},
         ${selectAll('ProdRawMat', 'pr', 'pr')},
@@ -464,9 +496,10 @@ router.get('/detail', async (req, res) => {
       ${BASE_FROM}
       ${extraJoins}
       WHERE ${BASE_WHERE}
-        AND (@doc_no = '' OR p.doc_no = @doc_no)
-        AND (@code   = '' OR p.code   = @code)
-        AND (@batch  = '' OR b.batch_before = @batch OR b.batch_after = @batch)
+        AND (${docCond})
+        AND (${codeCond})
+        AND (${batchCond})
+        ${scopeWhere.map(w => `AND ${w}`).join('\n        ')}
       ORDER BY htr.sc_pack_date, rm.mat
     `);
 
@@ -1046,6 +1079,10 @@ router.get('/detail', async (req, res) => {
     const summary = {
       doc_no: production.doc_no ?? doc_no,
       code: production.code ?? code,
+      // โหมดตามตัวกรองอาจครอบคลุมหลายเอกสาร/หลาย code
+      doc_nos: [...new Set(parsed.map(x => x.p?.doc_no).filter(Boolean))],
+      codes: [...new Set(parsed.map(x => x.p?.code).filter(Boolean))],
+      scope: meta.filters,
       lines: [...new Set(materialsOut.map(m => m.rmm_line_name).filter(Boolean))],
       material_count: materials.length,
       total_weight_rm: rnd(materialsOut.reduce((a, m) => a + (Number(m.weight_RM) || 0), 0), 3),

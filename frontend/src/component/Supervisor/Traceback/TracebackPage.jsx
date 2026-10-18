@@ -8,10 +8,11 @@ import MockRecall from "./Asset/MockRecall";
 import HoldList from "./Asset/HoldList";
 import UniversalSearch from "./Asset/UniversalSearch";
 import { T } from "./Asset/tracebackUI";
+import { scopeFromParams, scopeToParams } from "./Asset/tracebackCore";
 import logoUrl from "../../../assets/brand/itail-logo.png";
 
 // /sup/Traceback — ศูนย์สอบกลับการผลิต
-//   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง
+//   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง · ?scope=1&code=&batch=&line=… ใบสอบกลับตามตัวกรอง
 //   ?mode=forward&code=&type=   สอบไปข้างหน้าจากรหัสรุ่น/Lot
 //   ?mode=recall                 จำลองการเรียกคืน
 //   ?mode=holds                  รายการกักสินค้า
@@ -26,13 +27,16 @@ const TracebackPage = () => {
   const [params, setParams] = useSearchParams();
   const [recallSeed, setRecallSeed] = useState(null);
   const docNo = params.get("doc_no");
-  const mode = docNo ? "backward" : (params.get("mode") || "backward");
-  const selected = docNo ? { doc_no: docNo, code: params.get("code") || "" } : null;
+  // ?scope=1&code=&batch=&line=... = ใบสอบกลับตามตัวกรองของหน้าค้นหา (ไม่ผูกกับเอกสารเดียว)
+  const scope = scopeFromParams(params);
+  const mode = (scope || docNo) ? "backward" : (params.get("mode") || "backward");
+  const selected = scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null);
 
   const setMode = (m) => setParams(m === "backward" ? {} : { mode: m });
 
   const onSelect = useCallback((v) => {
-    if (v) setParams({ doc_no: v.doc_no, ...(v.code ? { code: v.code } : {}) });
+    if (v?.scope) setParams(scopeToParams(v));
+    else if (v) setParams({ doc_no: v.doc_no, ...(v.code ? { code: v.code } : {}) });
     else setParams({});
   }, [setParams]);
 

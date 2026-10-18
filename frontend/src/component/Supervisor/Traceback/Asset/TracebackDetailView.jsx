@@ -4,8 +4,9 @@ import axios from 'axios';
 import {
   WARN_MIN, SEVERE_MIN, diffMin, fmtDT, fmtD, fmtRange, fmtNum, fmtDur, uniq, buildDelay, STAGE_LABEL, DBS_LABEL,
 } from './tracebackCore';
-import { exportRecordPDF, exportDetailExcel } from './tracebackExport';
-import { chainCompleteness, riskAssessment, currentUserName, exceptionList } from './tracebackCore';
+import { exportDetailExcel } from './tracebackExport';
+import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
+import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
 import { Ring } from './TraceAtoms';
 import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -1217,7 +1218,7 @@ const DetailTab = ({ data, onOpenTrace }) => {
 };
 
 /* ═══ หัวเอกสาร ═══════════════════════════════════════════════════════════ */
-const RecordHeader = ({ s, docNo, code }) => (
+const RecordHeader = ({ s, docNo, code, scope }) => (
   <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16, background: T.white }}>
     <div style={{
       background: T.blueDeep, color: T.white, padding: '11px 16px',
@@ -1227,8 +1228,9 @@ const RecordHeader = ({ s, docNo, code }) => (
       <span style={{ fontSize: 12, fontWeight: 500 }}>พิมพ์เมื่อ {fmtDT(s.printed_at || new Date().toISOString())}</span>
     </div>
     <Grid min={165} style={{ border: 'none', borderRadius: 0, background: T.white }}>
-      <Field label="เลขเอกสารผลิต" value={s.doc_no || docNo} />
-      <Field label="Code สินค้า" value={s.code || code} wide />
+      {scope && <Field label="เงื่อนไขที่สอบกลับ" value={scopeText(scope, s)} wide />}
+      <Field label="เลขเอกสารผลิต" value={s.doc_nos?.length > 1 ? `${s.doc_nos.length} เอกสาร: ${s.doc_nos.slice(0, 6).join(', ')}${s.doc_nos.length > 6 ? ' …' : ''}` : (s.doc_no || docNo)} wide={s.doc_nos?.length > 1} />
+      <Field label="Code สินค้า" value={s.codes?.length > 1 ? s.codes.slice(0, 8).join(', ') : (s.code || code)} wide />
       <Field label="ไลน์ผลิต" value={(s.lines || []).join(', ')} />
       <Field label="ช่วงเวลาที่สอบกลับ" value={`${fmtD(s.rm_date_first || s.pack_date_first)} – ${fmtD(s.pack_date_last)}`} wide />
       <Field label="จำนวนล็อตวัตถุดิบ" value={s.material_count} />
@@ -1301,7 +1303,7 @@ const ScoreStrip = ({ materials }) => {
 };
 
 /* ═══ ตัวหลัก ═════════════════════════════════════════════════════════════ */
-const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
+const TracebackDetailView = ({ docNo, code, scope = null, onBack, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -1312,6 +1314,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
   const [qrOpen, setQrOpen] = useState(false);
   const [loadMs, setLoadMs] = useState(null);
   const qrWrap = useRef(null);
+  const scopeKey = useMemo(() => (scope ? JSON.stringify(scope) : ''), [scope]); // ใช้เป็น dependency (scope เป็น object ใหม่ทุกครั้งที่ render)
   const goBack = onBack || onClose;
   const navigate = useNavigate();
   const location = useLocation();
@@ -1322,10 +1325,14 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
   const shareLink = useMemo(() => {
     const u = new URL(window.location.href);
     u.search = '';
-    u.searchParams.set('doc_no', docNo || '');
-    if (code) u.searchParams.set('code', code);
+    if (scope) {
+      Object.entries(scopeToParams(scope)).forEach(([k, v]) => u.searchParams.set(k, v));
+    } else {
+      u.searchParams.set('doc_no', docNo || '');
+      if (code) u.searchParams.set('code', code);
+    }
     return u.toString();
-  }, [docNo, code]);
+  }, [docNo, code, scope]);
 
   useEffect(() => {
     let cancel = false;
@@ -1333,7 +1340,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
       try {
         setLoading(true); setError(null); setData(null);
         const t0 = performance.now();
-        const res = await axios.get(`${API_URL}/api/traceback/detail`, { params: { doc_no: docNo, code } });
+        const res = await axios.get(`${API_URL}/api/traceback/detail`, { params: scopeKey ? scopeToParams(JSON.parse(scopeKey)) : { doc_no: docNo, code } });
         if (!cancel) { setData(res.data?.data || null); setLoadMs(Math.round(performance.now() - t0)); }
       } catch (e) {
         console.error('Traceback detail error:', e);
@@ -1341,7 +1348,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
       } finally { if (!cancel) setLoading(false); }
     })();
     return () => { cancel = true; };
-  }, [docNo, code]);
+  }, [docNo, code, scopeKey]);
 
   useEffect(() => {
     const h = e => { if (e.key === 'Escape' && goBack) goBack(); };
@@ -1366,7 +1373,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
     const canvas = qrWrap.current?.querySelector('canvas');
     let qr = null;
     try { qr = canvas ? canvas.toDataURL('image/png') : null; } catch (e) { console.error('QR export error:', e); }
-    exportRecordPDF(data, docNo, code, sign, { qr, link: shareLink }).catch(e => console.error('Export PDF error:', e));
+    exportSummaryPDF(data, scope, sign, { qr, link: shareLink }).catch(e => console.error('Export PDF error:', e));
   };
 
   const s = data?.summary || {};
@@ -1413,8 +1420,12 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
           <img src={logoUrl} alt="i-Tail" style={{ height: 38, width: 'auto' }} />
           <div style={{ flex: '1 1 220px', minWidth: 0 }}>
             <div style={{ fontSize: 11.5, color: T.orange, fontWeight: 700, letterSpacing: 0.5 }}>ใบสอบกลับการผลิต · TRACEABILITY RECORD</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>{docNo}</div>
-            <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{code || s.code}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>{scope && !docNo ? scopeTitle(scope) : docNo}</div>
+            <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>
+              {scope && (s.doc_nos?.length > 1 || s.codes?.length > 1)
+                ? `ครอบคลุม ${s.doc_nos?.length || 0} เอกสารผลิต · ${s.codes?.length || 0} Code · ${(s.lines || []).length} ไลน์`
+                : (code || s.code)}
+            </div>
           </div>
           {data && (
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
@@ -1427,7 +1438,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
         <div className="tb-noprint" style={{ display: 'flex', gap: 8, padding: '0 20px 10px', flexWrap: 'wrap' }}>
           <button onClick={goBack} style={btn(T.white, T.blue, T.blue)}>← กลับ</button>
           <button onClick={() => setSignOpen(true)} disabled={!data} style={btn(T.orange, T.orange, T.white)}>ออกเอกสาร PDF</button>
-          <button onClick={() => exportDetailExcel(data, docNo, code)} disabled={!data} style={btn(T.white, T.ok, T.ok)}>Excel</button>
+          <button onClick={() => exportDetailExcel(data, docNo || (scope ? scopeTitle(scope) : ''), code)} disabled={!data} style={btn(T.white, T.ok, T.ok)}>Excel</button>
           <button onClick={copyLink} style={btn(T.white, T.blue, T.blue)}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}</button>
           <button onClick={() => setQrOpen(true)} disabled={!data} style={btn(T.white, T.blue, T.blue)}>ป้าย QR รายล็อต</button>
           {loadMs != null && <span style={{ alignSelf: 'center', fontSize: 12, color: T.text2 }}>รวบรวมข้อมูล {(loadMs / 1000).toFixed(2)} วินาที</span>}
@@ -1463,8 +1474,8 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
 
         {!loading && !error && data && (
           <>
-            <HoldBanner docNo={s.doc_no || docNo} />
-            <RecordHeader s={s} docNo={docNo} code={code} />
+            {!(s.doc_nos?.length > 1) && <HoldBanner docNo={s.doc_no || docNo} />}
+            <RecordHeader s={s} docNo={docNo} code={code} scope={scope} />
             <ScoreStrip materials={materials || []} />
             <DataGaps s={s} meta={data.meta} materials={materials || []} />
             {tab === 'summary' && <SummaryTab data={data} onOpenTrace={openTrace} />}

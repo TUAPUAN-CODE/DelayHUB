@@ -32,7 +32,7 @@ export const drawLogo = (doc, logo, x, y, h) => {
 };
 
 /** ท้ายทุกหน้า: ผู้พิมพ์ + เวลา + เลขหน้า (ใช้เป็นหลักฐาน audit trail) */
-const stampFooter = (doc, watermark = '') => {
+export const stampFooter = (doc, watermark = '') => {
   const n = doc.getNumberOfPages();
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();

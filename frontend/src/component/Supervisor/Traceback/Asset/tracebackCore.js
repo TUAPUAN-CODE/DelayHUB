@@ -319,3 +319,32 @@ export const downloadCsv = (filename, header, rows) => {
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 };
+
+/* ═══ ขอบเขตการสอบกลับตามตัวกรองของหน้าค้นหา (?scope=1&code=&batch=&line=...) ═══ */
+export const SCOPE_KEYS = ['doc_no', 'code', 'batch', 'line', 'mat', 'mat_name', 'supplier', 'pack_from', 'pack_to'];
+/** อ่านขอบเขตจาก URL: คืน null ถ้าไม่ใช่โหมดตามตัวกรอง */
+export const scopeFromParams = (params) => {
+  if (params.get('scope') !== '1') return null;
+  const out = { scope: true };
+  SCOPE_KEYS.forEach((k) => { const v = params.get(k); if (v) out[k] = v; });
+  return out;
+};
+/** แปลงขอบเขตเป็น query string params (ใช้ทั้ง URL และเรียก API) */
+export const scopeToParams = (scope) => {
+  const out = { scope: '1' };
+  SCOPE_KEYS.forEach((k) => { if (scope?.[k]) out[k] = scope[k]; });
+  return out;
+};
+/** ชื่อสั้นของขอบเขต เช่น "Code P688 · Batch CCSD5GJ3B" */
+export const scopeTitle = (scope) => {
+  const t = [];
+  if (scope?.code) t.push(`Code ${scope.code}`);
+  if (scope?.batch) t.push(`Batch ${scope.batch}`);
+  if (!t.length && scope?.doc_no) t.push(scope.doc_no);
+  if (!t.length) {
+    if (scope?.line) t.push(`ไลน์ ${scope.line}`);
+    if (scope?.mat_name || scope?.mat) t.push(`วัตถุดิบ ${scope.mat_name || scope.mat}`);
+    if (scope?.supplier) t.push(`ผู้ขาย ${scope.supplier}`);
+  }
+  return t.join(' · ') || 'ตามตัวกรอง';
+};
