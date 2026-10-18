@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import jsPDF from 'jspdf';
-import { thSarabunBase64 } from '../../../../fonts/thSarabunBase64';
-import { thSarabunBoldBase64 } from '../../../../fonts/thSarabunBoldBase64';
+
+import {
+  WARN_MIN, SEVERE_MIN, diffMin, fmtDT, fmtD, fmtRange, fmtNum, fmtDur, uniq, buildDelay, STAGE_LABEL, DBS_LABEL,
+} from './tracebackCore';
+import { exportRecordPDF, exportDetailExcel } from './tracebackExport';
+import { chainCompleteness, riskAssessment } from './tracebackCore';
+import { Ring } from './TraceAtoms';
+import TraceTree from './TraceTree';
+import TraceTimeline from './TraceTimeline';
+import { QRCodeCanvas } from 'qrcode.react';
+import logoUrl from '../../../../assets/brand/itail-logo.png';
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -23,139 +31,6 @@ const T = {
   text: '#0F2740', text2: '#274866', line: '#CBDFEF',
   ok: '#0A6B3D', okSoft: '#E2F5EA', okLine: '#A9DCC0',
   bad: '#A81E14', badSoft: '#FDEBE9', badLine: '#F3B7B1',
-};
-
-const WARN_MIN = 120;
-const SEVERE_MIN = 480;
-
-/* ── helpers ─────────────────────────────────────────────────────────────── */
-const S = v => (v == null ? '' : String(v).trim());
-const toDate = v => { if (!v || v === '-') return null; const d = new Date(String(v).replace(' ', 'T')); return isNaN(d) ? null : d; };
-const diffMin = (a, b) => { const x = toDate(a), y = toDate(b); return x && y ? Math.round((y - x) / 60000) : null; };
-
-const fmtDT = v => {
-  const d = toDate(v);
-  if (!d) return '—';
-  const p = n => String(n).padStart(2, '0');
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear() + 543} ${p(d.getHours())}:${p(d.getMinutes())}`;
-};
-const fmtD = v => { const d = toDate(v); if (!d) return '—'; const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear() + 543}`; };
-const fmtRange = (a, b) => (!a && !b ? '—' : `${fmtDT(a)} → ${fmtDT(b)}`);
-const fmtNum = (v, d = 2) => (v == null || v === '' || isNaN(Number(v)) ? '—' : Number(v).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d }));
-const fmtDur = mins => {
-  if (mins == null || isNaN(Number(mins))) return '—';
-  const n = Math.abs(Math.round(Number(mins)));
-  const d = Math.floor(n / 1440), h = Math.floor((n % 1440) / 60), m = n % 60;
-  const parts = [];
-  if (d) parts.push(`${d} วัน`);
-  if (h) parts.push(`${h} ชม.`);
-  if (m || !parts.length) parts.push(`${m} น.`);
-  return (Number(mins) < 0 ? '-' : '') + parts.join(' ');
-};
-const uniq = arr => [...new Set(arr.filter(v => v != null && v !== ''))];
-
-/* ═══ เครื่องคำนวณดีเลย์ DBS — สูตรเดียวกับรายงาน F3PFPF67 ════════════════ */
-const SPECIAL_GROUPS = [55, 85, 49, 46, 82];
-const isSpecialGroup = row => SPECIAL_GROUPS.includes(Number(row?.rm_group_id));
-
-const getRemappedRow = (row) => {
-  const gid = Number(row?.rm_group_id);
-  if (gid === 55) {
-    return { _A: row.gm_date, _B: row.start_mixed_date, _C: row.rmit_date, _D: null, _E: null, _D3: null, _E3: null, _F: row.sc_pack_date };
-  }
-  if (gid === 85 || gid === 49 || gid === 82) {
-    const colA = (row.out_cold_date && row.out_cold_date !== '-') ? row.out_cold_date : (row.rmit_date_mix ?? null);
-    return { _A: colA, _B: row.start_mixed_date, _C: row.rmit_date, _D: null, _E: null, _D3: null, _E3: null, _F: row.sc_pack_date };
-  }
-  if (gid === 46) {
-    return { _A: null, _B: row.rmit_date, _C: null, _D: null, _E: null, _D3: null, _E3: null, _F: row.sc_pack_date };
-  }
-  return {
-    _A: row.rmit_date, _B: row.come_cold_date, _C: row.out_cold_date,
-    _D: row.come_cold_date_two, _E: row.out_cold_date_two,
-    _D3: row.come_cold_date_three, _E3: row.out_cold_date_three,
-    _F: row.sc_pack_date,
-  };
-};
-
-const CS_WAIT_ROUNDS = [
-  { come: 'cs_come_cold_date', out: 'cs_out_cold_date', p1: 'at_pd_storage_purpose', p2: 'storage_purpose' },
-  { come: 'cs_come_cold_date_two', out: 'cs_out_cold_date_two', p1: 'at_pd_storage_purpose_2', p2: 'storage_purpose_2' },
-  { come: 'cs_come_cold_date_three', out: 'cs_out_cold_date_three', p1: 'at_pd_storage_purpose_3', p2: 'storage_purpose_3' },
-];
-const CS_WAIT_PURPOSE = 'ฝากเก็บเพื่อรอผลิต';
-const getCsWaitMinutes = (row) => {
-  if (!row) return 0;
-  let total = 0;
-  CS_WAIT_ROUNDS.forEach(({ come, out, p1, p2 }) => {
-    if (row[p1] === CS_WAIT_PURPOSE || row[p2] === CS_WAIT_PURPOSE) {
-      const m = diffMin(row[come], row[out]);
-      if (m !== null) total += m;
-    }
-  });
-  return total;
-};
-
-const calcDBS1 = (m, row) => (SPECIAL_GROUPS.filter(g => g !== 55).includes(Number(row?.rm_group_id)) ? null : diffMin(m._A, m._B));
-const calcDBS2 = (m, sp, row) => {
-  if (sp) return null;
-  let t = 0, has = false;
-  const c1 = diffMin(m._B, m._C); if (c1 !== null) { t += c1; has = true; }
-  if (m._D && m._E) { const c2 = diffMin(m._D, m._E); if (c2 !== null) { t += c2; has = true; } }
-  if (m._D3 && m._E3) { const c3 = diffMin(m._D3, m._E3); if (c3 !== null) { t += c3; has = true; } }
-  const cs = getCsWaitMinutes(row); if (cs > 0) { t += cs; has = true; }
-  return has ? t : null;
-};
-const calcDBS3 = (m, sp) => {
-  if (sp) return null;
-  let cold = 0;
-  if (m._D && m._E) { const c = diffMin(m._D, m._E); if (c !== null) cold += c; }
-  if (m._D3 && m._E3) { const c = diffMin(m._D3, m._E3); if (c !== null) cold += c; }
-  const fc = diffMin(m._C, m._F);
-  if (fc === null) return null;
-  return Math.max(fc - cold, 0);
-};
-const calcDBS4 = (m, sp, row) => {
-  const gid = Number(row?.rm_group_id);
-  if (gid === 46) return diffMin(m._B, m._F);
-  if (sp) { const p2 = diffMin(m._C, m._F); return p2 !== null ? p2 : diffMin(m._A, m._F); }
-  const a = calcDBS1(m, row), c = calcDBS3(m, sp);
-  if (a === null && c === null) return diffMin(m._A, m._F);
-  return (a ?? 0) + (c ?? 0);
-};
-const stdToMinutes = v => { if (v == null || v === '-' || v === '') return null; const n = parseFloat(v); return isNaN(n) ? null : n * 60; };
-
-/** คำนวณดีเลย์ทั้งชุดของ 1 ล็อต */
-const buildDelay = (m) => {
-  const row = { ...(m.history || {}), rm_group_id: m.rm_group_id };
-  const mapped = getRemappedRow(row);
-  const sp = isSpecialGroup(row);
-  const v = {
-    dbs1: calcDBS1(mapped, row),
-    dbs2: calcDBS2(mapped, sp, row),
-    dbs3: calcDBS3(mapped, sp),
-    dbs4: calcDBS4(mapped, sp, row),
-  };
-  const s = { dbs1: stdToMinutes(m.DBS1), dbs2: stdToMinutes(m.DBS2), dbs3: stdToMinutes(m.DBS3), dbs4: stdToMinutes(m.DBS4) };
-  const over = {
-    dbs1: s.dbs1 != null && v.dbs1 != null && v.dbs1 > s.dbs1,
-    dbs2: !sp && s.dbs2 != null && v.dbs2 != null && v.dbs2 > s.dbs2,
-    dbs3: !sp && s.dbs3 != null && v.dbs3 != null && v.dbs3 > s.dbs3,
-    dbs4: s.dbs4 != null && v.dbs4 != null && v.dbs4 > s.dbs4,
-  };
-  return { mapped, special: sp, value: v, std: s, over, anyOver: Object.values(over).some(Boolean) };
-};
-
-const STAGE_LABEL = {
-  _A: 'เตรียมเสร็จ (A)', _B: 'เข้าห้องเย็น 1 (B)', _C: 'ออกห้องเย็น 1 (C)',
-  _D: 'เข้าห้องเย็น 2 (D)', _E: 'ออกห้องเย็น 2 (E)',
-  _D3: 'เข้าห้องเย็น 3', _E3: 'ออกห้องเย็น 3', _F: 'บรรจุเสร็จ (F)',
-};
-const DBS_LABEL = {
-  dbs1: 'DBS 1 · เตรียมเสร็จ → เข้าห้องเย็น',
-  dbs2: 'DBS 2 · เข้าห้องเย็น → ออกห้องเย็น',
-  dbs3: 'DBS 3 · ออกห้องเย็น → บรรจุเสร็จ',
-  dbs4: 'DBS 4 · รวมทั้งกระบวนการ',
 };
 
 /* ═══ อะตอม UI ════════════════════════════════════════════════════════════ */
@@ -748,184 +623,6 @@ const IntakePanel = ({ m }) => {
   );
 };
 
-/* ═══ Export PDF — ฟอร์มทางการ ════════════════════════════════════════════ */
-const exportRecordPDF = (data, docNo, code, sign) => {
-  const doc = new jsPDF('l', 'mm', 'a4');
-  const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  const M = 6;
-
-  doc.addFileToVFS('Sarabun-Regular.ttf', thSarabunBase64);
-  doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
-  doc.addFileToVFS('Sarabun-Bold.ttf', thSarabunBoldBase64);
-  doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
-  doc.setFont('Sarabun', 'normal');
-
-  const rect = (x, y, w, h) => { doc.setDrawColor(0); doc.setLineWidth(0.15); doc.rect(x, y, w, h); };
-  const fill = (x, y, w, h, c) => { doc.setFillColor(...c); doc.rect(x, y, w, h, 'F'); };
-  const text = (t, x, y, o = {}) => {
-    const { size = 8, align = 'center', bold = false, color = [0, 0, 0] } = o;
-    doc.setFont('Sarabun', bold ? 'bold' : 'normal');
-    doc.setFontSize(size); doc.setTextColor(...color);
-    doc.text(String(t ?? '').normalize('NFC'), x, y, { align });
-  };
-  const cell = (t, x, y, w, h, o = {}) => {
-    const { bg, size = 7, bold = false, align = 'center', color = [0, 0, 0] } = o;
-    if (bg) fill(x, y, w, h, bg);
-    rect(x, y, w, h);
-    const lines = String(t ?? '').split('\n');
-    const lh = size * 0.45;
-    const sy = y + (h - lines.length * lh) / 2 + lh * 0.85;
-    lines.forEach((ln, i) => {
-      const tx = align === 'center' ? x + w / 2 : align === 'right' ? x + w - 1.5 : x + 1.5;
-      text(ln, tx, sy + i * lh, { size, bold, align, color });
-    });
-  };
-
-  const HB = [231, 241, 250];   // ฟ้าอ่อน
-  const OB = [255, 240, 227];   // ส้มอ่อน
-  const RB = [253, 235, 233];   // แดงอ่อน
-
-  const s = data.summary || {};
-  const materials = data.materials || [];
-  const rows = 14;
-
-  // ── layout ──
-  const tX = M, tY = 32, tW = W - M * 2;
-  const cMat = 15, cMat2 = 15, cName = 30, cBatch = 20, bCols = 10, bW = cBatch / bCols;
-  const cBatch2 = 19;
-  const cStruct = 16, cRecv = 15, cGrp = 13, cWt = 12, cLine = 12;
-  const cA = 16, cF = 16;
-  const cD1 = 12, cD2 = 12, cD3 = 12, cD4 = 12;
-  const cRem = tW - (cMat + cMat2 + cName + cBatch + cBatch2 + cStruct + cRecv + cGrp + cWt + cLine + cA + cF + cD1 + cD2 + cD3 + cD4);
-  const h1 = 6, h2 = 11, hH = h1 + h2;
-  const rowH = Math.floor(((H - (tY + hH) - 62) / rows) * 10) / 10;
-
-  const header = (page, total) => {
-    text('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', W / 2, 11, { size: 15, bold: true });
-    text('ใบสอบกลับการผลิต (Traceability / Traceback Record)', W / 2, 18, { size: 11, bold: true });
-    text('F3PFTB01-1', W - M, 11, { size: 8, align: 'right' });
-
-    const y = 25;
-    const items = [
-      ['เลขเอกสารผลิต:', docNo || s.doc_no, 32],
-      ['Code สินค้า:', code || s.code, 48],
-      ['ไลน์ผลิต:', (s.lines || []).join(', '), 40],
-      ['ช่วงเวลาที่สอบกลับ:', `${fmtD(s.rm_date_first || s.pack_date_first)} - ${fmtD(s.pack_date_last)}`, 48],
-    ];
-    let x = M;
-    items.forEach(([lb, val, w]) => {
-      text(lb, x, y, { size: 8, align: 'left', bold: true });
-      const lw = doc.getTextWidth(lb);
-      const x1 = x + lw + 1.5, x2 = x1 + w;
-      doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x1, y + 1, x2, y + 1);
-      if (val) text(val, x1 + w / 2, y - 0.5, { size: 8 });
-      x = x2 + 5;
-    });
-    text(`หน้า ${page} / ${total}`, W - M, y, { size: 8, align: 'right' });
-  };
-
-  const tableHead = () => {
-    let x = tX; const y = tY;
-    cell('รหัส\nวัตถุดิบ', x, y, cMat, hH, { bg: HB, bold: true, size: 6.5 }); x += cMat;
-    cell('รหัส\nวัตถุดิบ 2x', x, y, cMat2, hH, { bg: OB, bold: true, size: 6.5 }); x += cMat2;
-    cell('ชื่อวัตถุดิบ\n(Raw Material)', x, y, cName, hH, { bg: HB, bold: true, size: 6.5 }); x += cName;
-    fill(x, y, cBatch, h1, HB); rect(x, y, cBatch, h1);
-    text('รหัสรุ่น (Batch)', x + cBatch / 2, y + h1 / 2 + 1.6, { size: 6.5, bold: true });
-    for (let i = 0; i < bCols; i++) cell('', x + i * bW, y + h1, bW, h2, { bg: HB, size: 6 });
-    x += cBatch;
-    cell('รหัสรุ่น 2x\n(Batch 2x)', x, y, cBatch2, hH, { bg: OB, bold: true, size: 6.5 }); x += cBatch2;
-    cell('ผู้ขาย /\nผู้ส่งมอบ', x, y, cStruct, hH, { bg: OB, bold: true, size: 6.5 }); x += cStruct;
-    cell('วันที่ล็อต\n(รับเข้า)', x, y, cRecv, hH, { bg: OB, bold: true, size: 6.5 }); x += cRecv;
-    cell('กลุ่ม\nวัตถุดิบ', x, y, cGrp, hH, { bg: HB, bold: true, size: 6.5 }); x += cGrp;
-    cell('น้ำหนัก\n(kg)', x, y, cWt, hH, { bg: HB, bold: true, size: 6.5 }); x += cWt;
-    cell('ไลน์', x, y, cLine, hH, { bg: HB, bold: true, size: 6.5 }); x += cLine;
-    cell('เตรียมเสร็จ\n(A)', x, y, cA, hH, { bg: HB, bold: true, size: 6.5 }); x += cA;
-    cell('บรรจุเสร็จ\n(F)', x, y, cF, hH, { bg: HB, bold: true, size: 6.5 }); x += cF;
-    const dW = cD1 + cD2 + cD3 + cD4;
-    fill(x, y, dW, h1, OB); rect(x, y, dW, h1);
-    text('ดีเลย์ (Delay time)', x + dW / 2, y + h1 / 2 + 1.6, { size: 6.5, bold: true });
-    [['DBS1', cD1], ['DBS2', cD2], ['DBS3', cD3], ['DBS4', cD4]].forEach(([l, w]) => {
-      cell(l, x, y + h1, w, h2, { bg: OB, bold: true, size: 6.5 }); x += w;
-    });
-    cell('หมายเหตุ\n(Remark)', x, y, cRem, hH, { bg: HB, bold: true, size: 6.5 });
-  };
-
-  const footer = () => {
-    const fy = tY + hH + rows * rowH + 6;
-    text('เกณฑ์ดีเลย์: DBS1 เตรียมเสร็จ→เข้าห้องเย็น | DBS2 เข้าห้องเย็น→ออกห้องเย็น | DBS3 ออกห้องเย็น→บรรจุเสร็จ | DBS4 รวมทั้งกระบวนการ',
-      M, fy, { size: 7, align: 'left' });
-    text('ช่องที่แรเงาและมีเครื่องหมาย ! คือค่าที่เกินมาตรฐานของกลุ่มวัตถุดิบนั้น', M, fy + 4, { size: 7, align: 'left' });
-    text('เอกสารนี้สร้างจากระบบ PFCM อัตโนมัติ มีข้อมูลเชิงพาณิชย์ที่เป็นความลับ ใช้ภายในองค์กรเท่านั้น',
-      M, fy + 8, { size: 7, align: 'left' });
-
-    const sy = fy + 20;
-    [
-      ['ผู้จัดทำ (Recorded by)', sign.recordedBy, M + 45],
-      ['ผู้ตรวจสอบ (Reviewed by)', sign.reviewedBy, W / 2],
-      ['ผู้อนุมัติ (QC Manager)', sign.qcManager, W - M - 45],
-    ].forEach(([lb, name, x]) => {
-      doc.setDrawColor(0); doc.setLineWidth(0.2);
-      doc.line(x - 32, sy, x + 32, sy);
-      if (name) text(name, x, sy - 1.5, { size: 8, bold: true });
-      text(lb, x, sy + 5, { size: 8 });
-      doc.line(x - 32, sy + 12, x + 32, sy + 12);
-      text('วันที่ / Date', x, sy + 17, { size: 7.5 });
-    });
-  };
-
-  const total = Math.max(1, Math.ceil(materials.length / rows));
-  for (let p = 1; p <= total; p++) {
-    if (p > 1) doc.addPage();
-    header(p, total);
-    tableHead();
-
-    const slice = materials.slice((p - 1) * rows, p * rows);
-    slice.forEach((m, i) => {
-      const y = tY + hH + i * rowH;
-      const bgRow = i % 2 ? [246, 250, 253] : [255, 255, 255];
-      const d = buildDelay(m);
-      let x = tX;
-      const c = (t, w, o = {}) => { cell(t, x, y, w, rowH, { bg: bgRow, size: 6.5, ...o }); x += w; };
-      const cOver = (t, w, over) => {
-        cell(over ? `! ${t}` : t, x, y, w, rowH,
-          { bg: over ? RB : bgRow, size: 6.5, bold: over, color: over ? [168, 30, 20] : [0, 0, 0] });
-        x += w;
-      };
-
-      c(m.mat, cMat);
-      c(m.mat_2x || '-', cMat2);
-      c(m.mat_name, cName, { align: 'left' });
-      const bs = String(m.batch_before ?? '').padEnd(bCols, ' ');
-      for (let b = 0; b < bCols; b++) c(bs[b] || '', bW, { size: 7, bold: true });
-      c(m.batch_after || '-', cBatch2, { size: 6 });
-      c(m.supplier_name || '-', cStruct, { size: 5.5, align: 'left' });
-      c(m.batch_date ? fmtD(m.batch_date) : '-', cRecv, { size: 6 });
-      c(m.rm_group_name || m.rm_group_id || '-', cGrp, { size: 6 });
-      c(m.weight_RM != null ? Number(m.weight_RM).toFixed(1) : '-', cWt);
-      c(m.rmm_line_name || '-', cLine, { size: 6 });
-      c(d.mapped._A ? fmtDT(d.mapped._A).replace(' ', '\n') : '-', cA, { size: 5.8 });
-      c(d.mapped._F ? fmtDT(d.mapped._F).replace(' ', '\n') : '-', cF, { size: 5.8 });
-      cOver(d.value.dbs1 == null ? '-' : fmtDur(d.value.dbs1), cD1, d.over.dbs1);
-      cOver(d.value.dbs2 == null ? '-' : fmtDur(d.value.dbs2), cD2, d.over.dbs2);
-      cOver(d.value.dbs3 == null ? '-' : fmtDur(d.value.dbs3), cD3, d.over.dbs3);
-      cOver(d.value.dbs4 == null ? '-' : fmtDur(d.value.dbs4), cD4, d.over.dbs4);
-      c(m.history?.remark_dalay || '', cRem, { align: 'left', size: 6 });
-    });
-
-    for (let e = slice.length; e < rows; e++) {
-      const y = tY + hH + e * rowH;
-      let x = tX;
-      [cMat, cMat2, cName, ...Array(bCols).fill(bW), cBatch2, cStruct, cRecv, cGrp, cWt, cLine, cA, cF, cD1, cD2, cD3, cD4, cRem]
-        .forEach(w => { rect(x, y, w, rowH); x += w; });
-    }
-
-    footer();
-  }
-
-  doc.save(`Traceback_${docNo || s.doc_no || 'record'}_${new Date().toISOString().slice(0, 10)}.pdf`);
-};
-
 /* ── กล่องกรอกลายเซ็นก่อน export ─────────────────────────────────────────── */
 const SignDialog = ({ open, onClose, onExport }) => {
   const [v, setV] = useState({ recordedBy: '', reviewedBy: '', qcManager: '' });
@@ -971,9 +668,8 @@ const SignDialog = ({ open, onClose, onExport }) => {
 };
 
 /* ═══ แท็บ 1 — ชั้นสรุป ═══════════════════════════════════════════════════ */
-const SummaryTab = ({ data, docNo, code, onOpenTrace }) => {
-  const s = data.summary || {};
-  const materials = data.materials || [];
+const SummaryTab = ({ data, onOpenTrace }) => {
+  const materials = useMemo(() => data.materials || [], [data]);
   const [f, setF] = useState({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', status: '' });
   const clear = () => setF({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', status: '' });
 
@@ -1151,12 +847,11 @@ const BTN_SM = {
 
 /* ═══ แท็บ 2 — แผนผังสอบกลับ (Forward / Backward) ═════════════════════════
    สอบกลับข้ามเอกสารได้ทั้ง 3 ประเภท (วัตถุดิบ/ส่วนผสม/บรรจุภัณฑ์)
-   ใช้ endpoint เดียวกัน /api/traceback/batch/:code/trace โดยส่งรหัสที่
-   เหมาะกับประเภทนั้น ๆ
+   ผ่าน /api/traceback/forward?type=rm|ing|pkg&code=...
    ═══════════════════════════════════════════════════════════════════════ */
 const FlowTab = ({ data, focus, setFocus }) => {
   const s = data.summary || {};
-  const materials = data.materials || [];
+  const materials = useMemo(() => data.materials || [], [data]);
   const idx = useMemo(() => buildIndex(materials), [materials]);
 
   const [type, setType] = useState(focus?.type || 'rm');
@@ -1175,7 +870,7 @@ const FlowTab = ({ data, focus, setFocus }) => {
   // รหัสที่ใช้เรียก endpoint ข้ามเอกสาร ตามประเภทที่กำลังดู
   const traceCode = entity ? (type === 'rm' ? entity.batch : type === 'ing' ? entity.batch : entity.lot || entity.batch) : null;
 
-  // สอบกลับข้ามเอกสารสำหรับทั้ง 3 ประเภท — ใช้ endpoint /batch/:code/trace ร่วมกัน
+  // สอบกลับข้ามเอกสารสำหรับทั้ง 3 ประเภท
   useEffect(() => {
     setExt(null);
     if (!traceCode) return;
@@ -1183,8 +878,8 @@ const FlowTab = ({ data, focus, setFocus }) => {
     (async () => {
       try {
         setExtLoading(true);
-        const res = await axios.get(`${API_URL}/api/traceback/batch/${encodeURIComponent(traceCode)}/trace`, {
-          params: { entity_type: type },
+        const res = await axios.get(`${API_URL}/api/traceback/forward`, {
+          params: { type, code: traceCode },
         });
         if (!cancel) setExt(res.data?.data || null);
       } catch (err) {
@@ -1371,8 +1066,7 @@ const FlowTab = ({ data, focus, setFocus }) => {
                 )}
                 {!extLoading && (!ext || !ext.products?.length) && (
                   <Txt c={T.text2}>
-                    ไม่พบการใช้งานในเอกสารอื่น หรือระบบยังไม่เปิดใช้ endpoint สอบกลับข้ามเอกสารสำหรับประเภท "{ENTITY_LABEL[type]}"
-                    (ปัจจุบัน endpoint /api/traceback/batch/:code/trace ยืนยันแล้วว่ารองรับวัตถุดิบ — ส่วนผสม/บรรจุภัณฑ์ต้องตรวจสอบฝั่ง backend เพิ่มเติม)
+                    {traceCode ? `ไม่พบการใช้งาน${ENTITY_LABEL[type]}รหัส ${traceCode} ในเอกสารอื่น` : `${ENTITY_LABEL[type]}นี้ไม่มีรหัสรุ่น/Lot ให้สอบกลับข้ามเอกสาร`}
                   </Txt>
                 )}
               </div>
@@ -1387,7 +1081,7 @@ const FlowTab = ({ data, focus, setFocus }) => {
 /* ═══ แท็บ 3 — ชั้นรายละเอียดรายล็อต ══════════════════════════════════════ */
 const DetailTab = ({ data, onOpenTrace }) => {
   const s = data.summary || {};
-  const materials = data.materials || [];
+  const materials = useMemo(() => data.materials || [], [data]);
   const [f, setF] = useState({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', qc: '', delay: '' });
   const clear = () => setF({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', qc: '', delay: '' });
 
@@ -1559,6 +1253,38 @@ const DataGaps = ({ s, meta, materials }) => {
   );
 };
 
+/* ═══ แถบคะแนน: ความครบถ้วนของห่วงโซ่ + ระดับความเสี่ยง ═══════════════════ */
+const ScoreStrip = ({ materials }) => {
+  const cc = useMemo(() => chainCompleteness(materials), [materials]);
+  const rk = useMemo(() => riskAssessment(materials), [materials]);
+  const tone = { high: T.bad, medium: T.orange, low: T.ok }[rk.level];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, marginBottom: 16 }}>
+      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Ring pct={cc.score} label="ความครบถ้วนของห่วงโซ่" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 170 }}>
+          {cc.items.map(i => (
+            <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <span style={{ flex: 1, color: T.text }}>{i.label}</span>
+              <span style={{ width: 70, height: 6, background: T.blueSoft, borderRadius: 3, overflow: 'hidden' }}>
+                <span style={{ display: 'block', height: '100%', width: `${i.pct}%`, background: i.pct >= 85 ? T.ok : i.pct >= 60 ? T.orange : T.bad }} />
+              </span>
+              <span style={{ width: 52, textAlign: 'right', color: T.text2 }}>{i.ok}/{i.total}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderLeft: `5px solid ${tone}`, borderRadius: 12, padding: '12px 14px' }}>
+        <div style={{ fontSize: 12, color: T.text2, fontWeight: 600 }}>ระดับความเสี่ยงของเอกสารผลิตนี้</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: tone, margin: '2px 0 6px' }}>{rk.label}</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {rk.reasons.length ? rk.reasons.map(r => <Tag key={r} tone={rk.level === 'high' ? 'bad' : 'orange'}>{r}</Tag>) : <Tag tone="ok">ไม่พบประเด็นเสี่ยงจากข้อมูลที่บันทึก</Tag>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ═══ ตัวหลัก ═════════════════════════════════════════════════════════════ */
 const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
   const [data, setData] = useState(null);
@@ -1567,7 +1293,18 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
   const [tab, setTab] = useState('summary');
   const [focus, setFocus] = useState(null);
   const [signOpen, setSignOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const qrWrap = useRef(null);
   const goBack = onBack || onClose;
+
+  // ลิงก์ตรงมาที่ใบสอบกลับนี้ (แชร์ให้ QA / ใส่ใน QR ของ PDF)
+  const shareLink = useMemo(() => {
+    const u = new URL(window.location.href);
+    u.search = '';
+    u.searchParams.set('doc_no', docNo || '');
+    if (code) u.searchParams.set('code', code);
+    return u.toString();
+  }, [docNo, code]);
 
   useEffect(() => {
     let cancel = false;
@@ -1592,11 +1329,32 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
 
   const openTrace = (type, key) => { setFocus({ type, key }); setTab('flow'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (e) {
+      console.error('Copy link error:', e);
+      window.prompt('คัดลอกลิงก์นี้', shareLink);
+    }
+  };
+
+  const exportPdf = (sign) => {
+    const canvas = qrWrap.current?.querySelector('canvas');
+    let qr = null;
+    try { qr = canvas ? canvas.toDataURL('image/png') : null; } catch (e) { console.error('QR export error:', e); }
+    exportRecordPDF(data, docNo, code, sign, { qr, link: shareLink }).catch(e => console.error('Export PDF error:', e));
+  };
+
   const s = data?.summary || {};
+  const materials = data?.materials;
   const TABS = [
     { key: 'summary', label: 'ชั้นสรุป' },
     { key: 'flow', label: 'แผนผังสอบกลับ' },
-    { key: 'detail', label: `ชั้นรายละเอียด${data?.materials?.length ? ` (${data.materials.length})` : ''}` },
+    { key: 'tree', label: 'ผังต้นไม้' },
+    { key: 'timeline', label: 'ไทม์ไลน์' },
+    { key: 'detail', label: `ชั้นรายละเอียด${materials?.length ? ` (${materials.length})` : ''}` },
   ];
 
   const btn = (bg, bd, fg) => ({
@@ -1612,25 +1370,27 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
           #tb-detail, #tb-detail * { visibility: visible; }
           #tb-detail { position: absolute; left: 0; top: 0; width: 100%; border: none; }
           .tb-noprint { display: none !important; }
+          .tb-sticky { position: static !important; }
         }
         @keyframes tbSpin { to { transform: rotate(360deg); } }
+        @media (max-width: 760px) { .tb-sticky { position: static !important; } }
         #tb-detail ::-webkit-scrollbar { height: 9px; width: 9px; }
         #tb-detail ::-webkit-scrollbar-thumb { background: ${T.blueLine}; border-radius: 6px; }
       `}</style>
 
-      {/* หัว */}
-      <div style={{ background: T.white, borderBottom: `1px solid ${T.line}`, padding: '14px 20px', position: 'sticky', top: 0, zIndex: 20 }}>
-        <div className="tb-noprint" style={{ display: 'flex', gap: 9, marginBottom: 10, flexWrap: 'wrap' }}>
-          <button onClick={goBack} style={btn(T.white, T.blue, T.blue)}>← กลับไปหน้าค้นหา</button>
-          <button onClick={() => setSignOpen(true)} disabled={!data} style={btn(T.orange, T.orange, T.white)}>
-            ออกเอกสาร PDF
-          </button>
-          <button onClick={() => window.print()} style={btn(T.white, T.line, T.text2)}>พิมพ์หน้าจอ</button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>{docNo}</div>
-            <div style={{ fontSize: 13.5, color: T.text, fontWeight: 500, marginTop: 3 }}>{code || s.code}</div>
+      {/* QR สำหรับใส่ใน PDF (ซ่อนไว้) */}
+      <div ref={qrWrap} style={{ position: 'absolute', left: -9999, top: 0 }} aria-hidden="true">
+        <QRCodeCanvas value={shareLink} size={256} level="M" includeMargin />
+      </div>
+
+      {/* หัว + แท็บ (ติดด้านบน) */}
+      <div className="tb-sticky" style={{ position: 'sticky', top: 0, zIndex: 20, background: T.white, borderBottom: `2px solid ${T.line}` }}>
+        <div style={{ padding: '12px 20px 8px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <img src={logoUrl} alt="i-Tail" style={{ height: 38, width: 'auto' }} />
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, color: T.orange, fontWeight: 700, letterSpacing: 0.5 }}>ใบสอบกลับการผลิต · TRACEABILITY RECORD</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>{docNo}</div>
+            <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{code || s.code}</div>
           </div>
           {data && (
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
@@ -1640,23 +1400,25 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* แท็บ */}
-      <div className="tb-noprint" style={{
-        display: 'flex', gap: 6, padding: '0 20px', background: T.white,
-        borderBottom: `2px solid ${T.line}`, position: 'sticky', top: 96, zIndex: 19,
-      }}>
-        {TABS.map(t => {
-          const on = tab === t.key;
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '12px 18px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              border: 'none', background: 'none', color: on ? T.orange : T.text2,
-              borderBottom: on ? `3px solid ${T.orange}` : '3px solid transparent', marginBottom: -2,
-            }}>{t.label}</button>
-          );
-        })}
+        <div className="tb-noprint" style={{ display: 'flex', gap: 8, padding: '0 20px 10px', flexWrap: 'wrap' }}>
+          <button onClick={goBack} style={btn(T.white, T.blue, T.blue)}>← กลับ</button>
+          <button onClick={() => setSignOpen(true)} disabled={!data} style={btn(T.orange, T.orange, T.white)}>ออกเอกสาร PDF</button>
+          <button onClick={() => exportDetailExcel(data, docNo, code)} disabled={!data} style={btn(T.white, T.ok, T.ok)}>Excel</button>
+          <button onClick={copyLink} style={btn(T.white, T.blue, T.blue)}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}</button>
+          <button onClick={() => window.print()} style={btn(T.white, T.line, T.text2)}>พิมพ์หน้าจอ</button>
+        </div>
+        <div className="tb-noprint" style={{ display: 'flex', gap: 4, padding: '0 14px', overflowX: 'auto' }} role="tablist">
+          {TABS.map(t => {
+            const on = tab === t.key;
+            return (
+              <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)} style={{
+                padding: '10px 16px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                border: 'none', background: 'none', color: on ? T.orange : T.text2,
+                borderBottom: on ? `3px solid ${T.orange}` : '3px solid transparent', marginBottom: -2,
+              }}>{t.label}</button>
+            );
+          })}
+        </div>
       </div>
 
       <div style={{ padding: '18px 20px 44px' }}>
@@ -1676,9 +1438,12 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
         {!loading && !error && data && (
           <>
             <RecordHeader s={s} docNo={docNo} code={code} />
-            <DataGaps s={s} meta={data.meta} materials={data.materials || []} />
-            {tab === 'summary' && <SummaryTab data={data} docNo={docNo} code={code} onOpenTrace={openTrace} />}
+            <ScoreStrip materials={materials || []} />
+            <DataGaps s={s} meta={data.meta} materials={materials || []} />
+            {tab === 'summary' && <SummaryTab data={data} onOpenTrace={openTrace} />}
             {tab === 'flow' && <FlowTab data={data} focus={focus} setFocus={setFocus} />}
+            {tab === 'tree' && <TraceTree data={data} />}
+            {tab === 'timeline' && <TraceTimeline materials={materials || []} />}
             {tab === 'detail' && <DetailTab data={data} onOpenTrace={openTrace} />}
 
             <div style={{ marginTop: 28, paddingTop: 14, borderTop: `1px dashed ${T.line}`, textAlign: 'center', fontSize: 11.5, color: T.text2, fontWeight: 400, lineHeight: 1.8 }}>
@@ -1689,8 +1454,7 @@ const TracebackDetailView = ({ docNo, code, onBack, onClose }) => {
         )}
       </div>
 
-      <SignDialog open={signOpen} onClose={() => setSignOpen(false)}
-        onExport={sign => exportRecordPDF(data, docNo, code, sign)} />
+      <SignDialog open={signOpen} onClose={() => setSignOpen(false)} onExport={exportPdf} />
     </div>
   );
 };

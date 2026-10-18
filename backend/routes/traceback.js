@@ -1087,6 +1087,230 @@ router.get('/detail', async (req, res) => {
   }
 });
 
+// ═══ 3.9) GET /forward — สอบกลับไปข้างหน้าจากรหัสรุ่น (ข้ามเอกสาร) ═══════════
+//   type = rm | ing | pkg | auto   code = รหัสรุ่น / Lot ที่สแกนหรือพิมพ์
+//   rm  : Batch.batch_before/after หรือ RMForProd.batch
+//   ing : WC vw_ngdnt_listNgdnt.BatchNo → WO/ตะกร้า → HistoryIngredientWO
+//   pkg : PackagingUsageDetail/PrintMasterSlip batch/lot → ช่วงเวลาใช้บนไลน์ → History.sc_pack_date
+//   คืนสินค้าที่ได้รับผลกระทบ (สำหรับเรียกคืน/กักสินค้า) รวมล็อตที่ยังอยู่ในกระบวนการ
+const FWD_MAX = 3000;
+
+async function forwardRM(pool, code) {
+  const tBatch = realTable('Batch');
+  const r = await pool.request().input('c', sql.NVarChar(100), code).query(`
+    SELECT TOP ${FWD_MAX} x.mapping_id, MAX(x.src) AS src FROM (
+      ${tBatch ? `SELECT b.mapping_id, 'Batch' AS src FROM [${tBatch}] b WHERE b.batch_before = @c OR b.batch_after = @c UNION ALL` : ''}
+      SELECT rmm.mapping_id, 'RMForProd' AS src
+      FROM TrolleyRMMapping rmm JOIN RMForProd rmf ON rmf.rmfp_id = rmm.rmfp_id
+      WHERE rmf.batch = @c
+    ) x GROUP BY x.mapping_id`);
+  return {
+    ids: r.recordset.map(x => x.mapping_id),
+    sources: r.recordset.length ? [{ type: 'rm', label: `รหัสรุ่นวัตถุดิบ ${code}`, count: r.recordset.length }] : [],
+  };
+}
+
+async function forwardING(pool, code) {
+  const poolWC = await connectToDatabaseWC().catch(e => { console.error('❌ [traceback/forward] WC pool:', e.message); return null; });
+  if (!poolWC) return { ids: [], sources: [], error: 'เชื่อมต่อฐานข้อมูล WC ไม่ได้' };
+
+  const wc = await poolWC.request().input('c', sql.NVarChar(60), code).query(`
+    SELECT TOP 5000 WONo, BasketNumber, ngdntCode, ngdntName,
+           CONVERT(VARCHAR, MixingTime, 120) AS MixingTime, NetWt
+    FROM [dbo].[vw_ngdnt_listNgdnt]
+    WHERE BatchNo = @c`);
+  if (!wc.recordset.length) return { ids: [], sources: [] };
+
+  const byWo = new Map();
+  for (const r of wc.recordset) {
+    const k = S(r.WONo);
+    if (!byWo.has(k)) byWo.set(k, { wo_no: k, baskets: new Set(), material_code: r.ngdntCode, material_name: r.ngdntName, net: 0, first: r.MixingTime });
+    const g = byWo.get(k);
+    if (r.BasketNumber != null) g.baskets.add(Number(r.BasketNumber));
+    g.net += Number(r.NetWt) || 0;
+    if (r.MixingTime && (!g.first || r.MixingTime < g.first)) g.first = r.MixingTime;
+  }
+
+  const hw = await pool.request()
+    .input('wos', sql.NVarChar(sql.MAX), [...byWo.keys()].join(','))
+    .query(`
+      SELECT DISTINCT mapping_id, wo_no, basket_no_start, basket_no_end
+      FROM [PFCMv2].[dbo].[HistoryIngredientWO]
+      WHERE wo_no IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@wos, ','))`);
+
+  const ids = new Set();
+  for (const w of hw.recordset) {
+    const g = byWo.get(S(w.wo_no));
+    if (!g) continue;
+    const s = w.basket_no_start != null && S(w.basket_no_start) !== '' ? Number(w.basket_no_start) : null;
+    const e = w.basket_no_end != null && S(w.basket_no_end) !== '' ? Number(w.basket_no_end) : null;
+    const hit = (s == null && e == null) || !g.baskets.size
+      || [...g.baskets].some(b => (s == null || b >= s) && (e == null || b <= e));
+    if (hit) ids.add(w.mapping_id);
+  }
+
+  return {
+    ids: [...ids],
+    sources: [...byWo.values()].map(g => ({
+      type: 'ing',
+      label: `ส่วนผสม ${g.material_code || ''} ${g.material_name || ''}`.trim(),
+      wo_no: g.wo_no,
+      baskets: [...g.baskets].sort((a, b) => a - b),
+      net_weight: rnd(g.net, 3),
+      used_at: g.first,
+    })),
+  };
+}
+
+async function forwardPKG(pool, code) {
+  const r = await pool.request().input('c', sql.NVarChar(100), code).query(`
+    WITH D AS (
+      SELECT d.detail_id, d.code, d.material_no, d.batch_no, d.lot_no, d.hu_no,
+             d.start_time, d.stop_time, COALESCE(d.line_name, r.line_name) AS line_name
+      FROM [PFCMv2].[dbo].[PackagingUsageDetail] d
+      LEFT JOIN [PFCMv2].[dbo].[PackagingUsageReport] r ON r.report_id = d.report_id
+      LEFT JOIN [PFCMv2].[dbo].[PrintMasterSlip] s ON s.slip_id = d.slip_id
+      WHERE (d.batch_no = @c OR d.lot_no = @c OR s.batch_no = @c OR s.lot = @c)
+        AND d.start_time IS NOT NULL AND d.stop_time IS NOT NULL
+        AND DATEDIFF(MINUTE, d.start_time, d.stop_time) BETWEEN 0 AND ${MAX_PKG_WINDOW_MIN}
+    )
+    SELECT TOP ${FWD_MAX}
+      D.detail_id, D.code, D.material_no, D.batch_no, D.lot_no, D.hu_no, D.line_name,
+      CONVERT(VARCHAR, D.start_time, 120) AS start_time,
+      CONVERT(VARCHAR, D.stop_time, 120)  AS stop_time,
+      h.mapping_id
+    FROM D
+    LEFT JOIN History h
+      ON h.sc_pack_date >= D.start_time AND h.sc_pack_date < D.stop_time
+     AND h.rmm_line_name = D.line_name
+     AND h.hist_id = (SELECT MAX(h2.hist_id) FROM History h2 WHERE h2.mapping_id = h.mapping_id)
+    ORDER BY D.start_time`);
+
+  const ids = new Set();
+  const det = new Map();
+  for (const x of r.recordset) {
+    if (x.mapping_id != null) ids.add(x.mapping_id);
+    if (!det.has(x.detail_id)) det.set(x.detail_id, { ...x, mapping_count: 0 });
+    if (x.mapping_id != null) det.get(x.detail_id).mapping_count++;
+  }
+  return {
+    ids: [...ids],
+    sources: [...det.values()].map(d => ({
+      type: 'pkg',
+      label: `บรรจุภัณฑ์ ${d.code || d.material_no || ''}`.trim(),
+      code: d.code, material_no: d.material_no, batch_no: d.batch_no, lot_no: d.lot_no, hu_no: d.hu_no,
+      line_name: d.line_name, start_time: d.start_time, stop_time: d.stop_time, mapping_count: d.mapping_count,
+    })),
+  };
+}
+
+router.get('/forward', async (req, res) => {
+  try {
+    const code = S(req.query.code);
+    const type = S(req.query.type) || 'auto';
+    if (!code) return res.status(400).json({ success: false, error: 'กรุณาระบุรหัสรุ่น / Lot' });
+    if (!['rm', 'ing', 'pkg', 'auto'].includes(type)) return res.status(400).json({ success: false, error: 'type ต้องเป็น rm, ing, pkg หรือ auto' });
+
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+    await getSchema(pool);
+
+    const run = { rm: forwardRM, ing: forwardING, pkg: forwardPKG };
+    const types = type === 'auto' ? ['rm', 'ing', 'pkg'] : [type];
+    const errors = {};
+    const parts = await Promise.all(types.map(t => run[t](pool, code).catch(e => {
+      console.error(`❌ [traceback/forward] ${t}:`, e.message);
+      errors[t] = e.message;
+      return { ids: [], sources: [] };
+    })));
+
+    const idSet = new Set();
+    const matchedTypes = [];
+    const sources = [];
+    parts.forEach((p, i) => {
+      if (p.error) errors[types[i]] = p.error;
+      if (p.ids.length || p.sources.length) matchedTypes.push(types[i]);
+      p.ids.forEach(id => idSet.add(id));
+      sources.push(...p.sources);
+    });
+
+    const ids = [...idSet].slice(0, FWD_MAX);
+    let lots = [];
+    if (ids.length) {
+      const tBatch = realTable('Batch');
+      lots = (await pool.request()
+        .input('ids', sql.NVarChar(sql.MAX), ids.join(','))
+        .query(`
+          SELECT
+            rmm.mapping_id, pr.mat, rm.mat_name, p.prod_id, p.doc_no, p.code,
+            rmm.weight_RM, rmm.dest, rmm.stay_place, rmm.tro_id,
+            htr.rmm_line_name,
+            CONVERT(VARCHAR, htr.rmit_date, 120)    AS rmit_date,
+            CONVERT(VARCHAR, htr.sc_pack_date, 120) AS sc_pack_date,
+            DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) AS delay_minutes
+            ${tBatch ? ', bt.batch_before, bt.batch_after' : ''}
+          FROM TrolleyRMMapping rmm
+          JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
+          JOIN RawMat     rm ON pr.mat = rm.mat
+          JOIN Production p  ON pr.prod_id = p.prod_id
+          OUTER APPLY (SELECT TOP 1 h.rmm_line_name, h.rmit_date, h.sc_pack_date FROM History h
+                       WHERE h.mapping_id = rmm.mapping_id ORDER BY h.hist_id DESC) htr
+          ${BATCH_APPLY(tBatch)}
+          WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, ','))
+          ORDER BY htr.sc_pack_date DESC
+        `)).recordset;
+    }
+
+    const byProduct = new Map();
+    for (const l of lots) {
+      const key = `${l.doc_no}|${l.code}`;
+      let g = byProduct.get(key);
+      if (!g) {
+        g = { doc_no: l.doc_no, code: l.code, prod_id: l.prod_id, lots: 0, packed: 0, in_process: 0,
+          total_weight: 0, lines: new Set(), mats: new Set(), pack_first: null, pack_last: null };
+        byProduct.set(key, g);
+      }
+      g.lots++;
+      if (l.sc_pack_date) g.packed++; else g.in_process++;
+      g.total_weight += Number(l.weight_RM) || 0;
+      if (l.rmm_line_name) g.lines.add(l.rmm_line_name);
+      if (l.mat_name) g.mats.add(l.mat_name);
+      if (l.sc_pack_date && (!g.pack_first || l.sc_pack_date < g.pack_first)) g.pack_first = l.sc_pack_date;
+      if (l.sc_pack_date && (!g.pack_last || l.sc_pack_date > g.pack_last)) g.pack_last = l.sc_pack_date;
+    }
+    const products = [...byProduct.values()]
+      .map(g => ({ ...g, lines: [...g.lines], mats: [...g.mats], total_weight: rnd(g.total_weight, 3) }))
+      .sort((a, b) => String(b.pack_last || '').localeCompare(String(a.pack_last || '')));
+
+    res.json({
+      success: true,
+      data: {
+        code,
+        type,
+        matched_types: matchedTypes,
+        summary: {
+          product_count: products.length,
+          lot_count: lots.length,
+          packed_count: lots.filter(l => l.sc_pack_date).length,
+          in_process_count: lots.filter(l => !l.sc_pack_date).length,
+          total_weight: rnd(lots.reduce((a, l) => a + (Number(l.weight_RM) || 0), 0), 3),
+          lines: [...new Set(lots.map(l => l.rmm_line_name).filter(Boolean))],
+          pack_date_first: minOf(lots.map(l => l.sc_pack_date)),
+          pack_date_last: maxOf(lots.map(l => l.sc_pack_date)),
+          truncated: idSet.size > FWD_MAX,
+        },
+        sources,
+        products,
+        lots,
+        errors,
+      },
+    });
+  } catch (err) {
+    console.error('❌ [traceback/forward]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ═══ 4) GET /ingredients — ส่วนผสมดิบรายตะกร้า ═════════════════════════════
 router.get('/ingredients', async (req, res) => {
   try {

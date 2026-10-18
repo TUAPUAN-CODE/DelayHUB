@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import SearchableSelect from './SearchableSelect';
 import TracebackDetailView from './TracebackDetailView';
@@ -6,6 +6,8 @@ import {
   C, labelStyle, inputStyle, btnPrimary, btnSecondary,
   fmtDisplay, fmtNum, DELAY_STYLE,
 } from './tracebackUI';
+import { readRecent, pushRecent } from './tracebackCore';
+import { exportResultsExcel } from './tracebackExport';
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -39,7 +41,21 @@ const SORT_OPTIONS = [
   { value: 'batch_desc', label: 'รหัสรุ่น (Batch) ฮ → ก' },
 ];
 
-const ProductionLineDelayDashboard = () => {
+// ปุ่มช่วงวันที่ลัด (วันที่ตามเวลาเครื่อง)
+const ymd = (d) => {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+const DATE_PRESETS = [
+  { label: 'วันนี้', from: 0, to: 0 },
+  { label: 'เมื่อวาน', from: 1, to: 1 },
+  { label: '7 วัน', from: 6, to: 0 },
+  { label: '30 วัน', from: 29, to: 0 },
+];
+const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
+
+// selected / onSelect มาจาก TracebackPage เพื่อให้ URL (?doc_no=&code=) เปิดใบสอบกลับตรงได้
+const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [singleDayMode, setSingleDayMode] = useState(true);
   const [sortBy, setSortBy] = useState('pack_date_desc');
@@ -51,7 +67,8 @@ const ProductionLineDelayDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
-  const [selected, setSelected] = useState(null); // { doc_no, code }
+  const [recent, setRecent] = useState(() => readRecent().filter(r => r.kind === 'doc'));
+  const setSelected = useCallback(v => onSelect?.(v), [onSelect]);
 
   const setF = (key, val) => setFilters(p => ({ ...p, [key]: val }));
 
@@ -76,7 +93,6 @@ const ProductionLineDelayDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      setSelected(null);
       const params = {};
       Object.entries(activeFilters).forEach(([k, v]) => { if (v && String(v).trim()) params[k] = String(v).trim(); });
       const res = await axios.get(`${API_URL}/api/traceback/search`, { params });
@@ -90,12 +106,19 @@ const ProductionLineDelayDashboard = () => {
   }, []);
 
   const handleSearch = () => fetchData(filters);
+  const applyPreset = (pr) => {
+    const next = { ...filters, sc_pack_date_from: daysAgo(pr.from), sc_pack_date_to: daysAgo(pr.to) };
+    setSingleDayMode(pr.from === pr.to);
+    setFilters(next);
+    fetchData(next);
+  };
   const handleReset = () => {
-    setFilters(EMPTY_FILTERS); setResults([]); setSearched(false); setError(null); setSelected(null);
+    setFilters(EMPTY_FILTERS); setResults([]); setSearched(false); setError(null);
   };
 
   // เปิดใบสอบกลับ → เลื่อนขึ้นบนสุดเสมอ
   const openRecord = r => {
+    setRecent(pushRecent({ kind: 'doc', doc_no: r.doc_no, code: r.code }).filter(x => x.kind === 'doc'));
     setSelected({ doc_no: r.doc_no, code: r.code });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -198,6 +221,16 @@ const ProductionLineDelayDashboard = () => {
           <SearchableSelect label="เรียงลำดับผลลัพธ์" value={sortBy} onChange={v => setSortBy(v || 'pack_date_desc')} options={SORT_OPTIONS} allowFree={false} placeholder="เลือกการเรียง" />
         </div>
 
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ fontSize: 12, color: C.text2, fontWeight: 500 }}>ช่วงวันที่ลัด:</span>
+          {DATE_PRESETS.map(pr => (
+            <button key={pr.label} type="button" onClick={() => applyPreset(pr)} disabled={loading}
+              style={{ border: `1px solid ${C.line}`, background: C.blueSoft, color: C.blueDark, borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+              {pr.label}
+            </button>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button onClick={handleSearch} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
             {loading ? <Spinner size={14} /> : null} ค้นหา
@@ -206,8 +239,42 @@ const ProductionLineDelayDashboard = () => {
           {searched && !loading && (
             <span style={{ fontSize: 12, color: C.muted, fontWeight: 400 }}>พบ {results.length} การผลิต</span>
           )}
+          {searched && !loading && results.length > 0 && (
+            <button type="button" onClick={() => exportResultsExcel(sorted)} style={{ ...btnSecondary, marginLeft: 'auto', fontWeight: 500 }}>
+              ส่งออกผลการค้นหา (Excel)
+            </button>
+          )}
         </div>
+
+        {recent.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${C.line}` }}>
+            <span style={{ fontSize: 12, color: C.text2, fontWeight: 500 }}>เปิดล่าสุด:</span>
+            {recent.slice(0, 6).map(r => (
+              <button key={r.key} type="button" onClick={() => openRecord(r)} title={r.code}
+                style={{ border: `1px solid ${C.line}`, background: C.white, color: C.blueDark, borderRadius: 20, padding: '3px 11px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.doc_no}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {searched && !loading && results.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 14 }}>
+          {[
+            ['เอกสารผลิต', results.length, C.blue],
+            ['ดีเลย์รุนแรง', results.filter(r => r.severe_delay_count > 0).length, DELAY_STYLE.severe.color],
+            ['ดีเลย์เตือน', results.filter(r => !r.severe_delay_count && r.warn_delay_count > 0).length, DELAY_STYLE.warn.color],
+            ['ปกติ', results.filter(r => !r.severe_delay_count && !r.warn_delay_count).length, DELAY_STYLE.ok.color],
+            ['น้ำหนักรวม (kg)', fmtNum(results.reduce((a, r) => a + (Number(r.total_weight_rm) || 0), 0), 1), C.blueDark],
+          ].map(([l, v, c]) => (
+            <div key={l} style={{ background: C.white, border: `1px solid ${C.line}`, borderLeft: `4px solid ${c}`, borderRadius: 10, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11.5, color: C.text2, fontWeight: 500 }}>{l}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div style={{ padding: '1rem', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, color: '#B91C1C', fontSize: 14, marginBottom: 16, fontWeight: 400 }}>

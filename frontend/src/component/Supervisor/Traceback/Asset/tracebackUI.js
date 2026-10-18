@@ -46,3 +46,21 @@ export const fmtDisplay = (v) => {
 export const fmtNum = (v, d = 2) => (v == null || v === '' || isNaN(Number(v))
   ? '—'
   : Number(v).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d }));
+
+// ชุดสีเดียวกับใบสอบกลับ (ฟ้า / ส้ม / ขาว)
+export const T = {
+  blue: '#0B5FA5', blueDeep: '#083E6B', blueSoft: '#E7F1FA', blueLine: '#B7D5EE',
+  orange: '#D9580D', orangeSoft: '#FFF0E3', orangeLine: '#FFCFA6',
+  white: '#FFFFFF', bg: '#F5F9FD',
+  text: '#0F2740', text2: '#274866', line: '#CBDFEF',
+  ok: '#0A6B3D', okSoft: '#E2F5EA', okLine: '#A9DCC0',
+  bad: '#A81E14', badSoft: '#FDEBE9', badLine: '#F3B7B1',
+};
+
+export const TYPE_LABEL = { auto: 'ค้นหาทุกประเภท', rm: 'วัตถุดิบ', ing: 'ส่วนผสม', pkg: 'บรรจุภัณฑ์' };
+
+// ช่องกรอกมาตรฐานของหน้า Traceback
+export const inputCss = {
+  height: 38, padding: '0 11px', borderRadius: 9, fontSize: 13, border: `1.5px solid ${T.line}`,
+  color: T.text, background: T.white, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', width: '100%',
+};
