@@ -22,21 +22,20 @@ import FloatingLanguageSwitcher from "../Layout/FloatingLanguageSwitcher";
 import { useNavigate } from "react-router-dom"; // นำเข้า useNavigate
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ช่องกรอกแบบกระจก (ตัวอักษรสีขาว ขอบจาง) — ใช้ร่วมกันทั้งสองช่อง
-const glassField = {
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,.8)" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#cdeeff" },
+// ช่องกรอกบนการ์ดสีขาว — ใช้ร่วมกันทั้งสองช่อง
+const whiteField = {
+  "& .MuiInputLabel-root": { color: "#5b6b82" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#1770b8" },
   "& .MuiOutlinedInput-root": {
-    color: "#fff",
+    color: "#1e3c72",
     borderRadius: "10px",
-    background: "rgba(255,255,255,.14)",
-    "& fieldset": { borderColor: "rgba(255,255,255,.3)" },
-    "&:hover fieldset": { borderColor: "rgba(255,255,255,.55)" },
-    "&.Mui-focused fieldset": { borderColor: "#4fb6e8" },
+    background: "#fff",
+    "& fieldset": { borderColor: "#c9d6e6" },
+    "&:hover fieldset": { borderColor: "#8fb0d6" },
+    "&.Mui-focused fieldset": { borderColor: "#1770b8" },
   },
-  "& .MuiFormHelperText-root": { color: "#ffd6d6" },
 };
-const linkSx = { color: "#cdeeff", fontWeight: 700 };
+const linkSx = { color: "#1770b8", fontWeight: 700 };
 
 // Schema ตรวจสอบข้อมูล
 const schema = yup.object().shape({
@@ -122,8 +121,8 @@ const Login = () => {
         inset: 0,
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        px: 2,
+        justifyContent: { xs: "center", md: "flex-end" },
+        px: { xs: 2, md: 8, lg: 14 },
         overflow: "hidden",
         bgcolor: "#06183c",
       }}
@@ -152,32 +151,23 @@ const Login = () => {
           px: { xs: 3, sm: 4.5 },
           py: { xs: 4.5, sm: 5.5 },
           borderRadius: "24px",
-          color: "#fff",
-          background: "linear-gradient(155deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.03) 45%, rgba(255,255,255,.05) 100%)",
-          backdropFilter: "blur(8px) saturate(120%)",
-          WebkitBackdropFilter: "blur(8px) saturate(120%)",
-          border: "1px solid rgba(255,255,255,.2)",
-          boxShadow: "0 30px 60px -15px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.15)",
+          color: "#1e3c72",
+          background: "#fff",
+          boxShadow: "0 24px 60px -12px rgba(15,39,64,.35)",
           animation: "pageIn .6s cubic-bezier(.22,1,.36,1) both",
-          transition: "transform .5s cubic-bezier(.22,.9,.3,1)",
-          "@media (hover: hover) and (prefers-reduced-motion: no-preference)": {
-            perspective: "1200px",
-            "&:hover": { transform: "rotateX(2deg) rotateY(-3deg) translateY(-2px)" },
-          },
-          "@media (max-width: 480px)": { backdropFilter: "blur(6px)" },
         }}
       >
         <Box sx={{ textAlign: "center", mb: 3.5, mt: 1 }}>
-          <Typography id="login-title" variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: ".02em", textShadow: "0 2px 10px rgba(0,0,0,.25)" }}>
+          <Typography id="login-title" variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: ".02em", color: "#1e3c72" }}>
             เข้าสู่ระบบ
           </Typography>
-          <Typography variant="body2" sx={{ mt: .75, color: "rgba(255,255,255,.8)" }}>
+          <Typography variant="body2" sx={{ mt: .75, color: "#5b6b82" }}>
             ยินดีต้อนรับกลับมา กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
           </Typography>
         </Box>
 
         {errorMessage && (
-          <Typography role="alert" sx={{ mb: 2, px: 1.5, py: 1, borderRadius: 2, fontSize: ".85rem", color: "#ffd6d6", background: "rgba(220,38,38,.25)", border: "1px solid rgba(255,140,140,.45)" }}>
+          <Typography role="alert" sx={{ mb: 2, px: 1.5, py: 1, borderRadius: 2, fontSize: ".85rem", color: "#b42318", background: "#fef3f2", border: "1px solid #fecdca" }}>
             {errorMessage}
           </Typography>
         )}
@@ -193,7 +183,7 @@ const Login = () => {
             {...register("user_id")}
             error={!!errors.user_id}
             helperText={errors.user_id?.message}
-            sx={glassField}
+            sx={whiteField}
           />
           <TextField
             fullWidth
@@ -206,7 +196,7 @@ const Login = () => {
             {...register("password")}
             error={!!errors.password}
             helperText={errors.password?.message}
-            sx={glassField}
+            sx={whiteField}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -214,7 +204,7 @@ const Login = () => {
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                     onClick={() => setShowPassword((v) => !v)}
                     edge="end"
-                    sx={{ color: "rgba(255,255,255,.85)" }}
+                    sx={{ color: "#5b6b82" }}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -235,9 +225,9 @@ const Login = () => {
               letterSpacing: ".03em",
               textTransform: "none",
               color: "#fff",
-              background: "linear-gradient(135deg, #4fb6e8, #2f8cc4)",
-              boxShadow: "0 10px 22px rgba(47,140,196,.45), inset 0 1px 0 rgba(255,255,255,.4)",
-              "&:hover": { background: "linear-gradient(135deg, #5fc0ee, #3a97cf)", boxShadow: "0 14px 26px rgba(47,140,196,.55)" },
+              background: "#1770b8",
+              boxShadow: "0 8px 18px rgba(23,112,184,.35)",
+              "&:hover": { background: "#125f9e", boxShadow: "0 10px 22px rgba(23,112,184,.45)" },
             }}
           >
             เข้าสู่ระบบ
@@ -246,7 +236,7 @@ const Login = () => {
 
         <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mt: 2.5, fontSize: ".85rem" }}>
           <Link href="/forgot-password" underline="hover" sx={linkSx}>ลืมรหัสผ่าน?</Link>
-          <Typography component="span" sx={{ fontSize: "inherit", color: "rgba(255,255,255,.8)" }}>
+          <Typography component="span" sx={{ fontSize: "inherit", color: "#5b6b82" }}>
             ยังไม่มีบัญชี?{" "}
             <Link href="/signup" underline="hover" sx={linkSx}>ลงทะเบียน</Link>
           </Typography>
