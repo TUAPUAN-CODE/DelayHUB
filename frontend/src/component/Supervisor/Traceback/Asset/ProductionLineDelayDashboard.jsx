@@ -116,19 +116,19 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
     setFilters(EMPTY_FILTERS); setResults([]); setSearched(false); setError(null);
   };
 
-  // ขอบเขตของใบสอบกลับ ตามตัวกรองที่ผู้ใช้ตั้งไว้ (ตัวกรองมีผลบังคับกับข้อมูลในใบ):
-  //   ตั้ง Batch  → Batch เป็นหลัก: ทุก Code / ไลน์ / เอกสารที่ใช้ Batch นี้
-  //   ตั้ง Code   → Code เป็นหลัก: ทุก Batch / ไลน์ ของ Code นี้
-  //   ตั้งทั้งคู่ → ทุกไลน์ที่ใช้ Code + Batch นี้
-  //   ไม่ตั้งทั้งสอง → ตามเอกสารของการ์ดที่กด · ไลน์ / Mat / ผู้ขาย / ช่วงวันบรรจุ ที่ตั้งไว้ใช้จำกัดข้อมูลเพิ่มทุกกรณี
+  // ขอบเขตของใบสอบกลับ = ตัวกรองทุกช่องที่ตั้งไว้ในหน้าค้นหา (ทุกตัวมีผลบังคับ ไม่ผูกกับการ์ดที่กด):
+  //   ใบสอบกลับครอบคลุม "ข้อมูลทั้งหมดที่ตรงกับตัวกรองครบทุกช่อง" ข้ามเอกสาร/Code/Batch/ไลน์
+  //   เช่น ตั้ง Batch → ทุก Code ทุกไลน์ที่ใช้ Batch นี้ · ตั้ง Code → ทุก Batch ทุกไลน์ของ Code นี้ · ตั้ง Code + Batch → ทุกไลน์ที่ใช้ทั้งสองอย่าง
+  //   ไม่ได้ตั้งตัวกรองเลย → เปิดตามเอกสารของการ์ดที่กด (เหมือนเดิม)
   const buildScope = r => {
     const t = v => String(v || '').trim();
-    const extra = { line: t(filters.rmm_line_name), mat: t(filters.mat), mat_name: t(filters.mat_name), supplier: t(filters.supplier), pack_from: t(filters.sc_pack_date_from), pack_to: t(filters.sc_pack_date_to) };
-    const keyed = t(filters.code) || t(filters.batch);
-    const hasExtra = Object.values(extra).some(Boolean);
-    if (!keyed && !hasExtra) return { doc_no: r.doc_no, code: r.code };
-    const base = keyed ? { code: t(filters.code), batch: t(filters.batch), doc_no: t(filters.doc_no) } : { doc_no: r.doc_no, code: r.code };
-    return Object.fromEntries(Object.entries({ scope: true, ...base, ...extra }).filter(([, v]) => v));
+    const all = {
+      doc_no: t(filters.doc_no), code: t(filters.code), batch: t(filters.batch), line: t(filters.rmm_line_name),
+      mat: t(filters.mat), mat_name: t(filters.mat_name), supplier: t(filters.supplier),
+      pack_from: t(filters.sc_pack_date_from), pack_to: t(filters.sc_pack_date_to),
+    };
+    if (!Object.values(all).some(Boolean)) return { doc_no: r.doc_no, code: r.code };
+    return Object.fromEntries(Object.entries({ scope: true, ...all }).filter(([, v]) => v));
   };
 
   // เปิดใบสอบกลับ → เลื่อนขึ้นบนสุดเสมอ
