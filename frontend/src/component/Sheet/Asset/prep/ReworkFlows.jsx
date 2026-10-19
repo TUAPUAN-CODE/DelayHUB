@@ -22,7 +22,7 @@ const SOURCES = {
  * Put the material in a trolley again (modal chain 1→2→3), edit its production plan. The full row of the old list is loaded on click,
  * so the forms get exactly the data they got on the old page. Methods: cart(row, 'rework'|'import'), edit(row, 'rework'|'import').
  */
-const ReworkFlows = forwardRef(({ onDone, onNotify }, ref) => {
+const ReworkFlows = forwardRef(({ onDone }, ref) => {
   const [kind, setKind] = useState("rework");
   const [m1, setM1] = useState(null);
   const [m2, setM2] = useState(null);
@@ -37,8 +37,14 @@ const ReworkFlows = forwardRef(({ onDone, onNotify }, ref) => {
   const loadRow = async (k, row) => {
     const results = await Promise.all(SOURCES[k].map((u) => axios.get(`${API_URL}${u}`, { params: { rm_type_ids: row.rm_type_id } }).catch((err) => { console.error("[ReworkFlows] load error:", err); return null; })));
     const found = results.flatMap((r) => (r?.data?.success ? r.data.data : [])).find((x) => x.mapping_id === row.mapping_id);
-    if (!found) onNotify?.("ไม่พบรายการนี้ในคิวเดิมแล้ว (อาจมีผู้อื่นทำรายการไปแล้ว)");
-    return found;
+    if (found) return found;
+    // not in the old queue of this kind (the status "รอเตรียมวัตถุดิบใหม่" also covers rows the old queues do not list): build the form data from the sheet row itself
+    console.warn("[ReworkFlows] row not in the old queue, using the sheet row:", row.mapping_id, k);
+    return {
+      mapping_id: row.mapping_id, tro_id: row.tro_id, rm_status: row.rm_status, qccheck_cold: row.qccheck_cold, remark_rework: row.remark_rework, remark_rework_cold: row.remark_rework_cold,
+      rm_type_id: row.rm_type_id, CookedDateTime: row.cooked_date, batch: row.batch_after || row.batch, edit_rework: row.edit_rework, rmfp_id: row.rmfp_id,
+      mat: row.mat, mat_name: row.mat_name, production: row.code || row.production,
+    };
   };
 
   const clear = () => { setM1(null); setM2(null); setM3(null); };

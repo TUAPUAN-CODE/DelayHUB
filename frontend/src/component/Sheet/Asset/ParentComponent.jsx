@@ -284,6 +284,12 @@ const ParentComponent = ({ role, view = "work" }) => {
   const tools = useCallback((r) => {
     const out = [];
     const h = r.__hu;
+    const stLabel = statusOf(r).label;
+    // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
+    if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
+      if (r.__kind === "map" && !r.cs_id && r.tro_id && CS2_DEST.includes(r.dest)) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
+      return out;
+    }
     if (role === "cs2" && h) {
       const mk = (kind, label, color, icon) => {
         const plan = planStamp(kind, h);
@@ -297,20 +303,30 @@ const ParentComponent = ({ role, view = "work" }) => {
       );
     }
     if (role === "prep") {
+      // "รอเตรียมวัตถุดิบใหม่": only ใส่รถเข็น (รอแก้ไข) · กลับมาเตรียม · แก้ไข, whatever kind of waiting-list row it is (the old queues are looked up by the flow)
+      if (stLabel === "รอเตรียมวัตถุดิบใหม่") {
+        const rk = r.__rework;
+        out.push({ col: "t_rework", key: "rw-cart", label: "ใส่รถเข็น (รอแก้ไข)", color: "#B91C1C", run: () => reworkRef.current?.cart(r, "rework") });
+        out.push({ col: "t_rework", key: "im-cart", label: "กลับมาเตรียม", color: "#B45309", run: () => reworkRef.current?.cart(r, "import") });
+        out.push({ col: "t_rework", key: "rw-edit", label: "แก้ไข", color: "#B26A00", run: () => reworkRef.current?.edit(r, rk === "B" ? "import" : "rework") });
+        return out;
+      }
       if (h && h.sap_re_id !== undefined) {
-        // รับ / ต้ม/อบเสร็จ / ส่งคืน ตามสถานะของแถว: จ่ายลงไลน์แล้ว = กด "รับ" ได้อย่างเดียว · อยู่ที่ไลน์ = ต้ม/อบเสร็จ และส่งคืนได้ · สถานะอื่นทั้งหมด = กดไม่ได้
-        const stLabel = statusOf(r).label;
+        // รับ / ต้ม/อบเสร็จ / ส่งคืน ตามสถานะของแถว: จ่ายลงไลน์แล้ว = กด "รับ" ได้อย่างเดียว · อยู่ที่ไลน์ = ต้ม/อบเสร็จ และส่งคืนได้ (มีแค่สองปุ่มนี้) · สถานะอื่นทั้งหมด = กดไม่ได้
+        const atLine = stLabel === "อยู่ที่ไลน์"; // "อยู่ที่ไลน์": only ต้ม/อบเสร็จ and ส่งคืน — no รับ, ไลน์รับเข้า, plan or mix buttons
         const allowed = stLabel === "จ่ายลงไลน์แล้ว" ? ["receive"] : stLabel === "อยู่ที่ไลน์" ? ["boil", "return"] : [];
         const reason = stLabel === "จ่ายลงไลน์แล้ว" ? "ต้องกด รับ ก่อน" : stLabel === "อยู่ที่ไลน์" ? "รับวัตถุดิบแล้ว" : `สถานะ ${stLabel} ทำรายการนี้ไม่ได้`;
         [["receive", "รับ", "#2e7d32", "บันทึกเวลารับวัตถุดิบ"], ["boil", "ต้ม/อบเสร็จ", "#e65100", "บันทึกเวลาต้มอบเสร็จ"], ["return", "ส่งคืน", "#6a1b9a", "บันทึกเวลาส่งคืนวัตถุดิบ"]].forEach(([k, label, color, title]) => {
+          if (atLine && k === "receive") return;
           const ok = allowed.includes(k);
           out.push({ col: "t_pstamp", key: `ps-${k}`, label, color, ok, title: ok ? title : reason, run: () => { if (ok) setPstamp({ kind: k, hu: h }); } });
         });
         // ไลน์รับเข้า (SAP HU): same rule as the scan button — after ละลายเสร็จ of the round, once per round
-        // สถานะ "รอใส่รถเข็น" ไม่ต้องมีปุ่มไลน์รับเข้า
+        // สถานะ "รอใส่รถเข็น" และ "อยู่ที่ไลน์" ไม่ต้องมีปุ่มไลน์รับเข้า
         const plan = planStamp("linein", h);
-        if (statusOf(r).label !== "รอใส่รถเข็น") out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
+        if (stLabel !== "รอใส่รถเข็น" && !atLine) out.push({ col: "t_pstamp", key: "linein", label: "ไลน์รับเข้า", color: "#1552F0", icon: <LocalShippingOutlinedIcon fontSize="small" />, ok: plan.ok, title: plan.ok ? `ไลน์รับเข้า${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => hu.rowStamp("linein", h) });
       }
+      if (stLabel === "อยู่ที่ไลน์") return out; // ไม่มีปุ่มอื่นนอกจาก ต้ม/อบเสร็จ และ ส่งคืน
       // ปุ่มของแผนการผลิตอยู่ในแถบ "แถวที่เลือก" (col t_bar ไม่ใช่คอลัมน์ในตาราง) — ปุ่มละ 1 อัน; ถ้ามีหลายแผนจะให้เลือกแผนก่อน
       if (r.__plans?.length) {
         const pick = (action) => {
@@ -320,22 +336,12 @@ const ParentComponent = ({ role, view = "work" }) => {
         out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
         out.push({ col: "t_bar", key: "edit-plan", label: "เปลี่ยนแผนการผลิต", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
       }
-      // a plan can fill several trolleys: it stays "รอใส่รถเข็น" until the last one is done, then it is closed here
-      if (r.__kind === "plan" && r.__trolleys > 0) {
-        out.push({ col: "t_bar", key: "ok-plan", label: `ใส่รถเข็นครบแล้ว (${r.__trolleys} คัน)`, color: "#2E7D32", title: "ปิดแผนนี้: ไม่ใส่รถเข็นเพิ่มแล้ว", run: () => manageRef.current?.openComplete(r.__plans[0]) });
-      }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
       if (kind) {
         const ref = mixRefs[kind];
         out.push({ col: "t_mix", key: `cart-${kind}`, label: "ใส่รถเข็น", color: "#1552F0", title: `${MIX_KINDS[kind].label}: ใส่รถเข็น`, run: () => ref.current?.cart(r.__loaf || r) });
         out.push({ col: "t_mix", key: `ok-${kind}`, label: "เสร็จ", color: "#2E7D32", run: () => ref.current?.success(r.__loaf || r) });
         if (kind !== "loaf") out.push({ col: "t_mix", key: `del-${kind}`, label: "ลบ", color: "#C62828", run: () => ref.current?.remove(r) });
-      }
-      const rk = r.__rework;
-      if (rk) {
-        out.push({ col: "t_rework", key: "rw-cart", label: "ใส่รถเข็น (รอแก้ไข)", color: "#B91C1C", run: () => reworkRef.current?.cart(r, "rework") });
-        if (rk === "B") out.push({ col: "t_rework", key: "im-cart", label: "กลับมาเตรียม", color: "#B45309", run: () => reworkRef.current?.cart(r, "import") });
-        out.push({ col: "t_rework", key: "rw-edit", label: "แก้ไข", color: "#B26A00", run: () => reworkRef.current?.edit(r, rk === "B" ? "import" : "rework") });
       }
     }
     if (r.__kind !== "map") return out;
@@ -433,7 +439,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const mixBar = role === "prep" && (
     <>
       <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>ผสม (ติ๊กหลายแถวก่อน):</Typography>
-      {Object.entries(MIX_KINDS).map(([k, v]) => (
+      {Object.entries(MIX_KINDS).filter(([k]) => !(k !== "emu" && activeRow?.__status?.label === "อยู่ที่ไลน์")).map(([k, v]) => ( // แถวที่เลือกอยู่สถานะ "อยู่ที่ไลน์": ไม่มีปุ่ม ผสม Batch / ผสมเตรียม / ผสม loaf สุก
         <Tooltip key={k} title={mixPicked[k].length ? "" : `ติ๊กแถว "${v.status}" ในตารางก่อน`} arrow>
           <span>
             <Button size="small" variant="contained" color="secondary" startIcon={<BlenderOutlinedIcon />} disabled={!mixPicked[k].length} onClick={() => mixRefs[k].current?.add(mixPicked[k])} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>

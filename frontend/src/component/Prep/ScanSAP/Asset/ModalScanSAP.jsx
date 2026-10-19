@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Modal, Box, Typography, TextField, Button, IconButton, Tooltip, Alert, useTheme, Divider, DialogContent, Dialog, Autocomplete } from "@mui/material";
 import { styled } from "@mui/system";
 import { IoClose, IoInformationCircle } from "react-icons/io5";
-import QrScanner from "qr-scanner";
+import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+import useQrCamera from "../../../../hooks/useQrCamera";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
@@ -35,7 +36,6 @@ const CameraActivationModal = ({
 }) => {
   const theme = useTheme();
   const videoRef = useRef(null);
-  const qrScannerRef = useRef(null);
   const rawMaterialInputRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [error, setError] = useState("");
@@ -149,44 +149,16 @@ const CameraActivationModal = ({
     }
   };
 
+  // camera: back camera first, can be switched to the front camera (hooks/useQrCamera)
+  const { start: startQr, stop: stopQr, switchCamera, facing } = useQrCamera(videoRef, (text) => handleScannedData(text));
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setCameraActive(true);
-
-        const qrScanner = new QrScanner(
-          videoRef.current,
-          async (result) => {
-            handleScannedData(result.data);
-          },
-          {
-            highlightScanRegion: true,
-            highlightCodeOutline: true,
-          }
-        );
-        
-        qrScannerRef.current = qrScanner;
-        qrScanner.start();
-      }
-    } catch (err) {
-      setError("ไม่สามารถเปิดกล้องได้. โปรดตรวจสอบการยอมรับของอุปกรณ์");
-      setCameraActive(false);
-    }
+    const ok = await startQr();
+    setCameraActive(!!ok);
+    if (!ok) setError("ไม่สามารถเปิดกล้องได้. โปรดตรวจสอบการยอมรับของอุปกรณ์");
   };
 
   const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    if (qrScannerRef.current) {
-      qrScannerRef.current.stop();
-    }
+    stopQr();
     setCameraActive(false);
   };
 
@@ -397,7 +369,11 @@ const CameraActivationModal = ({
             }} 
             autoPlay 
             muted 
+            playsInline
           />
+          <Button variant="outlined" size="small" startIcon={<CameraswitchIcon />} onClick={switchCamera} disabled={!cameraActive} sx={{ alignSelf: "flex-end", mb: 1 }}>
+            {facing === "environment" ? "กล้องหลัง · สลับเป็นกล้องหน้า" : "กล้องหน้า · สลับเป็นกล้องหลัง"}
+          </Button>
 
           <Box>
             <Autocomplete

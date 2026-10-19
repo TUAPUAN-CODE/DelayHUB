@@ -53,7 +53,8 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
   // };
   const isFormValid = () => {
     const isTrolleyValid = inputValue.trim() !== '';
-    const isBatchValid = (rm_type_id !== 3 && rm_type_id !== 7 && rm_type_id === !8 && rm_type_id === !6) || (batchInput.trim() !== '' && batchInput.length === 10);
+    const needsBatch = [3, 6, 7, 8].includes(rm_type_id);
+    const isBatchValid = !needsBatch || batchInput.trim().length === 10;
     return isTrolleyValid && isBatchValid;
   };
 
