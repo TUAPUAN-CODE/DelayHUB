@@ -172,6 +172,8 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     const cur = inTrolley.get(String(m.rmfp_id)) || { count: 0, weight: 0 };
     inTrolley.set(String(m.rmfp_id), { count: cur.count + 1, weight: cur.weight + (Number(m.weight_RM) || 0) });
   });
+  // the emulsion text of a mixed lot: the plan row of the same rmfp_id (shown first) must carry it, or its "ผสมจาก" tab looks empty
+  const emulsionByPlan = new Map((mixed || []).filter((m) => m.emulsion_text).map((m) => [m.rmfp_id, m.emulsion_text]));
   (plans || []).forEach((p) => {
     if (consumed.has(p.rmfp_id)) return;
     consumed.add(p.rmfp_id);
@@ -179,6 +181,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     const h = p.hu ? huByKey.get(String(p.hu)) : null;
     rows.push({
       ...(h ? mergeHu(p, h) : p), weight_RM: p.weight, code: p.production,
+      emulsion_text: p.emulsion_text || emulsionByPlan.get(p.rmfp_id) || null,
       __trolleys: inTrolley.get(String(p.rmfp_id))?.count || 0, __inTrolleyKg: inTrolley.get(String(p.rmfp_id))?.weight || 0, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
     });
   });
