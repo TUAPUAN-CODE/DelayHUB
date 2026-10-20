@@ -38,6 +38,8 @@ import dayjs from 'dayjs';
 import QrScanner from "qr-scanner";
 import axios from "axios";
 import { styled } from "@mui/system";
+import QcFormFields from "../../../Sheet/Asset/pack/QcFormFields";
+import { emptyQc, validateQc, toQcPayload } from "../../../Sheet/Asset/pack/qcForm";
 
 axios.defaults.withCredentials = true;
 
@@ -155,6 +157,18 @@ const ConfirmProdModalSAP = ({
   const [showAlert, setShowAlert] = useState(false);
   const [userId, setUserId] = useState(null);
   const [error, setError] = useState(null);
+  // Pack "เพิ่ม RM": the result of the QC check, mat 2x and batch 2x are typed here, so the row is saved as checked and is found by Traceback
+  const planFlow = batchmix !== "true" && emulsion !== "true";
+  const [qc, setQc] = useState(emptyQc);
+  const [qcErrors, setQcErrors] = useState({});
+  const [mat2x, setMat2x] = useState(null);
+  const [batch2x, setBatch2x] = useState("");
+  const [mat2xOptions, setMat2xOptions] = useState([]);
+  useEffect(() => {
+    if (!open || !planFlow) return;
+    setQc(emptyQc()); setQcErrors({}); setMat2x(null); setBatch2x(""); setError(null);
+    axios.get(`${API_URL}/api/fetchRawMat2X`).then((res) => { if (res.data?.success) setMat2xOptions(res.data.data ?? []); }).catch((err) => console.error("Error fetching rawmat2x:", err));
+  }, [open, planFlow]);
 
   const formatCookedDateTime = (dateTimeString) => {
     if (!dateTimeString) return null;
@@ -164,6 +178,13 @@ const ConfirmProdModalSAP = ({
 
 
   const handleConfirm = async () => {
+    if (planFlow) {
+      const v = validateQc(qc);
+      const bErr = batch2x.trim() !== "" && batch2x.trim().length !== 10;
+      setQcErrors({ ...v.errors, ...(bErr ? { batch2x: true } : {}) });
+      if (!v.ok || bErr) { setError(bErr ? "Batch 2x ต้องมี 10 ตัวอักษร (หรือเว้นว่าง)" : "กรุณากรอกผลการตรวจสอบ QC ให้ครบ"); return; }
+    }
+    setError(null);
     const formattedDateTime = dayjs().toISOString();
     // setWithdraw(formattedDateTime);
     const weightPerPlan = parseFloat(weighttotal) / (selectedPlanSets.length || 1);
@@ -189,7 +210,7 @@ const ConfirmProdModalSAP = ({
           ? `${API_URL}/api/prep/saveRMMixBatch/for/BatchMIX`
           : emulsion === "true"
             ? `${API_URL}/api/prep/saveRMForEmu/for/emulsion`
-            : `${API_URL}/api/prep/create/rm/forprod`;
+            : `${API_URL}/api/pack/create/rm/manual`;
 
       const requests = (
         batchmix === "true"
@@ -234,6 +255,7 @@ const ConfirmProdModalSAP = ({
           tray_count: tray_count,
           level_eu: formattedEuLevel,
           emu_status: status,
+          ...(planFlow ? { mat_2x: mat2x?.mat_2X || null, batch_2x: batch2x.trim().toUpperCase() || null, qc: toQcPayload(qc) } : {}),
         };
 
         return axios.post(url, payload);
@@ -248,7 +270,7 @@ const ConfirmProdModalSAP = ({
       }
     } catch (error) {
       console.error("Error during API call:", error);
-      setError("เกิดข้อผิดพลาดในการบันทึกข้อมูลบางส่วน");
+      setError(error.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูลบางส่วน");
     } finally {
       setIsLoading(false);
     }
@@ -261,7 +283,7 @@ const ConfirmProdModalSAP = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={onClose} maxWidth={planFlow ? "md" : "sm"} fullWidth>
         <DialogContent>
           <Typography variant="h6" sx={{ mb: 2 }}>ยืนยันข้อมูลการผลิต</Typography>
           <Box sx={{ maxHeight: '400px', overflow: 'auto', mb: 2 }}>
@@ -289,6 +311,25 @@ const ConfirmProdModalSAP = ({
           {come_cold_date_three && <Typography>วันที่เข้าห้องเย็นครั้งที่ 3: {new Date(come_cold_date_three).toLocaleString('th-TH')}</Typography>}
           {out_cold_date_three && <Typography>วันที่ออกห้องเย็นครั้งที่ 3: {new Date(out_cold_date_three).toLocaleString('th-TH')}</Typography>}
           <Typography>Hist. /ความหนืด / อุณหภูมิ Hist./Viscosity /temp © : {detail}</Typography>
+          {planFlow && (
+            <>
+              <Divider sx={{ my: 2 }} />
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>ข้อมูลสำหรับ Traceback</Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5, mb: 1 }}>
+                <TextField size="small" label="Mat" value={material || ""} InputProps={{ readOnly: true }} />
+                <Autocomplete size="small" options={mat2xOptions} value={mat2x} onChange={(_, v) => setMat2x(v)}
+                  getOptionLabel={(o) => `${o.mat_2X} - ${o.mat_name_2x}`} isOptionEqualToValue={(o, v) => o.mat_2X === v.mat_2X}
+                  noOptionsText="ไม่พบ Mat 2x" renderInput={(p) => <TextField {...p} label="Mat 2x (ถ้ามี)" />} />
+                <TextField size="small" label="Batch" value={batch || ""} InputProps={{ readOnly: true }} />
+                <TextField size="small" label="Batch 2x (10 ตัวอักษร ถ้ามี)" value={batch2x} error={!!qcErrors.batch2x}
+                  onChange={(e) => setBatch2x(e.target.value.toUpperCase().slice(0, 10))} inputProps={{ maxLength: 10 }} />
+              </Box>
+              <Divider sx={{ my: 2 }} />
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>ผลการตรวจสอบของ QC</Typography>
+              <QcFormFields qc={qc} onChange={(patch) => setQc((q) => ({ ...q, ...patch }))} errors={qcErrors} />
+              <Alert severity="info" sx={{ mt: 1 }}>ผ่านการตรวจ QC แล้ว รายการจะไปอยู่สถานะ "รอบรรจุเสร็จ" · ถ้าไม่ผ่านจะเข้าสู่ขั้นตอนแก้ไขเหมือนการตรวจ QC ปกติ</Alert>
+            </>
+          )}
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
           <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
             <Button variant="outlined" onClick={onClose}>ยกเลิก</Button>

@@ -331,6 +331,7 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
   const [confirmOne, setConfirmOne] = useState(null);
   const [addRm, setAddRm] = useState(false);
   const [checkin, setCheckin] = useState(null);
+  const [checkinOpen, setCheckinOpen] = useState(false); // the form only hides (stays mounted) while its own confirm dialog (the one that calls PUT /api/checkin/pack) is open
   const busy = useRef(false);
 
   const reset = () => {
@@ -388,7 +389,7 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
     edit: (row) => setEditLine({ ...row, mat: row.mat_id || row.mat, batch: row.batch_after || row.batch, production: row.code, line_name: row.rmm_line_name || row.line_name }),
     confirmOne: (row) => setConfirmOne({ ...row, production: row.code, weight_RM: row.weight_in_trolley || row.weight_RM }),
     addRM: () => setAddRm(true),
-    checkin: (row, allRows) => setCheckin(toCheckinEditData(row, allRows)),
+    checkin: (row, allRows) => { setCheckin(toCheckinEditData(row, allRows)); setCheckinOpen(true); },
   }));
 
   const close = useCallback(() => { setMulti(null); }, []);
@@ -403,7 +404,9 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
       {editLine && <ModalEditLine open data={editLine} onClose={() => setEditLine(null)} onSuccess={() => { setEditLine(null); onDone?.(); }} />}
       {confirmOne && <ModalDelete open data={confirmOne} onClose={() => setConfirmOne(null)} onSuccess={() => { onDone?.(); }} />}
       {addRm && <ModalInputRM open data={{}} onClose={() => setAddRm(false)} onSuccess={() => { onDone?.(); }} />}
-      {checkin && <CheckinEditModal open data={checkin} onClose={() => setCheckin(null)} onNext={() => setCheckin(null)} onSuccess={() => { setCheckin(null); onDone?.(); }} />}
+      {/* Pack check-in: "ยืนยัน" hides this form (onClose) and opens its own confirm dialog that sends PUT /api/checkin/pack — so the form must stay MOUNTED (open=false), not be removed;
+          showModal brings the form back when that confirm dialog is cancelled (the old page did the same) */}
+      {checkin && <CheckinEditModal open={checkinOpen} data={checkin} onClose={() => setCheckinOpen(false)} showModal={() => setCheckinOpen(true)} onNext={() => {}} onSuccess={() => { setCheckin(null); setCheckinOpen(false); onDone?.(); }} />}
     </>
   );
 });

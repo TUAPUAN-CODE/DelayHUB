@@ -612,6 +612,152 @@ module.exports = (io) => {
     }
   });
 
+  // ── "เพิ่ม RM" ของ Pack (Master Sheet): สร้างรายการวัตถุดิบพร้อมผลตรวจ QC ในครั้งเดียว แล้วไปอยู่สถานะ "รอบรรจุเสร็จ" ──────────────────
+  // เหมือน /prep/create/rm/forprod (RMForProd + TrolleyRMMapping + History + Batch) แต่
+  //   · บันทึกผลตรวจ QC จริงที่กรอกในฟอร์ม (กติกาตัดสินผ่าน/ไม่ผ่านเดียวกับ POST /qc/check) แทนค่า "ผ่านทั้งหมด" ที่ fix ไว้
+  //   · บันทึก Mat (mat, mat_2x) และ Batch (batch_before = batch, batch_after = batch_2x) เพื่อให้ Traceback หาเจอ
+  //   · stay_place = จุดเตรียม, dest = บรรจุ (ผ่าน QC) → สถานะ "รอบรรจุเสร็จ" · ไม่ผ่าน → QcCheck รอแก้ไข / จุดเตรียม เหมือน QC ตามปกติ
+  router.post("/pack/create/rm/manual", async (req, res) => {
+    const b = req.body || {};
+    const qc = b.qc || {};
+    const toDate = (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v.trim()) ? v.trim() : null);
+    const toFloat = (v) => { if (v === undefined || v === null || v === "") return null; const f = parseFloat(v); return Number.isNaN(f) ? null : f; };
+    const toInt = (v) => { if (v === undefined || v === null || v === "") return null; const i = parseInt(v, 10); return Number.isNaN(i) ? null : i; };
+    const bit = (v) => (v === 1 || v === true || v === "1" ? 1 : 0);
+    const str = (v) => (v === undefined || v === null || String(v).trim() === "" ? null : String(v).trim());
+
+    const groups = Array.isArray(b.groupId) ? b.groupId : b.groupId != null ? [b.groupId] : [];
+    const color = bit(qc.color), odor = bit(qc.odor), texture = bit(qc.texture), md = bit(qc.md), defect = bit(qc.defect);
+    const sensoryAccept = bit(qc.Sensoryacceptance), defectAccept = bit(qc.Defectacceptance);
+
+    if (!str(b.mat) || !str(b.batch)) return res.status(400).json({ success: false, message: "กรุณาระบุ Mat และ Batch" });
+    if (!toInt(b.productId)) return res.status(400).json({ success: false, message: "กรุณาเลือกแผนการผลิต" });
+    if (!groups.length) return res.status(400).json({ success: false, message: "groupId ต้องมีอย่างน้อย 1 ค่า" });
+    if (!(toFloat(b.weight) > 0)) return res.status(400).json({ success: false, message: "น้ำหนักต้องมากกว่า 0" });
+    if (["color", "odor", "texture", "md", "defect"].some((k) => qc[k] === undefined || qc[k] === null || qc[k] === "")) {
+      return res.status(400).json({ success: false, message: "กรุณากรอกผลการตรวจสอบ QC ให้ครบ (Sensory / MD / Defect)" });
+    }
+    if (!str(b.operator)) return res.status(400).json({ success: false, message: "กรุณาระบุผู้ดำเนินการ" });
+    if (md === 1 && (!str(qc.md_no) || !str(qc.WorkAreaCode))) return res.status(400).json({ success: false, message: "กรุณาเลือกพื้นที่และหมายเลขเครื่อง MD" });
+
+    let transaction;
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+      if (md === 1) {
+        const mdCheck = await pool.request().input("md_no", sql.NVarChar, str(qc.md_no))
+          .query("SELECT md_no FROM [PFCMv2].[dbo].[MetalDetectors] WHERE md_no = @md_no AND Status = CAST(1 AS BIT)");
+        if (mdCheck.recordset.length === 0) return res.status(400).json({ success: false, message: `ไม่พบเครื่อง Metal Detector หมายเลข ${qc.md_no} หรือเครื่องไม่พร้อมใช้งาน` });
+      }
+
+      // the verdict: the same rules as POST /qc/check
+      let rm_status = "QcCheck", qccheck = "ผ่าน", defect_check = "ผ่าน", md_check = "ผ่าน", dest = "บรรจุ";
+      if ([color, odor, texture].includes(0) && sensoryAccept !== 1) { rm_status = "QcCheck รอแก้ไข"; qccheck = "ไม่ผ่าน"; dest = "จุดเตรียม"; }
+      if (defect === 0 && defectAccept !== 1) { rm_status = "QcCheck รอแก้ไข"; defect_check = "ไม่ผ่าน"; dest = "จุดเตรียม"; }
+      if (md === 0) {
+        if ((defect === 0 && defectAccept !== 1) || ([color, odor, texture].includes(0) && sensoryAccept !== 1)) { rm_status = "QcCheck รอแก้ไข"; dest = "จุดเตรียม"; }
+        else { rm_status = "QcCheck รอ MD"; md_check = "รอผ่าน MD"; }
+      }
+
+      const doc = await pool.request().input("productId", sql.Int, toInt(b.productId))
+        .query("SELECT p.doc_no FROM ProdRawMat pr JOIN Production p ON pr.prod_id = p.prod_id WHERE pr.prod_rm_id = @productId");
+      const docNo = doc.recordset[0]?.doc_no;
+      const line = str(b.line_name);
+      const first_prod = docNo ? (line ? `${docNo} (${line})` : docNo) : null;
+      const batch = str(b.batch);
+      const batch2x = str(b.batch_2x) || batch;
+      const mat = str(b.mat);
+      const mat2x = str(b.mat_2x);
+
+      transaction = new sql.Transaction(pool);
+      await transaction.begin();
+      const created = [];
+      for (const g of groups) {
+        const rmfp = await new sql.Request(transaction)
+          .input("prod_rm_id", sql.Int, toInt(b.productId)).input("rm_group_id", sql.Int, toInt(g))
+          .input("batch", sql.VarChar(50), batch).input("weight", sql.Float, toFloat(b.weight))
+          .input("rmfp_line_name", sql.VarChar(50), line).input("level_eu", sql.VarChar(20), b.level_eu && b.level_eu !== "-" ? b.level_eu : null)
+          .input("data_status", sql.VarChar(20), "Manual").input("mat_2x", sql.NVarChar(100), mat2x)
+          .query(`INSERT INTO RMForProd (prod_rm_id, batch, weight, rm_group_id, rmfp_line_name, level_eu, data_status, mat_2x)
+                  OUTPUT INSERTED.rmfp_id VALUES (@prod_rm_id, @batch, @weight, @rm_group_id, @rmfp_line_name, @level_eu, @data_status, @mat_2x)`);
+        const rmfp_id = rmfp.recordset[0].rmfp_id;
+
+        const qcRes = await new sql.Request(transaction)
+          .input("color", sql.Bit, color).input("odor", sql.Bit, odor).input("texture", sql.Bit, texture)
+          .input("sq_remark", sql.NVarChar, str(qc.sq_remark)).input("md", sql.Bit, md).input("md_remark", sql.NVarChar, str(qc.md_remark))
+          .input("defect", sql.Bit, defect).input("defect_remark", sql.NVarChar, str(qc.defect_remark))
+          .input("Defectacceptance", sql.Bit, defectAccept).input("Sensoryacceptance", sql.Bit, sensoryAccept)
+          .input("md_no", sql.NVarChar, md === 1 ? str(qc.md_no) : null).input("WorkAreaCode", sql.NVarChar, md === 1 ? str(qc.WorkAreaCode) : null)
+          .input("qccheck", sql.NVarChar, qccheck).input("md_check", sql.NVarChar, md_check).input("defect_check", sql.NVarChar, defect_check)
+          .input("Moisture", sql.NVarChar, str(qc.Moisture)).input("Temp", sql.NVarChar, str(qc.Temp))
+          .input("md_time", sql.NVarChar(30), toDate(qc.md_time)).input("percent_fine", sql.NVarChar, str(qc.percent_fine))
+          .input("general_remark", sql.NVarChar, str(qc.general_remark)).input("prepare_mor_night", sql.NVarChar, str(qc.prepare_mor_night))
+          .input("qc_datetime", sql.NVarChar(30), toDate(b.qc_date))
+          .query(`INSERT INTO [PFCMv2].[dbo].[QC]
+                    (color, odor, texture, sq_acceptance, sq_remark, md, md_remark, defect, defect_acceptance, defect_remark, md_no, WorkAreaCode, qccheck, mdcheck, defectcheck,
+                     Moisture, Temp, md_time, percent_fine, qc_datetime, general_remark, prepare_mor_night)
+                  OUTPUT INSERTED.qc_id
+                  VALUES (@color, @odor, @texture, @Sensoryacceptance, @sq_remark, @md, @md_remark, @defect, @Defectacceptance, @defect_remark, @md_no, @WorkAreaCode, @qccheck, @md_check, @defect_check,
+                     @Moisture, @Temp, CASE WHEN @md_time IS NOT NULL THEN CONVERT(datetime, @md_time, 120) ELSE NULL END, @percent_fine,
+                     CASE WHEN @qc_datetime IS NOT NULL THEN CONVERT(datetime, @qc_datetime, 120) ELSE GETDATE() END, @general_remark, @prepare_mor_night)`);
+        const qc_id = qcRes.recordset[0].qc_id;
+
+        const rmm = await new sql.Request(transaction)
+          .input("rmfp_id", sql.Int, rmfp_id).input("qc_id", sql.Int, qc_id).input("tro_production_id", sql.Int, toInt(b.productId))
+          .input("detail", sql.NVarChar(sql.MAX), str(b.detail)).input("tray_count", sql.Int, toInt(b.tray_count))
+          .input("weight_RM", sql.Float, toFloat(b.weight)).input("level_eu", sql.VarChar(20), b.level_eu && b.level_eu !== "-" ? b.level_eu : null)
+          .input("rm_status", sql.NVarChar, rm_status).input("dest", sql.NVarChar, dest).input("rmm_line_name", sql.VarChar(50), line)
+          .query(`INSERT INTO TrolleyRMMapping (rmfp_id, qc_id, tro_production_id, detail, tray_count, weight_RM, level_eu, rm_status, stay_place, dest, rmm_line_name)
+                  OUTPUT INSERTED.mapping_id
+                  VALUES (@rmfp_id, @qc_id, @tro_production_id, @detail, @tray_count, @weight_RM, @level_eu, @rm_status, N'จุดเตรียม', @dest, @rmm_line_name)`);
+        const mapping_id = rmm.recordset[0].mapping_id;
+
+        const hist = await new sql.Request(transaction)
+          .input("mapping_id", sql.Int, mapping_id).input("receiver", sql.NVarChar(100), str(b.operator))
+          .input("withdraw_date", sql.NVarChar(30), toDate(b.withdraw)).input("cooked_date", sql.NVarChar(30), toDate(b.cooked_date))
+          .input("rmit_date", sql.NVarChar(30), toDate(b.rmit_date)).input("qc_date", sql.NVarChar(30), toDate(b.qc_date))
+          .input("come_cold_date", sql.NVarChar(30), toDate(b.come_cold_date)).input("out_cold_date", sql.NVarChar(30), toDate(b.out_cold_date))
+          .input("come_cold_date_two", sql.NVarChar(30), toDate(b.come_cold_date_two)).input("out_cold_date_two", sql.NVarChar(30), toDate(b.out_cold_date_two))
+          .input("come_cold_date_three", sql.NVarChar(30), toDate(b.come_cold_date_three)).input("out_cold_date_three", sql.NVarChar(30), toDate(b.out_cold_date_three))
+          .input("first_prod", sql.NVarChar(100), first_prod)
+          .input("Moisture", sql.NVarChar, str(qc.Moisture)).input("Temp", sql.NVarChar, str(qc.Temp)).input("percent_fine", sql.NVarChar, str(qc.percent_fine))
+          .input("prepare_mor_night", sql.NVarChar, str(qc.prepare_mor_night))
+          .query(`INSERT INTO History
+                    (receiver, receiver_qc, withdraw_date, cooked_date, rmit_date, qc_date, come_cold_date, out_cold_date, come_cold_date_two, out_cold_date_two,
+                     come_cold_date_three, out_cold_date_three, first_prod, Moisture, Temp, percent_fine, prepare_mor_night, mapping_id, created_at)
+                  OUTPUT INSERTED.hist_id
+                  VALUES (@receiver, @receiver,
+                     CASE WHEN @withdraw_date IS NOT NULL THEN CONVERT(datetime, @withdraw_date, 120) ELSE NULL END,
+                     CASE WHEN @cooked_date IS NOT NULL THEN CONVERT(datetime, @cooked_date, 120) ELSE NULL END,
+                     CASE WHEN @rmit_date IS NOT NULL THEN CONVERT(datetime, @rmit_date, 120) ELSE NULL END,
+                     CASE WHEN @qc_date IS NOT NULL THEN CONVERT(datetime, @qc_date, 120) ELSE GETDATE() END,
+                     CASE WHEN @come_cold_date IS NOT NULL THEN CONVERT(datetime, @come_cold_date, 120) ELSE NULL END,
+                     CASE WHEN @out_cold_date IS NOT NULL THEN CONVERT(datetime, @out_cold_date, 120) ELSE NULL END,
+                     CASE WHEN @come_cold_date_two IS NOT NULL THEN CONVERT(datetime, @come_cold_date_two, 120) ELSE NULL END,
+                     CASE WHEN @out_cold_date_two IS NOT NULL THEN CONVERT(datetime, @out_cold_date_two, 120) ELSE NULL END,
+                     CASE WHEN @come_cold_date_three IS NOT NULL THEN CONVERT(datetime, @come_cold_date_three, 120) ELSE NULL END,
+                     CASE WHEN @out_cold_date_three IS NOT NULL THEN CONVERT(datetime, @out_cold_date_three, 120) ELSE NULL END,
+                     @first_prod, @Moisture, @Temp, @percent_fine, @prepare_mor_night, @mapping_id, GETDATE())`);
+        await new sql.Request(transaction).input("hist_id", sql.Int, hist.recordset[0].hist_id).input("rmfp_id", sql.Int, rmfp_id)
+          .query("UPDATE RMForProd SET hist_id_rmfp = @hist_id WHERE rmfp_id = @rmfp_id");
+
+        // for Traceback: Batch (batch_before = batch of the tag, batch_after = batch 2x) and Mat (mat, mat_2x)
+        await new sql.Request(transaction).input("mapping_id", sql.Int, mapping_id).input("batch_before", sql.VarChar(50), batch).input("batch_after", sql.VarChar(50), batch2x)
+          .query("INSERT INTO Batch (batch_before, batch_after, mapping_id) VALUES (@batch_before, @batch_after, @mapping_id)");
+        await new sql.Request(transaction).input("mapping_id", sql.Int, mapping_id).input("mat", sql.NVarChar(100), mat).input("mat_2x", sql.NVarChar(100), mat2x)
+          .query("INSERT INTO Mat (mapping_id, mat, mat_2x) VALUES (@mapping_id, @mat, @mat_2x)");
+        created.push(mapping_id);
+      }
+      await transaction.commit();
+      res.json({ success: true, message: "บันทึกข้อมูลสำเร็จ", data: { mapping_ids: created, rm_status, dest } });
+    } catch (err) {
+      if (transaction) await safeRollback(transaction);
+      console.error("[Route /pack/create/rm/manual] Error:", err);
+      res.status(500).json({ success: false, message: err.message, error: err.message });
+    }
+  });
+
   router.patch('/pack/data/time', async (req, res) => {
     const { rows } = req.body;
     const sql = require("mssql");

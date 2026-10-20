@@ -321,7 +321,9 @@ router.get("/sheet/rows", async (req, res) => {
 
     // เหมือนกัน + พร้อมกัน = query ชุดเดียว (ดู lib/sheetCache.js); rev = ลายเซ็นของข้อมูล ให้หน้าเว็บเทียบได้โดยไม่ต้องรับ/แปลงข้อมูลทั้งก้อนซ้ำ
     const cacheKey = JSON.stringify([days, limit, mlimit, ranged ? req.query.open_from : null, ranged ? req.query.open_to : null]);
-    const payload = await cached(cacheKey, async () => {
+    // ?fresh=1 (the page asks right after a save): skip the 1 s cache, another PM2 worker may still hold a copy from before the save
+    const run = req.query.fresh ? (_key, loader) => loader() : cached;
+    const payload = await run(cacheKey, async () => {
       const [mappings, hus, plans, mixed] = await Promise.all([
         bind(pool.request()).query(buildMappingQuery("open")),
         bind(pool.request()).query(buildHuQuery()),

@@ -41,7 +41,10 @@ export const toCheckinEditData = (row, allRows) => {
     mapping_id: head.mapping_id,
     production: head.code,
     rmm_line_name: head.rmm_line_name,
-    rawMatType: isMixed ? "mixed" : "regular",
+    // the trolley as a whole is a "checkin": the form (Pack/CheckIn/Asset/ModalEditPD) sends it to PUT /api/checkin/pack only for this type (same as the old check-in page);
+    // any other value goes to the cold room check-out route and the rows never become "รอบรรจุเสร็จ" / the trolley is not cleared. Each material keeps its own regular / mixed type.
+    rawMatType: "checkin",
+    source: "checkin",
     batch: first.batch,
     mat: isMixed ? head.mix_code : first.material_code,
     mat_name: isMixed ? `Mixed: ${head.mix_code}` : first.materialName,

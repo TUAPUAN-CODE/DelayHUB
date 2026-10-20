@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import { Alert, Box, Button, Paper, Chip, Dialog, DialogContent, DialogTitle, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { IoBarcodeSharp } from "react-icons/io5";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
@@ -57,6 +58,9 @@ import PackMoreFlows from "./pack/PackMoreFlows";
 import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
+import StatusVisibilityDialog from "./StatusVisibilityDialog";
+import { KNOWN_STATUSES, defaultStatuses } from "./statusVisibility";
+import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
 import LinePicker from "./pack/LinePicker";
 import ReworkFlows from "./prep/ReworkFlows";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
@@ -72,10 +76,11 @@ import { CHECKIN_DEST } from "./pack/checkinData";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
+const KNOWN_SET = new Set(KNOWN_STATUSES);
 const DAYS = 7; // the work table shows the last 7 days by default; the user can pick another range or load everything
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-// default range of "ดึงข้อมูล": today and yesterday (rows that are on a trolley are always shown, whatever their date)
-const RANGE_DAYS = 1;
+// default range of "ดึงข้อมูล": today only (rows that are on a trolley are always shown, whatever their date)
+const RANGE_DAYS = 0;
 const defaultRange = () => ({ from: ymd(new Date(Date.now() - RANGE_DAYS * 86400000)), to: ymd(new Date()), all: false });
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
@@ -144,6 +149,9 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
+  // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
+  const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role) });
+  const [statusDlg, setStatusDlg] = useState(false);
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   // "แก้ไขข้อมูล" in the top bar: after the password, double-click a cell of the in-process / done table to edit it
@@ -183,6 +191,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const revRef = useRef("");        // rev (signature) of the data on screen: the server answers "unchanged" when it still matches
   const running = useRef(false);    // one load at a time ...
   const again = useRef(false);      // ... a request that comes while one is running makes ONE more run afterwards
+  const freshNext = useRef(false);  // ... and that run skips the server cache when one of the requests asked for it (right after a save)
   const loadOnceRef = useRef(null); // always the latest loadOnce (the range / role may change while a load is running)
   const rangeKeyRef = useRef("");   // the answer of an old range must not replace the data of the new one
   const lastLoadAt = useRef(0);
@@ -197,13 +206,14 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   rangeKeyRef.current = `${role}|${range.all ? "all" : `${range.from}|${range.to}`}`;
 
-  const loadOnce = useCallback(async () => {
+  const loadOnce = useCallback(async (freshRun) => {
     lastLoadAt.current = Date.now();
     const myKey = rangeKeyRef.current;
     if (!revRef.current) setLoading(true); // first load shows the spinner; the minute refresh does not flicker
     try {
       const params = range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to };
       if (revRef.current) params.rev = revRef.current;
+      if (freshRun) params.fresh = 1;
       const res = await axios.get(`${API_URL}/api/sheet/rows`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       if (myKey !== rangeKeyRef.current) return; // the range / role changed while this was loading: a newer load is queued, drop this answer
@@ -241,19 +251,22 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   // the socket event, the minute timer and the buttons can all ask for a load at the same moment: run one, and one more afterwards if asked meanwhile
   // (an older answer can no longer arrive after a newer one and bring back the status the user just changed)
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts) => {
+    if (opts?.fresh === true) freshNext.current = true; // (onDone / onClick callbacks pass their own arguments: only an explicit { fresh: true } counts)
     if (running.current) { again.current = true; return; }
     running.current = true;
     try {
-      do { again.current = false; await loadOnceRef.current(); } while (again.current);
+      do { again.current = false; const fresh = freshNext.current; freshNext.current = false; await loadOnceRef.current(fresh); } while (again.current);
     } finally {
       running.current = false;
     }
   }, [loadOnce]); // eslint-disable-line react-hooks/exhaustive-deps -- new identity when the range / role changes, so the effects below load again
+  // after ANY save (every button / dialog of the sheet): read the table again at once, from the database, not from the 1 s cache of a PM2 worker
+  const reload = useCallback(() => load({ fresh: true }), [load]);
 
   // the work table refreshes by itself; the Done table is only read when the user presses its button
   useEffect(() => { if (view === "work") load(); }, [load, view]);
-  useEffect(() => { if (view !== "work") return undefined; const t = setInterval(load, REFRESH_MS); return () => clearInterval(t); }, [load, view]);
+  useEffect(() => { if (view !== "work") return undefined; const t = setInterval(() => load(), REFRESH_MS); return () => clearInterval(t); }, [load, view]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   // real-time: reload when another user changes data (same events as the old pages)
@@ -262,7 +275,8 @@ const ParentComponent = ({ role, view = "work" }) => {
     let timer = null;
     // never give up reconnecting (a pm2 reload or a network drop must not freeze the live updates until the page is refreshed)
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: Infinity, reconnectionDelay: 2000, reconnectionDelayMax: 10000, timeout: 10000 });
-    const refresh = () => { if (Date.now() - lastLoadAt.current < 4000) return; clearTimeout(timer); timer = setTimeout(load, 800); }; // an event right after our own load is an echo: ignore it
+    // an event is never dropped: right after our own load it is only postponed (a change of another user must not wait for the 1 minute timer); it reads from the database
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => load({ fresh: true }), Math.max(800, 3000 - (Date.now() - lastLoadAt.current))); };
     // "sheetChanged": the server sends it after ANY successful write of any page, so a save on another device / Role shows here without a refresh (backend/sheetRealtime.js)
     // the server only sends these events to the rooms: join the ones that tell the table something changed.
     // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
@@ -280,7 +294,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     return () => { clearTimeout(timer); socket.off("sheetChanged", refresh); socket.off("dataUpdated", refresh); socket.off("trolleyUpdated", refresh); socket.off("rawMaterialSaved", refresh); socket.off("qcDateTimeUpdated", refresh); socket.off("dataDelete", refresh); socket.disconnect(); };
   }, [load, view]);
 
-  const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload: load });
+  const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload });
 
   // ── the tools a Role has on one row; every item says which tool column (col) it belongs to ──
   const tools = useCallback((r) => {
@@ -403,11 +417,15 @@ const ParentComponent = ({ role, view = "work" }) => {
   }, [data, mix, plans, now, mixed, globalSettings]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
+  const shownStatuses = useMemo(() => new Set(statusPrefs.visible), [statusPrefs.visible]);
+  const statusCounts = useMemo(() => { const m = new Map(); allRows.forEach((r) => { const l = r.__status?.label; if (l) m.set(l, (m.get(l) || 0) + 1); }); return m; }, [allRows]);
   const rows = useMemo(() => {
     let list = allRows;
     if (myLine && role === "pack") list = list.filter((r) => r.__kind === "map" && (r.line_id === MY_LINE || (r.__stage === "trolley" && Number(r.pack_line_id) === MY_LINE)));
+    // only the statuses the account chose (a label the Sheet does not know is always shown)
+    if (role !== "sup" || statusPrefs.visible.length < KNOWN_STATUSES.length) list = list.filter((r) => { const l = r.__status?.label; return !l || !KNOWN_SET.has(l) || shownStatuses.has(l); });
     return list;
-  }, [allRows, myLine, role, MY_LINE]);
+  }, [allRows, myLine, role, MY_LINE, shownStatuses, statusPrefs.visible.length]);
 
   // ── action bar above the table: the tools of the chosen row ──
   const activeRow = useMemo(() => (activeKey ? rows.find((r) => r.__key === activeKey) || null : null), [rows, activeKey]);
@@ -488,7 +506,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   );
 
   const rowKey = useCallback((r) => r.__key, []);
-  const afterMix = () => { setSelected(new Set()); load(); };
+  const afterMix = () => { setSelected(new Set()); reload(); };
   const confirmSelected = () => {
     const picked = rows.filter((r) => selected.has(r.__key));
     if (!picked.length) return;
@@ -519,7 +537,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     setBatch({ kind, rows: picked });
   };
   const closeBatch = () => { setBatch(null); setSelected(new Set()); setWeights({}); };
-  const afterConfirm = () => { setSelected(new Set()); setWeights({}); load(); };
+  const afterConfirm = () => { setSelected(new Set()); setWeights({}); reload(); };
 
   const applyRange = (next) => { setRange(next); setPick(next); };
   const rangeBar = (
@@ -529,7 +547,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <TextField size="small" type="date" value={pick.to} onChange={(e) => setPick((p) => ({ ...p, to: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
       <Button size="small" variant="contained" color="secondary" startIcon={<CloudDownloadOutlinedIcon />} disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
       <Button size="small" variant={range.all ? "contained" : "outlined"} startIcon={<AllInclusiveIcon />} onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
-      {range.all && <Button size="small" startIcon={<RestartAltIcon />} onClick={() => applyRange(defaultRange())}>{RANGE_DAYS} วัน</Button>}
+      {range.all && <Button size="small" startIcon={<RestartAltIcon />} onClick={() => applyRange(defaultRange())}>{RANGE_DAYS === 0 ? "วันนี้" : `${RANGE_DAYS} วัน`}</Button>}
     </Box>
   );
 
@@ -541,7 +559,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const afterCellEdit = (msg) => {
     setEditTarget(null);
     setToast(msg);
-    load();
+    reload();
     window.dispatchEvent(new Event("sheet-edited")); // the Done table searches again
   };
 
@@ -564,6 +582,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const toolbarExtra = (
     <>
       {rangeBar}
+      <Button size="small" variant="outlined" startIcon={<FilterListIcon />} onClick={() => setStatusDlg(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}>สถานะที่ดู ({statusPrefs.visible.length}/{KNOWN_STATUSES.length})</Button>
       {role === "prep" && (
         <>
           {!MY_TYPES.some((id) => id === 998 || id === 999) && (
@@ -608,7 +627,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <DataGrid
         fill detail statusChips={statusChips} actionBar={actionBar} activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
         gridKey={`sheet-${role}`} title="ตารางรวมวัตถุดิบ" defaultExt={DEFAULT_EXT} {...sharedGrid}
-        rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={load} hideReload ctx={ctx}
+        rows={rows} rowKey={rowKey} rowSig={rowSig} loading={loading} error={error} onReload={reload} hideReload ctx={ctx}
         searchPlaceholder="ค้นหา HU / รถเข็น / Batch / วัตถุดิบ / รายการ ..."
         rowColor={rowColorOf}
         toolbarExtra={toolbarExtra}
@@ -622,17 +641,17 @@ const ParentComponent = ({ role, view = "work" }) => {
       <EditCellDialog target={editTarget} onClose={() => setEditTarget(null)} onSaved={afterCellEdit} />
       {/* tool dialogs (each one is the flow of the old page of that Role) */}
       {hu.layer}
-      <PackFlows ref={packRef} onDone={load} onNotify={setToast} />
+      <PackFlows ref={packRef} onDone={reload} onNotify={setToast} />
       {pstamp && (() => {
         const M = PREP_STAMPS[pstamp.kind];
         const sap = pstamp.hu;
         // boil with Emulsion / BatchMix: the mixing dialog opens right away with the new rows
-        const onMix = ({ kind, ids }) => { setPstamp(null); load(); mixRefs[kind]?.current?.add(ids); };
-        return <M open onClose={() => { setPstamp(null); load(); }} onSuccess={load} onMix={onMix} data={sap} material={sap.mat} batch={sap.batch} sap_re_id={sap.sap_re_id} withdraw_date={sap.withdraw_date} hu={sap.hu} remark={sap.remark} />;
+        const onMix = ({ kind, ids }) => { setPstamp(null); reload(); mixRefs[kind]?.current?.add(ids); };
+        return <M open onClose={() => { setPstamp(null); reload(); }} onSuccess={reload} onMix={onMix} data={sap} material={sap.mat} batch={sap.batch} sap_re_id={sap.sap_re_id} withdraw_date={sap.withdraw_date} hu={sap.hu} remark={sap.remark} />;
       })()}
       {role === "prep" && (
         <>
-          <ManageModals ref={manageRef} onRefresh={load} />
+          <ManageModals ref={manageRef} onRefresh={reload} />
           <Dialog open={!!planPick} onClose={() => setPlanPick(null)} maxWidth="xs" fullWidth>
             <DialogTitle>เลือกแผนการผลิต</DialogTitle>
             <DialogContent dividers>
@@ -653,8 +672,8 @@ const ParentComponent = ({ role, view = "work" }) => {
             primaryBatch={scan.mat} secondaryBatch={scan.batch} hu={scan.hu}
             setPrimaryBatch={(v) => setScan((s) => ({ ...s, mat: v }))} setSecondaryBatch={(v) => setScan((s) => ({ ...s, batch: v }))} setHu={(v) => setScan((s) => ({ ...s, hu: v }))}
           />
-          {scan.review && <DataReviewSAP open onClose={() => { setScan((s) => ({ ...s, review: false })); load(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />}
-          <ReworkFlows ref={reworkRef} onDone={load} onNotify={setToast} />
+          {scan.review && <DataReviewSAP open onClose={() => { setScan((s) => ({ ...s, review: false })); reload(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />}
+          <ReworkFlows ref={reworkRef} onDone={reload} onNotify={setToast} />
           <EmulsionFlows ref={mixRefs.emu} onDone={afterMix} />
           <BatchFlows ref={mixRefs.batch} onDone={afterMix} />
           <MixPackFlows ref={mixRefs.pack} onDone={afterMix} />
@@ -665,14 +684,15 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="info" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>
       </Snackbar>
+      <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
-      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); load(); }} />
-      <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={load} />
-      <CheckoutFlow ref={checkoutRef} onDone={load} />
-      <LargeFlows ref={largeRef} onDone={load} />
-      {batch?.kind === "cart" && <BatchCartDialog rows={batch.rows} weights={weights} onClose={closeBatch} onDone={load} />}
-      {batch?.kind === "edit" && <BatchEditPlanDialog rows={batch.rows} onClose={closeBatch} onDone={load} />}
-      {batch?.kind === "delete" && <BatchDeleteDialog rows={batch.rows} onClose={closeBatch} onDone={load} />}
+      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />
+      <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
+      <CheckoutFlow ref={checkoutRef} onDone={reload} />
+      <LargeFlows ref={largeRef} onDone={reload} />
+      {batch?.kind === "cart" && <BatchCartDialog rows={batch.rows} weights={weights} onClose={closeBatch} onDone={reload} />}
+      {batch?.kind === "edit" && <BatchEditPlanDialog rows={batch.rows} onClose={closeBatch} onDone={reload} />}
+      {batch?.kind === "delete" && <BatchDeleteDialog rows={batch.rows} onClose={closeBatch} onDone={reload} />}
     </div>
   );
 };
