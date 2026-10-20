@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { canTypeTrolley } from "../../../../../utils/userPerms";
 import {
   Modal,
   Box,
@@ -66,6 +67,7 @@ const Modal1 = ({
   const [rmTypeId, setRmTypeId] = useState(rm_type_id ?? 3);
   const theme = useTheme();
   const videoRef = useRef(null);
+  const manualTrolley = canTypeTrolley(); // สิทธิ์คีย์เลขรถเข็นเอง (ตั้งในหน้าการจัดการพนักงาน)
   const [inputValue, setInputValue] = useState("");
   const [scannedValue, setScannedValue] = useState("");
   const [inputError, setInputError] = useState(false);
@@ -210,10 +212,11 @@ const Modal1 = ({
       }
     }
 
-    const isValid = await checkTrolleyStatus(inputValue);
+    const troId = inputValue.trim().padStart(4, "0");
+    const isValid = await checkTrolleyStatus(troId);
     if (!isValid) return;
 
-    const isReserved = await reserveTrolley(inputValue);
+    const isReserved = await reserveTrolley(troId);
     if (!isReserved) return;
 
     const batchAfterArray = batchArray.map((b) => ({
@@ -222,7 +225,7 @@ const Modal1 = ({
     }));
 
     onNext({
-      inputValues: [inputValue],
+      inputValues: [troId],
       batch: batch,
       batchArray: batchArray,
       batchAfterArray: batchAfterArray,
@@ -249,6 +252,7 @@ const Modal1 = ({
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
+      if (manualTrolley && e.target?.tagName === "INPUT" && e.target.dataset.troInput) return; // กำลังพิมพ์ในช่องเลขรถเข็น
       const now = Date.now();
       if (e.key === "Enter") {
         const value = scanBufferRef.current;
@@ -370,14 +374,16 @@ const Modal1 = ({
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
               fullWidth
-              label="เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)"
+              label={manualTrolley ? "เลขทะเบียนรถเข็น (สแกน หรือคีย์เลข 4 หลัก)" : "เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)"}
               value={inputValue}
+              onChange={manualTrolley ? (e) => { setInputValue(e.target.value.replace(/\D/g, "").slice(0, 4)); setInputError(false); } : undefined}
+              inputProps={{ "data-tro-input": "1", inputMode: "numeric", maxLength: 4 }}
               margin="normal"
               size="small"
               error={inputError}
-              placeholder="กรุณาสแกน QR Code หรือ Barcode Scanner"
-              InputProps={{ readOnly: true }}
-              sx={{ "& .MuiInputBase-input": { cursor: "default" } }}
+              placeholder={manualTrolley ? "สแกน หรือพิมพ์เลขรถเข็น เช่น 0500" : "กรุณาสแกน QR Code หรือ Barcode Scanner"}
+              InputProps={{ readOnly: !manualTrolley }}
+              sx={{ "& .MuiInputBase-input": { cursor: manualTrolley ? "text" : "default" } }}
             />
           </Box>
 

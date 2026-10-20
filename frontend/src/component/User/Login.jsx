@@ -97,6 +97,8 @@ const Login = () => {
       // ตรวจสอบสถานที่ทำงานของ user และนำทางไปยังหน้าที่เกี่ยวข้อง
       // Role ทั้งหมดของบัญชี (ปุ่มสลับ Role ที่ header ใช้)
       localStorage.setItem("roles", JSON.stringify(Array.isArray(user.roles) ? user.roles : []));
+      // สิทธิ์พิเศษรายบัญชี (เช่น manual_trolley = คีย์เลขรถเข็นเองได้) — ตั้งในหน้าการจัดการพนักงาน
+      localStorage.setItem("perms", JSON.stringify(Array.isArray(user.permissions) ? user.permissions : []));
       const workplaceRoutes = WORKPLACE_ROUTES;
 
       workplaceRoutes[user.wp_id]

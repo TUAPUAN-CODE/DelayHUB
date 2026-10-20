@@ -35,6 +35,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
   const [workplaces, setWorkplaces] = useState([]);
   const [extraRoles, setExtraRoles] = useState([]); // Role เพิ่มเติม (นอกจากสถานที่ทำงานหลัก) ที่พนักงานสลับไปใช้ได้จากปุ่มที่ header
 
+  const [manualTrolley, setManualTrolley] = useState(false); // สิทธิ์ manual_trolley: คีย์เลขรถเข็นเองใน modal Scan รถเข็น
   const [rawmatTypes, setRawmatTypes] = useState([]); // เก็บข้อมูล rawmatType
   const [selectedRawmatTypes, setSelectedRawmatTypes] = useState(
     Array.isArray(userData?.rm_type_ids) ? userData.rm_type_ids : []
@@ -60,6 +61,10 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
       axios.get(`${API_URL}/api/user/roles`, { params: { user_id: userData.user_id } })
         .then((res) => setExtraRoles((res.data?.data || []).filter((r) => !r.primary).map((r) => r.wp_id)))
         .catch((err) => console.error("โหลด Role เพิ่มเติมไม่สำเร็จ:", err.message));
+
+      axios.get(`${API_URL}/api/user/permissions`, { params: { user_id: userData.user_id } })
+        .then((res) => setManualTrolley((res.data?.data || []).includes("manual_trolley")))
+        .catch((err) => console.error("โหลดสิทธิ์พิเศษไม่สำเร็จ:", err.message));
 
       // ใช้ค่า rm_type_ids โดยตรงถ้าเป็น array
       setSelectedRawmatTypes(
@@ -200,10 +205,16 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
           .then(() => ({ success: true }))
           .catch((err) => ({ success: false, error: err.response?.data?.error || "บันทึก Role เพิ่มเติมไม่สำเร็จ" }));
 
+        const permsResult = await axios.put(`${API_URL}/api/user/permissions`, { user_id: userId, perms: manualTrolley ? ["manual_trolley"] : [] })
+          .then(() => ({ success: true }))
+          .catch((err) => ({ success: false, error: err.response?.data?.error || "บันทึกสิทธิ์พิเศษไม่สำเร็จ" }));
+
         if (!updateResult.success) {
           setError(updateResult.error);
         } else if (!rolesResult.success) {
           setError(rolesResult.error);
+        } else if (!permsResult.success) {
+          setError(permsResult.error);
         } else {
           if (onSuccess) onSuccess();
           alert("แก้ไขข้อมูลพนักงานสำเร็จ");
@@ -330,6 +341,11 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
                 ))}
               </Select>
             </FormControl>
+
+            <FormControlLabel
+              control={<Checkbox checked={manualTrolley} onChange={(e) => setManualTrolley(e.target.checked)} color="primary" />}
+              label="คีย์เลขรถเข็นเองได้ (modal Scan รถเข็น)"
+            />
           </div>
 
           <div>

@@ -8,11 +8,13 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloseIcon from "@mui/icons-material/Close";
 import useQrCamera from "../../../../hooks/useQrCamera";
+import { canTypeTrolley } from "../../../../utils/userPerms";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
+  const manual = canTypeTrolley();
   const videoRef = useRef(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
@@ -59,6 +61,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
+      if (manual && e.target?.tagName === "INPUT") return; // กำลังพิมพ์ในช่อง: Enter ของช่องยืนยันเอง
       const now = Date.now();
       if (e.key === "Enter") {
         const v = bufferRef.current;
@@ -73,24 +76,31 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, handleDecode]);
+  }, [open, handleDecode, manual]);
 
   const close = () => { stopCamera(); onClose(); };
 
+  const handleTyped = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setValue(digits);
+    setError("");
+  };
+
   const confirm = async () => {
     if (!value || busy) return;
+    const tro = manual ? value.padStart(4, "0") : value;
     setBusy(true); setError("");
     try {
-      if (!(await checkTrolley(value))) return;
+      if (!(await checkTrolley(tro))) return;
       try {
-        const res = await axios.post(`${API_URL}/api/reserveTrolley`, { tro_id: value });
+        const res = await axios.post(`${API_URL}/api/reserveTrolley`, { tro_id: tro });
         if (!res.data.success) { setError("รถเข็นถูกจองแล้ว"); return; }
       } catch (err) {
         console.error("[ScanTrolleyModal] reserve error:", err);
         setError("รถเข็นถูกจองแล้ว");
         return;
       }
-      onConfirm(value);
+      onConfirm(tro);
     } finally { setBusy(false); }
   };
 
@@ -109,8 +119,10 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
           </Button>
         </Box>
         <TextField
-          fullWidth margin="normal" size="small" label="เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)" value={value}
-          placeholder="กรุณาสแกน QR Code หรือ Barcode Scanner" InputProps={{ readOnly: true }} sx={{ "& .MuiInputBase-input": { cursor: "default" } }}
+          fullWidth margin="normal" size="small" label={manual ? "เลขทะเบียนรถเข็น (สแกน หรือคีย์เลข 4 หลัก)" : "เลขทะเบียนรถเข็น (สแกน QR Code หรือ Barcode Scanner)"} value={value}
+          placeholder={manual ? "สแกน หรือพิมพ์เลขรถเข็น เช่น 0500" : "กรุณาสแกน QR Code หรือ Barcode Scanner"}
+          onChange={manual ? handleTyped : undefined} onKeyDown={manual ? (e) => { if (e.key === "Enter") void confirm(); } : undefined} inputProps={{ inputMode: "numeric", maxLength: 4 }}
+          InputProps={{ readOnly: !manual }} sx={{ "& .MuiInputBase-input": { cursor: manual ? "text" : "default" } }}
         />
         <Divider sx={{ my: 1 }} />
         <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}>

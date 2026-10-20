@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { canTypeTrolley } from "../../../utils/userPerms";
 axios.defaults.withCredentials = true;
 import { Modal, Box, Typography, TextField, Button, IconButton, Alert, useTheme, Divider } from "@mui/material";
 import { styled } from "@mui/system";
@@ -37,6 +38,7 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
   const theme = useTheme();
   const videoRef = useRef(null);
   const qrScannerRef = useRef(null);
+  const manualTrolley = canTypeTrolley(); // สิทธิ์คีย์เลขรถเข็นเอง (ตั้งในหน้าการจัดการพนักงาน)
   const [inputValue, setInputValue] = useState('');
   const [scannedValue, setScannedValue] = useState('');
   const [inputError, setInputError] = useState(false);
@@ -139,9 +141,8 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
     }
     setInputError(false);
 
-
-
-    const isValid = await checkTrolleyStatus(inputValue);
+    const troId = inputValue.trim().padStart(4, "0");
+    const isValid = await checkTrolleyStatus(troId);
     if (!isValid) return; // ถ้าไม่ผ่าน ไม่ให้ไปต่อ
     console.log("📤 ส่งค่าไป Modal2:", {
       inputValues: [inputValue],
@@ -150,11 +151,11 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
       rm_type_id: rm_type_id // ✅ ตรวจสอบค่า
     });
 
-    const isReserved = await reserveTrolley(inputValue);
+    const isReserved = await reserveTrolley(troId);
     if (!isReserved) return;
 
     onNext({
-      inputValues: [inputValue],
+      inputValues: [troId],
       cookedDateTime: CookedDateTime,
       rmfp_id: rmfp_id,
       rm_type_id: rm_type_id // ✅ ตรวจสอบค่า
@@ -206,14 +207,15 @@ const Modal1 = ({ open, onClose, onNext, mat, mat_name, batch, production, rmfp_
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
               fullWidth
-              label="เลขทะเบียนรถเข็น"
+              label={manualTrolley ? "เลขทะเบียนรถเข็น (สแกน หรือคีย์เลข 4 หลัก)" : "เลขทะเบียนรถเข็น"}
               value={inputValue}
+              onChange={manualTrolley ? (e) => setInputValue(e.target.value.replace(/\D/g, "").slice(0, 4)) : undefined}
               margin="normal"
               size="small"
               style={{ padding: "0" }}
               error={inputError}
               InputProps={{
-                readOnly: true, // ทำให้กรอกค่าไม่ได้
+                readOnly: !manualTrolley, // ทำให้กรอกค่าไม่ได้ ยกเว้นบัญชีที่มีสิทธิ์ manual_trolley
               }}
             />
           </Box>

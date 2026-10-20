@@ -94,6 +94,81 @@ router.put("/user/roles", async (req, res) => {
   }
 });
 
+// ─────────────────────[ สิทธิ์พิเศษต่อบัญชี ]─────────────────────
+// UserPermissions(user_id, perm_key): สิทธิ์ที่ Supervisor/Master ให้เป็นรายบัญชีในหน้าการจัดการพนักงาน
+// ตอนนี้มี  manual_trolley = คีย์เลขรถเข็นเองใน modal Scan รถเข็น (ปกติสแกนได้อย่างเดียว) — เพิ่มสิทธิ์ใหม่ที่ KNOWN_PERMISSIONS
+const KNOWN_PERMISSIONS = ["manual_trolley"];
+let userPermsChecked = false;
+async function ensureUserPermissionsTable(pool) {
+  if (userPermsChecked) return;
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.UserPermissions', N'U') IS NULL
+    BEGIN
+      CREATE TABLE dbo.UserPermissions (
+        user_id  INT NOT NULL,
+        perm_key NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_UserPermissions PRIMARY KEY (user_id, perm_key)
+      );
+    END
+  `);
+  userPermsChecked = true;
+  console.log("✅ [UserPermissions] ตรวจ/สร้างตาราง UserPermissions เรียบร้อย");
+}
+
+/** ["manual_trolley", ...] — อ่านไม่ได้ก็คืน [] (ไม่ทำให้ login ล้ม) */
+async function loadUserPermissions(pool, userId) {
+  try {
+    await ensureUserPermissionsTable(pool);
+    const r = await pool.request().input("user_id", sql.Int, userId).query("SELECT perm_key FROM UserPermissions WHERE user_id = @user_id");
+    return r.recordset.map((x) => x.perm_key);
+  } catch (err) {
+    console.error("❌ [UserPermissions] load error:", err.message);
+    return [];
+  }
+}
+
+router.get("/user/permissions", async (req, res) => {
+  try {
+    const userId = parseInt(req.query.user_id, 10);
+    if (Number.isNaN(userId)) return res.status(400).json({ success: false, error: "กรุณาระบุ user_id" });
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    res.json({ success: true, data: await loadUserPermissions(pool, userId), known: KNOWN_PERMISSIONS });
+  } catch (err) {
+    console.error("[Route /user/permissions GET] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ตั้งสิทธิ์พิเศษของพนักงาน (body: { user_id, perms: ["manual_trolley"] })
+router.put("/user/permissions", async (req, res) => {
+  try {
+    const userId = parseInt(req.body.user_id, 10);
+    const perms = Array.isArray(req.body.perms) ? [...new Set(req.body.perms.map(String))] : null;
+    if (Number.isNaN(userId) || !perms) return res.status(400).json({ success: false, error: "กรุณาระบุ user_id และ perms" });
+    if (perms.some((k) => !KNOWN_PERMISSIONS.includes(k))) return res.status(400).json({ success: false, error: "สิทธิ์ที่ระบุไม่ถูกต้อง" });
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureUserPermissionsTable(pool);
+    const transaction = new sql.Transaction(pool);
+    try {
+      await transaction.begin();
+      await new sql.Request(transaction).input("user_id", sql.Int, userId).query("DELETE FROM UserPermissions WHERE user_id = @user_id");
+      for (const k of perms) {
+        await new sql.Request(transaction).input("user_id", sql.Int, userId).input("perm_key", sql.NVarChar(50), k).query("INSERT INTO UserPermissions (user_id, perm_key) VALUES (@user_id, @perm_key)");
+      }
+      await transaction.commit();
+    } catch (err) {
+      await safeRollback(transaction);
+      throw err;
+    }
+    res.json({ success: true, message: "บันทึกสิทธิ์สำเร็จ" });
+  } catch (err) {
+    console.error("[Route /user/permissions PUT] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // -------------------------[ LOGIN ]---------------------------
 /**
  * @swagger
@@ -187,6 +262,8 @@ router.post("/login", async (req, res) => {
       console.error("❌ [Route /login] roles error:", err.message);
     }
 
+    const permissions = await loadUserPermissions(pool, user.user_id);
+
     // ไม่ส่ง password hash กลับไปที่เบราว์เซอร์
     const { password: _passwordHash, ...safeUser } = user;
 
@@ -201,6 +278,7 @@ router.post("/login", async (req, res) => {
         ...safeUser,
         rm_type_id: rm_type_ids,
         roles,
+        permissions,
       },
     });
   } catch (error) {
