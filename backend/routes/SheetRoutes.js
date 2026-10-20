@@ -72,7 +72,8 @@ const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_dat
 const buildMappingQuery = (scope = "open") => {
   const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
         -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
-        ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
+        -- COLLATE Thai_100_BIN2: a LIKE '%..%' under the database collation (Thai_100_CI_AI) calls the OS string compare for every row (~10 s per column on 5e5 rows, and it is not counted as CPU); the marker is a fixed text written by the app, so a binary compare is exact and ~100x faster
+        ISNULL(rmm.dest, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'
         -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
         AND NOT EXISTS (
             SELECT 1 FROM (VALUES
@@ -312,7 +313,7 @@ const buildPlanQuery = () => `
   JOIN History htr WITH (NOLOCK) ON rmf.hist_id_rmfp = htr.hist_id
   -- a scan ("สแกนป้าย SAP") saves stay_place = จุดเตรียมรับเข้า and the destination chosen at the scan (จุดเตรียม / หม้ออบ / เข้าห้องเย็น): all of them wait to be put in a trolley
   WHERE rmf.stay_place IN (N'จุดเตรียมรับเข้า', N'หม้ออบ')
-    AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest NOT LIKE N'%ลบ%'
+    AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'
     -- same date range as the work table (open_from / open_to; NULL = everything)
     AND (@open_from IS NULL OR (
         COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) >= @open_from
