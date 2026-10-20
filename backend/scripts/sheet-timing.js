@@ -7,8 +7,9 @@ const { connectToDatabase } = require("../database/db");
 const { buildMappingQuery, buildHuQuery, buildPlanQuery, buildMixedQuery } = require("../routes/SheetRoutes").__queries;
 
 const ymd = (d) => d.toISOString().slice(0, 10);
-const from = process.argv[2] || ymd(new Date());
-const to = process.argv[3] || from;
+const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const from = args[0] || ymd(new Date());
+const to = args[1] || from;
 
 const bind = (r) => r
   .input("days", sql.Int, 7).input("limit", sql.Int, 3000).input("mlimit", sql.Int, 20000)
