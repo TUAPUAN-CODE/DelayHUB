@@ -40,7 +40,8 @@ export const calcLot = (lot, now = Date.now()) => {
   const lid = lot.lid_open_at ? ms(lot.lid_open_at) : null;
   const weight = Number(lot.weight_kg);
   const ins = lot.moves.filter((m) => m.kind === "IN").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
-  const outs = lot.moves.filter((m) => m.kind === "OUT").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg) })).sort((a, b) => a.at - b.at);
+  // OUT of a set ("จัดชุด" after the lid was opened) carries its set_id; every OUT chunk keeps the move_id it came from (the slip of that OUT)
+  const outs = lot.moves.filter((m) => m.kind === "OUT").map((m) => ({ at: ms(m.moved_at), kg: Number(m.qty_kg), id: m.move_id ?? null, setId: m.set_id ?? null })).sort((a, b) => a.at - b.at || (a.id ?? 0) - (b.id ?? 0));
 
   const outsideChunks = ins.map((i) => ({ kg: i.kg, fromAt: prep, toAt: i.at, minutes: Math.max(0, (i.at - prep) / 60000), running: false }));
   const placed = ins.reduce((s, i) => s + i.kg, 0);
@@ -55,13 +56,13 @@ export const calcLot = (lot, now = Date.now()) => {
     while (need > 1e-9 && queue.length) {
       const head = queue[0];
       const take = Math.min(head.kg, need);
-      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, minutes: Math.max(0, (o.at - head.at) / 60000), running: false, ...packWindow(prep, head.at, o.at), ...coldLimitOf(head.at, lid !== null && lid <= o.at ? lid : null) });
+      coldChunks.push({ kg: take, inAt: head.at, outAt: o.at, outMoveId: o.id, setId: o.setId, minutes: Math.max(0, (o.at - head.at) / 60000), running: false, ...packWindow(prep, head.at, o.at), ...coldLimitOf(head.at, lid !== null && lid <= o.at ? lid : null) });
       head.kg = r2(head.kg - take);
       need = r2(need - take);
       if (head.kg <= 1e-9) queue.shift();
     }
   });
-  queue.forEach((q) => coldChunks.push({ kg: q.kg, inAt: q.at, outAt: null, minutes: Math.max(0, (now - q.at) / 60000), running: true, ...coldLimitOf(q.at, lid) }));
+  queue.forEach((q) => coldChunks.push({ kg: q.kg, inAt: q.at, outAt: null, outMoveId: null, setId: null, minutes: Math.max(0, (now - q.at) / 60000), running: true, ...coldLimitOf(q.at, lid) }));
 
   outsideChunks.forEach((c) => { c.level = levelOf(c.minutes, LIMIT_OUTSIDE_MIN); });
   coldChunks.forEach((c) => { c.level = c.limit > 0 ? levelOf(c.minutes, c.limit) : "red"; });
@@ -73,6 +74,45 @@ export const calcLot = (lot, now = Date.now()) => {
   const done = unplaced === 0 && inCold === 0;
   const oldest = (list) => list.filter((c) => c.running).reduce((m, c) => (c.minutes > (m?.minutes ?? -1) ? c : m), null);
   return { lid, weight, unplaced, inCold, outKg, outsideChunks, coldChunks, worst, done, runningOutside: oldest(outsideChunks), runningCold: oldest(coldChunks) };
+};
+
+/** ID of a set as people read it: <lot ID>-<set no> */
+export const setCode = (lot, set) => `${lot.lot_id}-${set.set_no}`;
+
+/**
+ * The sets of a lot ("จัดชุด" after the lid was opened) with what each one means for the Delay:
+ *   a set that left: the kg its OUT took (first in, first out) and the time packing must be done by
+ *   a set still in the cold room: the oldest kg still in the cold room, in set order, and the time it must leave by
+ * c = calcLot(lot, now) · returns { sets, kgSets (kg of the sets still in the cold room), unassigned (kg in the cold room in no set) }
+ */
+export const calcSets = (lot, c, now = Date.now()) => {
+  const list = [...(lot.sets || [])].sort((a, b) => a.set_no - b.set_no);
+  const queue = c.coldChunks.filter((k) => k.running).map((k) => ({ inAt: k.inAt, kg: k.kg })).sort((a, b) => a.inAt - b.inAt);
+  const sets = list.map((s) => {
+    const kg = Number(s.qty_kg);
+    if (s.out_move_id) {
+      const parts = c.coldChunks.filter((k) => k.outMoveId === s.out_move_id).map((k) => ({ kg: k.kg, inAt: k.inAt, packBy: k.packBy, packLeftMin: k.packLeftMin }));
+      const tight = parts.reduce((m, p) => (!m || p.packBy < m.packBy ? p : m), null);
+      return { ...s, kg, out: true, outAt: ms(s.out_at), parts, packBy: tight ? tight.packBy : null, packLeftMin: tight ? tight.packLeftMin : null };
+    }
+    const parts = [];
+    let need = kg;
+    while (need > 1e-9 && queue.length) {
+      const head = queue[0];
+      const take = Math.min(head.kg, need);
+      parts.push({ kg: r2(take), inAt: head.inAt });
+      head.kg = r2(head.kg - take);
+      need = r2(need - take);
+      if (head.kg <= 1e-9) queue.shift();
+    }
+    const firstIn = parts.length ? Math.min(...parts.map((p) => p.inAt)) : null;
+    const deadline = parts.length ? Math.min(...parts.map((p) => coldLimitOf(p.inAt, c.lid).deadline ?? p.inAt + LIMIT_INSIDE_MIN * 60000)) : null;
+    const limit = firstIn !== null ? Math.max(0, (deadline - firstIn) / 60000) : LIMIT_INSIDE_MIN;
+    const minutes = firstIn !== null ? Math.max(0, (now - firstIn) / 60000) : 0;
+    return { ...s, kg, out: false, parts, deadline, clock: { minutes, limit, lidAt: c.lid, level: limit > 0 ? levelOf(minutes, limit) : "red" } };
+  });
+  const kgSets = r2(sets.filter((s) => !s.out).reduce((t, s) => t + s.kg, 0));
+  return { sets, kgSets, unassigned: Math.max(0, r2(c.inCold - kgSets)) };
 };
 
 /** "yyyy-MM-dd HH:mm:ss" (Thai time, as the server sends it) -> ms */
