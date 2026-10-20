@@ -44,7 +44,18 @@ const bind = (r) => r
       console.log(`${name.padEnd(10)} ${String(Date.now() - t0).padStart(7)} ms   ${r.recordset.length} แถว`);
     } catch (e) { console.log(`${name.padEnd(10)} error: ${e.message}`); }
   };
-  await run("mappings", buildMappingQuery("open"));
+  const full = buildMappingQuery("open");
+  // the first step alone (filter + latest History dates + TOP, no emulsion/Batch/Slot joins): tells which step is the slow one
+  const cut = full.indexOf("\n  SELECT TOP (@mlimit)\n      rmm.mapping_id,\n      rmm.from_mapping_id");
+  if (cut > 0) await run("map-step1", `${full.slice(0, cut)}\n  SELECT COUNT(*) AS n, MAX(mapping_id) AS m FROM hbase`);
+  await run("mappings", full);
+  if (process.argv.includes("--dump")) {
+    // for SSMS: Query → Include Actual Execution Plan, then run the file and send the plan / the Messages tab
+    const fs = require("fs");
+    const decl = `DECLARE @days int = 7, @limit int = 3000, @mlimit int = 20000, @open_from date = '${from}', @open_to date = '${to}';\nSET STATISTICS IO, TIME ON;\n`;
+    fs.writeFileSync("mappings-query.sql", decl + full);
+    console.log("เขียน mappings-query.sql แล้ว (เปิดใน SSMS ฐาน PFCMv2)");
+  }
   await run("hus", buildHuQuery());
   await run("plans", buildPlanQuery());
   await run("mixed", buildMixedQuery());
