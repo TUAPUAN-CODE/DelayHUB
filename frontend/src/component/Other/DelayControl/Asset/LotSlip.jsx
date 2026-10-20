@@ -19,7 +19,7 @@ const PRINT_CSS = `
 
 const Info = ({ label, value, bold }) => (
   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "1px 0" }}>
-    <span style={{ color: "#444" }}>{label}</span>
+    <span style={{ color: "#444", whiteSpace: "nowrap", flexShrink: 0 }}>{label}</span>
     <span style={{ fontWeight: bold ? 700 : 500, textAlign: "right" }}>{value}</span>
   </div>
 );
