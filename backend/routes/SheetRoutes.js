@@ -44,10 +44,11 @@ const SAP_DATES = [
 
 // รายงานเวลาของแต่ละ query ของหน้า Sheet: ช้ากว่า SLOW_MS แสดงใน log (pm2 logs → หา "[sheet-slow]") เพื่อรู้ว่า query ไหนช้าจริง
 const SLOW_MS = 1500;
-const timed = async (name, fn) => {
+const timed = async (name, fn, sink) => {
   const t0 = Date.now();
   const r = await fn();
   const ms = Date.now() - t0;
+  if (sink) sink.push(`${name};dur=${ms};desc="${r?.recordset?.length ?? 0} rows"`);
   if (ms >= SLOW_MS) console.warn(`[sheet-slow] ${name} ${ms} ms, ${r?.recordset?.length ?? "-"} rows`);
   return r;
 };
@@ -343,17 +344,20 @@ router.get("/sheet/rows", async (req, res) => {
     // ?fresh=1 (the page asks right after a save): skip the 1 s cache, another PM2 worker may still hold a copy from before the save
     const run = req.query.fresh ? (_key, loader) => loader() : cached;
     const payload = await run(cacheKey, async () => {
+      const sink = [];
       const [mappings, hus, plans, mixed] = await Promise.all([
-        timed("rows.mappings", () => bind(pool.request()).query(buildMappingQuery("open"))),
-        timed("rows.hus", () => bind(pool.request()).query(buildHuQuery())),
-        timed("rows.plans", () => bind(pool.request()).query(buildPlanQuery())).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-        timed("rows.mixed", () => bind(pool.request()).query(buildMixedQuery())).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        timed("mappings", () => bind(pool.request()).query(buildMappingQuery("open")), sink),
+        timed("hus", () => bind(pool.request()).query(buildHuQuery()), sink),
+        timed("plans", () => bind(pool.request()).query(buildPlanQuery()), sink).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        timed("mixed", () => bind(pool.request()).query(buildMixedQuery()), sink).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
       ]);
       const rev = crypto.createHash("md5").update(JSON.stringify([mappings.recordset, hus.recordset, plans.recordset, mixed.recordset])).digest("hex");
       // แปลงเป็น JSON ครั้งเดียวต่อรอบ cache — ทุกคำขอที่ได้ชุดเดียวกันส่งข้อความเดิมออกไปเลย
       const json = JSON.stringify({ success: true, rev, mappings: mappings.recordset, hus: hus.recordset, plans: plans.recordset, mixed: mixed.recordset, days, limit, open_from: ranged ? req.query.open_from : null, open_to: ranged ? req.query.open_to : null });
-      return { rev, json };
+      return { rev, json, timing: sink.join(", ") };
     });
+    // DevTools → Network → rows?... → Timing → "Server timing": เวลาของแต่ละ query (ms) ของรอบที่โหลดจริง
+    if (payload.timing) res.set("Server-Timing", payload.timing);
 
     // หน้าเว็บส่ง ?rev= ของข้อมูลที่ถืออยู่ ถ้าตรงกัน = ไม่ส่งข้อมูลซ้ำ
     if (req.query.rev && req.query.rev === payload.rev) {
