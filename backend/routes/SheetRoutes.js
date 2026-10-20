@@ -42,6 +42,16 @@ const SAP_DATES = [
   "withdraw_date_four", "start_defrost_date_four", "end_defrost_date_four",
 ];
 
+// รายงานเวลาของแต่ละ query ของหน้า Sheet: ช้ากว่า SLOW_MS แสดงใน log (pm2 logs → หา "[sheet-slow]") เพื่อรู้ว่า query ไหนช้าจริง
+const SLOW_MS = 1500;
+const timed = async (name, fn) => {
+  const t0 = Date.now();
+  const r = await fn();
+  const ms = Date.now() - t0;
+  if (ms >= SLOW_MS) console.warn(`[sheet-slow] ${name} ${ms} ms, ${r?.recordset?.length ?? "-"} rows`);
+  return r;
+};
+
 const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col}`;
 
 // The emulsions that were mixed into a production-plan row (RM_EmuMixed), one text per rmfp_id: "Emulsion name (batch) 12 kg; ..."
@@ -130,13 +140,21 @@ const buildMappingQuery = (scope = "open") => `
       ORDER BY s2.cs_id, s2.slot_id
   ) sl
   LEFT JOIN ColdStorage cs WITH (NOLOCK) ON cs.cs_id = sl.cs_id
-  LEFT JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmm.rmfp_id
+  -- only the emulsions of THIS row's plan (a correlated lookup): the old derived table aggregated the whole RM_EmuMixed history on every request
+  OUTER APPLY (
+      SELECT STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
+      FROM RM_EmuMixed rmem WITH (NOLOCK)
+      JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+      JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+      WHERE rmem.rmfp_id = rmm.rmfp_id
+  ) emx
   OUTER APPLY (
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
   ) b
   OUTER APPLY (
-      SELECT TOP 1 hh.*
+      -- only the columns the sheet shows (History is a very wide table: hh.* read every column of every row)
+      SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
       FROM History hh WITH (NOLOCK)
       WHERE hh.mapping_id = rmm.mapping_id
       ORDER BY hh.hist_id DESC
@@ -326,10 +344,10 @@ router.get("/sheet/rows", async (req, res) => {
     const run = req.query.fresh ? (_key, loader) => loader() : cached;
     const payload = await run(cacheKey, async () => {
       const [mappings, hus, plans, mixed] = await Promise.all([
-        bind(pool.request()).query(buildMappingQuery("open")),
-        bind(pool.request()).query(buildHuQuery()),
-        bind(pool.request()).query(buildPlanQuery()).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
-        bind(pool.request()).query(buildMixedQuery()).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        timed("rows.mappings", () => bind(pool.request()).query(buildMappingQuery("open"))),
+        timed("rows.hus", () => bind(pool.request()).query(buildHuQuery())),
+        timed("rows.plans", () => bind(pool.request()).query(buildPlanQuery())).catch((err) => { console.error(`[Route /sheet/rows] plans error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
+        timed("rows.mixed", () => bind(pool.request()).query(buildMixedQuery())).catch((err) => { console.error(`[Route /sheet/rows] mixed error: ${err.message} (line ${err.lineNumber ?? "-"})`); return { recordset: [] }; }),
       ]);
       const rev = crypto.createHash("md5").update(JSON.stringify([mappings.recordset, hus.recordset, plans.recordset, mixed.recordset])).digest("hex");
       // แปลงเป็น JSON ครั้งเดียวต่อรอบ cache — ทุกคำขอที่ได้ชุดเดียวกันส่งข้อความเดิมออกไปเลย
@@ -368,13 +386,13 @@ router.get("/sheet/done", async (req, res) => {
     if (!pool) {
       return res.status(503).json({ success: false, error: "Database unavailable" });
     }
-    const result = await pool.request()
+    const result = await timed("done", () => pool.request()
       .input("mlimit", sql.Int, mlimit)
       .input("date_from", sql.Date, useDates ? dateFrom : null)
       .input("date_to", sql.Date, useDates ? dateTo : null)
       .input("q", sql.NVarChar(100), q)
       .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
-      .query(buildMappingQuery("done"));
+      .query(buildMappingQuery("done")));
 
     res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
