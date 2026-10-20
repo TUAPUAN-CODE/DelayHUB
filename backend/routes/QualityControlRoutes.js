@@ -984,7 +984,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					OR b.batch_after LIKE @like OR b.batch_before LIKE @like
 					OR q.md_no LIKE @like OR htr.hu LIKE @like OR htr.receiver_qc LIKE @like
 				)`;
-			const dateWhere = `htr.rmit_date >= @start AND htr.rmit_date < DATEADD(DAY, 1, @end)`;
+			// a row belongs to the day it was prepared (rmit_date) OR the day it was QC-checked (qc_datetime): a lot prepared on the 19th and checked on the 20th is on both days
+			const dateWhere = `((htr.rmit_date >= @start AND htr.rmit_date < DATEADD(DAY, 1, @end)) OR (q.qc_datetime >= @start AND q.qc_datetime < DATEADD(DAY, 1, @end)))`;
 			const mainQuery = `
 			SELECT ${q ? "TOP (500)" : ""}
 				rmm.mapping_id,
@@ -1043,13 +1044,14 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			FROM
 				RMForProd rmf
 			JOIN TrolleyRMMapping rmm ON rmf.rmfp_id = rmm.rmfp_id
-			JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
-			JOIN RawMat rm ON pr.mat = rm.mat
-			JOIN Process ps ON rmm.process_id = ps.process_id
-			JOIN Production p ON pr.prod_id = p.prod_id
-			JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
+			-- LEFT JOIN: a row that is QC-checked must be listed even when one of these is missing (a manual / mixed row has no process_id, a mapping saved by some routes has no Batch row ...)
+			LEFT JOIN ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
+			LEFT JOIN RawMat rm ON pr.mat = rm.mat
+			LEFT JOIN Process ps ON rmm.process_id = ps.process_id
+			LEFT JOIN Production p ON pr.prod_id = p.prod_id
+			LEFT JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
 			JOIN History htr ON rmm.mapping_id = htr.mapping_id
-			JOIN Batch b ON rmm.mapping_id = b.mapping_id
+			LEFT JOIN Batch b ON rmm.mapping_id = b.mapping_id
 			JOIN QC q ON rmm.qc_id = q.qc_id
 			LEFT JOIN WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
 			WHERE
@@ -1108,7 +1110,7 @@ ORDER BY MAX(htr.cooked_date) DESC;
 				htr.remark_rework_cold,
 				htr.edit_rework,
 				htr.created_at
-			ORDER BY htr.rmit_date DESC
+			ORDER BY ISNULL(q.qc_datetime, htr.rmit_date) DESC
 		`;
 
 			const request = pool.request();

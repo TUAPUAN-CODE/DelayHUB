@@ -1,4 +1,5 @@
 import { Table2, CheckCircle2, Radio, History, LogOut } from "lucide-react";
+import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SECTIONS = [
@@ -8,7 +9,7 @@ const SECTIONS = [
       { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/coldStorage/Sheet?view=done" },
       { name: "ส่งออก RFID", icon: Radio, href: "/coldStorage/EmptyTrolley/RFIDCSCheckOutPage" },
       { name: "ประวัติ", icon: History, href: "/coldStorage/HisInput/HisInputPage" },
-      { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
+      { name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/coldStorage/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
     ],
   },
 ];

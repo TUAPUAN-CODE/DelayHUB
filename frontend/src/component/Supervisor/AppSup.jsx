@@ -4,6 +4,8 @@ import { Suspense, lazy } from "react";
 import Sidebar from "./SidebarSup";
 
 import SheetPage from "../Sheet/SheetPage";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 // ใช้ Lazy Loading เพื่อลดขนาดไฟล์ที่โหลดตอนแรก
 const TableUserPage = lazy(() => import("./TableUser/TableUserPage"));
 
@@ -102,6 +104,7 @@ function AppSup() {
       >
         <Routes>
           <Route path="/Sheet" element={<SheetPage role="sup" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
           <Route path="/Traceback" element={<TracebackPage />} />
           {/* the three old delay reports became one: old links go to the report */}
           {["/DelayTimepercentage_tie", "/DelayTimeTrackingRM", "/TrackTrolley/inprocess"].map((p) => (

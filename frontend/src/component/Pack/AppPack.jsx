@@ -21,6 +21,8 @@ import UsePKGPage from "./UsePKG/CheckInPage.jsx";
 import ReportHubPage from "./Reports/ReportHubPage.jsx";
 
 import SheetPage from "../Sheet/SheetPage";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 function AppPack() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -34,6 +36,7 @@ function AppPack() {
         
 
         <Route path="/Sheet" element={<SheetPage role="pack" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
         <Route path="/CheckStatus/CheckStatusPage" element={<CheckStatusPage />} />
         <Route path="/" element={<Navigate to="/packaging/Sheet" replace />} />
         {/* <Route path="/manage/ManagePage" element={<ManagePack />} /> */}

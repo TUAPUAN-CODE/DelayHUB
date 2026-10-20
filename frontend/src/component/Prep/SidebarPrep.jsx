@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { LogOut, Table2, CheckCircle2 } from "lucide-react";
+import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarPrep = () => {
@@ -12,7 +13,7 @@ const SidebarPrep = () => {
       { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/prep/Sheet?view=done" },
       ],
     },
-    { items: [{ name: "ออกจากระบบ", icon: LogOut, href: "/logout" }] },
+    { items: [{ name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/prep/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" }] },
   ], []);
 
   return <AppSidebar title="DelayHUB" subtitle="จุดเตรียมวัตถุดิบ" sections={sections} />;

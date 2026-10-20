@@ -9,6 +9,8 @@ import SalesPage from "./MatCold/MatColdPage";
 import HistoryBakingPrep from "./HistoryBaking/HistoryBakingPage";
 import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import BatchSAPPage from "./BatchSAP/BatchSAPPage.jsx";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 const API_URL = import.meta.env.VITE_API_URL;
 
 function AppOven() {
@@ -27,6 +29,7 @@ function AppOven() {
 				<Route path='/analytics' element={<HistoryBakingPrep />} />
 				<Route path='/WorkplaceSelector' element={<WorkplaceSelector />} />
 				<Route path='/manageOven' element={<BatchSAPPage />} />
+        <Route path='/Mapping' element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
 			</Routes>
 		</div>
 	);

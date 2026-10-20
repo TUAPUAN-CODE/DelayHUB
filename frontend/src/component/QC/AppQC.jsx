@@ -8,6 +8,8 @@ import QCSelectWP from "../User/QCSelectWP"
 import TrackTrolleyQC from "./TrackTrolley/TrackTrolleyQC.jsx"
 
 import SheetPage from "../Sheet/SheetPage";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 function AppQualityControl() {
 	return (
 		<div className='flex flex-col h-screen overflow-hidden'>
@@ -20,6 +22,7 @@ function AppQualityControl() {
 			<SidebarQC />
 			<Routes>
 				<Route path="/Sheet" element={<SheetPage role="qc" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
 				<Route path='/TrackTrolleyQC' element={<TrackTrolleyQC />} />
 				<Route path='/HisCheck/HisCheckPage' element={<HisCheck />} />
 				{/* ตารางตรวจสอบคุณภาพรวมอยู่ในตารางรวมวัตถุดิบแล้ว (tool ตรวจ QC) */}

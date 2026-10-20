@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { BarChart2, PackageCheck, Printer, LogOut, Table2, CheckCircle2 } from "lucide-react";
+import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarPack = () => {
@@ -12,7 +13,7 @@ const SidebarPack = () => {
         { name: "ประวัติ Report", icon: BarChart2, href: "/packaging/ReportPull" },
         { name: "ใช้บรรจุภัณฑ์", icon: PackageCheck, href: "/packaging/UsePKG" },
         { name: "สลีป Android", icon: Printer, href: "/packaging/Printpackandroid" },
-        { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
+        { name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/packaging/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
     },
   ], []);

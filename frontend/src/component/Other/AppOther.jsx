@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import SidebarOther from "./SidebarOther";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 
 // Role "Other": Delay control of lots outside the trolley system + the chicken broth time stamp (moved here from the Prep Role)
 const DelayControlPage = lazy(() => import("./DelayControl/DelayControlPage"));
@@ -18,6 +20,7 @@ function AppOther() {
           <Route path="/" element={<Navigate to="/other/delay" replace />} />
           <Route path="/delay" element={<DelayControlPage />} />
           <Route path="/timestamp" element={<Timestamp />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
         </Routes>
       </Suspense>
     </div>

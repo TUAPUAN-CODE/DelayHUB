@@ -2,6 +2,8 @@ import { Route, Routes } from "react-router-dom";
 
 import SidebarPack from "./SidebarPack.jsx";
 import Report from "./Report/ManagePage.jsx"
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 
 
 function AppMaster() {
@@ -15,6 +17,7 @@ function AppMaster() {
       <SidebarPack />
       <Routes>
         <Route path="/report" element={<Report />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
       </Routes>
     </div>
   );

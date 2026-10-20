@@ -30,6 +30,8 @@ import RoomTableCS from "./RoomTable/RoomTable";
 import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
 import SheetPage from "../Sheet/SheetPage";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -45,6 +47,7 @@ function AppColdStorage() {
 			<Sidebar />
 			<Routes>
 				<Route path="/Sheet" element={<SheetPage role="cs1" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
 				{/* <Route path='/' element={<MainCS />} /> */}
 				<Route path='/' element={<Navigate to='/coldStorage/Sheet' replace />} />
 				{/* the two pages that were removed (raw material table, room selector) are in the Sheet now: their addresses go there */}

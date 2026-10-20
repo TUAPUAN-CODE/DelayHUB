@@ -16,8 +16,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // Helper: คืนวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD
 const getToday = () => {
+  // local date (toISOString is UTC: between 00:00 and 07:00 in Thailand it would still be yesterday)
   const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
 const ParentComponent = () => {

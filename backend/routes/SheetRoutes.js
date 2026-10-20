@@ -141,7 +141,7 @@ const buildMappingQuery = (scope = "open") => `
       WHERE hh.mapping_id = rmm.mapping_id
       ORDER BY hh.hist_id DESC
   ) h
-  WHERE
+  ${scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
       -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
       ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
       -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
@@ -196,6 +196,7 @@ const buildMappingQuery = (scope = "open") => `
               -- a row that is on a trolley is always shown, whatever its date
               rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
           ))`}
+`}
   ORDER BY rmm.mapping_id DESC
 `;
 
@@ -378,6 +379,40 @@ router.get("/sheet/done", async (req, res) => {
     res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
     console.error("[Route /sheet/done] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── one mapping by its id (page "ค้นหา mapping_id": detail + fixing a wrong entry) ─────────────────────────────
+// Same row as the table (buildMappingQuery) but with NO filter: a row that the tables hide (deleted, weight 0, finished ...) can still be looked up and fixed.
+//   GET /sheet/mapping?mapping_id=  → { mapping, hu (SAP row of its HU or null), edit_log }
+router.get("/sheet/mapping", async (req, res) => {
+  try {
+    const id = parseInt(req.query.mapping_id, 10);
+    if (Number.isNaN(id) || id <= 0) return res.status(400).json({ success: false, error: "กรุณาระบุ mapping_id เป็นตัวเลข" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const r = await pool.request().input("mlimit", sql.Int, 1).input("one_id", sql.Int, id).query(buildMappingQuery("one"));
+    const mapping = r.recordset[0] || null;
+    if (!mapping) return res.status(404).json({ success: false, error: `ไม่พบ mapping_id ${id}` });
+    let huValue = mapping.hu;
+    if (huValue === undefined || huValue === null || huValue === "") {
+      const hr = await pool.request().input("rmfp", sql.Int, mapping.rmfp_id ?? 0).query("SELECT TOP 1 hu FROM RMForProd WITH (NOLOCK) WHERE rmfp_id = @rmfp");
+      huValue = hr.recordset[0]?.hu ?? null;
+      if (huValue !== null) mapping.hu = huValue;
+    }
+    let hu = null;
+    if (huValue !== null && huValue !== undefined && String(huValue).trim() !== "") {
+      const sr = await pool.request().input("hu", sql.NVarChar(50), String(huValue).trim()).query(`
+        SELECT TOP 1 s.sap_re_id, s.batch, s.mat, rm.mat_name, s.hu, s.before_hu, s.weight, s.remark, s.cs_re, s.cs_re_2, s.cs_re_3,
+               ${SAP_DATES.map((c) => fmt("s", c)).join(",\n               ")}
+        FROM SAP_Receive s WITH (NOLOCK) LEFT JOIN RawMat rm WITH (NOLOCK) ON rm.mat = s.mat
+        WHERE CAST(s.hu AS NVARCHAR(50)) = @hu ORDER BY s.sap_re_id DESC`);
+      hu = sr.recordset[0] || null;
+    }
+    res.json({ success: true, mapping, hu, editable_dates: HIST_DATES }); // the time columns that PATCH /sheet/edit accepts
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/mapping] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -624,6 +659,9 @@ router.put("/sheet/global-settings", async (req, res) => {
 const EDIT_MAP = {
   dest: { t: "map", sql: () => sql.NVarChar(100) },
   stay_place: { t: "map", sql: () => sql.NVarChar(100) },
+  // the status of a row is made of rm_status + stay_place + dest (+ trolley): page "ค้นหา mapping_id" fixes a wrong entry by setting them
+  rm_status: { t: "map", sql: () => sql.NVarChar(100) },
+  rm_cold_status: { t: "map", sql: () => sql.NVarChar(100) },
   tro_id: { t: "map", sql: () => sql.VarChar(4), max: 4 },
   mix_code: { t: "map", sql: () => sql.NVarChar(100) },
   rmm_line_name: { t: "map", sql: () => sql.NVarChar(100) },
@@ -734,7 +772,8 @@ router.patch("/sheet/edit", async (req, res) => {
         if (v.length > (def.max || EDIT_TEXT_MAX)) return res.status(400).json({ success: false, error: `${c} ยาวเกิน ${def.max || EDIT_TEXT_MAX} ตัวอักษร` });
         if (v === "") v = null;
       }
-      if (v === null && (def.kind === "mat" || def.kind === "prod" || c === "rmm_line_name" || c === "tro_id")) {
+      const clearTro = c === "tro_id" && body.allow_clear_tro === true; // only the page "ค้นหา mapping_id" asks for it (take the row off its trolley)
+      if (v === null && !clearTro && (def.kind === "mat" || def.kind === "prod" || c === "rmm_line_name" || c === "tro_id")) {
         return res.status(400).json({ success: false, error: `${c} ต้องเลือกค่า (ล้างค่าไม่ได้)` });
       }
       todo.push({ col: c, def, value: v });
@@ -819,13 +858,27 @@ router.patch("/sheet/edit", async (req, res) => {
         });
         await r.query(`UPDATE TrolleyRMMapping SET ${sets.join(", ")} WHERE mapping_id = @id`);
       }
+      // the row left its trolley (tro_id cleared) and body.release_trolley: when nothing else is on that trolley, the trolley is free again
+      // (same clean-up as moving the last material out of a trolley in the cold room: Slot emptied, Trolley.tro_status = 1)
+      const extraLog = [];
+      const clearedTro = applied.find((x) => x.col === "tro_id" && x.value === null && x.oldVal);
+      if (clearedTro && body.release_trolley === true) {
+        const oldTro = String(clearedTro.oldVal);
+        const left = await new sql.Request(tx).input("t", sql.VarChar(4), oldTro).input("id", sql.Int, mappingId)
+          .query("SELECT COUNT(*) AS n FROM TrolleyRMMapping WITH (UPDLOCK) WHERE tro_id = @t AND mapping_id <> @id");
+        if (left.recordset[0].n === 0) {
+          await new sql.Request(tx).input("t", sql.VarChar(4), oldTro).query("UPDATE Slot SET tro_id = NULL WHERE tro_id = @t");
+          await new sql.Request(tx).input("t", sql.VarChar(4), oldTro).query("UPDATE Trolley SET tro_status = '1' WHERE tro_id = @t");
+          extraLog.push({ tn: "Trolley", cn: "tro_status", ov: "ใช้งาน", nv: `1 (ว่าง · รถเข็น ${oldTro})` });
+        }
+      }
       // values that must exist in their master table (the page offers them as a dropdown; the server refuses anything else)
       const exists = async (query, name, type, val) => (await new sql.Request(tx).input(name, type, val).query(query)).recordset.length > 0;
       for (const x of applied) {
         if (x.col === "rmm_line_name" && !(await exists("SELECT TOP 1 1 AS ok FROM Line WITH (NOLOCK) WHERE line_name = @v", "v", sql.NVarChar(100), x.value))) {
           await safeRollback(tx); return res.status(400).json({ success: false, error: `ไม่พบไลน์ "${x.value}" ในระบบ กรุณาเลือกจากรายการ` });
         }
-        if (x.col === "tro_id" && !(await exists("SELECT TOP 1 1 AS ok FROM Trolley WITH (NOLOCK) WHERE tro_id = @v", "v", sql.VarChar(4), x.value))) {
+        if (x.col === "tro_id" && x.value !== null && !(await exists("SELECT TOP 1 1 AS ok FROM Trolley WITH (NOLOCK) WHERE tro_id = @v", "v", sql.VarChar(4), x.value))) {
           await safeRollback(tx); return res.status(400).json({ success: false, error: `ไม่พบรถเข็น "${x.value}" ในระบบ กรุณาเลือกจากรายการ` });
         }
       }
@@ -900,6 +953,14 @@ router.patch("/sheet/edit", async (req, res) => {
           .input("uid", sql.Int, Number.isInteger(user.user_id) ? user.user_id : null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
           .query(`INSERT INTO SheetEditLog (mapping_id, hist_id, table_name, column_name, old_value, new_value, reason, user_id, username)
                   VALUES (@mid, @hid, @tn, @cn, @ov, @nv, @rs, @uid, @un)`);
+      }
+      for (const x of extraLog) {
+        await new sql.Request(tx)
+          .input("mid", sql.Int, mappingId).input("tn", sql.NVarChar(40), x.tn).input("cn", sql.NVarChar(60), x.cn)
+          .input("ov", sql.NVarChar(600), x.ov).input("nv", sql.NVarChar(600), x.nv).input("rs", sql.NVarChar(300), reason || null)
+          .input("uid", sql.Int, Number.isInteger(user.user_id) ? user.user_id : null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
+          .query(`INSERT INTO SheetEditLog (mapping_id, hist_id, table_name, column_name, old_value, new_value, reason, user_id, username)
+                  VALUES (@mid, NULL, @tn, @cn, @ov, @nv, @rs, @uid, @un)`);
       }
       await tx.commit();
       invalidateSheetCache();

@@ -48,6 +48,8 @@ import ScanSAPPageComeAnti from "./ScanSAPComeAnti/ScanSAPPage.jsx";
 import ScanSAPPageOutCS from "./ScanSAPOutCS/ScanSAPPage.jsx";
 import Dashboardrmoutprocess from "./Dashboardrmoutprocess/RoomTable.jsx";
 import Dashboardrminprocess from "./Dashboardrminprocess/RoomTable.jsx";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 
 
 function AppColdStorages() {
@@ -64,6 +66,7 @@ function AppColdStorages() {
         {/* the old Time Stamp table is the master table now (same layout, settings and status sort as /prep): its HU rows and stamp tools are in it */}
         <Route path="/SapSheet" element={<Navigate to="/ColdStorages/Sheet" replace />} />
         <Route path="/Sheet" element={<MasterSheetPage role="cs2" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
         <Route path="/LargeRooms" element={<RoomTableCSSupOnlysend />} />
         {/* หน้าเดิมที่รวมเข้าตารางเดียวแล้ว */}
         <Route path="/products" element={<Navigate to="/ColdStorages/Sheet" replace />} />

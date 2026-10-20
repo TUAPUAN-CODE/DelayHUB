@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Timer, Soup, LogOut } from "lucide-react";
+import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarOther = () => {
@@ -8,7 +9,7 @@ const SidebarOther = () => {
       items: [
         { name: "คุม Delay", icon: Timer, href: "/other/delay" },
         { name: "น้ำต้มไก่", icon: Soup, href: "/other/timestamp" },
-        { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
+        { name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/other/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
     },
   ], []);

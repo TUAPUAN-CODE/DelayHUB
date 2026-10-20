@@ -215,7 +215,7 @@ const RULES = [
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
   // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)
   { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock },
-  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOnly },
+  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "PUT", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.body && req.body.user_id) },

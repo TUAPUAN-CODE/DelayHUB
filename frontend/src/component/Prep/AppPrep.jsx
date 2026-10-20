@@ -11,6 +11,8 @@ import CheckInPagePrep from "./CheckIn/CheckInPage.jsx";
 
 
 import SheetPage from "../Sheet/SheetPage";
+import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
+const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 function AppPrep() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -22,6 +24,7 @@ function AppPrep() {
       <SidebarPrep />
       <Routes>
         <Route path="/Sheet" element={<SheetPage role="prep" />} />
+        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
         <Route path="/" element={<Navigate to="/prep/Sheet" replace />} />
         <Route
           path="/HistoryCooked/HistoryCookedPage"

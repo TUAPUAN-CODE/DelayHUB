@@ -1,4 +1,5 @@
 import { ScanLine, Home, Fish, LogOut } from "lucide-react";
+import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SECTIONS = [
@@ -8,7 +9,7 @@ const SECTIONS = [
       { name: "วัตถุดิบจากห้องเย็น", icon: ScanLine, href: "/oven/manageOven" },
       { name: "Scan SAP", icon: ScanLine, href: "/oven/products" },
       { name: "วัตถุดิบฝากห้องเย็น", icon: Fish, href: "/oven/sales" },
-      { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
+      { name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/oven/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
     ],
   },
 ];
