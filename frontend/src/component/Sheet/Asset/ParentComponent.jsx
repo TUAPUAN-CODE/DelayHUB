@@ -114,8 +114,9 @@ const ENSURE_VISIBLE = { pack: [{ key: "w_total", after: "status" }, { key: "t_k
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
-// "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
-const CAN_ADD_RM = ["3", "4", "5", "6"].includes(localStorage.getItem("pos_id"));
+// "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้ — อ่านตอนแสดงผล ไม่ใช่ตอนโหลดไฟล์:
+// หน้าที่โหลดไว้ก่อน login (เช่น token หมดอายุแล้ว login ใหม่โดยไม่รีเฟรช) เคยไม่เห็นปุ่มจนกว่าจะรีเฟรชหน้า
+const canAddRM = () => ["3", "4", "5", "6"].includes(String(localStorage.getItem("pos_id") ?? "").trim());
 
 /** "น้ำหนัก (kg)" of the Pack confirm: typed per row, only for the rows that are ticked */
 const WeightInput = ({ value, disabled, onChange }) => {
@@ -513,7 +514,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Button variant="contained" size="small" startIcon={<ShoppingCartCheckoutOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
       <Button variant="outlined" size="small" startIcon={<EditNoteOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
       <Button variant="contained" size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
-      {CAN_ADD_RM && <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
+      {canAddRM() && <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
     </>
   );
   const actionBar = (
