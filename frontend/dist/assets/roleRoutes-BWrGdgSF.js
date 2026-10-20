@@ -1,0 +1,1 @@
+const t={1:"/oven",2:"/prep",3:"/qualitycontrol",4:"/packaging/Sheet",5:"/coldStorage",6:"/sup",7:"/coldStorages",8:"/master/report",10:"/other"},e=()=>{try{const r=JSON.parse(localStorage.getItem("roles"));return Array.isArray(r)?r:[]}catch{return[]}};export{t as W,e as r};

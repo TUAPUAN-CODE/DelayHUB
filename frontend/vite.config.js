@@ -1,10 +1,19 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import path from 'path';
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => {
+  // VITE_API_URL is read AT RUN TIME from public/config.js (window.__APP_CONFIG__.API_URL), so the same dist works on every server and can be committed;
+  // the build-time VITE_API_URL (frontend/.env) is only the fallback when config.js does not set one
+  const buildApiUrl = loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL || '';
+  return {
+  define: {
+    // window.__API_URL__ is set by /config.js (runtime) or, when that is missing, by the inline fallback of index.html (the build-time VITE_API_URL)
+    'import.meta.env.VITE_API_URL': 'window.__API_URL__',
+  },
   plugins: [
+    { name: 'pfcm-api-url-fallback', transformIndexHtml: (html) => html.replace('__BUILD_API_URL__', () => JSON.stringify(buildApiUrl)) },
     react({
       jsxImportSource: '@emotion/react', // ถ้าใช้ Emotion
       babel: {
@@ -102,4 +111,5 @@ export default defineConfig(({ command }) => ({
     port: 5173,
     strictPort: true,
   },
-}));
+};
+});

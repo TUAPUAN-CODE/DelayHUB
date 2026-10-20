@@ -787,6 +787,12 @@ app.use((err, req, res, next) => {
 });
 ```
 
+### Deploy frontend (dist อยู่ใน git — pull แล้วใช้ได้เลย ไม่ต้อง build บน server)
+
+- `frontend/dist` ถูก commit ทุกครั้งที่แก้ frontend (build ด้วย `cd frontend && npm run build` แล้ว `git add -A frontend/dist`) — บน server แค่ `git pull` (+ `pm2 reload PFCMv2-backend` ถ้าแก้ backend) แล้ว Ctrl+F5
+- ที่อยู่ API อ่านตอนรันจาก `frontend/public/config.js` (→ `dist/config.js`, ตั้ง `window.__API_URL__`; ตาราง host → backend อยู่ในไฟล์นั้น) ไม่ฝังตอน build; `VITE_API_URL` ใน `frontend/.env` เป็นแค่ค่าสำรองเมื่อไม่มี config.js
+- ถ้า server เคย build เอง `dist` ในเครื่องจะต่างจาก git → ก่อน pull ให้ `git checkout -- frontend/dist && git clean -fd frontend/dist`
+
 ### การเพิ่ม Route ใหม่
 
 ```javascript

@@ -11,7 +11,10 @@
 
 <body>
   <div id="root"></div>
-  
+
+  <!-- runtime settings (API address): /config.js is a plain file in dist, editable without a build -->
+  <script src="/config.js"></script>
+  <script>if (typeof window.__API_URL__ !== "string") window.__API_URL__ = __BUILD_API_URL__; // config.js missing: the build-time VITE_API_URL (frontend/.env)</script>
   <script type="module" src="/src/main.jsx"></script> 
   <!-- <script src="https://unpkg.com/html5-qrcode"></script> -->
 
