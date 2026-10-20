@@ -238,6 +238,7 @@ const buildMappingQuery = (scope = "open") => {
   ) h`}
   ${scope === "open" ? "" : whereSql}
   ORDER BY rmm.mapping_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
 `;
 };
 
@@ -255,6 +256,7 @@ const buildHuQuery = () => `
     AND la.last_at >= COALESCE(@open_from, DATEADD(DAY, -@days, GETDATE()))
     AND (@open_to IS NULL OR la.last_at < DATEADD(DAY, 1, @open_to))
   ORDER BY la.last_at DESC, s.sap_re_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
 `;
 
 // Production-plan rows that were scanned ("สแกนป้าย SAP") but are not in a trolley yet: the same rows the old "จัดการวัตถุดิบ" page listed (all raw material types).
@@ -304,6 +306,7 @@ const buildPlanQuery = () => `
         AND COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY htr.cooked_date DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
 `;
 
 // Mixed lots (the old page "รายการผสมวัตถุดิบ"): production-plan rows that have emulsions mixed into them. Only the ones that are NOT in a trolley yet get a row of their own
@@ -334,6 +337,7 @@ const buildMixedQuery = () => `
         AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY rmfp.rmfp_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
 `;
 
 router.get("/sheet/rows", async (req, res) => {
