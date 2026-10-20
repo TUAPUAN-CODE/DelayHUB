@@ -1,6 +1,7 @@
 // วัดเวลาของแต่ละ query ในหน้า Sheet บนฐานข้อมูลจริง + ตรวจว่าตารางสำคัญมีดัชนีหรือยัง
 //   cd backend && node scripts/sheet-timing.js            (ช่วงวันที่ = วันนี้, ใช้ .env เดียวกับ server)
 //   node scripts/sheet-timing.js 2026-10-01 2026-10-20     (ระบุช่วงวันที่)
+//   node scripts/sheet-timing.js --probe                   (แยกเวลา CPU / I/O ของแต่ละเงื่อนไขกรองของ mappings)
 // อ่านอย่างเดียว ไม่แก้ข้อมูล
 const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
@@ -45,6 +46,33 @@ const bind = (r) => r
       console.log(`${name.padEnd(10)} ${String(Date.now() - t0).padStart(7)} ms   ${r.recordset.length} แถว`);
     } catch (e) { console.log(`${name.padEnd(10)} error: ${e.message}`); }
   };
+  if (process.argv.includes("--probe")) {
+    // แยกเวลา (CPU / elapsed / อ่านกี่ page) ของแต่ละเงื่อนไขในขั้นกรองของ mappings เพื่อหาว่าเงื่อนไขไหนกิน CPU / I/O
+    const base = "FROM TrolleyRMMapping rmm WITH (NOLOCK)";
+    const variants = [
+      ["scan ทั้งตาราง", `SELECT COUNT(*) AS n ${base}`],
+      ["dest NOT LIKE %ลบ%", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%'`],
+      ["+ stay_place NOT LIKE %ลบ%", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'`],
+      ["DONE (dest LIKE บรรจุเสร็จ% / สำเร็จ)", `SELECT COUNT(*) AS n ${base} WHERE (ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')`],
+      ["weight_RM <> 0", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.weight_RM, 1) <> 0`],
+      ["LTRIM/RTRIM rm_status", `SELECT COUNT(*) AS n ${base} WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck'`],
+    ];
+    const collation = await pool.request().query("SELECT CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS NVARCHAR(100)) AS c, @@VERSION AS v");
+    console.log(`collation: ${collation.recordset[0].c}\n${String(collation.recordset[0].v).split("\n")[0]}`);
+    for (const [name, q] of variants) {
+      const msgs = [];
+      const r = pool.request();
+      r.on("info", (i) => msgs.push(i.message));
+      const t0 = Date.now();
+      try {
+        const res = await r.batch(`SET STATISTICS IO, TIME ON; ${q}; SET STATISTICS IO, TIME OFF;`);
+        const io = msgs.find((m) => m.includes("TrolleyRMMapping")) || "";
+        const cpu = msgs.filter((m) => m.includes("CPU time")).pop() || "";
+        console.log(`${name.padEnd(40)} ${String(Date.now() - t0).padStart(7)} ms  n=${res.recordset[0].n}\n    ${io.replace(/\s+/g, " ").trim()}\n    ${cpu.replace(/\s+/g, " ").trim()}`);
+      } catch (e) { console.log(`${name.padEnd(40)} error: ${e.message}`); }
+    }
+    process.exit(0);
+  }
   const full = buildMappingQuery("open");
   // the first step alone (filter + latest History dates + TOP, no emulsion/Batch/Slot joins): tells which step is the slow one
   const cut = full.indexOf("\n  SELECT TOP (@mlimit)\n      rmm.mapping_id,\n      rmm.from_mapping_id");
