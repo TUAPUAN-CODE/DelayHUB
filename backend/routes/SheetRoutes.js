@@ -131,11 +131,12 @@ const buildMappingQuery = (scope = "open") => {
   // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
   const openBase = `
   WITH hbase AS (
-    SELECT TOP (@mlimit) rmm.mapping_id, rmm.created_at, h.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `h.${c}`).join(", ")}
+    SELECT TOP (@mlimit) rmm.mapping_id, h.hist_id
     FROM TrolleyRMMapping rmm WITH (NOLOCK)
     JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
     OUTER APPLY (
-        SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
+        -- only the 5 dates DONE_DATE_SQL needs, so the History index can answer alone (no read of the wide History row for the thousands of stale mappings)
+        SELECT TOP 1 hh.hist_id, hh.sc_pack_date, hh.out_cold_date, hh.come_cold_date, hh.rmit_date, hh.cooked_date
         FROM History hh WITH (NOLOCK)
         WHERE hh.mapping_id = rmm.mapping_id
         ORDER BY hh.hist_id DESC
@@ -195,8 +196,8 @@ const buildMappingQuery = (scope = "open") => {
       h.hist_id,
       ${HIST_DATES.map((c) => fmt("h", c)).join(",\n      ")},
       ${HIST_TEXT.map((c) => `h.${c}`).join(",\n      ")}
-  ${scope === "open" ? `FROM hbase h
-  JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = h.mapping_id` : "FROM TrolleyRMMapping rmm WITH (NOLOCK)"}
+  ${scope === "open" ? `FROM hbase hb
+  JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = hb.mapping_id` : "FROM TrolleyRMMapping rmm WITH (NOLOCK)"}
   JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
   LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
   LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
@@ -229,7 +230,8 @@ const buildMappingQuery = (scope = "open") => {
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
   ) b
-  ${scope === "open" ? "" : `OUTER APPLY (
+  ${scope === "open" ? `-- the wide History columns only for the rows that are left
+  LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = hb.hist_id` : `OUTER APPLY (
       -- only the columns the sheet shows (History is a very wide table: hh.* read every column of every row)
       SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
       FROM History hh WITH (NOLOCK)
