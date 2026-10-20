@@ -83,15 +83,24 @@ router.get("/fetchProduction", async (req, res) => {
     const pool = await connectToDatabase();
 
     // 1. Fetch Production data
-    //    all=1: every production plan (newest first), whether or not the material was linked to it in ProdRawMat (prod_rm_id is null when it is not):
-    //    the scan page lets the material pick any plan; the link is created when the scan is saved
+    //    all=1: every production plan, whether or not the material was linked to it in ProdRawMat (prod_rm_id is null when it is not):
+    //    the scan page lets the material pick any plan; the link is created when the scan is saved.
+    //    The plans linked to the material come first (then newest first), so an old linked plan is never cut off by the TOP;
+    //    one row per plan (a duplicated ProdRawMat link does not repeat it); line_type_name tells apart the same code / doc_no of another line type
     const productionResult = await pool.request()
       .input("mat", mat)
       .query(req.query.all === "1" ? `
-        SELECT TOP (3000) p.prod_id, p.doc_no, p.code, p.line_type_id, pr.prod_rm_id
+        WITH linked AS (
+          SELECT r.prod_id, MIN(r.prod_rm_id) AS prod_rm_id
+          FROM ProdRawMat r
+          WHERE r.mat = @mat
+          GROUP BY r.prod_id
+        )
+        SELECT TOP (3000) p.prod_id, p.doc_no, p.code, p.line_type_id, lt.line_type_name, l.prod_rm_id
         FROM Production p
-        LEFT JOIN ProdRawMat pr ON p.prod_id = pr.prod_id AND pr.mat = @mat
-        ORDER BY p.prod_id DESC
+        LEFT JOIN linked l ON l.prod_id = p.prod_id
+        LEFT JOIN LineType lt ON lt.line_type_id = p.line_type_id
+        ORDER BY CASE WHEN l.prod_id IS NULL THEN 1 ELSE 0 END, p.prod_id DESC
       ` : `
         SELECT p.prod_id, p.doc_no, p.code, p.line_type_id,pr.prod_rm_id
         FROM Production p
@@ -112,57 +121,40 @@ router.get("/fetchProduction", async (req, res) => {
         return `@type${i}`;
       }).join(',');
 
-      // Add special handling for All Line type
-      if (lineTypeIds.includes(1001)) {
-        const lineNamesResult = await request.query(`
-          SELECT line_id, line_name, line_type_id
-          FROM Line
-          WHERE line_name NOT IN ('CUP', 'CAN', 'POUCH', 'Pouch Auto')
-          ORDER BY line_type_id, line_name
-        `);
+      // All Line type (1001) = every line; the other types of the list get their own lines
+      //  (before, a list with a 1001 plan left every other type without lines: the scan page lists every plan, so it nearly always has one)
+      const hasAllLine = lineTypeIds.includes(1001);
+      const lineNamesResult = await request.query(`
+        SELECT line_id, line_name, line_type_id
+        FROM Line
+        WHERE ${hasAllLine ? "1 = 1" : `line_type_id IN (${params})`}
+        AND line_name NOT IN ('CUP', 'CAN', 'POUCH', 'Pouch Auto')
+        ORDER BY line_type_id, line_name
+      `);
 
-        // Add all lines to the All Line type (1001)
-        allLinesByType[1001] = lineNamesResult.recordset.map(line => ({
+      const wanted = new Set(lineTypeIds.map(Number));
+      if (hasAllLine) {
+        allLinesByType[1001] = lineNamesResult.recordset.map(line => ({ line_id: line.line_id, line_name: line.line_name }));
+      }
+      lineNamesResult.recordset.forEach(line => {
+        if (Number(line.line_type_id) === 1001 || !wanted.has(Number(line.line_type_id))) return;
+        if (!allLinesByType[line.line_type_id]) {
+          allLinesByType[line.line_type_id] = [];
+        }
+        allLinesByType[line.line_type_id].push({
           line_id: line.line_id,
           line_name: line.line_name
-        }));
+        });
+      });
 
-        // Sort the lines
-        allLinesByType[1001].sort((a, b) => {
+      // Apply alphanumeric sorting to each group
+      for (const typeId in allLinesByType) {
+        allLinesByType[typeId].sort((a, b) => {
           return a.line_name.localeCompare(b.line_name, undefined, {
             numeric: true,
             sensitivity: 'base'
           });
         });
-      } else {
-        const lineNamesResult = await request.query(`
-          SELECT line_id, line_name, line_type_id
-          FROM Line
-          WHERE line_type_id IN (${params})
-          AND line_name NOT IN ('CUP', 'CAN', 'POUCH', 'Pouch Auto')
-          ORDER BY line_type_id, line_name
-        `);
-
-        // Group by line_type_id
-        lineNamesResult.recordset.forEach(line => {
-          if (!allLinesByType[line.line_type_id]) {
-            allLinesByType[line.line_type_id] = [];
-          }
-          allLinesByType[line.line_type_id].push({
-            line_id: line.line_id,
-            line_name: line.line_name
-          });
-        });
-
-        // Apply alphanumeric sorting to each group
-        for (const typeId in allLinesByType) {
-          allLinesByType[typeId].sort((a, b) => {
-            return a.line_name.localeCompare(b.line_name, undefined, {
-              numeric: true,
-              sensitivity: 'base'
-            });
-          });
-        }
       }
     }
 

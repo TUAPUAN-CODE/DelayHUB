@@ -19,6 +19,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { FaCheck } from "react-icons/fa";
 import axios from "axios";
+import { PLAN_OPTION_PROPS, planLabel } from "../../../Layout/planOptions";
 axios.defaults.withCredentials = true; 
 import ModalAlert from "../../../../Popup/AlertSuccess";
 
@@ -414,7 +415,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                   <Autocomplete
                     sx={{ flex: 2 }}
                     options={production}
-                    getOptionLabel={(option) => `${option.code} (${option.doc_no})`}
+                    {...PLAN_OPTION_PROPS}
                     value={selectedPlan}
                     onChange={(e, newValue) => handlePlanSelect(newValue)}
                     renderInput={(params) => (
@@ -437,7 +438,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                         }}
                       >
                         <Typography sx={{ flexGrow: 1 }}>
-                          {option.code} ({option.doc_no})
+                          {planLabel(option)}
                         </Typography>
                         <IconButton onClick={() => handlePlanSelect(option)} sx={{ ml: "auto" }}>
                           <FaCheck style={{ color: "#1552F0" }} />

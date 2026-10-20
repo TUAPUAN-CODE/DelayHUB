@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { PLAN_OPTION_PROPS } from "../../../Layout/planOptions";
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress,
   Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
@@ -237,7 +238,7 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
             <Autocomplete
               sx={{ flex: 2, minWidth: 220 }} size="small" options={plans} value={plan} disabled={locked}
-              getOptionLabel={(o) => `${o.code} (${o.doc_no})`} onChange={(e, v) => { setPlan(v); setLine(null); }}
+              {...PLAN_OPTION_PROPS} onChange={(e, v) => { setPlan(v); setLine(null); }}
               renderInput={(params) => <TextField {...params} label="แผนการผลิตใหม่" required />}
             />
             <Autocomplete

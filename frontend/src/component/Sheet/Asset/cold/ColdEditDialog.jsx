@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { PLAN_OPTION_PROPS } from "../../../Layout/planOptions";
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress,
   Table, TableBody, TableCell, TableHead, TableRow, TextField,
@@ -119,7 +120,7 @@ const ColdEditDialog = ({ row, onClose, onSaved }) => {
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
               <Autocomplete
                 sx={{ flex: 2, minWidth: 220 }} size="small" options={plans} value={plan} disabled={saving || limitReached}
-                getOptionLabel={(o) => `${o.code} (${o.doc_no})`} isOptionEqualToValue={(a, b) => a.prod_id === b.prod_id}
+                {...PLAN_OPTION_PROPS}
                 onChange={(e, v) => { setPlan(v); setLine(null); }}
                 renderInput={(params) => <TextField {...params} label="แผนการผลิต (Code)" required />}
               />
