@@ -133,11 +133,10 @@ const buildMappingQuery = (scope = "open") => {
   // scope "open": the filter (cheap columns + the latest History row, for the date) and the TOP run first on their own; the heavy lookups
   // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
   const openBase = `
-  -- step 1: the cheap filters on TrolleyRMMapping alone, into a small temp table (the optimizer used to run the History lookup for every mapping ever made)
+  -- step 1: the cheap filters on TrolleyRMMapping alone (no join: RMForProd is joined in the final select, a join here was a seek per mapping ever made), into a small temp table (the optimizer used to run the History lookup for every mapping ever made)
   SELECT rmm.mapping_id, rmm.created_at, rmm.tro_id
   INTO #sheet_cand
   FROM TrolleyRMMapping rmm WITH (NOLOCK)
-  JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
   ${whereSql}
   OPTION (MAX_GRANT_PERCENT = 3);
   -- step 2: the date filter (needs the latest History row) + TOP, only on the survivors
