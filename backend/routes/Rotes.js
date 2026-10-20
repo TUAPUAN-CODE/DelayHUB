@@ -1957,6 +1957,15 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     try {
       const pool = await connectToDatabase();
 
+      // edited 3 times already = change nothing (the check below used to run AFTER the new plan was saved, so a 4th edit went through
+      // although the answer said it could not)
+      const limitCheck = await pool.request()
+        .input("mapping_id", sql.Int, parseInt(mapping_id, 10))
+        .query("SELECT TOP 1 two_prod, three_prod FROM History WHERE mapping_id = @mapping_id");
+      if (limitCheck.recordset.length && limitCheck.recordset[0].two_prod !== null && limitCheck.recordset[0].three_prod !== null) {
+        return res.status(400).json({ success: false, message: "ไม่สามารถแก้ไขแผนการผลิตได้ เนื่องจากมีการแก้ไขครบ 3 ครั้งแล้ว" });
+      }
+
 
       // ตรวจสอบว่ามีแผนการผลิตสำหรับวัตถุดิบที่เลือกหรือไม่
       // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet

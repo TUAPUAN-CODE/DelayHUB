@@ -188,7 +188,8 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
       try {
         const [prod, ...hist] = await Promise.all([
           axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1 } }),
-          ...rows.map((r) => axios.get(`${API_URL}/api/checkEditHistoryOnTrolley/${r.mapping_id}`).catch((err) => {
+          // the route reads ?mapping_id= (the old /checkEditHistoryOnTrolley/<id> got a 404, so a row edited 3 times was never blocked)
+          ...rows.map((r) => axios.get(`${API_URL}/api/checkEditHistoryOnTrolley`, { params: { mapping_id: r.mapping_id } }).catch((err) => {
             console.error("[BatchEditPlanDialog] edit history:", err);
             return null;
           })),
