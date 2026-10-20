@@ -114,9 +114,10 @@ const ENSURE_VISIBLE = { pack: [{ key: "w_total", after: "status" }, { key: "t_k
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
-// "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้ — อ่านตอนแสดงผล ไม่ใช่ตอนโหลดไฟล์:
-// หน้าที่โหลดไว้ก่อน login (เช่น token หมดอายุแล้ว login ใหม่โดยไม่รีเฟรช) เคยไม่เห็นปุ่มจนกว่าจะรีเฟรชหน้า
-const canAddRM = () => ["3", "4", "5", "6"].includes(String(localStorage.getItem("pos_id") ?? "").trim());
+// "เพิ่ม RM" (หน้า managedelaymaster เดิม): เห็นเมื่อ Role (Workplace) ที่ใช้อยู่คือบรรจุ wp_id 4 (ค่าที่ตั้งตอน login / สลับ Role ที่ header)
+// อ่านตอนแสดงผล ไม่ใช่ตอนโหลดไฟล์ — หน้าที่โหลดไว้ก่อน login หรือก่อนสลับ Role ต้องเห็นค่าล่าสุด
+const ADD_RM_WP = ["4"];
+const canAddRM = () => ADD_RM_WP.includes(String(localStorage.getItem("wp_id") ?? "").trim());
 
 /** "น้ำหนัก (kg)" of the Pack confirm: typed per row, only for the rows that are ticked */
 const WeightInput = ({ value, disabled, onChange }) => {
