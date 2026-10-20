@@ -792,8 +792,10 @@ const histColumnType = async (pool, col) => {
 };
 const isDateType = (dt) => ["datetime", "datetime2", "smalldatetime", "date"].includes(dt);
 
-/** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason } */
-router.patch("/sheet/edit", async (req, res) => {
+/** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason }
+ *  opts.only = the columns this route may change (default: every column of EDIT_MAP) · opts.coldOnly = only a mapping whose trolley is in a cold room slot
+ *  opts.defaultReason = the reason written to SheetEditLog when none is typed */
+const sheetEditHandler = (opts = {}) => async (req, res) => {
   try {
     const body = req.body || {};
     const mappingId = parseInt(body.mapping_id, 10);
@@ -807,7 +809,7 @@ router.patch("/sheet/edit", async (req, res) => {
     if (!cols.length || cols.length > EDIT_BATCH_MAX) {
       return res.status(400).json({ success: false, error: `แก้ไขได้ครั้งละ 1-${EDIT_BATCH_MAX} ช่อง` });
     }
-    const bad = cols.find((c) => !Object.prototype.hasOwnProperty.call(EDIT_MAP, c));
+    const bad = cols.find((c) => !Object.prototype.hasOwnProperty.call(EDIT_MAP, c) || (opts.only && !opts.only.includes(c)));
     if (bad) return res.status(400).json({ success: false, error: `ไม่อนุญาตให้แก้ไขคอลัมน์ ${bad}` });
 
     // validate + normalise every value before touching the database
@@ -884,6 +886,12 @@ router.patch("/sheet/edit", async (req, res) => {
         WHERE rmm.mapping_id = @id`);
       if (!cur.recordset.length) { await safeRollback(tx); return res.status(404).json({ success: false, error: "ไม่พบรายการนี้" }); }
       const mapRow = cur.recordset[0];
+      if (opts.coldOnly) {
+        // only while the material is in a cold room: its trolley is in a slot (status "อยู่ในห้องเย็น" / "อยู่ในห้องเย็นใหญ่" of the Sheet)
+        const inSlot = mapRow.tro_id && (await new sql.Request(tx).input("t", sql.VarChar(4), String(mapRow.tro_id))
+          .query("SELECT TOP 1 1 AS ok FROM Slot WITH (NOLOCK) WHERE tro_id = @t")).recordset.length > 0;
+        if (!inSlot) { await safeRollback(tx); return res.status(400).json({ success: false, error: "แก้ได้เฉพาะรายการที่อยู่ในห้องเย็น (รถเข็นอยู่ในช่องของห้องเย็น)" }); }
+      }
 
       let histId = null;
       let histRow = null;
@@ -1026,7 +1034,7 @@ router.patch("/sheet/edit", async (req, res) => {
           .input("tn", sql.NVarChar(40), it.def.t === "map" ? "TrolleyRMMapping" : it.def.t === "virt" ? (it.def.kind === "batch" ? "Batch" : "ProdRawMat") : "History").input("cn", sql.NVarChar(60), it.col)
           .input("ov", sql.NVarChar(600), it.oldVal === null || it.oldVal === undefined ? null : String(it.oldVal).slice(0, 600))
           .input("nv", sql.NVarChar(600), it.value === null ? null : String(it.value).slice(0, 600))
-          .input("rs", sql.NVarChar(300), reason || null)
+          .input("rs", sql.NVarChar(300), reason || opts.defaultReason || null)
           .input("uid", sql.Int, Number.isInteger(user.user_id) ? user.user_id : null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
           .query(`INSERT INTO SheetEditLog (mapping_id, hist_id, table_name, column_name, old_value, new_value, reason, user_id, username)
                   VALUES (@mid, @hid, @tn, @cn, @ov, @nv, @rs, @uid, @un)`);
@@ -1048,10 +1056,14 @@ router.patch("/sheet/edit", async (req, res) => {
       throw err;
     }
   } catch (err) {
-    console.error("❌ [Route PATCH /sheet/edit] Error:", err);
+    console.error(`❌ [Route PATCH ${req.path}] Error:`, err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+// every column, Supervisor / Master or whoever unlocked the edit (rule in lib/authMiddleware.js)
+router.patch("/sheet/edit", sheetEditHandler());
+// a material in a cold room: Code (production plan), line and weight only — the "แก้ไข Code / Line / น้ำหนัก" button of the Sheet (any Role that sees the row)
+router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_name", "weight_RM"], coldOnly: true, defaultReason: "แก้ไขในห้องเย็น" }));
 
 // master data for the dropdowns of the edit dialog (values that come from the database can only be picked, not typed)
 const OPTION_SQL = {

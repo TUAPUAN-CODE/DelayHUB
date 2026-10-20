@@ -111,8 +111,10 @@ const DataGrid = ({
   statusChips,
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
   onCellEdit,
+  // ensureVisible: [{ key, after? }] columns added once to the saved columns of every account (see useGridPrefs)
+  ensureVisible,
 }) => {
-  const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
+  const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt, ensure: ensureVisible });
   // prepareRows(rows, ext): lets a page re-derive row fields from the account's own settings (ext) — it must return the same array when nothing changes
   const rows = useMemo(() => (prepareRows ? prepareRows(rawRows, prefs.ext) : rawRows), [rawRows, prefs.ext, prepareRows]);
   const [search, setSearch] = useState("");

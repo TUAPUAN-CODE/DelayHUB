@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Button, MenuItem, Paper, Select, TextField } from "@mui/material";
+import { Alert, Box, Button, MenuItem, Paper, Select, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import DataGrid from "../../Layout/DataGrid/DataGrid";
 import { buildRows } from "./buildRows";
 import { DEFAULT_EXT } from "./ColorSettings";
@@ -8,6 +8,7 @@ import HamsterLoader from "../../Layout/DataGrid/HamsterLoader";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import DoneExportDialog from "./DoneExportDialog";
+import { SHIFT_COLUMN, shiftOf } from "./shift";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -30,6 +31,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
   const [error, setError] = useState("");
   const [activeKey, setActiveKey] = useState(null);
   const [exportKind, setExportKind] = useState(null); // "pdf" | "excel"
+  const [shift, setShift] = useState("all"); // all | DS | NS — by the time packing was done (shift.jsx)
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -61,7 +63,17 @@ const DonePanel = ({ gridKey, gridProps }) => {
     return () => window.removeEventListener("sheet-edited", again);
   }, []);
 
-  const rows = useMemo(() => (mappings ? buildRows([], mappings, {}, [], Date.now()) : []), [mappings]);
+  // the shift picked above the table: the table and the exports both show only that shift
+  const shiftCount = useMemo(() => {
+    const n = { DS: 0, NS: 0 };
+    (mappings || []).forEach((m) => { const s = shiftOf(m.sc_pack_date); if (s) n[s] += 1; });
+    return n;
+  }, [mappings]);
+  const shown = useMemo(() => (mappings && shift !== "all" ? mappings.filter((m) => shiftOf(m.sc_pack_date) === shift) : mappings), [mappings, shift]);
+  const rows = useMemo(() => (shown ? buildRows([], shown, {}, [], Date.now()) : []), [shown]);
+  // the column "กะ" is only in this table: it is added once to the saved columns of every account (and can be sorted / filtered like any column)
+  const columns = useMemo(() => [...(gridProps.columns || []), SHIFT_COLUMN], [gridProps.columns]);
+  const ensureVisible = useMemo(() => [...(gridProps.ensureVisible || []), { key: "shift", after: "mapping_id" }], [gridProps.ensureVisible]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
@@ -76,11 +88,16 @@ const DonePanel = ({ gridKey, gridProps }) => {
           {[500, 2000, 5000, 10000].map((n) => <MenuItem key={n} value={n}>สูงสุด {n.toLocaleString()} แถว</MenuItem>)}
         </Select>
         <Button variant="contained" onClick={search} disabled={loading || (!!from && !!to && from > to)}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
+        <ToggleButtonGroup size="small" exclusive value={shift} onChange={(_, v) => { if (v) setShift(v); }} sx={{ "& .MuiToggleButton-root": { textTransform: "none", px: 1.5, fontWeight: 700 } }}>
+          <ToggleButton value="all">ทุกกะ{mappings ? ` (${mappings.length})` : ""}</ToggleButton>
+          <ToggleButton value="DS" title="บรรจุเสร็จ 06:00–17:30">DS{mappings ? ` (${shiftCount.DS})` : ""}</ToggleButton>
+          <ToggleButton value="NS" title="บรรจุเสร็จ 17:30–06:00">NS{mappings ? ` (${shiftCount.NS})` : ""}</ToggleButton>
+        </ToggleButtonGroup>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
-        <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
+        <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!shown?.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
+        <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!shown?.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
       </Paper>
-      <DoneExportDialog open={!!exportKind} kind={exportKind} rows={mappings || []} onClose={() => setExportKind(null)} />
+      <DoneExportDialog open={!!exportKind} kind={exportKind} rows={shown || []} onClose={() => setExportKind(null)} />
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (
         <Alert severity="warning" sx={{ mb: 1 }}>ข้อมูลถึงเพดาน {info.limit.toLocaleString()} แถว อาจยังมีแถวที่ไม่ได้แสดง — ลดช่วงวันที่หรือใส่คำค้นให้แคบลง หรือเพิ่มจำนวนสูงสุด</Alert>
@@ -101,6 +118,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
               fill detail gridKey={gridKey} title="Done" defaultExt={DEFAULT_EXT} rows={rows} rowKey={noKey} loading={loading} hideReload ctx={NO_TOOLS}
               activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
               searchPlaceholder="ค้นหาในผลลัพธ์ที่ดึงมา ... (คลิกแถวแล้วกด Detail → ผสมจาก เพื่อดูว่าผสมมาจากอะไร)" {...gridProps}
+              columns={columns} ensureVisible={ensureVisible}
             />
           )}
         </div>

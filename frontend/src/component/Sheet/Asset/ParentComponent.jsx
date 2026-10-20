@@ -58,6 +58,7 @@ import PackMoreFlows from "./pack/PackMoreFlows";
 import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
+import ColdEditDialog from "./cold/ColdEditDialog";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -106,6 +107,10 @@ const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date &
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
+// a material in a cold room (v1 / v2): its Code (plan) / line / weight can be fixed from the tools of the row
+const IN_COLD = new Set(["อยู่ในห้องเย็น", "อยู่ในห้องเย็นใหญ่"]);
+// columns every account of the Role sees, also accounts that saved their columns before (added once, can be hidden again — useGridPrefs)
+const ENSURE_VISIBLE = { pack: [{ key: "w_total", after: "status" }, { key: "t_kg", after: "w_total" }] };
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
@@ -149,6 +154,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
+  const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
   const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role) });
   const [statusDlg, setStatusDlg] = useState(false);
@@ -383,6 +389,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       }
     }
     if (r.__kind !== "map") return out;
+    if (IN_COLD.has(stLabel) && r.mapping_id) {
+      out.push({ col: "t_bar", key: "cold-edit", label: "แก้ไข Code / Line / น้ำหนัก", color: "#0F3FC4", icon: <EditOutlinedIcon fontSize="small" />, title: "แก้ไข Code (แผนผลิต) / Line / น้ำหนัก ของวัตถุดิบในห้องเย็น", run: () => setColdEdit({ row: r, seq: Date.now() }) });
+    }
     const st = String(r.rm_status || "");
     if (role === "cs1") {
       if (!r.cs_id && r.tro_id && CS1_DEST.includes(r.dest)) out.push({ col: "t_cs1", key: "in", label: "รับเข้า", color: "#E65100", run: () => trolleyRef.current?.checkin(r) });
@@ -637,7 +646,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
     { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined };
+  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined, ensureVisible: ENSURE_VISIBLE[role] };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -708,6 +717,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Snackbar>
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
+      {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
       <CheckoutFlow ref={checkoutRef} onDone={reload} />

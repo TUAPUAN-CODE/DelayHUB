@@ -14,6 +14,25 @@ const writeLocal = (userId, key, config) => {
 const MISSING = "ยังไม่ได้สร้างตารางเก็บการตั้งค่าในฐานข้อมูล — เก็บไว้ในเครื่องนี้ชั่วคราว";
 
 /**
+ * Columns a page wants every account to see, also accounts that saved their columns before the column existed / was asked for:
+ * ensure = [{ key, after? }] — each key is added ONCE per account (after the column `after`, else at the end) and remembered in ext.__ensured,
+ * so an account can still hide it afterwards. Returns the same object when nothing is added.
+ */
+const applyEnsure = (cfg, ensure) => {
+  if (!ensure?.length) return cfg;
+  const done = new Set(cfg.ext?.__ensured || []);
+  const todo = ensure.filter((e) => !done.has(e.key));
+  if (!todo.length) return cfg;
+  const visible = [...(cfg.visible || [])];
+  todo.forEach(({ key, after }) => {
+    if (visible.includes(key)) return;
+    const i = after ? visible.indexOf(after) : -1;
+    visible.splice(i >= 0 ? i + 1 : visible.length, 0, key);
+  });
+  return { ...cfg, visible, ext: { ...(cfg.ext || {}), __ensured: [...done, ...todo.map((e) => e.key)] } };
+};
+
+/**
  * Settings of one table for one account: visible columns, sorting, and free "ext" settings of the page (e.g. row colour rules).
  * Saved in the database (SheetUserPrefs, key = user_id + gridKey); a copy stays in the browser so the table keeps working when the
  * table is not created yet or the server is unreachable.   storage: 'loading' | 'server' | 'local'
@@ -21,17 +40,19 @@ const MISSING = "ยังไม่ได้สร้างตารางเก
 const useGridPrefs = (gridKey, defaults) => {
   const userId = parseInt(localStorage.getItem("user_id"), 10);
   const local = readLocal(userId, gridKey);
-  const [config, setConfig] = useState(() => ({
+  const [config, setConfig] = useState(() => applyEnsure({
     visible: local?.visible || defaults.visible,
     sorts: local?.sorts || defaults.sorts || [],
     ext: { ...(defaults.ext || {}), ...(local?.ext || {}) },
     pins: local?.pins ?? null, // columns frozen on the left; null = the default of the table
-  }));
+  }, defaults.ensure));
   const [storage, setStorage] = useState("loading");
   const [warning, setWarning] = useState("");
   const timer = useRef(null);
   const defaultsRef = useRef(defaults);
   defaultsRef.current = defaults;
+  const configRef = useRef(config);
+  configRef.current = config;
 
   useEffect(() => {
     let cancelled = false;
@@ -45,13 +66,17 @@ const useGridPrefs = (gridKey, defaults) => {
         if (cancelled) return;
         const cfg = res.data?.config ? JSON.parse(res.data.config) : null;
         if (cfg) {
-          setConfig((prev) => ({
+          const prev = configRef.current;
+          const merged = {
             visible: cfg.visible?.length ? cfg.visible : prev.visible,
             sorts: cfg.sorts || prev.sorts,
             ext: { ...prev.ext, ...(cfg.ext || {}) },
             pins: cfg.pins ?? prev.pins,
-          }));
-          writeLocal(userId, gridKey, cfg);
+          };
+          const next = applyEnsure(merged, defaultsRef.current.ensure);
+          setConfig(next);
+          writeLocal(userId, gridKey, next);
+          if (next !== merged) persistRef.current(next); // a column was added for this account: save it once
         }
         setStorage("server");
       })
@@ -79,6 +104,9 @@ const useGridPrefs = (gridKey, defaults) => {
         });
     }, 600);
   }, [userId, gridKey]);
+
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
 
   const update = useCallback((patch) => {
     setConfig((prev) => { const next = { ...prev, ...patch }; persist(next); return next; });
