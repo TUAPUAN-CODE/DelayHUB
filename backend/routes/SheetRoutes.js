@@ -55,15 +55,6 @@ const timed = async (name, fn, sink) => {
 
 const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col}`;
 
-// The emulsions that were mixed into a production-plan row (RM_EmuMixed), one text per rmfp_id: "Emulsion name (batch) 12 kg; ..."
-const EMULSION_TEXT_SQL = `
-  SELECT rmem.rmfp_id,
-         STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
-  FROM RM_EmuMixed rmem WITH (NOLOCK)
-  JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
-  JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
-  GROUP BY rmem.rmfp_id`;
-
 const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')";
 // the date a mapping counts for in the Done table (last thing that happened to it)
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
@@ -326,31 +317,52 @@ const buildPlanQuery = () => `
 // Mixed lots (the old page "รายการผสมวัตถุดิบ"): production-plan rows that have emulsions mixed into them. Only the ones that are NOT in a trolley yet get a row of their own
 // (once they are in a trolley they are mapping rows, which carry the emulsion text).
 const buildMixedQuery = () => `
-  SELECT TOP (@limit)
-      rmfp.rmfp_id,
-      rmfp.batch,
-      pdrm.mat,
-      rm2.mat_name,
-      rmfp.weight,
-      CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
-      rmfp.rmfp_line_name,
-      rmfp.level_eu,
-      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
-      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,${dbsStdSql("rmgx")},
-      emx.emulsion_text
-  FROM RMForProd rmfp WITH (NOLOCK)
-  JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmfp.rmfp_id
-  JOIN ProdRawMat pdrm WITH (NOLOCK) ON rmfp.prod_rm_id = pdrm.prod_rm_id
-  JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
-  JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
-  LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
-  LEFT JOIN RawMatGroup rmgx WITH (NOLOCK) ON rmfp.rm_group_id = rmgx.rm_group_id
-  WHERE NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
-    AND (@open_from IS NULL OR (
-        COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
-        AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
-    ))
-  ORDER BY rmfp.rmfp_id DESC
+  -- step 1: the plan rows (TOP) — "has an emulsion" is an EXISTS, so the emulsion text is not built for every emulsion ever mixed
+  -- (the old JOIN to the aggregate read + STRING_AGG-ed the whole RM_EmuMixed history on every load)
+  WITH base AS (
+    SELECT TOP (@limit)
+        rmfp.rmfp_id,
+        rmfp.batch,
+        pdrm.mat,
+        rm2.mat_name,
+        rmfp.weight,
+        CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
+        rmfp.rmfp_line_name,
+        rmfp.level_eu,
+        CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
+        CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,${dbsStdSql("rmgx")}
+    FROM RMForProd rmfp WITH (NOLOCK)
+    JOIN ProdRawMat pdrm WITH (NOLOCK) ON rmfp.prod_rm_id = pdrm.prod_rm_id
+    JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
+    JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
+    LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
+    LEFT JOIN RawMatGroup rmgx WITH (NOLOCK) ON rmfp.rm_group_id = rmgx.rm_group_id
+    WHERE EXISTS (
+            SELECT 1
+            FROM RM_EmuMixed rmem WITH (NOLOCK)
+            JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+            JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+            WHERE rmem.rmfp_id = rmfp.rmfp_id
+        )
+      AND NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
+      AND (@open_from IS NULL OR (
+          COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
+          AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
+      ))
+    ORDER BY rmfp.rmfp_id DESC
+  )
+  -- step 2: the emulsion text only for the rows that are left
+  SELECT b.rmfp_id, b.batch, b.mat, b.mat_name, b.weight, b.production, b.rmfp_line_name, b.level_eu, b.withdraw_date, b.cooked_date,
+         b.DBS1, b.DBS2, b.DBS3, b.DBS4, emx.emulsion_text
+  FROM base b
+  OUTER APPLY (
+      SELECT STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
+      FROM RM_EmuMixed rmem WITH (NOLOCK)
+      JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+      JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+      WHERE rmem.rmfp_id = b.rmfp_id
+  ) emx
+  ORDER BY b.rmfp_id DESC
   OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
@@ -381,9 +393,12 @@ router.get("/sheet/rows", async (req, res) => {
 
     // เหมือนกัน + พร้อมกัน = query ชุดเดียว (ดู lib/sheetCache.js); rev = ลายเซ็นของข้อมูล ให้หน้าเว็บเทียบได้โดยไม่ต้องรับ/แปลงข้อมูลทั้งก้อนซ้ำ
     const cacheKey = JSON.stringify([days, limit, mlimit, ranged ? req.query.open_from : null, ranged ? req.query.open_to : null]);
-    // ?fresh=1 (the page asks right after a save): skip the 1 s cache, another PM2 worker may still hold a copy from before the save
-    const run = req.query.fresh ? (_key, loader) => loader() : cached;
-    const payload = await run(cacheKey, async () => {
+    // ข้อมูลต้อง "เริ่มอ่านหลัง" เวลานี้ (ใช้ชุดเดียวกันได้ทุกคำขอ / ทุก worker — lib/sheetCache.js):
+    //   ?fresh=1 (หน้าเว็บเพิ่งบันทึกเอง) = หลังคำขอนี้มาถึง · ?since=<at ของ event sheetChanged (เวลา server)> = หลังการบันทึกที่ทำให้เกิด event
+    const now = Date.now();
+    const since = Math.min(parseInt(req.query.since, 10) || 0, now);
+    const minStart = req.query.fresh ? now : since;
+    const payload = await cached(cacheKey, async () => {
       const sink = [];
       const [mappings, hus, plans, mixed] = await Promise.all([
         timed("mappings", () => bind(pool.request()).query(buildMappingQuery("open")), sink),

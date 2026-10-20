@@ -192,6 +192,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const running = useRef(false);    // one load at a time ...
   const again = useRef(false);      // ... a request that comes while one is running makes ONE more run afterwards
   const freshNext = useRef(false);  // ... and that run skips the server cache when one of the requests asked for it (right after a save)
+  const sinceNext = useRef(0);      // ... or asks for data read after this server time (the "at" of the newest sheetChanged event)
   const loadOnceRef = useRef(null); // always the latest loadOnce (the range / role may change while a load is running)
   const rangeKeyRef = useRef("");   // the answer of an old range must not replace the data of the new one
   const lastLoadAt = useRef(0);
@@ -206,14 +207,17 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   rangeKeyRef.current = `${role}|${range.all ? "all" : `${range.from}|${range.to}`}`;
 
-  const loadOnce = useCallback(async (freshRun) => {
+  const loadOnce = useCallback(async (freshRun, since) => {
     lastLoadAt.current = Date.now();
     const myKey = rangeKeyRef.current;
     if (!revRef.current) setLoading(true); // first load shows the spinner; the minute refresh does not flicker
     try {
       const params = range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to };
       if (revRef.current) params.rev = revRef.current;
+      // after a save of this page: fresh · after a save elsewhere: "since" — every open sheet asks with the same event time, so the server reads the
+      // database ONCE for all of them (a fresh load per screen on every event of every device was what kept the whole database busy)
       if (freshRun) params.fresh = 1;
+      else if (since) params.since = since;
       const res = await axios.get(`${API_URL}/api/sheet/rows`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       if (myKey !== rangeKeyRef.current) return; // the range / role changed while this was loading: a newer load is queued, drop this answer
@@ -253,10 +257,16 @@ const ParentComponent = ({ role, view = "work" }) => {
   // (an older answer can no longer arrive after a newer one and bring back the status the user just changed)
   const load = useCallback(async (opts) => {
     if (opts?.fresh === true) freshNext.current = true; // (onDone / onClick callbacks pass their own arguments: only an explicit { fresh: true } counts)
+    if (Number(opts?.since) > sinceNext.current) sinceNext.current = Number(opts.since);
     if (running.current) { again.current = true; return; }
     running.current = true;
     try {
-      do { again.current = false; const fresh = freshNext.current; freshNext.current = false; await loadOnceRef.current(fresh); } while (again.current);
+      do {
+        again.current = false;
+        const fresh = freshNext.current; const since = sinceNext.current;
+        freshNext.current = false; sinceNext.current = 0;
+        await loadOnceRef.current(fresh, since);
+      } while (again.current);
     } finally {
       running.current = false;
     }
@@ -273,10 +283,22 @@ const ParentComponent = ({ role, view = "work" }) => {
   useEffect(() => {
     if (!API_URL || view !== "work") return undefined;
     let timer = null;
+    let since = 0;
     // never give up reconnecting (a pm2 reload or a network drop must not freeze the live updates until the page is refreshed)
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: Infinity, reconnectionDelay: 2000, reconnectionDelayMax: 10000, timeout: 10000 });
-    // an event is never dropped: right after our own load it is only postponed (a change of another user must not wait for the 1 minute timer); it reads from the database
-    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => load({ fresh: true }), Math.max(800, 3000 - (Date.now() - lastLoadAt.current))); };
+    // an event is never dropped: right after our own load it is only postponed (a change of another user must not wait for the 1 minute timer).
+    // One load per window: more events while it waits do not push it further away (a steady stream of saves used to postpone it for ever),
+    // they only move "since" to the newest event time (sheetChanged carries the server time of the save; the other events do not)
+    const refresh = (evt) => {
+      const at = Number(evt?.at) || 0;
+      if (at > since) since = at;
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        const s = since; since = 0;
+        load(s ? { since: s } : undefined);
+      }, Math.max(800, 3000 - (Date.now() - lastLoadAt.current)));
+    };
     // "sheetChanged": the server sends it after ANY successful write of any page, so a save on another device / Role shows here without a refresh (backend/sheetRealtime.js)
     // the server only sends these events to the rooms: join the ones that tell the table something changed.
     // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
