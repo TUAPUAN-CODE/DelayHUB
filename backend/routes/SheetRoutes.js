@@ -69,7 +69,82 @@ const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%'
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
 
 /** scope "open" = the work table (everything not finished, however old) · scope "done" = finished rows, searched on demand (date range + text) */
-const buildMappingQuery = (scope = "open") => `
+const buildMappingQuery = (scope = "open") => {
+  const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
+        -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
+        ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
+        -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
+        AND NOT EXISTS (
+            SELECT 1 FROM (VALUES
+                (N'QcCheck', N'create_manual', N'create_manual'),
+                (N'QcCheck', N'เข้าห้องเย็น', N'บรรจุ'),
+                (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
+                (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
+            ) hid(rm_status, stay_place, dest)
+            WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
+              AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
+              AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
+        )
+        -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
+        AND ISNULL(rmm.weight_RM, 1) <> 0
+        -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
+        AND NOT (
+            (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
+            AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
+        )
+        -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
+        AND NOT (
+            LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck')
+            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'เข้าห้องเย็นใหญ่'
+            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
+        )
+        AND ${scope === "done" ? `
+            ${DONE_SQL}
+            -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
+            AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))
+            -- text search: any of the data columns of the table (same columns as the Sheet's settings)
+            AND (@q = N'' OR (
+                rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
+                OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
+                OR rmm.dest LIKE @q_like OR rmm.stay_place LIKE @q_like OR rmm.rm_status LIKE @q_like
+                OR rmm.level_eu LIKE @q_like OR rmm.prod_mix LIKE @q_like OR rmm.mix_code LIKE @q_like
+                OR CAST(rmm.tray_count AS NVARCHAR(30)) LIKE @q_like OR CAST(rmm.weight_RM AS NVARCHAR(30)) LIKE @q_like
+                OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
+                OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like
+                OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
+            ))` : `
+            -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
+            NOT ${DONE_SQL}
+            -- date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet
+            AND (@open_from IS NULL OR (
+                COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
+                AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
+            ) OR (
+                -- a row that is on a trolley is always shown, whatever its date
+                rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
+            ))`}
+  `;
+
+  // scope "open": the filter (cheap columns + the latest History row, for the date) and the TOP run first on their own; the heavy lookups
+  // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
+  const openBase = `
+  WITH hbase AS (
+    SELECT TOP (@mlimit) rmm.mapping_id, rmm.created_at, h.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `h.${c}`).join(", ")}
+    FROM TrolleyRMMapping rmm WITH (NOLOCK)
+    JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+    OUTER APPLY (
+        SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
+        FROM History hh WITH (NOLOCK)
+        WHERE hh.mapping_id = rmm.mapping_id
+        ORDER BY hh.hist_id DESC
+    ) h
+    ${whereSql}
+    ORDER BY rmm.mapping_id DESC
+  )`;
+
+  return `${scope === "open" ? openBase : ""}
   SELECT TOP (@mlimit)
       rmm.mapping_id,
       rmm.from_mapping_id,
@@ -120,7 +195,8 @@ const buildMappingQuery = (scope = "open") => `
       h.hist_id,
       ${HIST_DATES.map((c) => fmt("h", c)).join(",\n      ")},
       ${HIST_TEXT.map((c) => `h.${c}`).join(",\n      ")}
-  FROM TrolleyRMMapping rmm WITH (NOLOCK)
+  ${scope === "open" ? `FROM hbase h
+  JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = h.mapping_id` : "FROM TrolleyRMMapping rmm WITH (NOLOCK)"}
   JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
   LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
   LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
@@ -153,71 +229,17 @@ const buildMappingQuery = (scope = "open") => `
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
   ) b
-  OUTER APPLY (
+  ${scope === "open" ? "" : `OUTER APPLY (
       -- only the columns the sheet shows (History is a very wide table: hh.* read every column of every row)
       SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
       FROM History hh WITH (NOLOCK)
       WHERE hh.mapping_id = rmm.mapping_id
       ORDER BY hh.hist_id DESC
-  ) h
-  ${scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
-      -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
-      ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
-      -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
-      AND NOT EXISTS (
-          SELECT 1 FROM (VALUES
-              (N'QcCheck', N'create_manual', N'create_manual'),
-              (N'QcCheck', N'เข้าห้องเย็น', N'บรรจุ'),
-              (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
-              (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
-          ) hid(rm_status, stay_place, dest)
-          WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
-            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
-            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
-      )
-      -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
-      AND ISNULL(rmm.weight_RM, 1) <> 0
-      -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
-      AND NOT (
-          (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')
-          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
-          AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
-      )
-      -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
-      AND NOT (
-          LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck')
-          AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'เข้าห้องเย็นใหญ่'
-          AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
-          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
-      )
-      AND ${scope === "done" ? `
-          ${DONE_SQL}
-          -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
-          AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))
-          -- text search: any of the data columns of the table (same columns as the Sheet's settings)
-          AND (@q = N'' OR (
-              rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
-              OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
-              OR rmm.dest LIKE @q_like OR rmm.stay_place LIKE @q_like OR rmm.rm_status LIKE @q_like
-              OR rmm.level_eu LIKE @q_like OR rmm.prod_mix LIKE @q_like OR rmm.mix_code LIKE @q_like
-              OR CAST(rmm.tray_count AS NVARCHAR(30)) LIKE @q_like OR CAST(rmm.weight_RM AS NVARCHAR(30)) LIKE @q_like
-              OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
-              OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like
-              OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
-          ))` : `
-          -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
-          NOT ${DONE_SQL}
-          -- date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet
-          AND (@open_from IS NULL OR (
-              COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
-              AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
-          ) OR (
-              -- a row that is on a trolley is always shown, whatever its date
-              rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
-          ))`}
-`}
+  ) h`}
+  ${scope === "open" ? "" : whereSql}
   ORDER BY rmm.mapping_id DESC
 `;
+};
 
 const buildHuQuery = () => `
   SELECT TOP (@limit)
