@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
-  Alert, Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, TextField, Typography,
+  Alert, Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, MenuItem, TextField, Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -17,11 +17,21 @@ const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("th-TH", { maximumFrac
  * The dialog asks for the weight of every ticked material (full weight by default) and the target trolley, then moves them one by one with the
  * same call as the old Room page (PUT /api/coldstorage/addRawMatToTrolley).
  *
+ * The target can also be an EMPTY trolley of the system that is not in a cold room yet: it is put into the first free slot of the chosen room first
+ * (PUT /api/coldstorage/gather/assignEmptyTrolley), so the gathered materials show up as "อยู่ในห้องเย็น".
+ *
  * rows      the ticked mapping rows of the Sheet
  * trolleys  trolleys that are in a cold room: [{ tro_id, slot_id, cs_name }]
+ * role      "cs1" (cold rooms) | "cs2" (large cold rooms): which rooms / slots the empty trolleys may go to
  */
-const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
+const GROUP_IN_ROOM = "อยู่ในห้องเย็น";
+const GROUP_EMPTY = "รถเข็นว่างที่ยังไม่อยู่ในห้องเย็น";
+
+const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
   const [target, setTarget] = useState(null);
+  const [targets, setTargets] = useState({ inRoom: [], free: [], rooms: [] }); // from GET /coldstorage/gather/targets
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [roomId, setRoomId] = useState("");
   const [weights, setWeights] = useState({});
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -33,6 +43,36 @@ const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
     setWeights(Object.fromEntries(rows.map((r) => [r.mapping_id, String(r.weight_RM)])));
   }, [open, rows]);
 
+  // empty trolleys of the system + the rooms that still have a free slot
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancel = false;
+    setLoadingTargets(true);
+    axios.get(`${API_URL}/api/coldstorage/gather/targets`, { params: { v: role === "cs2" ? 2 : 1 } })
+      .then((res) => { if (!cancel && res.data?.success) setTargets(res.data.data); })
+      .catch((err) => console.error("[Sheet] จัดชุด targets error:", err))
+      .finally(() => { if (!cancel) setLoadingTargets(false); });
+    return () => { cancel = true; };
+  }, [open, role]);
+
+  // the room of the ticked materials is the room that is offered first for an empty trolley
+  useEffect(() => {
+    if (!open) return;
+    const own = rows.find((r) => targets.rooms.some((x) => x.cs_id === r.cs_id))?.cs_id;
+    setRoomId(own ?? targets.rooms[0]?.cs_id ?? "");
+  }, [open, rows, targets.rooms]);
+
+  // trolleys in a cold room (with materials) · empty trolleys that are already in a slot · empty trolleys that are not in a cold room yet
+  const options = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    const add = (o) => { if (!seen.has(String(o.tro_id))) { seen.add(String(o.tro_id)); list.push(o); } };
+    trolleys.forEach((t) => add({ ...t, group: GROUP_IN_ROOM }));
+    targets.inRoom.forEach((t) => add({ tro_id: t.tro_id, slot_id: t.slot_id, cs_name: t.cs_name, group: GROUP_IN_ROOM, empty: true }));
+    targets.free.forEach((t) => add({ tro_id: t.tro_id, group: GROUP_EMPTY, isFree: true }));
+    return list;
+  }, [trolleys, targets]);
+
   const weightError = (r) => {
     const raw = weights[r.mapping_id];
     const w = parseFloat(raw);
@@ -43,16 +83,33 @@ const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
     if (target && String(r.tro_id) === String(target.tro_id)) return "อยู่ในรถเข็นนี้แล้ว";
     return "";
   };
-  const hasError = rows.some((r) => weightError(r));
+  const freeRoom = targets.rooms.find((x) => x.cs_id === roomId);
+  const roomError = target?.isFree && !freeRoom ? "ไม่มีห้องเย็นที่มีช่องว่าง" : "";
+  const hasError = rows.some((r) => weightError(r)) || Boolean(roomError);
   const total = useMemo(() => rows.reduce((s, r) => s + (parseFloat(weights[r.mapping_id]) || 0), 0), [rows, weights]);
 
   const run = async (list) => {
     setRunning(true); setFailed([]); setProgress({ done: 0, total: list.length });
     const bad = []; let ok = 0;
+    let dest = target;
+    if (dest.isFree) {
+      // an empty trolley that is not in a cold room: put it into a free slot of the room first (the same trolley is then an ordinary trolley of the room)
+      try {
+        const res = await axios.put(`${API_URL}/api/coldstorage/gather/assignEmptyTrolley`, { tro_id: dest.tro_id, cs_id: roomId });
+        if (!res.data?.success) throw new Error(res.data?.error || "ไม่สำเร็จ");
+        dest = { tro_id: dest.tro_id, slot_id: res.data.data.slot_id, cs_name: res.data.data.cs_name, group: GROUP_IN_ROOM };
+        setTarget(dest);
+      } catch (err) {
+        console.error("[Sheet] จัดชุด assign empty trolley error:", err);
+        setFailed(list.map((r) => ({ row: r, message: err.response?.data?.error || err.message || "นำรถเข็นว่างเข้าห้องเย็นไม่สำเร็จ" })));
+        setRunning(false);
+        return;
+      }
+    }
     for (const r of list) {
       try {
         const res = await axios.put(`${API_URL}/api/coldstorage/addRawMatToTrolley`, {
-          source_tro_id: r.tro_id, target_tro_id: target.tro_id, weight: parseFloat(weights[r.mapping_id]), slot_id: target.slot_id,
+          source_tro_id: r.tro_id, target_tro_id: dest.tro_id, weight: parseFloat(weights[r.mapping_id]), slot_id: dest.slot_id,
           rmfp_id: r.rmfp_id, mix_code: r.mix_code, mapping_id: r.mapping_id, isMixed: Boolean(r.mix_code),
         });
         if (!res.data?.success) throw new Error(res.data?.error || "ไม่สำเร็จ");
@@ -79,15 +136,23 @@ const GatherSelected = ({ open, onClose, rows, trolleys, onDone }) => {
       </DialogTitle>
       <DialogContent dividers>
         <Autocomplete
-          options={trolleys} value={target} onChange={(_, v) => setTarget(v)} disabled={running}
-          getOptionLabel={(o) => `รถเข็น ${o.tro_id} · ${o.cs_name || "ห้องเย็น"} · ช่อง ${o.slot_id ?? "-"}`}
+          options={options} value={target} onChange={(_, v) => setTarget(v)} disabled={running} loading={loadingTargets}
+          groupBy={(o) => o.group}
+          getOptionLabel={(o) => (o.isFree ? `รถเข็น ${o.tro_id} · ว่าง` : `รถเข็น ${o.tro_id} · ${o.cs_name || "ห้องเย็น"} · ช่อง ${o.slot_id ?? "-"}${o.empty ? " · ว่าง" : ""}`)}
           isOptionEqualToValue={(a, b) => a.tro_id === b.tro_id}
-          noOptionsText="ไม่พบรถเข็นที่อยู่ในห้องเย็น"
+          noOptionsText="ไม่พบรถเข็น"
           renderInput={(params) => (
-            <TextField {...params} label="รถเข็นปลายทาง (รถเข็นที่อยู่ในห้องเย็น)" size="small" autoFocus
+            <TextField {...params} label="รถเข็นปลายทาง (อยู่ในห้องเย็น หรือรถเข็นว่างในระบบ)" size="small" autoFocus
               InputProps={{ ...params.InputProps, startAdornment: (<><InputAdornment position="start"><LocalShippingIcon fontSize="small" /></InputAdornment>{params.InputProps.startAdornment}</>) }} />
           )}
         />
+        {target?.isFree && (
+          <Box sx={{ mt: 1.5 }}>
+            <TextField select size="small" fullWidth label="ห้องเย็นที่จะนำรถเข็นว่างเข้า (ระบบเลือกช่องว่างให้อัตโนมัติ)" value={freeRoom ? roomId : ""} onChange={(e) => setRoomId(e.target.value)} disabled={running} error={Boolean(roomError)} helperText={roomError || " "}>
+              {targets.rooms.map((x) => <MenuItem key={x.cs_id} value={x.cs_id}>{x.cs_name} · ช่องว่าง {x.free_slots}</MenuItem>)}
+            </TextField>
+          </Box>
+        )}
         <Typography sx={{ fontWeight: 600, mt: 2, mb: 0.5 }}>น้ำหนักที่จะย้ายของแต่ละวัตถุดิบ</Typography>
         {rows.map((r) => {
           const err = weightError(r);

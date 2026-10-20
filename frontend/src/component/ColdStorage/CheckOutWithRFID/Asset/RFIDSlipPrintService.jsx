@@ -81,7 +81,7 @@ const emitStatus = (detail) => {
 // รวมแถวข้อมูล (1 แถว = 1 mapping_id) ของรถเข็นแบบปกติ + แบบผสม ให้เป็น 1 รายการต่อ tro_id
 // โดยใส่วัตถุดิบทุกตัวบนรถไว้ใน materials[] (print-agent พิมพ์ทุกตัวลงสลิปใบเดียว และย่อขนาดตามจำนวน)
 // — เหมือนที่หน้า CheckOut (Table.jsx) จัดกลุ่มตาม tro_id ก่อนส่งไปพิมพ์
-const indexByTrolley = (regular, mixed) => {
+export const indexByTrolley = (regular, mixed) => {
   const rows = [
     ...(regular || []).map((i) => ({ ...i, rawMatType: "regular" })),
     ...(mixed || []).map((i) => ({ ...i, rawMatType: "mixed" })),

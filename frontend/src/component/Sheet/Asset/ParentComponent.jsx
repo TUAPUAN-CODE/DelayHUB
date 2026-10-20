@@ -56,6 +56,7 @@ import LargeFlows from "../../ColdStorages/RoomMonitor/Asset/flow/LargeFlows";
 import PackMoreFlows from "./pack/PackMoreFlows";
 import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
+import ColdSlipPrint from "./cold/ColdSlipPrint";
 import LinePicker from "./pack/LinePicker";
 import ReworkFlows from "./prep/ReworkFlows";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
@@ -142,6 +143,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [mixed, setMixed] = useState([]); // mixed lots that are not in a trolley yet
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
+  const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
   // "แก้ไขข้อมูล" in the top bar: after the password, double-click a cell of the in-process / done table to edit it
@@ -352,6 +354,10 @@ const ParentComponent = ({ role, view = "work" }) => {
         out.push({ col: "t_cs1", key: "move", label: "ย้ายช่อง", color: "#0F3FC4", run: () => trolleyRef.current?.move(r) });
         out.push({ col: "t_cs1", key: "out", label: "ส่งออก", color: "#2E7D32", run: () => checkoutRef.current?.open(r) });
       }
+    }
+    // "อยู่ในห้องเย็น" (v1) / "อยู่ในห้องเย็นใหญ่" (v2): the slip of the whole trolley (every material on it, like the Check Out slip, but no exit time)
+    if ((role === "cs1" || role === "cs2") && r.cs_id && r.tro_id && (role === "cs1" ? r.cs_id < 10 : r.cs_id >= 10)) {
+      out.push({ col: role === "cs1" ? "t_cs1" : "t_cs2", key: "slip", label: "ปริ้นสลีป", color: "#37474F", title: `ปริ้นสลีปข้อมูลในรถเข็น ${r.tro_id}`, run: () => setSlipTro(r.tro_id) });
     }
     if (role === "cs2") {
       if (!r.cs_id && r.tro_id && CS2_DEST.includes(r.dest)) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
@@ -659,7 +665,8 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="info" onClose={() => setToast("")} sx={{ width: "100%" }}>{toast}</Alert>
       </Snackbar>
-      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); load(); }} />
+      {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
+      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); load(); }} />
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={load} />
       <CheckoutFlow ref={checkoutRef} onDone={load} />
       <LargeFlows ref={largeRef} onDone={load} />

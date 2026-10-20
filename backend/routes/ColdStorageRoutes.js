@@ -1844,7 +1844,8 @@ WHERE
     router.get("/coldstorage/export/fetchSlotRawMat", async (req, res) => {
         try {
             const pool = await connectToDatabase();
-            const result = await pool.request().query(`
+            // tro_id (optional): only the materials of that trolley (the slip printed from the Master Sheet); without it: every trolley in the room as before
+            const result = await pool.request().input("tro_id", sql.VarChar(10), req.query.tro_id ? String(req.query.tro_id) : null).query(`
    SELECT
     rmm.mapping_id,
     rmf.rmfp_id,
@@ -1979,6 +1980,7 @@ WHERE
     rmm.dest = 'ห้องเย็น'
     AND rmm.stay_place = 'เข้าห้องเย็น'
     AND rmm.tro_id IS NOT NULL
+    AND (@tro_id IS NULL OR rmm.tro_id = @tro_id)
 	
 
 ORDER BY 
@@ -2000,7 +2002,7 @@ ORDER BY
     router.get("/coldstorages/export/fetchSlotRawMat", async (req, res) => {
         try {
             const pool = await connectToDatabase();
-            const result = await pool.request().query(`
+            const result = await pool.request().input("tro_id", sql.VarChar(10), req.query.tro_id ? String(req.query.tro_id) : null).query(`
     SELECT
     rmm.mapping_id,
     rmf.rmfp_id,
@@ -2131,6 +2133,7 @@ WHERE
     rmm.dest = 'ในห้องเย็นใหญ่'
     AND rmm.stay_place = 'เข้าห้องเย็นใหญ่'
     AND rmm.tro_id IS NOT NULL
+    AND (@tro_id IS NULL OR rmm.tro_id = @tro_id)
 	
 
 ORDER BY 
@@ -2154,6 +2157,7 @@ ORDER BY
             const pool = await connectToDatabase();
             const result = await pool
                 .request()
+                .input("tro_id", sql.VarChar(10), req.query.tro_id ? String(req.query.tro_id) : null)
                 .query(`
                 SELECT
                     rmm.mapping_id,
@@ -2188,7 +2192,8 @@ ORDER BY
                     rmm.dest = 'ห้องเย็น'
                     AND rmm.stay_place = 'เข้าห้องเย็น'
                     AND rmm.tro_id IS NOT NULL
-                    AND rmm.mix_code IS NOT NULL;
+                    AND rmm.mix_code IS NOT NULL
+                    AND (@tro_id IS NULL OR rmm.tro_id = @tro_id);
           `);
 
             const formattedData = result.recordset.map(item => {
@@ -7836,6 +7841,97 @@ ORDER BY rmm.mapping_id DESC
         } catch (error) {
             console.error("Error fetching data:", error);
             res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    // ── จัดชุดจาก Master Sheet: เลือกรถเข็นว่างที่มีในระบบ (ไม่จำเป็นต้องอยู่ในห้องเย็นอยู่แล้ว) ──────────────────────────────
+    // GET /coldstorage/gather/targets?v=1|2  (1 = ห้องเย็น cs_id < 10 · 2 = ห้องเย็นใหญ่ cs_id >= 10)
+    //   inRoom: รถเข็นที่อยู่ในช่องของห้องเย็นแล้วแต่ยังไม่มีวัตถุดิบ · free: รถเข็นว่างที่ยังไม่อยู่ห้องเย็น · rooms: ห้องที่ยังมีช่องว่าง
+    router.get("/coldstorage/gather/targets", async (req, res) => {
+        try {
+            const pool = await connectToDatabase();
+            if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+            const large = String(req.query.v) === "2";
+            const csRange = large ? "cs.cs_id >= 10" : "cs.cs_id < 10";
+
+            const inRoom = await pool.request().query(`
+                SELECT s.tro_id, s.slot_id, cs.cs_id, cs.cs_name
+                FROM Slot s
+                JOIN ColdStorage cs ON cs.cs_id = s.cs_id
+                JOIN Trolley t ON t.tro_id = s.tro_id
+                WHERE ${csRange}
+                  AND s.tro_id IS NOT NULL AND s.tro_id <> 'rsrv'
+                  AND NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.tro_id = s.tro_id)
+                ORDER BY s.tro_id
+            `);
+            const free = await pool.request().query(`
+                SELECT TOP 2000 t.tro_id
+                FROM Trolley t
+                WHERE CAST(t.tro_status AS VARCHAR(10)) = '1'
+                  AND NOT EXISTS (SELECT 1 FROM Slot s WHERE s.tro_id = t.tro_id)
+                  AND NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.tro_id = t.tro_id)
+                ORDER BY t.tro_id
+            `);
+            const rooms = await pool.request().query(`
+                SELECT cs.cs_id, cs.cs_name, COUNT(s.slot_id) AS free_slots
+                FROM ColdStorage cs
+                JOIN Slot s ON s.cs_id = cs.cs_id AND s.tro_id IS NULL
+                WHERE ${csRange}
+                GROUP BY cs.cs_id, cs.cs_name
+                ORDER BY cs.cs_id
+            `);
+            res.json({ success: true, data: { inRoom: inRoom.recordset, free: free.recordset, rooms: rooms.recordset } });
+        } catch (err) {
+            console.error("[Route /coldstorage/gather/targets] Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
+    // PUT /coldstorage/gather/assignEmptyTrolley { tro_id, cs_id }: put an empty trolley of the system into the first free slot of the room
+    // (same effect as "รับเข้ารถเข็นว่าง": Slot.tro_id = trolley, Trolley.tro_status = 0), so the materials gathered into it are "อยู่ในห้องเย็น"
+    router.put("/coldstorage/gather/assignEmptyTrolley", async (req, res) => {
+        const tro_id = req.body?.tro_id ? String(req.body.tro_id) : "";
+        const cs_id = parseInt(req.body?.cs_id, 10);
+        if (!tro_id || Number.isNaN(cs_id)) return res.status(400).json({ success: false, error: "กรุณาเลือกรถเข็นและห้องเย็น" });
+        let transaction;
+        try {
+            const pool = await connectToDatabase();
+            if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+            transaction = new sql.Transaction(pool);
+            await transaction.begin();
+
+            const trolley = await new sql.Request(transaction).input("tro_id", sql.VarChar(10), tro_id)
+                .query("SELECT tro_status FROM Trolley WITH (UPDLOCK, ROWLOCK) WHERE tro_id = @tro_id");
+            if (trolley.recordset.length === 0) { await safeRollback(transaction); return res.status(404).json({ success: false, error: "ไม่พบรถเข็นนี้ในระบบ" }); }
+
+            const inCold = await new sql.Request(transaction).input("tro_id", sql.VarChar(10), tro_id)
+                .query("SELECT slot_id FROM Slot WHERE tro_id = @tro_id");
+            if (inCold.recordset.length > 0) { await safeRollback(transaction); return res.status(400).json({ success: false, error: `รถเข็นนี้อยู่ในห้องเย็นแล้ว (ช่อง ${inCold.recordset[0].slot_id})` }); }
+
+            const used = await new sql.Request(transaction).input("tro_id", sql.VarChar(10), tro_id)
+                .query("SELECT COUNT(*) AS n FROM TrolleyRMMapping WHERE tro_id = @tro_id");
+            if (used.recordset[0].n > 0) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "รถเข็นนี้ไม่ว่าง (มีวัตถุดิบอยู่)" }); }
+
+            const slot = await new sql.Request(transaction).input("cs_id", sql.Int, cs_id)
+                .query("SELECT TOP 1 slot_id FROM Slot WITH (UPDLOCK, ROWLOCK) WHERE cs_id = @cs_id AND tro_id IS NULL ORDER BY slot_id ASC");
+            if (slot.recordset.length === 0) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "ไม่มีช่องว่างในห้องเย็นนี้" }); }
+            const slot_id = slot.recordset[0].slot_id;
+
+            const lock = await new sql.Request(transaction)
+                .input("tro_id", sql.VarChar(10), tro_id).input("cs_id", sql.Int, cs_id).input("slot_id", sql.VarChar, slot_id)
+                .query("UPDATE Slot SET tro_id = @tro_id, reserved_at = NULL WHERE cs_id = @cs_id AND slot_id = @slot_id AND tro_id IS NULL");
+            if (lock.rowsAffected[0] === 0) { await safeRollback(transaction); return res.status(400).json({ success: false, error: "ช่องเก็บถูกใช้งานโดยรถเข็นอื่น ลองใหม่อีกครั้ง" }); }
+
+            await new sql.Request(transaction).input("tro_id", sql.VarChar(10), tro_id)
+                .query("UPDATE Trolley SET tro_status = 0, rsrv_timestamp = NULL WHERE tro_id = @tro_id");
+
+            await transaction.commit();
+            const cs = await pool.request().input("cs_id", sql.Int, cs_id).query("SELECT cs_name FROM ColdStorage WHERE cs_id = @cs_id");
+            res.json({ success: true, data: { tro_id, cs_id, slot_id, cs_name: cs.recordset[0]?.cs_name || null } });
+        } catch (err) {
+            if (transaction) await safeRollback(transaction);
+            console.error("[Route /coldstorage/gather/assignEmptyTrolley] Error:", err);
+            res.status(500).json({ success: false, error: err.message });
         }
     });
 

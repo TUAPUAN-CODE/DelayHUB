@@ -30,7 +30,8 @@ const getEarliestComeColdDate = (data) => {
 
 // headless: the same slip without a dialog (used by the RFID auto print: RFIDSlipPrintService renders it off screen and sends it to the Print Agent,
 // so the slip of the RFID scan and the slip after a check-out on screen are the very same component). onReady(el) is called once the history is loaded.
-const PrintModal = ({ open, onClose, data, headless = false, onReady }) => {
+// hideExit: the slip printed from a trolley that is still in the cold room (no exit time yet / no check-out): the "เวลาออก" lines are left out
+const PrintModal = ({ open, onClose, data, headless = false, onReady, hideExit = false }) => {
     const paperRef = useSlipRef(null); // the dialog paper: the slip that is sent to the Print Agent
     const [coldHistory, setColdHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -602,6 +603,7 @@ const PrintModal = ({ open, onClose, data, headless = false, onReady }) => {
                                     gridGapPrint={gridGapPrint}
                                     fontSizes={fontSizes}
                                     Location={Location}
+                                    hideExit={hideExit}
                                 />
                             );
                         })
@@ -647,6 +649,7 @@ const PrintModal = ({ open, onClose, data, headless = false, onReady }) => {
                             gridGapPrint={gridGapPrint}
                             fontSizes={fontSizes}
                             Location={Location}
+                            hideExit={hideExit}
                         />
                     )}
                 </Box>
@@ -691,7 +694,8 @@ const MaterialItem = ({
     gridGapPrint,
     fontSizes,
     Location,
-    calculateDBSFromDate
+    calculateDBSFromDate,
+    hideExit
 }) => {
     const generateQRValue = () => {
         return [
@@ -1069,7 +1073,7 @@ const MaterialItem = ({
                                 />
                             </Box>
 
-                            {entry.out_date && (
+                            {!hideExit && entry.out_date && (
                                 <Box sx={{
                                     mb: 0.5,
                                     '@media print': {
@@ -1141,7 +1145,7 @@ const MaterialItem = ({
                                 />
                             </Box>
 
-                            {entry.out_date && (
+                            {!hideExit && entry.out_date && (
                                 <Box sx={{
                                     mb: 0.5,
                                     '@media print': {
