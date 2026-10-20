@@ -60,6 +60,15 @@ const bind = (r) => r
       ["weight_RM <> 0", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.weight_RM, 1) <> 0`],
       ["LTRIM/RTRIM rm_status", `SELECT COUNT(*) AS n ${base} WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck'`],
     ];
+    // ตัวกรองทั้งก้อนของ mappings (ที่ใช้จริง) เทียบกับเวอร์ชันที่ไม่มี COLLATE Thai_100_BIN2: n ต้องเท่ากัน
+    const stepQ = buildMappingQuery("open");
+    const w0 = stepQ.indexOf("FROM TrolleyRMMapping rmm WITH (NOLOCK)");
+    const w1 = stepQ.indexOf("OPTION (MAX_GRANT_PERCENT = 3);");
+    if (w0 > 0 && w1 > w0) {
+      const filt = stepQ.slice(w0, w1);
+      variants.push(["ตัวกรองทั้งก้อน (BIN2 ตามโค้ดจริง)", `SELECT COUNT(*) AS n ${filt}`]);
+      variants.push(["ตัวกรองทั้งก้อน (collation ปกติ) n ต้องเท่าแถวบน", `SELECT COUNT(*) AS n ${filt.replace(/ COLLATE Thai_100_BIN2/g, "")}`]);
+    }
     const collation = await pool.request().query("SELECT CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS NVARCHAR(100)) AS c, @@VERSION AS v");
     console.log(`collation: ${collation.recordset[0].c}\n${String(collation.recordset[0].v).split("\n")[0]}`);
     for (const [name, q] of variants) {

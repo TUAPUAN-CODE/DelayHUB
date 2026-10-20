@@ -82,24 +82,24 @@ const buildMappingQuery = (scope = "open") => {
                 (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
                 (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
             ) hid(rm_status, stay_place, dest)
-            WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
-              AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
-              AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
+            WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 = hid.rm_status
+              AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) COLLATE Thai_100_BIN2 = hid.stay_place
+              AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 = hid.dest
         )
         -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
         AND ISNULL(rmm.weight_RM, 1) <> 0
         -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
         AND NOT (
             (ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอ MD%')
-            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
-            AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 IN (N'', N'0'))
+            AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 IN (N'บรรจุ', N'รอCheckin'))
         )
         -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
         AND NOT (
-            LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck')
-            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'เข้าห้องเย็นใหญ่'
-            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
-            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
+            LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 IN (N'รอกลับมาเตรียม', N'QcCheck')
+            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) COLLATE Thai_100_BIN2 = N'เข้าห้องเย็นใหญ่'
+            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 = N'ในห้องเย็นใหญ่'
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 = N'0')
         )
         AND ${scope === "done" ? `
             ${DONE_SQL}
