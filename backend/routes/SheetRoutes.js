@@ -138,7 +138,8 @@ const buildMappingQuery = (scope = "open") => {
   INTO #sheet_cand
   FROM TrolleyRMMapping rmm WITH (NOLOCK)
   JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
-  ${whereSql};
+  ${whereSql}
+  OPTION (MAX_GRANT_PERCENT = 3);
   -- step 2: the date filter (needs the latest History row) + TOP, only on the survivors
   WITH hbase AS (
     SELECT TOP (@mlimit) rmm.mapping_id, h.hist_id
@@ -249,10 +250,12 @@ const buildMappingQuery = (scope = "open") => {
   ) h`}
   ${scope === "open" ? "" : whereSql}
   ORDER BY rmm.mapping_id DESC
-  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 3)
 `;
 };
 
+// MAX_GRANT_PERCENT: ผลลัพธ์แต่ละ query มีไม่กี่ร้อยแถว แต่ SQL Server ประมาณแถวกว้าง (NVARCHAR(MAX) / History) แล้วขอ memory grant หลักร้อย MB ถึง 1.6 GB ต่อ query;
+// หลายคนเปิดหน้า Sheet พร้อมกัน = คิว RESOURCE_SEMAPHORE ทั้ง server จึงจำกัดเพดาน (ถ้าไม่พอจะ spill ลง tempdb แค่ช้าลงเล็กน้อย)
 const buildHuQuery = () => `
   SELECT TOP (@limit)
       s.sap_re_id, s.batch, s.mat, rm.mat_name, s.hu, s.before_hu, s.weight, s.remark, s.cs_re, s.cs_re_2, s.cs_re_3,
@@ -267,7 +270,7 @@ const buildHuQuery = () => `
     AND la.last_at >= COALESCE(@open_from, DATEADD(DAY, -@days, GETDATE()))
     AND (@open_to IS NULL OR la.last_at < DATEADD(DAY, 1, @open_to))
   ORDER BY la.last_at DESC, s.sap_re_id DESC
-  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 // Production-plan rows that were scanned ("สแกนป้าย SAP") but are not in a trolley yet: the same rows the old "จัดการวัตถุดิบ" page listed (all raw material types).
@@ -317,7 +320,7 @@ const buildPlanQuery = () => `
         AND COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY htr.cooked_date DESC
-  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 // Mixed lots (the old page "รายการผสมวัตถุดิบ"): production-plan rows that have emulsions mixed into them. Only the ones that are NOT in a trolley yet get a row of their own
@@ -348,7 +351,7 @@ const buildMixedQuery = () => `
         AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY rmfp.rmfp_id DESC
-  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'))
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 router.get("/sheet/rows", async (req, res) => {
