@@ -54,6 +54,8 @@ const bind = (r) => r
       ["dest NOT LIKE %ลบ%", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%'`],
       ["+ stay_place NOT LIKE %ลบ%", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'`],
       ["BIN2: dest + stay_place NOT LIKE %ลบ% (n ต้องเท่ากับแถวบน)", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.dest, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'`],
+      ["rm_status LIKE %รอQC% / %รอ MD% (collation ปกติ)", `SELECT COUNT(*) AS n ${base} WHERE (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')`],
+      ["BIN2: rm_status %รอQC% / %รอ MD% (n ต้องเท่าแถวบน)", `SELECT COUNT(*) AS n ${base} WHERE (ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอ MD%')`],
       ["DONE (dest LIKE บรรจุเสร็จ% / สำเร็จ)", `SELECT COUNT(*) AS n ${base} WHERE (ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')`],
       ["weight_RM <> 0", `SELECT COUNT(*) AS n ${base} WHERE ISNULL(rmm.weight_RM, 1) <> 0`],
       ["LTRIM/RTRIM rm_status", `SELECT COUNT(*) AS n ${base} WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck'`],

@@ -90,7 +90,7 @@ const buildMappingQuery = (scope = "open") => {
         AND ISNULL(rmm.weight_RM, 1) <> 0
         -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
         AND NOT (
-            (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')
+            (ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอ MD%')
             AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
             AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
         )
