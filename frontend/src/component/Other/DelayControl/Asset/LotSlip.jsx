@@ -10,10 +10,10 @@ import { fmtAt } from "./lotCalc";
 const PRINT_CSS = `
 .other-print-root { display: none; }
 @media print {
-  @page { size: 72.1mm auto; margin: 0; }
+  @page { size: 80mm auto; margin: 0; }
   body > *:not(.other-print-root) { display: none !important; }
   .other-print-root { display: block !important; }
-  .other-print-root .other-slip { width: 72.1mm; box-sizing: border-box; padding: 2mm 3mm; color: #000; background: #fff; break-after: page; page-break-after: always; }
+  .other-print-root .other-slip { width: 80mm; box-sizing: border-box; padding: 0; color: #000; background: #fff; break-after: page; page-break-after: always; }
   .other-print-root .other-slip:last-child { break-after: auto; page-break-after: auto; }
 }`;
 

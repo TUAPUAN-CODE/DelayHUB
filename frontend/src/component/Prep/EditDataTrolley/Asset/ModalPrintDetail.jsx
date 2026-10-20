@@ -45,16 +45,16 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
         style.type = 'text/css';
         style.media = 'print';
 
-        // CSS for optimized thermal receipt printing (72.1mm width)
+        // CSS for optimized thermal receipt printing (80mm width)
         const css = `
             @page {
-                size: 72.1mm 297mm !important;
+                size: 80mm 297mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
             }
             
             html, body {
-                width: 72.1mm !important;
+                width: 80mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
                 overflow: hidden !important;
@@ -65,7 +65,7 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
             }
             
             .print-container {
-                width: 72.1mm !important;
+                width: 80mm !important;
                 padding: 1mm !important;
                 margin: 0mm !important;
             }
@@ -74,8 +74,8 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                 .MuiDialog-paper {
                     margin: 0mm !important;
                     padding: 0mm !important;
-                    width: 72.1mm !important;
-                    max-width: 72.1mm !important;
+                    width: 80mm !important;
+                    max-width: 80mm !important;
                     box-shadow: none !important;
                 }
                 
@@ -374,8 +374,8 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                         alignItems: 'center',
                         position: 'relative', // เพิ่มเพื่อให้สามารถกำหนดตำแหน่ง Snackbar ภายใน Dialog ได้
                         '@media print': {
-                            width: '72.1mm !important',
-                            maxWidth: '72.1mm !important',
+                            width: '80mm !important',
+                            maxWidth: '80mm !important',
                             height: 'auto',
                             margin: '0mm !important',
                             padding: '0mm !important',
@@ -421,7 +421,7 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                         flexGrow: 1,
                         overflowY: "auto",
                         '@media print': {
-                            width: '72.1mm !important',
+                            width: '80mm !important',
                             padding: '1mm !important',
                             margin: '0mm !important',
                             overflowY: 'visible',

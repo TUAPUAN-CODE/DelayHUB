@@ -50,7 +50,7 @@ const PrintSlipController = ({ open, onClose, data, initialSlipType }) => {
           flexDirection: "column",
           overflowY: "auto",
           '@media print': {
-            width: '72.1mm',
+            width: '80mm',
             height: 'auto',
             padding: "0",
             margin: "0",

@@ -56,14 +56,14 @@ const PrintModal = ({ open, onClose, data }) => {
     // height ให้พอดีเป๊ะกับเนื้อหานั้น (ดูใน handlePrint ด้านล่าง)
     const buildPrintCss = (pageHeightMm) => `
             @page {
-                size: 72.1mm ${pageHeightMm}mm !important;
+                size: 80mm ${pageHeightMm}mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
             }
 
             @media print {
                 html, body {
-                    width: 72.1mm !important;
+                    width: 80mm !important;
                     margin: 0mm !important;
                     padding: 0mm !important;
                     overflow: visible !important;
@@ -88,7 +88,7 @@ const PrintModal = ({ open, onClose, data }) => {
                     position: absolute !important;
                     top: 0 !important;
                     left: 0 !important;
-                    width: 72.1mm !important;
+                    width: 80mm !important;
                     padding: 1mm !important;
                     margin: 0mm !important;
                     overflow: visible !important;
@@ -98,8 +98,8 @@ const PrintModal = ({ open, onClose, data }) => {
                     position: static !important;
                     margin: 0mm !important;
                     padding: 0mm !important;
-                    width: 72.1mm !important;
-                    max-width: 72.1mm !important;
+                    width: 80mm !important;
+                    max-width: 80mm !important;
                     box-shadow: none !important;
                     overflow: visible !important;
                 }
@@ -283,7 +283,8 @@ const PrintModal = ({ open, onClose, data }) => {
         // (เช่น 2/5, 3/5) ทั้งที่เป็นเครื่องพิมพ์ม้วนกระดาษต่อเนื่อง
         if (printRef.current && printStyleRef.current) {
             const heightPx = printRef.current.scrollHeight;
-            const heightMm = Math.ceil((heightPx * 25.4) / 96) + 5; // +5mm กันเผื่อขอบ
+            // ×1.5: ตอนพิมพ์ตัวอักษรของสลิปถูกขยาย (--slip-zoom ใน index.css) เนื้อหาจึงยาวกว่าที่วัดบนจอ — เผื่อไว้ไม่ให้ถูกตัดเป็นหลายหน้า
+            const heightMm = Math.ceil(((heightPx * 25.4) / 96) * 1.5) + 5;
             printStyleRef.current.textContent = buildPrintCss(heightMm);
         }
         window.print();
@@ -341,8 +342,8 @@ const PrintModal = ({ open, onClose, data }) => {
                     maxWidth: 'none',
                     margin: 0,
                     '@media print': {
-                        width: '72.1mm !important',
-                        maxWidth: '72.1mm !important',
+                        width: '80mm !important',
+                        maxWidth: '80mm !important',
                         height: 'auto',
                         minHeight: '200px',
                         margin: '0mm !important',
@@ -364,7 +365,7 @@ const PrintModal = ({ open, onClose, data }) => {
                     flexDirection: "column",
                     alignItems: "center",
                     '@media print': {
-                        width: '72.1mm !important',
+                        width: '80mm !important',
                         padding: '1mm !important',
                         margin: '0mm !important',
                         overflow: 'visible',

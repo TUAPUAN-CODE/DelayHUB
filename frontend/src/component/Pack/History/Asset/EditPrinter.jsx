@@ -65,7 +65,7 @@ const EditPrinter = ({ open, onClose, data, status }) => {
                     overflow: hidden !important;
                 }
                 .print-content {
-                    width: 72.1mm !important;
+                    width: 80mm !important;
                     padding: 2mm 4mm !important;
                     margin: 0 !important;
                     overflow: visible !important;
@@ -219,7 +219,7 @@ const EditPrinter = ({ open, onClose, data, status }) => {
                     flexDirection: "column",
                     overflowY: "auto",
                     '@media print': {
-                        width: '72.1mm',
+                        width: '80mm',
                         height: 'auto',
                         padding: "0",
                         margin: "0",
