@@ -116,32 +116,41 @@ const buildMappingQuery = (scope = "open") => {
                 OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
             ))` : `
             -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
-            NOT ${DONE_SQL}
-            -- date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet
-            AND (@open_from IS NULL OR (
-                COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
-                AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
-            ) OR (
-                -- a row that is on a trolley is always shown, whatever its date
-                rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
-            ))`}
+            NOT ${DONE_SQL}`}
   `;
+
+  // date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet.
+  // Needs the latest History row, so it runs only on the rows that passed every cheap filter above
+  const openDateSql = `
+        (@open_from IS NULL OR (
+            COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
+            AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
+        ) OR (
+            -- a row that is on a trolley is always shown, whatever its date
+            rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
+        ))`;
 
   // scope "open": the filter (cheap columns + the latest History row, for the date) and the TOP run first on their own; the heavy lookups
   // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
   const openBase = `
+  -- step 1: the cheap filters on TrolleyRMMapping alone, into a small temp table (the optimizer used to run the History lookup for every mapping ever made)
+  SELECT rmm.mapping_id, rmm.created_at, rmm.tro_id
+  INTO #sheet_cand
+  FROM TrolleyRMMapping rmm WITH (NOLOCK)
+  JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+  ${whereSql};
+  -- step 2: the date filter (needs the latest History row) + TOP, only on the survivors
   WITH hbase AS (
     SELECT TOP (@mlimit) rmm.mapping_id, h.hist_id
-    FROM TrolleyRMMapping rmm WITH (NOLOCK)
-    JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+    FROM #sheet_cand rmm
     OUTER APPLY (
-        -- only the 5 dates DONE_DATE_SQL needs, so the History index can answer alone (no read of the wide History row for the thousands of stale mappings)
+        -- only the 5 dates DONE_DATE_SQL needs, so the History index can answer alone (no read of the wide History row)
         SELECT TOP 1 hh.hist_id, hh.sc_pack_date, hh.out_cold_date, hh.come_cold_date, hh.rmit_date, hh.cooked_date
         FROM History hh WITH (NOLOCK)
         WHERE hh.mapping_id = rmm.mapping_id
         ORDER BY hh.hist_id DESC
     ) h
-    ${whereSql}
+    WHERE ${openDateSql}
     ORDER BY rmm.mapping_id DESC
   )`;
 
