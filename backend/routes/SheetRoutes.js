@@ -1126,4 +1126,7 @@ router.get("/sheet/mix-source", async (req, res) => {
   }
 });
 
+// the query builders, for scripts/sheet-timing.js (measures each query on the real database)
+router.__queries = { buildMappingQuery, buildHuQuery, buildPlanQuery, buildMixedQuery };
+
 module.exports = router;
