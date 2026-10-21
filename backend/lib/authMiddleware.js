@@ -184,9 +184,21 @@ const adminOrUnlock = (req) => {
   const t = req.headers["x-setting-unlock"];
   if (typeof t === "string") {
     const v = verifyToken(t);
-    if (v.ok && v.payload.typ === "setting" && req.user && v.payload.user_id === req.user.user_id) return null;
+    if (v.ok && v.payload.typ === "setting" && req.user && Number(v.payload.user_id) === Number(req.user.user_id)) return null;
+    // a permit was sent but cannot be used: expired, or typed in this browser tab by another user (the tab keeps it after a change of login)
+    if (!v.ok) return v.reason === "expired" ? "unlock_expired" : "unlock_invalid";
+    return "unlock_other_user";
   }
   return "admin_or_password";
+};
+
+// what the user is told for each refusal (the page asks the password again for the unlock_* / admin_or_password codes)
+const DENY_TEXT = {
+  admin_or_password: "ต้องใส่รหัสผ่านแก้ไขข้อมูลก่อน (หรือใช้บัญชี Supervisor / Master)",
+  unlock_expired: "การปลดล็อกหมดอายุแล้ว กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่",
+  unlock_other_user: "การปลดล็อกในหน้านี้เป็นของผู้ใช้คนอื่น กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่ด้วยบัญชีของคุณ",
+  unlock_invalid: "การปลดล็อกใช้ไม่ได้ กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่",
+  role_not_allowed: "Role ของบัญชีนี้ไม่มีสิทธิ์ทำรายการนี้ (กำหนดใน backend/config/rolePolicy.json)",
 };
 // เจ้าของข้อมูลเองหรือ admin (user_id มาจาก query / body)
 const selfOrAdmin = (pick) => (req) => {
@@ -273,7 +285,8 @@ const authorize = (req, res, next) => {
   metrics.inc("authz_denied_total", { reason: violation, mode, soft: soft ? "1" : "0" });
   if (mode === "enforce" && !soft) {
     logger.warn("forbidden", { id: req.id, method: req.method, path: req.path, user_id: req.user.user_id, reason: violation });
-    return res.status(403).json({ success: false, error: "ไม่มีสิทธิ์ทำรายการนี้", code: "FORBIDDEN" });
+    const unlockNeeded = violation === "admin_or_password" || violation.startsWith("unlock_");
+    return res.status(403).json({ success: false, error: DENY_TEXT[violation] || "ไม่มีสิทธิ์ทำรายการนี้", code: unlockNeeded ? "SETTING_UNLOCK_REQUIRED" : "FORBIDDEN", reason: violation });
   }
   warnSampled("authz_would_deny", req, { user_id: req.user.user_id, reason: violation });
   return next();

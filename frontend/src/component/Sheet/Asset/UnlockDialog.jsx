@@ -9,7 +9,13 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const hasUnlock = () => {
   try {
     const permit = getUnlockToken();
-    return !!permit && tokenExpiresAt(permit) > Date.now();
+    if (!permit || tokenExpiresAt(permit) <= Date.now()) return false;
+    // the permit belongs to the user who typed the password: after a change of login in this tab it is not this user's
+    const part = permit.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(part.padEnd(Math.ceil(part.length / 4) * 4, "=")));
+    const me = parseInt(localStorage.getItem("user_id"), 10);
+    if (!Number.isNaN(me) && Number(payload.user_id) !== me) { setUnlockToken(null); return false; }
+    return true;
   } catch { return false; }
 };
 

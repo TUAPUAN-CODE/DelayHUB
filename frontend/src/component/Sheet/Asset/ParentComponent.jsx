@@ -175,6 +175,12 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (hasUnlock()) { setEditMode(true); setToast("โหมดแก้ไข: ดับเบิลคลิกที่เซลล์ที่ต้องการแก้"); } else setUnlockAsk(true);
     },
   }), [editMode]);
+  // the server refused the permit (expired / typed by another user in this tab): leave edit mode, the next edit asks the password again
+  useEffect(() => {
+    const drop = () => setEditMode(false);
+    window.addEventListener("setting-unlock-dropped", drop);
+    return () => window.removeEventListener("setting-unlock-dropped", drop);
+  }, []);
   const [editTarget, setEditTarget] = useState(null);
   const [planPick, setPlanPick] = useState(null);
   // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
