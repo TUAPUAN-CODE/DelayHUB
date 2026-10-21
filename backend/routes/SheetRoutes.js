@@ -707,6 +707,8 @@ const EDIT_MAP = {
 };
 HIST_DATES.forEach((c) => { EDIT_MAP[c] = { t: "hist", kind: "date" }; });
 HIST_TEXT.forEach((c) => { EDIT_MAP[c] = { t: "hist", sql: () => sql.NVarChar(500) }; });
+// TrolleyRMMapping columns that History also holds (and the history-page slips print from History): an edit is written to both
+const HIST_MIRROR = ["weight_RM", "tray_count", "tro_id", "rmm_line_name", "dest"];
 const EDIT_TEXT_MAX = 500;
 const EDIT_BATCH_MAX = 60;
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
@@ -891,9 +893,30 @@ router.patch("/sheet/edit", async (req, res) => {
         });
         await r.query(`UPDATE TrolleyRMMapping SET ${sets.join(", ")} WHERE mapping_id = @id`);
       }
+      const extraLog = [];
+      // the slips of the history pages (ประวัติห้องเย็น /coldStorage/HisInput, ประวัติการตรวจ QC /qualitycontrol/HisCheck) read these values from History:
+      // write the edited value to the latest History row too, so a slip printed again after the edit shows it (e.g. a vendor lot that had to be corrected).
+      // A cleared trolley (row taken off its trolley) is not copied: History keeps the trolley it was on.
+      const mirror = mapSets.filter((x) => HIST_MIRROR.includes(x.col) && x.value !== null);
+      const mirrorTypes = {};
+      for (const x of mirror) mirrorTypes[x.col] = await histColumnType(pool, x.col);
+      const mirrorCols = mirror.filter((x) => mirrorTypes[x.col]);
+      if (mirrorCols.length) {
+        const r = new sql.Request(tx).input("id", sql.Int, mappingId);
+        const sets = mirrorCols.map((x, i) => {
+          const name = `hm${i}`;
+          if (x.def.kind === "int") r.input(name, sql.Int, x.value);
+          else if (x.def.kind === "num") r.input(name, sql.Float, x.value);
+          else r.input(name, x.def.sql(), x.value);
+          return `[${x.col}] = @${name}`;
+        });
+        const hu = await r.query(`
+          UPDATE History SET ${sets.join(", ")}
+          WHERE hist_id = (SELECT TOP 1 hh.hist_id FROM History hh WITH (UPDLOCK) WHERE hh.mapping_id = @id ORDER BY hh.hist_id DESC)`);
+        if (hu.rowsAffected[0] > 0) mirrorCols.forEach((x) => extraLog.push({ tn: "History", cn: x.col, ov: x.oldVal === null || x.oldVal === undefined ? null : String(x.oldVal), nv: String(x.value) }));
+      }
       // the row left its trolley (tro_id cleared) and body.release_trolley: when nothing else is on that trolley, the trolley is free again
       // (same clean-up as moving the last material out of a trolley in the cold room: Slot emptied, Trolley.tro_status = 1)
-      const extraLog = [];
       const clearedTro = applied.find((x) => x.col === "tro_id" && x.value === null && x.oldVal);
       if (clearedTro && body.release_trolley === true) {
         const oldTro = String(clearedTro.oldVal);
