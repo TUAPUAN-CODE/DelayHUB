@@ -101,8 +101,18 @@ const noTro = (v) => v === null || v === undefined || String(v).trim() === "" ||
 // statuses that only mean something when the material is on a trolley: a row without tro_id is not shown (agreed with the users)
 const NEEDS_TROLLEY = new Set(["รอ QC Check", "อยู่ในห้องเย็น", "อยู่ในห้องเย็นใหญ่", "รอห้องเย็นรับเข้า"]);
 
+// the Role of the Sheet page that is open (ParentComponent sets it): a few combinations are named for the Role that works on them
+let statusRole = null;
+export const setStatusRole = (role) => { statusRole = role || null; };
+
 const FIXED_STATUS = (r) => {
   const st = r.rm_status;
+  // out of the cold room, waiting on a trolley ("ออกห้องเย็น" -> "รอCheckin"): packing works on it = "รอบรรจุเสร็จ" (cutting its weight clears the trolley,
+  // PackageRoutes /pack/mixed/delay-time/test). The cold-room pages keep "รอห้องเย็นรับเข้า", it can still be checked in there.
+  if (statusRole !== "cs1" && statusRole !== "cs2" && (st === "QcCheck" || st === "รอกลับมาเตรียม") && !r.cs_id
+    && r.stay_place === "ออกห้องเย็น" && r.dest === "รอCheckin" && !noTro(r.tro_id)) {
+    return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  }
   // "QcCheck รอ MD": to the packing line = รอบรรจุเสร็จ · to a cold room (รอCheckin) = รอห้องเย็นรับเข้า when it is on a trolley, otherwise it can only wait for packing
   if (st === "QcCheck รอ MD" && r.dest === "บรรจุ") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   if (st === "QcCheck รอ MD" && r.dest === "รอCheckin") {

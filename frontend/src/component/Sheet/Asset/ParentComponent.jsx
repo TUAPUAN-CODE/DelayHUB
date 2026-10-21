@@ -44,7 +44,7 @@ import EditCellDialog, { canEditColumn } from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
-import { buildRows, statusOf } from "./buildRows";
+import { buildRows, statusOf, setStatusRole } from "./buildRows";
 import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
 import StatusStyleSettings, { statusLook } from "./StatusStyleSettings";
 import RowColorSettings from "./RowColorSettings";
@@ -444,6 +444,7 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   // built-in colour of each status (for the settings page) + the global names / colours put on every row (the original label stays for the rules)
   const { allRows, statusDefaults } = useMemo(() => {
+    setStatusRole(role);
     const built = buildRows(data.hus, data.mappings, mix, plans, now, mixed);
     const defaults = {};
     const names = globalSettings.statusLabels || {};
@@ -457,7 +458,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       r.__status = { ...st, name: names[st.label] || st.label, color: look.fg, bg: look.bg, onBg: look.onBg, onFg: look.onFg, styled };
     });
     return { allRows: built, statusDefaults: defaults };
-  }, [data, mix, plans, now, mixed, globalSettings]);
+  }, [data, mix, plans, now, mixed, globalSettings, role]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const shownStatuses = useMemo(() => new Set(statusPrefs.visible), [statusPrefs.visible]);

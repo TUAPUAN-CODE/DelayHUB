@@ -361,7 +361,9 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
       .filter((x) => x.wo_no && x.basket_from !== '' && x.basket_from != null)
       .map((x) => ({ wo_no: x.wo_no.trim(), basket_from: parseInt(x.basket_from, 10), basket_to: x.basket_to !== '' && x.basket_to != null ? parseInt(x.basket_to, 10) : null }));
     try {
-      await Promise.all(multi.rows.map(async (row) => {
+      // one after another: rows of one trolley that is cleared by the cut (out of the cold room, waiting check-in) must not lock each other
+      const cleared = new Set();
+      for (const row of multi.rows) {
         const res = await axios.post(`${API_URL}/api/pack/mixed/delay-time/test`, {
           mapping_id: row.mapping_id,
           weight: Number(multi.weights[row.mapping_id]),
@@ -371,9 +373,10 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
           mat_pkg: matPkg?.trim() || null,
         }, { timeout: 15000 });
         if (!res.data?.success) throw new Error(res.data?.message || 'Confirm failed');
+        if (res.data.clearedTrolley) cleared.add(res.data.clearedTrolley);
         if (entries.length) await axios.post(`${API_URL}/api/pack/ingredient/wo-mapping`, { mapping_id: row.mapping_id, entries });
-      }));
-      onNotify?.(`ยืนยันข้อมูลสำเร็จ ${multi.rows.length} รายการ`);
+      }
+      onNotify?.(`ยืนยันข้อมูลสำเร็จ ${multi.rows.length} รายการ${cleared.size ? ` · เคลียร์รถเข็น ${[...cleared].join(", ")} แล้ว` : ''}`);
       setMulti(null);
       reset();
       onDone?.();

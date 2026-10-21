@@ -8203,7 +8203,7 @@ WHERE
       // ================= 1. GET SOURCE MAPPING =================
       const mapRes = await transaction.request()
         .input("mapping_id", sql.Int, mapping_id)
-        .query(`SELECT weight_RM, rmfp_id, tro_production_id, process_id, weight_in_trolley, rm_status, level_eu, mix_code, prod_mix, qc_id, status, production_batch, allocation_date, created_by, rmm_line_name, mix_time, tl_status FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
+        .query(`SELECT weight_RM, rmfp_id, tro_production_id, process_id, weight_in_trolley, rm_status, level_eu, mix_code, prod_mix, qc_id, status, production_batch, allocation_date, created_by, rmm_line_name, mix_time, tl_status, tro_id AS src_tro_id, stay_place AS src_stay_place, dest AS src_dest FROM TrolleyRMMapping WHERE mapping_id = @mapping_id`);
 
       if (!mapRes.recordset.length) {
         throw new Error("ไม่พบ mapping_id");
@@ -8565,12 +8565,40 @@ WHERE
         throw new Error("ไม่สามารถตัดน้ำหนักได้");
       }
 
+      // ================= 8. ออกห้องเย็น → รอCheckin บนรถเข็น: บรรจุตัดน้ำหนักแล้ว = clear รถเข็นอัตโนมัติ =================
+      // the materials of that trolley that came out of the cold room for packing leave the trolley and go to dest "บรรจุ"
+      // (status "รอบรรจุเสร็จ"); when nothing else is left on the trolley, the trolley is freed (Trolley / Slot / PackTrolley) — agreed with the users
+      let clearedTrolley = null;
+      const srcTro = src.src_tro_id ? String(src.src_tro_id).trim() : "";
+      if (srcTro && srcTro !== "0" && String(src.src_stay_place || "").trim() === "ออกห้องเย็น" && String(src.src_dest || "").trim() === "รอCheckin") {
+        await transaction.request()
+          .input("tro_id", sql.VarChar(4), srcTro)
+          .query(`
+          UPDATE TrolleyRMMapping
+          SET tro_id = NULL, dest = N'บรรจุ', updated_at = GETDATE()
+          WHERE tro_id = @tro_id AND LTRIM(RTRIM(ISNULL(stay_place, N''))) = N'ออกห้องเย็น' AND LTRIM(RTRIM(ISNULL(dest, N''))) = N'รอCheckin'
+        `);
+        const left = await transaction.request()
+          .input("tro_id", sql.VarChar(4), srcTro)
+          .query(`SELECT COUNT(*) AS n FROM TrolleyRMMapping WITH (UPDLOCK) WHERE tro_id = @tro_id`);
+        if (left.recordset[0].n === 0) {
+          await transaction.request().input("tro_id", sql.VarChar(4), srcTro)
+            .query(`UPDATE Trolley SET tro_status = 1, rsrv_timestamp = NULL WHERE tro_id = @tro_id`);
+          await transaction.request().input("tro_id", sql.VarChar(4), srcTro)
+            .query(`UPDATE Slot SET tro_id = NULL, status = 'packcut' WHERE tro_id = @tro_id`);
+          await transaction.request().input("tro_id", sql.VarChar(4), srcTro)
+            .query(`DELETE FROM PackTrolley WHERE tro_id = @tro_id`);
+          clearedTrolley = srcTro;
+        }
+      }
+
       await transaction.commit();
 
       res.status(200).json({
         success: true,
         newMappingId,
-        usedWeight: weight
+        usedWeight: weight,
+        clearedTrolley,
       });
 
     } catch (err) {

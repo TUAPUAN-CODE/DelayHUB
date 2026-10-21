@@ -228,8 +228,10 @@ const RULES = [
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "GET", p: /^\/api\/user\/permissions$/, check: selfOrAdmin((req) => req.query.user_id) },
   // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)
-  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock },
-  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
+  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock, final: true },
+  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock, final: true },
+  // what the page "ค้นหา mapping_id" reads (it is on the menu of every Role): any logged-in user, not narrowed by rolePolicy.json
+  { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "PUT", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.body && req.body.user_id) },
@@ -269,12 +271,14 @@ const authorize = (req, res, next) => {
 
   let violation = null;
   let soft = false;
+  let final = false; // a code rule marked "final" decides alone (e.g. the edit password of "ค้นหา mapping_id": any Role with the password), rolePolicy.json is not applied
   for (const rule of RULES) {
     if (rule.m !== req.method || !rule.p.test(req.path)) continue;
     violation = rule.check(req);
     if (violation) break;
+    if (rule.final) final = true;
   }
-  if (!violation) {
+  if (!violation && !final) {
     for (const rule of fileRules) {
       if ((rule.m !== "*" && rule.m !== req.method) || !rule.p.test(req.path)) continue;
       if (!hasRole(req.user, [...rule.roles, ...ADMIN_ROLES])) { violation = "role_not_allowed"; soft = rule.soft; break; }
