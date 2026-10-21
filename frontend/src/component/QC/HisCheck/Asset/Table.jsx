@@ -23,6 +23,8 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import PrintIcon from '@mui/icons-material/Print';
 import SearchIcon from '@mui/icons-material/Search';
 import ModalPrint from './ModalPrint';
+// slip of a row put on a trolley as "รอกลับมาเตรียม" (no QC check): the same slip the prep point printed at that time
+import PrepWaitSlip from '../../../Prep/TimeStampMain/Asset/manage/ModalPrint';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
@@ -111,6 +113,7 @@ const Row = ({ row, index }) => {
   };
 
   const displayBatch = row.batch_after || row.batch_before || "-";
+  const isWait = Number(row.rework_wait) === 1; // "รอกลับมาเตรียม": no QC data, printed with the prep slip
 
   return (
     <>
@@ -123,6 +126,7 @@ const Row = ({ row, index }) => {
         </TableCell>
         <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.mat_name || "-"}
+          {isWait && <Box component="span" sx={{ display: 'block', mt: 0.5, mx: 'auto', width: 'fit-content', px: 1, borderRadius: '10px', fontSize: 12, bgcolor: '#FEF3C7', color: '#B45309' }}>รอกลับมาเตรียม (ไม่ผ่าน QC)</Box>}
         </TableCell>
         <TableCell align="center" style={{ padding: '8px 5px', borderBottom: '1px solid #eaeaea', fontSize: '14px', color: '#666' }}>
           {row.production || "-"}
@@ -156,7 +160,9 @@ const Row = ({ row, index }) => {
             </Tooltip>
           </Box>
 
-          <ModalPrint open={printModalOpen} onClose={handleClosePrintModal} rowData={row} />
+          {isWait
+            ? (printModalOpen && <PrepWaitSlip open={printModalOpen} onClose={handleClosePrintModal} rowData={{ ...row, cooked_date: row.CookedDateTime || row.cooked_date, deliveryType: "รอกลับมาเตรียม" }} />)
+            : <ModalPrint open={printModalOpen} onClose={handleClosePrintModal} rowData={row} />}
         </TableCell>
       </TableRow>
 
