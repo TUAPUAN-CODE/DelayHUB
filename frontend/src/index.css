@@ -163,6 +163,10 @@ html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiB
 @media print {
   html, body { background: #fff !important; }
   body::before { display: none !important; }
+  /* a slip longer than one page (e.g. paper 80 x 297 mm) must go on, not be cut at the end of the page: html/body/#root are 100% high
+     on screen and many slip modals inject "html, body { overflow: hidden }" for printing — that clipped everything after the first page.
+     html:root beats their "html, body" selector even though their <style> comes later. */
+  html:root, html:root body, html:root #root { height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; }
   body:has(> .MuiDialog-root:not(.MuiModal-hidden)) > *:not(.MuiDialog-root):not(#__broth_slip__):not(.other-print-root) { display: none !important; }
   /* two dialogs open (a print modal over another dialog): only the top one is the slip */
   body > .MuiDialog-root:has(~ .MuiDialog-root:not(.MuiModal-hidden)) { display: none !important; }
