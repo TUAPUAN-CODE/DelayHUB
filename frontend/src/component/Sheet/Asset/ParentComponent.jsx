@@ -305,7 +305,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     const stLabel = statusOf(r).label;
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
-      if (r.__kind === "map" && !r.cs_id && r.tro_id && CS2_DEST.includes(r.dest)) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
+      // every row of this status can be checked in (whatever dest says): the dialog shows the rooms (cs_id 10 - 46) and the slot layout of the room picked
+      if (r.__kind === "map" && !r.cs_id && r.tro_id) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
+      else if (r.__kind === "map" && !r.cs_id) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", ok: false, title: "ยังไม่ได้อยู่บนรถเข็น — ต้องใส่รถเข็นก่อนจึงรับเข้าห้องเย็นได้", run: () => {} });
       return out;
     }
     if (role === "cs2" && h) {

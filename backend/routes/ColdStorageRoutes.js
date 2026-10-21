@@ -6281,7 +6281,8 @@ ORDER BY rmm.mapping_id DESC
 
 
     router.put("/largecold/checkin/update/Trolley", async (req, res) => {
-        const { tro_id, cs_id, section_leader } = req.body;  // ✅ เอา slot_id ออก
+        // slot_id (optional): the slot picked on the room layout of /ColdStorages/Sheet; without it the first free slot of the room is used
+        const { tro_id, cs_id, section_leader, slot_id: pickedSlot } = req.body;
 
         const pool = await connectToDatabase();
         const transaction = pool.transaction();
@@ -6314,20 +6315,25 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            // ── STEP 3: ✅ หา slot ว่างใน cs_id นั้น (tro_id = NULL) ──────────────
+            // ── STEP 3: ✅ หา slot ว่างใน cs_id นั้น (tro_id = NULL) — หรือช่องที่ผู้ใช้เลือกจาก layout ──────────────
             const availableSlotResult = await transaction
                 .request()
                 .input("cs_id", sql.Int, cs_id)
+                .input("picked", sql.VarChar(50), pickedSlot ? String(pickedSlot) : null)
                 .query(`
                 SELECT TOP 1 slot_id
                 FROM Slot
                 WHERE cs_id = @cs_id AND tro_id IS NULL
+                  AND (@picked IS NULL OR slot_id = @picked)
                 ORDER BY slot_id ASC
             `);
 
             if (availableSlotResult.recordset.length === 0) {
                 await safeRollback(transaction);
-                return res.status(400).json({ success: false, message: "ไม่มีช่องว่างในห้องเย็นนี้" });
+                return res.status(400).json({
+                    success: false,
+                    message: pickedSlot ? `ช่อง ${pickedSlot} ไม่ว่างแล้ว (มีรถเข็นอื่นเข้าไปก่อน) กรุณาเลือกช่องใหม่` : "ไม่มีช่องว่างในห้องเย็นนี้",
+                });
             }
 
             const slot_id = availableSlotResult.recordset[0].slot_id;  // ✅ ได้ slot_id จาก DB
