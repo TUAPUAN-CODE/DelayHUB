@@ -203,8 +203,11 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       COALESCE(NULLIF(b.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_after,
       emx.emulsion_text,
       sl.slot_id,
-      cs.cs_id,
-      cs.cs_name,
+      -- the room comes from Slot: table ColdStorage only lists the large rooms (cs_id 10-46), so the small rooms of /coldStorage (cs_id 1-8)
+      -- got a NULL cs_id here and their rows never showed "อยู่ในห้องเย็น" (names of 1-8 = ROOM_NAMES of ColdStorage/.../flow/coldApi.js)
+      sl.cs_id,
+      COALESCE(cs.cs_name, CASE sl.cs_id WHEN 1 THEN N'CSR 3' WHEN 2 THEN N'Chill 2' WHEN 3 THEN N'Chill 4' WHEN 4 THEN N'Chill 5'
+          WHEN 5 THEN N'Chill 6' WHEN 6 THEN N'4C' WHEN 7 THEN N'Ante' WHEN 8 THEN N'LargeRoom' END) AS cs_name,
       h.hist_id,
       ${HIST_DATES.map((c) => fmt("h", c)).join(",\n      ")},
       ${HIST_TEXT.map((c) => `h.${c}`).join(",\n      ")}
