@@ -158,11 +158,12 @@ html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiB
 /* ---------- Printing a slip from a dialog (thermal printer, paper 80 x 297 mm) ----------
    window.print() prints the whole page: the page behind the dialog (top bar, Sheet, the coloured body::before) came out on the
    slip on some PCs and pushed the slip to the right / shrank it. While a dialog is open only that dialog is printed, as a plain
-   white block as wide as the paper the printer is set to, so the slip fills the paper at its normal font size. */
+   white block as wide as the paper the printer is set to, so the slip fills the paper at its normal font size.
+   Pages that print their own element outside the dialog (#__broth_slip__, .other-print-root of /other/delay) are not hidden. */
 @media print {
   html, body { background: #fff !important; }
   body::before { display: none !important; }
-  body:has(> .MuiDialog-root:not(.MuiModal-hidden)) > *:not(.MuiDialog-root):not(#__broth_slip__) { display: none !important; }
+  body:has(> .MuiDialog-root:not(.MuiModal-hidden)) > *:not(.MuiDialog-root):not(#__broth_slip__):not(.other-print-root) { display: none !important; }
   /* two dialogs open (a print modal over another dialog): only the top one is the slip */
   body > .MuiDialog-root:has(~ .MuiDialog-root:not(.MuiModal-hidden)) { display: none !important; }
   body > .MuiDialog-root { position: static !important; inset: auto !important; }
@@ -175,4 +176,37 @@ html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiB
   }
   body > .MuiDialog-root .MuiDialogContent-root { overflow: visible !important; max-height: none !important; }
   body > .MuiDialog-root .MuiDialog-paper img, body > .MuiDialog-root .MuiDialog-paper canvas, body > .MuiDialog-root .MuiDialog-paper table { max-width: 100% !important; }
+}
+
+/* ── Slips (thermal roll — the slip printers are set to 80 mm): full 80 mm, no margin, larger text ──
+   Every slip screen sets its own page (80 mm wide, margin 0). This rule makes the text of ALL of them larger in one place:
+   the slip box is laid out at 80 mm / --slip-zoom and printed --slip-zoom times larger, so it still fills exactly 80 mm.
+   Nothing inside may be wider than the slip: when one thing is wider than the page, Chrome shrinks the WHOLE page to fit (small text again),
+   so pictures / QR codes / tables are kept inside and long words wrap.
+   Larger / smaller text on every slip = change --slip-zoom. (Not the 90 x 100 mm label slips of Pack, not the A3 reports.) */
+:root { --slip-zoom: 1.5; }
+@media print {
+  html body .print-container,
+  html body .print-content,
+  html body .other-slip {
+    zoom: var(--slip-zoom) !important;
+    width: calc(80mm / var(--slip-zoom)) !important;
+    max-width: calc(80mm / var(--slip-zoom)) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-wrap: break-word;
+  }
+  html body .print-container :is(img, canvas, svg, table),
+  html body .print-content :is(img, canvas, svg, table),
+  html body .other-slip :is(img, canvas, svg, table) {
+    max-width: 100% !important;
+  }
+  html body .print-container :is(img, canvas, svg),
+  html body .print-content :is(img, canvas, svg),
+  html body .other-slip :is(img, canvas, svg) {
+    height: auto !important;
+  }
+  /* the grey layer behind a dialog must not print (a thermal printer prints it as black dots) */
+  .MuiBackdrop-root { background: transparent !important; }
 }

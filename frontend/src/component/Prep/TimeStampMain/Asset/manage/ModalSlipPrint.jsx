@@ -12,20 +12,20 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
 
     const css = `
       @page {
-        size: 72.1mm 297mm !important;
+        size: 80mm 297mm !important;
         margin: 0mm !important;
         padding: 0mm !important;
       }
       
       html, body {
-        width: 72.1mm !important;
+        width: 80mm !important;
         margin: 0mm !important;
         padding: 0mm !important;
         overflow: hidden !important;
       }
       
       .print-container {
-        width: 72.1mm !important;
+        width: 80mm !important;
         padding: 1mm !important;
         margin: 0mm !important;
       }
@@ -34,8 +34,8 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
         .MuiDialog-paper {
           margin: 0mm !important;
           padding: 0mm !important;
-          width: 72.1mm !important;
-          max-width: 72.1mm !important;
+          width: 80mm !important;
+          max-width: 80mm !important;
           box-shadow: none !important;
         }
         
@@ -113,8 +113,8 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
         '& .MuiDialog-paper': {
           width: '850px',
           '@media print': {
-            width: '72.1mm !important',
-            maxWidth: '72.1mm !important',
+            width: '80mm !important',
+            maxWidth: '80mm !important',
             margin: '0mm !important',
             padding: '0mm !important',
           },
@@ -127,7 +127,7 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
         borderRadius: "4px",
         padding: "10px",
         '@media print': {
-          width: '72.1mm !important',
+          width: '80mm !important',
           padding: '1mm !important',
         },
       }}>

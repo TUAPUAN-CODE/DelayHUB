@@ -34,6 +34,7 @@ import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ProductionDialog from "../../../Supervisor/TableProduction/Production/ProductionDialog";
 import axios from "axios";
+import { PLAN_OPTION_PROPS } from "../../../Layout/planOptions";
 axios.defaults.withCredentials = true;
 import { height, styled } from "@mui/system";
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
@@ -954,7 +955,7 @@ useEffect(() => {
                           <Autocomplete
                             sx={{ flex: 2 }}
                             options={production}
-                            getOptionLabel={(option) => `${option.code} (${option.doc_no})`}
+                            {...PLAN_OPTION_PROPS}
                             value={set.plan}
                             onChange={(e, newValue) => updatePlanSet(index, 'plan', newValue)}
                             renderInput={(params) => (

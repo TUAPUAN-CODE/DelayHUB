@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { PLAN_OPTION_PROPS } from "../../../Layout/planOptions";
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress,
   Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
@@ -188,7 +189,8 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
       try {
         const [prod, ...hist] = await Promise.all([
           axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1 } }),
-          ...rows.map((r) => axios.get(`${API_URL}/api/checkEditHistoryOnTrolley/${r.mapping_id}`).catch((err) => {
+          // the route reads ?mapping_id= (the old /checkEditHistoryOnTrolley/<id> got a 404, so a row edited 3 times was never blocked)
+          ...rows.map((r) => axios.get(`${API_URL}/api/checkEditHistoryOnTrolley`, { params: { mapping_id: r.mapping_id } }).catch((err) => {
             console.error("[BatchEditPlanDialog] edit history:", err);
             return null;
           })),
@@ -236,7 +238,7 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
             <Autocomplete
               sx={{ flex: 2, minWidth: 220 }} size="small" options={plans} value={plan} disabled={locked}
-              getOptionLabel={(o) => `${o.code} (${o.doc_no})`} onChange={(e, v) => { setPlan(v); setLine(null); }}
+              {...PLAN_OPTION_PROPS} onChange={(e, v) => { setPlan(v); setLine(null); }}
               renderInput={(params) => <TextField {...params} label="แผนการผลิตใหม่" required />}
             />
             <Autocomplete

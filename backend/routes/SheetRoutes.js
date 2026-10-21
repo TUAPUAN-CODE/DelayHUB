@@ -55,15 +55,6 @@ const timed = async (name, fn, sink) => {
 
 const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col}`;
 
-// The emulsions that were mixed into a production-plan row (RM_EmuMixed), one text per rmfp_id: "Emulsion name (batch) 12 kg; ..."
-const EMULSION_TEXT_SQL = `
-  SELECT rmem.rmfp_id,
-         STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
-  FROM RM_EmuMixed rmem WITH (NOLOCK)
-  JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
-  JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
-  GROUP BY rmem.rmfp_id`;
-
 const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')";
 // the date a mapping counts for in the Done table (last thing that happened to it)
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
@@ -79,7 +70,94 @@ const DONE_RANGE_SQL = `rmm.mapping_id IN (
           )`;
 
 /** opts.dated (scope "done"): the request has a date range (no text) */
-const buildMappingQuery = (scope = "open", opts = {}) => `
+const buildMappingQuery = (scope = "open", opts = {}) => {
+  const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
+        -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
+        -- COLLATE Thai_100_BIN2: a LIKE '%..%' under the database collation (Thai_100_CI_AI) calls the OS string compare for every row (~10 s per column on 5e5 rows, and it is not counted as CPU); the marker is a fixed text written by the app, so a binary compare is exact and ~100x faster
+        ISNULL(rmm.dest, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'
+        -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
+        AND NOT EXISTS (
+            SELECT 1 FROM (VALUES
+                (N'QcCheck', N'create_manual', N'create_manual'),
+                (N'QcCheck', N'เข้าห้องเย็น', N'บรรจุ'),
+                (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
+                (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
+            ) hid(rm_status, stay_place, dest)
+            WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 = hid.rm_status
+              AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) COLLATE Thai_100_BIN2 = hid.stay_place
+              AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 = hid.dest
+        )
+        -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
+        AND ISNULL(rmm.weight_RM, 1) <> 0
+        -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
+        AND NOT (
+            (ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอ MD%')
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 IN (N'', N'0'))
+            AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 IN (N'บรรจุ', N'รอCheckin'))
+        )
+        -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
+        AND NOT (
+            LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 IN (N'รอกลับมาเตรียม', N'QcCheck')
+            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) COLLATE Thai_100_BIN2 = N'เข้าห้องเย็นใหญ่'
+            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 = N'ในห้องเย็นใหญ่'
+            AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 = N'0')
+        )
+        AND ${scope === "done" ? `
+            ${DONE_SQL}
+            -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
+            AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))${opts.dated ? `
+            AND ${DONE_RANGE_SQL}` : ""}
+            -- text search: any of the data columns of the table (same columns as the Sheet's settings)
+            AND (@q = N'' OR (
+                rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
+                OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
+                OR rmm.dest LIKE @q_like OR rmm.stay_place LIKE @q_like OR rmm.rm_status LIKE @q_like
+                OR rmm.level_eu LIKE @q_like OR rmm.prod_mix LIKE @q_like OR rmm.mix_code LIKE @q_like
+                OR CAST(rmm.tray_count AS NVARCHAR(30)) LIKE @q_like OR CAST(rmm.weight_RM AS NVARCHAR(30)) LIKE @q_like
+                OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
+                OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like
+                OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
+            ))` : `
+            -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
+            NOT ${DONE_SQL}`}
+  `;
+
+  // date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet.
+  // Needs the latest History row, so it runs only on the rows that passed every cheap filter above
+  const openDateSql = `
+        (@open_from IS NULL OR (
+            COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
+            AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
+        ) OR (
+            -- a row that is on a trolley is always shown, whatever its date
+            rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
+        ))`;
+
+  // scope "open": the filter (cheap columns + the latest History row, for the date) and the TOP run first on their own; the heavy lookups
+  // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
+  const openBase = `
+  -- step 1: the cheap filters on TrolleyRMMapping alone (no join: RMForProd is joined in the final select, a join here was a seek per mapping ever made), into a small temp table (the optimizer used to run the History lookup for every mapping ever made)
+  SELECT rmm.mapping_id, rmm.created_at, rmm.tro_id
+  INTO #sheet_cand
+  FROM TrolleyRMMapping rmm WITH (NOLOCK)
+  ${whereSql}
+  OPTION (MAX_GRANT_PERCENT = 3);
+  -- step 2: the date filter (needs the latest History row) + TOP, only on the survivors
+  WITH hbase AS (
+    SELECT TOP (@mlimit) rmm.mapping_id, h.hist_id
+    FROM #sheet_cand rmm
+    OUTER APPLY (
+        -- only the 5 dates DONE_DATE_SQL needs, so the History index can answer alone (no read of the wide History row)
+        SELECT TOP 1 hh.hist_id, hh.sc_pack_date, hh.out_cold_date, hh.come_cold_date, hh.rmit_date, hh.cooked_date
+        FROM History hh WITH (NOLOCK)
+        WHERE hh.mapping_id = rmm.mapping_id
+        ORDER BY hh.hist_id DESC
+    ) h
+    WHERE ${openDateSql}
+    ORDER BY rmm.mapping_id DESC
+  )`;
+
+  return `${scope === "open" ? openBase : ""}
   SELECT TOP (@mlimit)
       rmm.mapping_id,
       rmm.from_mapping_id,
@@ -130,7 +208,8 @@ const buildMappingQuery = (scope = "open", opts = {}) => `
       h.hist_id,
       ${HIST_DATES.map((c) => fmt("h", c)).join(",\n      ")},
       ${HIST_TEXT.map((c) => `h.${c}`).join(",\n      ")}
-  FROM TrolleyRMMapping rmm WITH (NOLOCK)
+  ${scope === "open" ? `FROM hbase hb
+  JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = hb.mapping_id` : "FROM TrolleyRMMapping rmm WITH (NOLOCK)"}
   JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
   LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
   LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
@@ -163,73 +242,22 @@ const buildMappingQuery = (scope = "open", opts = {}) => `
       SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
   ) b
-  OUTER APPLY (
+  ${scope === "open" ? `-- the wide History columns only for the rows that are left
+  LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = hb.hist_id` : `OUTER APPLY (
       -- only the columns the sheet shows (History is a very wide table: hh.* read every column of every row)
       SELECT TOP 1 hh.hist_id, ${[...HIST_DATES, ...HIST_TEXT].map((c) => `hh.${c}`).join(", ")}
       FROM History hh WITH (NOLOCK)
       WHERE hh.mapping_id = rmm.mapping_id
       ORDER BY hh.hist_id DESC
-  ) h
-  ${scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
-      -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
-      ISNULL(rmm.dest, N'') NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') NOT LIKE N'%ลบ%'
-      -- combinations of (rm_status, stay_place, dest) that are not real work (agreed with the users): never shown, never alerted. Keep in sync with HIDDEN_COMBOS of frontend Sheet/Asset/buildRows.js
-      AND NOT EXISTS (
-          SELECT 1 FROM (VALUES
-              (N'QcCheck', N'create_manual', N'create_manual'),
-              (N'QcCheck', N'เข้าห้องเย็น', N'บรรจุ'),
-              (N'QcCheck', N'บรรจุ', N'รถเข็นรอจัดส่ง'),
-              (N'QcCheck รอแก้ไข', N'จุดเตรียม', N'จุดเตรียม')
-          ) hid(rm_status, stay_place, dest)
-          WHERE LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = hid.rm_status
-            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = hid.stay_place
-            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = hid.dest
-      )
-      -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
-      AND ISNULL(rmm.weight_RM, 1) <> 0
-      -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
-      AND NOT (
-          (ISNULL(rmm.rm_status, N'') LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') LIKE N'%รอ MD%')
-          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) IN (N'', N'0'))
-          AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'บรรจุ', N'รอCheckin'))
-      )
-      -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
-      AND NOT (
-          LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck')
-          AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'เข้าห้องเย็นใหญ่'
-          AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'ในห้องเย็นใหญ่'
-          AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'' OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) = N'0')
-      )
-      AND ${scope === "done" ? `
-          ${DONE_SQL}
-          -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
-          AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))${opts.dated ? `
-          AND ${DONE_RANGE_SQL}` : ""}
-          -- text search: any of the data columns of the table (same columns as the Sheet's settings)
-          AND (@q = N'' OR (
-              rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
-              OR CAST(rmm.tro_id AS NVARCHAR(50)) LIKE @q_like OR rmm.rmm_line_name LIKE @q_like
-              OR rmm.dest LIKE @q_like OR rmm.stay_place LIKE @q_like OR rmm.rm_status LIKE @q_like
-              OR rmm.level_eu LIKE @q_like OR rmm.prod_mix LIKE @q_like OR rmm.mix_code LIKE @q_like
-              OR CAST(rmm.tray_count AS NVARCHAR(30)) LIKE @q_like OR CAST(rmm.weight_RM AS NVARCHAR(30)) LIKE @q_like
-              OR CAST(rmf.batch AS NVARCHAR(200)) LIKE @q_like OR CAST(rmm.production_batch AS NVARCHAR(200)) LIKE @q_like
-              OR p.doc_no LIKE @q_like OR h.hu LIKE @q_like
-              OR EXISTS (SELECT 1 FROM Batch bq WITH (NOLOCK) WHERE bq.mapping_id = rmm.mapping_id AND bq.batch_after LIKE @q_like)
-          ))` : `
-          -- the work table: everything that is not finished, however old — these are the rows that get forgotten. Finished rows are in the Done table
-          NOT ${DONE_SQL}
-          -- date range of the work table (open_from / open_to; NULL = everything): by the last thing that happened to the row, or its creation when nothing happened yet
-          AND (@open_from IS NULL OR (
-              COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
-              AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
-          ) OR (
-              -- a row that is on a trolley is always shown, whatever its date
-              rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
-          ))`}
-`}
+  ) h`}
+  ${scope === "open" ? "" : whereSql}
   ORDER BY rmm.mapping_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 3)
 `;
+};
 
+// MAX_GRANT_PERCENT: ผลลัพธ์แต่ละ query มีไม่กี่ร้อยแถว แต่ SQL Server ประมาณแถวกว้าง (NVARCHAR(MAX) / History) แล้วขอ memory grant หลักร้อย MB ถึง 1.6 GB ต่อ query;
+// หลายคนเปิดหน้า Sheet พร้อมกัน = คิว RESOURCE_SEMAPHORE ทั้ง server จึงจำกัดเพดาน (ถ้าไม่พอจะ spill ลง tempdb แค่ช้าลงเล็กน้อย)
 const buildHuQuery = () => `
   SELECT TOP (@limit)
       s.sap_re_id, s.batch, s.mat, rm.mat_name, s.hu, s.before_hu, s.weight, s.remark, s.cs_re, s.cs_re_2, s.cs_re_3,
@@ -244,6 +272,7 @@ const buildHuQuery = () => `
     AND la.last_at >= COALESCE(@open_from, DATEADD(DAY, -@days, GETDATE()))
     AND (@open_to IS NULL OR la.last_at < DATEADD(DAY, 1, @open_to))
   ORDER BY la.last_at DESC, s.sap_re_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 // Production-plan rows that were scanned ("สแกนป้าย SAP") but are not in a trolley yet: the same rows the old "จัดการวัตถุดิบ" page listed (all raw material types).
@@ -286,43 +315,66 @@ const buildPlanQuery = () => `
   JOIN History htr WITH (NOLOCK) ON rmf.hist_id_rmfp = htr.hist_id
   -- a scan ("สแกนป้าย SAP") saves stay_place = จุดเตรียมรับเข้า and the destination chosen at the scan (จุดเตรียม / หม้ออบ / เข้าห้องเย็น): all of them wait to be put in a trolley
   WHERE rmf.stay_place IN (N'จุดเตรียมรับเข้า', N'หม้ออบ')
-    AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest NOT LIKE N'%ลบ%'
+    AND ISNULL(rmf.dest, N'') <> N'' AND rmf.dest COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'
     -- same date range as the work table (open_from / open_to; NULL = everything)
     AND (@open_from IS NULL OR (
         COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) >= @open_from
         AND COALESCE(TRY_CONVERT(DATETIME, htr.cooked_date), TRY_CONVERT(DATETIME, htr.withdraw_date)) < DATEADD(DAY, 1, @open_to)
     ))
   ORDER BY htr.cooked_date DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 // Mixed lots (the old page "รายการผสมวัตถุดิบ"): production-plan rows that have emulsions mixed into them. Only the ones that are NOT in a trolley yet get a row of their own
 // (once they are in a trolley they are mapping rows, which carry the emulsion text).
 const buildMixedQuery = () => `
-  SELECT TOP (@limit)
-      rmfp.rmfp_id,
-      rmfp.batch,
-      pdrm.mat,
-      rm2.mat_name,
-      rmfp.weight,
-      CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
-      rmfp.rmfp_line_name,
-      rmfp.level_eu,
-      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
-      CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,${dbsStdSql("rmgx")},
-      emx.emulsion_text
-  FROM RMForProd rmfp WITH (NOLOCK)
-  JOIN (${EMULSION_TEXT_SQL}) emx ON emx.rmfp_id = rmfp.rmfp_id
-  JOIN ProdRawMat pdrm WITH (NOLOCK) ON rmfp.prod_rm_id = pdrm.prod_rm_id
-  JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
-  JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
-  LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
-  LEFT JOIN RawMatGroup rmgx WITH (NOLOCK) ON rmfp.rm_group_id = rmgx.rm_group_id
-  WHERE NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
-    AND (@open_from IS NULL OR (
-        COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
-        AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
-    ))
-  ORDER BY rmfp.rmfp_id DESC
+  -- step 1: the plan rows (TOP) — "has an emulsion" is an EXISTS, so the emulsion text is not built for every emulsion ever mixed
+  -- (the old JOIN to the aggregate read + STRING_AGG-ed the whole RM_EmuMixed history on every load)
+  WITH base AS (
+    SELECT TOP (@limit)
+        rmfp.rmfp_id,
+        rmfp.batch,
+        pdrm.mat,
+        rm2.mat_name,
+        rmfp.weight,
+        CONCAT(pdt.doc_no, ' (', rmfp.rmfp_line_name, ')') AS production,
+        rmfp.rmfp_line_name,
+        rmfp.level_eu,
+        CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.withdraw_date), 120) AS withdraw_date,
+        CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, his.cooked_date), 120) AS cooked_date,${dbsStdSql("rmgx")}
+    FROM RMForProd rmfp WITH (NOLOCK)
+    JOIN ProdRawMat pdrm WITH (NOLOCK) ON rmfp.prod_rm_id = pdrm.prod_rm_id
+    JOIN RawMat rm2 WITH (NOLOCK) ON pdrm.mat = rm2.mat
+    JOIN Production pdt WITH (NOLOCK) ON pdrm.prod_id = pdt.prod_id
+    LEFT JOIN History his WITH (NOLOCK) ON rmfp.hist_id_rmfp = his.hist_id
+    LEFT JOIN RawMatGroup rmgx WITH (NOLOCK) ON rmfp.rm_group_id = rmgx.rm_group_id
+    WHERE EXISTS (
+            SELECT 1
+            FROM RM_EmuMixed rmem WITH (NOLOCK)
+            JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+            JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+            WHERE rmem.rmfp_id = rmfp.rmfp_id
+        )
+      AND NOT EXISTS (SELECT 1 FROM TrolleyRMMapping m WITH (NOLOCK) WHERE m.rmfp_id = rmfp.rmfp_id)
+      AND (@open_from IS NULL OR (
+          COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) >= @open_from
+          AND COALESCE(TRY_CONVERT(DATETIME, his.cooked_date), TRY_CONVERT(DATETIME, his.withdraw_date)) < DATEADD(DAY, 1, @open_to)
+      ))
+    ORDER BY rmfp.rmfp_id DESC
+  )
+  -- step 2: the emulsion text only for the rows that are left
+  SELECT b.rmfp_id, b.batch, b.mat, b.mat_name, b.weight, b.production, b.rmfp_line_name, b.level_eu, b.withdraw_date, b.cooked_date,
+         b.DBS1, b.DBS2, b.DBS3, b.DBS4, emx.emulsion_text
+  FROM base b
+  OUTER APPLY (
+      SELECT STRING_AGG(CAST(CONCAT(rme.mat_name, N' (', rmfe.batch, N') ', CAST(rmfe.weight AS NVARCHAR(30)), N' kg') AS NVARCHAR(MAX)), N'; ') AS emulsion_text
+      FROM RM_EmuMixed rmem WITH (NOLOCK)
+      JOIN RMForEmu rmfe WITH (NOLOCK) ON rmem.rmfemu_id = rmfe.rmfemu_id
+      JOIN RawMat rme WITH (NOLOCK) ON rmfe.mat = rme.mat
+      WHERE rmem.rmfp_id = b.rmfp_id
+  ) emx
+  ORDER BY b.rmfp_id DESC
+  OPTION (USE HINT('DISABLE_OPTIMIZER_ROWGOAL'), MAX_GRANT_PERCENT = 2)
 `;
 
 router.get("/sheet/rows", async (req, res) => {
@@ -352,9 +404,12 @@ router.get("/sheet/rows", async (req, res) => {
 
     // เหมือนกัน + พร้อมกัน = query ชุดเดียว (ดู lib/sheetCache.js); rev = ลายเซ็นของข้อมูล ให้หน้าเว็บเทียบได้โดยไม่ต้องรับ/แปลงข้อมูลทั้งก้อนซ้ำ
     const cacheKey = JSON.stringify([days, limit, mlimit, ranged ? req.query.open_from : null, ranged ? req.query.open_to : null]);
-    // ?fresh=1 (the page asks right after a save): skip the 1 s cache, another PM2 worker may still hold a copy from before the save
-    const run = req.query.fresh ? (_key, loader) => loader() : cached;
-    const payload = await run(cacheKey, async () => {
+    // ข้อมูลต้อง "เริ่มอ่านหลัง" เวลานี้ (ใช้ชุดเดียวกันได้ทุกคำขอ / ทุก worker — lib/sheetCache.js):
+    //   ?fresh=1 (หน้าเว็บเพิ่งบันทึกเอง) = หลังคำขอนี้มาถึง · ?since=<at ของ event sheetChanged (เวลา server)> = หลังการบันทึกที่ทำให้เกิด event
+    const now = Date.now();
+    const since = Math.min(parseInt(req.query.since, 10) || 0, now);
+    const minStart = req.query.fresh ? now : since;
+    const payload = await cached(cacheKey, async () => {
       const sink = [];
       const [mappings, hus, plans, mixed] = await Promise.all([
         timed("mappings", () => bind(pool.request()).query(buildMappingQuery("open")), sink),
@@ -750,8 +805,10 @@ const histColumnType = async (pool, col) => {
 };
 const isDateType = (dt) => ["datetime", "datetime2", "smalldatetime", "date"].includes(dt);
 
-/** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason } */
-router.patch("/sheet/edit", async (req, res) => {
+/** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason }
+ *  opts.only = the columns this route may change (default: every column of EDIT_MAP) · opts.coldOnly = only a mapping whose trolley is in a cold room slot
+ *  opts.defaultReason = the reason written to SheetEditLog when none is typed */
+const sheetEditHandler = (opts = {}) => async (req, res) => {
   try {
     const body = req.body || {};
     const mappingId = parseInt(body.mapping_id, 10);
@@ -765,7 +822,7 @@ router.patch("/sheet/edit", async (req, res) => {
     if (!cols.length || cols.length > EDIT_BATCH_MAX) {
       return res.status(400).json({ success: false, error: `แก้ไขได้ครั้งละ 1-${EDIT_BATCH_MAX} ช่อง` });
     }
-    const bad = cols.find((c) => !Object.prototype.hasOwnProperty.call(EDIT_MAP, c));
+    const bad = cols.find((c) => !Object.prototype.hasOwnProperty.call(EDIT_MAP, c) || (opts.only && !opts.only.includes(c)));
     if (bad) return res.status(400).json({ success: false, error: `ไม่อนุญาตให้แก้ไขคอลัมน์ ${bad}` });
 
     // validate + normalise every value before touching the database
@@ -842,6 +899,12 @@ router.patch("/sheet/edit", async (req, res) => {
         WHERE rmm.mapping_id = @id`);
       if (!cur.recordset.length) { await safeRollback(tx); return res.status(404).json({ success: false, error: "ไม่พบรายการนี้" }); }
       const mapRow = cur.recordset[0];
+      if (opts.coldOnly) {
+        // only while the material is in a cold room: its trolley is in a slot (status "อยู่ในห้องเย็น" / "อยู่ในห้องเย็นใหญ่" of the Sheet)
+        const inSlot = mapRow.tro_id && (await new sql.Request(tx).input("t", sql.VarChar(4), String(mapRow.tro_id))
+          .query("SELECT TOP 1 1 AS ok FROM Slot WITH (NOLOCK) WHERE tro_id = @t")).recordset.length > 0;
+        if (!inSlot) { await safeRollback(tx); return res.status(400).json({ success: false, error: "แก้ได้เฉพาะรายการที่อยู่ในห้องเย็น (รถเข็นอยู่ในช่องของห้องเย็น)" }); }
+      }
 
       let histId = null;
       let histRow = null;
@@ -1005,7 +1068,7 @@ router.patch("/sheet/edit", async (req, res) => {
           .input("tn", sql.NVarChar(40), it.def.t === "map" ? "TrolleyRMMapping" : it.def.t === "virt" ? (it.def.kind === "batch" ? "Batch" : "ProdRawMat") : "History").input("cn", sql.NVarChar(60), it.col)
           .input("ov", sql.NVarChar(600), it.oldVal === null || it.oldVal === undefined ? null : String(it.oldVal).slice(0, 600))
           .input("nv", sql.NVarChar(600), it.value === null ? null : String(it.value).slice(0, 600))
-          .input("rs", sql.NVarChar(300), reason || null)
+          .input("rs", sql.NVarChar(300), reason || opts.defaultReason || null)
           .input("uid", sql.Int, Number.isInteger(user.user_id) ? user.user_id : null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
           .query(`INSERT INTO SheetEditLog (mapping_id, hist_id, table_name, column_name, old_value, new_value, reason, user_id, username)
                   VALUES (@mid, @hid, @tn, @cn, @ov, @nv, @rs, @uid, @un)`);
@@ -1027,10 +1090,14 @@ router.patch("/sheet/edit", async (req, res) => {
       throw err;
     }
   } catch (err) {
-    console.error("❌ [Route PATCH /sheet/edit] Error:", err);
+    console.error(`❌ [Route PATCH ${req.path}] Error:`, err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+// every column, Supervisor / Master or whoever unlocked the edit (rule in lib/authMiddleware.js)
+router.patch("/sheet/edit", sheetEditHandler());
+// a material in a cold room: Code (production plan), line and weight only — the "แก้ไข Code / Line / น้ำหนัก" button of the Sheet (any Role that sees the row)
+router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_name", "weight_RM"], coldOnly: true, defaultReason: "แก้ไขในห้องเย็น" }));
 
 // master data for the dropdowns of the edit dialog (values that come from the database can only be picked, not typed)
 const OPTION_SQL = {

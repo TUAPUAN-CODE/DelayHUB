@@ -1,44 +1,40 @@
-import { useEffect, useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, TextField } from "@mui/material";
-import { toLocalInput } from "./lotCalc";
+import { useState } from "react";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
+import TimeChoice, { newTime, timeValue } from "./TimeChoice";
 
 /**
- * One dialog for the three stamps of a lot: new lot (prepared at), into the cold room, out of the cold room.
+ * One dialog for the stamps of a lot: new lot (prepared at), into / out of the cold room, lid opened, a set out of the cold room.
  * The time is "now" (stamped when the button is pressed) or typed by hand.
  * fields: [{ key, label, type?, required?, defaultValue? }] · onSubmit({ values, at }) -> Promise (throws / returns an error text to show)
+ *
+ * The parent mounts it once per opening (key): what is typed is set ONCE from the defaults and never reset while it is open.
+ * (It used to be reset every time the page re-rendered — the minute timer, a save on another device — so the weight / time being typed
+ *  changed back by itself.) A tap outside / Esc does not close it: only "ยกเลิก" or a successful save.
  */
-const StampDialog = ({ open, title, fields, timeLabel, hint, submitLabel = "บันทึก", onClose, onSubmit }) => {
-  const [values, setValues] = useState({});
-  const [mode, setMode] = useState("now");
-  const [manual, setManual] = useState(toLocalInput());
+const StampDialog = ({ title, fields, timeLabel, hint, submitLabel = "บันทึก", onClose, onSubmit }) => {
+  const [values, setValues] = useState(() => Object.fromEntries(fields.map((f) => [f.key, f.defaultValue ?? ""])));
+  const [time, setTime] = useState(newTime);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setValues(Object.fromEntries(fields.map((f) => [f.key, f.defaultValue ?? ""])));
-    setMode("now"); setManual(toLocalInput()); setError(""); setSaving(false);
-  }, [open, fields]);
 
   const submit = async () => {
     const missing = fields.find((f) => f.required && String(values[f.key] ?? "").trim() === "");
     if (missing) { setError(`กรุณากรอก ${missing.label}`); return; }
-    if (mode === "manual" && !manual) { setError("กรุณาเลือกเวลา"); return; }
+    if (time.mode === "manual" && !time.manual) { setError("กรุณาเลือกเวลา"); return; }
     setSaving(true);
     setError("");
     try {
-      const msg = await onSubmit({ values, at: mode === "now" ? "" : manual.replace("T", " ") + ":00" });
-      if (msg) setError(msg); else onClose();
+      const msg = await onSubmit({ values, at: timeValue(time) });
+      if (msg) { setError(msg); setSaving(false); } else onClose();
     } catch (err) {
       console.error("[Other] stamp error:", err);
       setError(err.response?.data?.error || err.message || "บันทึกไม่สำเร็จ");
-    } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog open onClose={(e, reason) => { if (!saving && reason !== "backdropClick") onClose(); }} disableEscapeKeyDown fullWidth maxWidth="xs">
       <DialogTitle sx={{ fontSize: 17, fontWeight: 700 }}>{title}</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
         {hint && <Alert severity="info">{hint}</Alert>}
@@ -48,16 +44,7 @@ const StampDialog = ({ open, title, fields, timeLabel, hint, submitLabel = "บ�
             onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} inputProps={f.type === "number" ? { min: 0, step: "any" } : undefined}
           />
         ))}
-        <div>
-          <strong style={{ fontSize: 13 }}>{timeLabel}</strong>
-          <RadioGroup value={mode} onChange={(e) => setMode(e.target.value)}>
-            <FormControlLabel value="now" control={<Radio size="small" />} label="เวลาตอนนี้ (stamp)" />
-            <FormControlLabel value="manual" control={<Radio size="small" />} label="ใส่เวลาเอง" />
-          </RadioGroup>
-          {mode === "manual" && (
-            <TextField size="small" type="datetime-local" fullWidth value={manual} onChange={(e) => setManual(e.target.value)} InputLabelProps={{ shrink: true }} />
-          )}
-        </div>
+        <TimeChoice label={timeLabel} value={time} onChange={setTime} />
         {error && <Alert severity="error">{error}</Alert>}
       </DialogContent>
       <DialogActions>

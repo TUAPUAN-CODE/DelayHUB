@@ -1004,6 +1004,10 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 **Observability**: `lib/logger.js` (log JSON 1 บรรทัด: `http_5xx`, `http_slow`, `slow_query`, `sql_error`, `forbidden`, `alert`), `lib/metrics.js` (รวมทุก worker ผ่าน Redis → `GET /metrics` รูปแบบ Prometheus), `GET /health/ready` (ตรวจ DB+Redis), `lib/alerts.js` (pool เต็ม / DB ล่ม / 5xx พุ่ง / event loop ค้าง → log + LINE ถ้าตั้ง `OPS_ALERT_LINE_GROUP_ID`)
 - ทุก response มี header `x-request-id` — ขอจากผู้ใช้เมื่อแจ้งปัญหา แล้ว grep ใน log ได้เลย
 
+**ความเร็วฐานข้อมูล**: `lib/dbTuning.js` รันเองหลัง backend เปิด 60 วินาที (เฉพาะ PM2 instance 0, กันซ้อนด้วย `sp_getapplock`) แล้วทุก 12 ชม.: สคริปต์ `migrations/auto/*.sql` (ต้องรันซ้ำได้) → ดัชนีที่ SQL Server แจ้งว่าขาด (`IX_pfcm_auto_*`, จำกัดจำนวน) → อัปเดตสถิติที่เก่า → MAXDOP ของฐาน; ปิดด้วย `DB_TUNING=off` (ตัวเลือกอื่นท้ายไฟล์) · สั่งเอง `node scripts/db-tune.js [--dry-run]` · ดูว่าอะไรกินแรง `node scripts/db-report.js`
+- `/api/sheet/rows` ใช้ cache ร่วมทุก worker ผ่าน Redis (`lib/sheetCache.js`): หน้าเว็บขอด้วย `since=<at ของ sheetChanged>` (หลังบันทึกของตัวเองใช้ `fresh=1`) — ห้ามกลับไปให้ทุกหน้าจอโหลด fresh ทุก event (เคยทำให้ DB ทั้ง server รอคิว)
+- collation ของฐานคือ `Thai_100_CI_AI`: `LIKE '%…%'` / `=` กับข้อความตายตัวบนตารางใหญ่ใส่ `COLLATE Thai_100_BIN2` (เร็วกว่ามาก) — ตรวจก่อนว่าจำนวนแถวเท่าเดิม (ดู `scripts/sheet-timing.js --probe`)
+
 **รันสองเครื่อง / ทนล่ม**: ดู `backend/HA_RUNBOOK.md` — Redis ตั้งค่าที่ `.env` (`REDIS_HOST` ฯลฯ ผ่าน `lib/redisClient.js`; Redis ล่มแล้ว API ต้องไม่ล่ม), งานที่ต้องมีตัวเดียว (delay-alert, RFID) ใช้ล็อกผู้นำ `lib/leaderLock.js`, rate limit นับร่วมผ่าน Redis (`lib/redisRateLimitStore.js`), `/health/ready` ตรวจเฉพาะ DB
 
 *อัปเดตล่าสุด: พฤษภาคม 2026 — หลังการทำ naming consistency refactor ครั้งแรก*

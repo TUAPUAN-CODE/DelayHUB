@@ -219,6 +219,9 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
       process.exit(1);
     });
 
+  // ปรับฐานข้อมูลอัตโนมัติ (migrations/auto/*.sql, ดัชนีที่ขาด, สถิติ, MAXDOP) เบื้องหลังหลังเปิดระบบ — ไม่หน่วงการเปิด, เฉพาะ PM2 instance 0 (ดู lib/dbTuning.js)
+  require("./lib/dbTuning").scheduleDbTuning();
+
   // Cache control middleware
   app.use((req, res, next) => {
     res.set("Cache-Control", "no-store, max-age=0");

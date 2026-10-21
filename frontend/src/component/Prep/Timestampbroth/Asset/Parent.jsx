@@ -36,11 +36,11 @@ const printBrothSlip = () => {
 const SLIP_STYLE = `
   #__broth_slip__ { display: none; }
   @media print {
-    @page { size: 80mm auto; margin: 4mm; }
+    @page { size: 80mm auto; margin: 0; }
     body > *:not(#__broth_slip__) { display: none !important; visibility: hidden !important; }
     #__broth_slip__ {
       display: block !important; visibility: visible !important;
-      font-family: 'Sarabun', Arial, sans-serif; font-size: 40px; padding: 14px;
+      font-family: 'Sarabun', Arial, sans-serif; font-size: 40px; padding: 0; width: 80mm; box-sizing: border-box;
     }
     #__broth_slip__ .bs-title {
       font-size: 89px; font-weight: 700; text-align: center;

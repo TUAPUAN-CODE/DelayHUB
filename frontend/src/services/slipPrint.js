@@ -50,8 +50,8 @@ export const slipHtml = (el) => {
   });
   copy.querySelectorAll(".no-print, button, .MuiDialogActions-root, input, textarea, select").forEach((n) => n.remove());
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><base href="${window.location.origin}/">${pageStyles()}
-<style>@page { size: 72.1mm auto; margin: 0; } html, body { margin: 0; padding: 0; background: #fff; width: 72.1mm; }
-.container { width: 72.1mm; padding: 1mm; box-sizing: border-box; } .container .MuiDialog-paper, .container .MuiPaper-root { box-shadow: none !important; margin: 0 !important; max-width: 72.1mm !important; width: 72.1mm !important; }</style>
+<style>@page { size: 80mm auto; margin: 0; } html, body { margin: 0; padding: 0; background: #fff; width: 80mm; }
+.container { width: 80mm; padding: 0; box-sizing: border-box; } .container .MuiDialog-paper, .container .MuiPaper-root { box-shadow: none !important; margin: 0 !important; max-width: 80mm !important; width: 80mm !important; }</style>
 </head><body><div class="container">${copy.outerHTML}</div></body></html>`;
 };
 

@@ -1,73 +1,60 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Alert, Box, Button, Chip, FormControlLabel, IconButton, Paper, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import AddIcon from "@mui/icons-material/Add";
-import PrintIcon from "@mui/icons-material/Print";
+import EditIcon from "@mui/icons-material/Edit";
+import HistoryIcon from "@mui/icons-material/History";
 import StampDialog from "./Asset/StampDialog";
-import OutSlip from "./Asset/OutSlip";
-import { calcLot, fmtAt, fmtMin, msOf, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN, LIMIT_AFTER_LID_MIN } from "./Asset/lotCalc";
+import SplitDialog from "./Asset/SplitDialog";
+import PasswordDialog from "./Asset/PasswordDialog";
+import LotSlip from "./Asset/LotSlip";
+import LotDetail from "./Asset/LotDetail";
+import { calcLot, calcSets, fmtAt, fmtMin, setCode, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN, LIMIT_AFTER_LID_MIN } from "./Asset/lotCalc";
+import { inSlip, outSlip, setSlip } from "./Asset/slips";
+import { apiError, Clock, DIM, HEAD, LEVEL, LotId, userName } from "./Asset/lotUi";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_MS = 60000;
-const LEVEL = {
-  green: { bg: "#E8F5E9", fg: "#2E7D32", border: "#2E7D32" },
-  yellow: { bg: "#FFF8E1", fg: "#B26A00", border: "#B26A00" },
-  red: { bg: "#FDECEA", fg: "#C62828", border: "#C62828" },
-};
-// small tables inside an opened row
-const SUB = { background: "#fff", border: "1px solid #E1E9FA", borderRadius: 2, "& .MuiTableHead-root .MuiTableCell-root": { fontWeight: 700, fontSize: 12.5, color: "#5B6B8C", backgroundColor: "#F4F7FD", borderColor: "#E1E9FA" }, "& td": { fontSize: 13 } };
-const HEAD = { background: "#1552F0", color: "#fff", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" };
-const userName = () => [localStorage.getItem("first_name"), localStorage.getItem("last_name")].filter((v) => v && v !== "null").join(" ") || localStorage.getItem("user_id") || "";
-
-/** "2 h 5 m / 2 h" — green / yellow / red by the time that is left of the limit */
-const Clock = ({ chunk, limit }) => {
-  if (!chunk) return <span style={{ color: "#B0BAC9" }}>-</span>;
-  const c = LEVEL[chunk.level];
-  const lim = chunk.limit ?? limit;
-  return (
-    <Chip
-      size="small" label={`${fmtMin(chunk.minutes)} / ${fmtMin(lim)}${chunk.lidAt ? " (เปิดฝา)" : ""}`}
-      sx={{ fontWeight: 700, background: c.bg, color: c.fg, border: `1px solid ${c.border}` }}
-    />
-  );
-};
+const COLS = 10;
 
 const DelayControlPage = () => {
+  const navigate = useNavigate();
   const [lots, setLots] = useState([]);
-  const [withClosed, setWithClosed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [open, setOpen] = useState(() => new Set());
-  const [dialog, setDialog] = useState(null); // { kind: "new" | "IN" | "OUT" | "LID", lot? }
-  const [slip, setSlip] = useState(null); // slip of an "ออกห้องเย็น" stamp (opens right after the stamp, or again from the table)
+  const [dialog, setDialog] = useState(null); // { kind: "new" | "IN" | "OUT" | "LID" | "SPLIT" | "SET_OUT" | "WEIGHT" | "SET_CANCEL", lot?, set?, seq }
+  const [slips, setSlips] = useState(null);   // slips to print: right after a stamp, or again from the opened row
   const lastLoad = useRef(0);
 
   const load = useCallback(async () => {
     lastLoad.current = Date.now();
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/other/lots`, { params: { closed: withClosed ? 1 : 0 } });
+      const res = await axios.get(`${API_URL}/api/other/lots`, { params: { scope: "open" } });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดข้อมูลไม่สำเร็จ");
       setLots(res.data.data || []);
       setError("");
       return res.data.data || [];
     } catch (err) {
       console.error("[Other] load error:", err);
-      setError(err.response?.data?.error || err.message || "โหลดข้อมูลไม่สำเร็จ");
+      setError(apiError(err, "โหลดข้อมูลไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }
     return null;
-  }, [withClosed]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(() => { setNow(Date.now()); load(); }, REFRESH_MS); return () => clearInterval(t); }, [load]);
-  // another device saved something: reload (the server sends "sheetChanged" after every successful write)
+  // another device saved something: reload (the server sends "sheetChanged" after every successful write).
+  // An open dialog is not touched by a reload: it keeps what is being typed (StampDialog / SplitDialog are set once when they open)
   useEffect(() => {
     if (!API_URL) return undefined;
     let timer = null;
@@ -80,173 +67,228 @@ const DelayControlPage = () => {
     return () => { clearTimeout(timer); socket.off("sheetChanged", refresh); socket.disconnect(); };
   }, [load]);
 
-  const rows = useMemo(() => lots.map((lot) => ({ lot, c: calcLot(lot, now) })), [lots, now]);
+  const rows = useMemo(() => lots.map((lot) => {
+    const c = calcLot(lot, now);
+    return { lot, c, s: calcSets(lot, c, now) };
+  }), [lots, now]);
   const toggle = (id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const openDialog = (d) => setDialog({ ...d, seq: Date.now() });
 
-  const post = async (url, body) => {
-    const res = await axios.post(`${API_URL}${url}`, { ...body, user: userName() });
-    if (!res.data?.success) return res.data?.error || "บันทึกไม่สำเร็จ";
-    await load();
+  // every write: the error text to show in the dialog, or "" (then the list is read again)
+  const send = async (method, url, body) => {
+    const res = await axios[method](`${API_URL}${url}`, { ...body, user: userName() });
+    if (!res.data?.success) return { error: res.data?.error || "บันทึกไม่สำเร็จ" };
+    const list = await load();
+    return { error: "", data: res.data, list: list || [] };
+  };
+  const freshLot = (list, lotId) => list.find((l) => l.lot_id === lotId);
+
+  const stampIn = async (lot, values, at) => {
+    const r = await send("post", `/api/other/lots/${lot.lot_id}/move`, { kind: "IN", qty_kg: values.qty_kg, moved_at: at });
+    if (r.error) return r.error;
+    const l = freshLot(r.list, lot.lot_id);
+    const move = l?.moves.find((m) => m.move_id === r.data.move_id);
+    if (l && move) setSlips([inSlip(l, move)]); // print the slip right after the stamp
     return "";
   };
-  // the slip of the OUT stamp made at outAt (ms): the kg it took from the cold room (first in, first out) and how long they were in / outside
-  const openSlip = (lot, outAt) => {
-    const c = calcLot(lot, Date.now());
-    const chunks = c.coldChunks.filter((k) => k.outAt === outAt);
-    const move = lot.moves.find((m) => m.kind === "OUT" && msOf(m.moved_at) === outAt);
-    setSlip({
-      lot, outAt, kg: Math.round(chunks.reduce((sum, k) => sum + k.kg, 0) * 100) / 100, chunks, by: move?.created_by || userName(),
-    });
-  };
   const stampOut = async (lot, values, at) => {
-    const res = await axios.post(`${API_URL}/api/other/lots/${lot.lot_id}/move`, { kind: "OUT", qty_kg: values.qty_kg, moved_at: at, user: userName() });
-    if (!res.data?.success) return res.data?.error || "บันทึกไม่สำเร็จ";
-    const list = await load();
-    const fresh = (list || []).find((l) => l.lot_id === lot.lot_id);
-    if (fresh && res.data.moved_at) openSlip(fresh, msOf(res.data.moved_at)); // print the slip right after the stamp
+    const r = await send("post", `/api/other/lots/${lot.lot_id}/move`, { kind: "OUT", qty_kg: values.qty_kg, moved_at: at });
+    if (r.error) return r.error;
+    const l = freshLot(r.list, lot.lot_id);
+    if (l && r.data.move_id) setSlips([outSlip(l, calcLot(l, Date.now()), r.data.move_id)]);
+    return "";
+  };
+  const split = async (lot, sets, at) => {
+    const r = await send("post", `/api/other/lots/${lot.lot_id}/sets`, { sets, made_at: at });
+    if (r.error) return r.error;
+    const l = freshLot(r.list, lot.lot_id);
+    if (l) {
+      const ids = new Set((r.data.sets || []).map((x) => x.set_id));
+      const all = calcSets(l, calcLot(l, Date.now()), Date.now()).sets;
+      const made = all.filter((x) => ids.has(x.set_id));
+      if (made.length) setSlips(made.map((x) => setSlip(l, x))); // the slip of every new set, print all or one by one
+    }
+    return "";
+  };
+  const setOut = async (lot, set, at) => {
+    const r = await send("post", `/api/other/lots/${lot.lot_id}/sets/${set.set_id}/out`, { moved_at: at });
+    if (r.error) return r.error;
+    const l = freshLot(r.list, lot.lot_id);
+    const done = l && calcSets(l, calcLot(l, Date.now()), Date.now()).sets.find((x) => x.set_id === set.set_id);
+    if (done) setSlips([setSlip(l, done)]);
     return "";
   };
   const closeLot = async (lot) => {
-    if (!window.confirm(`ปิดรายการ "${lot.lot_name}" ?`)) return;
-    try { await axios.put(`${API_URL}/api/other/lots/${lot.lot_id}/close`); await load(); } catch (err) { console.error("[Other] close error:", err); setError(err.response?.data?.error || err.message); }
+    if (!window.confirm(`ปิดรายการ #${lot.lot_id} "${lot.lot_name}" ?\nรายการจะย้ายไปหน้า History (recall กลับมาได้)`)) return;
+    try {
+      const r = await send("put", `/api/other/lots/${lot.lot_id}/close`, {});
+      if (r.error) setError(r.error);
+    } catch (err) {
+      console.error("[Other] close error:", err);
+      setError(apiError(err));
+    }
   };
 
-  const dlg = dialog && (() => {
-    const { kind, lot } = dialog;
+  const renderDialog = () => {
+    if (!dialog) return null;
+    const { kind, seq } = dialog;
+    const close = () => setDialog(null);
     if (kind === "new") {
-      return {
-        title: "เพิ่มรายการ (เตรียมเสร็จ)", timeLabel: "เวลาเตรียมเสร็จ",
-        fields: [{ key: "lot_name", label: "ชื่อวัตถุดิบ / รายการ", required: true }, { key: "ref_code", label: "Batch / รหัสอ้างอิง" }, { key: "weight_kg", label: "น้ำหนักที่เตรียม (kg)", type: "number", required: true }, { key: "note", label: "หมายเหตุ" }],
-        onSubmit: ({ values, at }) => post("/api/other/lots", { ...values, prep_done_at: at }),
-      };
+      return (
+        <StampDialog
+          key={seq} title="เพิ่มรายการ (เตรียมเสร็จ)" timeLabel="เวลาเตรียมเสร็จ" onClose={close}
+          fields={[{ key: "lot_name", label: "ชื่อวัตถุดิบ / รายการ", required: true }, { key: "ref_code", label: "Batch / รหัสอ้างอิง" }, { key: "weight_kg", label: "น้ำหนักที่เตรียม (kg)", type: "number", required: true }, { key: "note", label: "หมายเหตุ" }]}
+          onSubmit={async ({ values, at }) => (await send("post", "/api/other/lots", { ...values, prep_done_at: at })).error}
+        />
+      );
     }
+    // the newest copy of the lot (another device may have saved meanwhile); the dialog itself keeps what was typed
+    const lot = lots.find((l) => l.lot_id === dialog.lot.lot_id) || dialog.lot;
     const c = calcLot(lot, now);
+    const s = calcSets(lot, c, now);
+    const label = `#${lot.lot_id} ${lot.lot_name}`;
     if (kind === "LID") {
-      return {
-        title: `เปิดฝา — ${lot.lot_name}`, timeLabel: "เวลาเปิดฝา", submitLabel: "บันทึกเปิดฝา",
-        hint: `เปิดฝาแล้วต้องเอาออกห้องเย็นภายใน ${fmtMin(LIMIT_AFTER_LID_MIN)} (และไม่เกิน ${fmtMin(LIMIT_INSIDE_MIN)} นับจากเข้าห้องเย็น)`,
-        fields: [],
-        onSubmit: ({ at }) => post(`/api/other/lots/${lot.lot_id}/lid`, { opened_at: at }),
-      };
+      return (
+        <StampDialog
+          key={seq} title={`เปิดฝา — ${label}`} timeLabel="เวลาเปิดฝา" submitLabel="บันทึกเปิดฝา" onClose={close} fields={[]}
+          hint={`เปิดฝาแล้วต้องเอาออกห้องเย็นภายใน ${fmtMin(LIMIT_AFTER_LID_MIN)} (และไม่เกิน ${fmtMin(LIMIT_INSIDE_MIN)} นับจากเข้าห้องเย็น) — จากนั้นกด "จัดชุด" แล้วออกห้องเย็นทีละชุด`}
+          onSubmit={async ({ at }) => (await send("post", `/api/other/lots/${lot.lot_id}/lid`, { opened_at: at })).error}
+        />
+      );
+    }
+    if (kind === "SPLIT") {
+      return <SplitDialog key={seq} lotLabel={label} available={s.unassigned} onClose={close} onSubmit={({ sets, at }) => split(lot, sets, at)} />;
+    }
+    if (kind === "SET_OUT") {
+      const set = s.sets.find((x) => x.set_id === dialog.set.set_id) || dialog.set;
+      return (
+        <StampDialog
+          key={seq} title={`ออกห้องเย็น — ชุด ${setCode(lot, set)}`} timeLabel="เวลาออกห้องเย็น" submitLabel="บันทึกออกห้องเย็น" onClose={close} fields={[]}
+          hint={`${lot.lot_name} · ชุด ${setCode(lot, set)} · ${set.kg} kg (ออกทั้งชุด) — พิมพ์สลิปได้หลังบันทึก`}
+          onSubmit={({ at }) => setOut(lot, set, at)}
+        />
+      );
+    }
+    if (kind === "WEIGHT") {
+      return (
+        <PasswordDialog
+          key={seq} title={`แก้ไขน้ำหนัก — ${label}`} submitLabel="บันทึกน้ำหนัก" onClose={close}
+          hint={`น้ำหนักเดิม ${c.weight} kg · เข้าห้องเย็นแล้ว ${Math.round((c.weight - c.unplaced) * 100) / 100} kg (แก้ให้น้อยกว่านี้ไม่ได้)`}
+          field={{ label: "น้ำหนักที่เตรียม (kg)", defaultValue: c.weight }}
+          onSubmit={async ({ password, value }) => (await send("put", `/api/other/lots/${lot.lot_id}/weight`, { weight_kg: value, password })).error}
+        />
+      );
+    }
+    if (kind === "SET_CANCEL") {
+      const set = dialog.set;
+      return (
+        <PasswordDialog
+          key={seq} title={`ยกเลิกชุด ${setCode(lot, set)}`} submitLabel="ยกเลิกชุด" onClose={close}
+          hint={`${set.kg} kg ของชุดนี้จะกลับไปเป็น "ยังไม่จัดชุด" (จัดชุดใหม่ได้)`}
+          onSubmit={async ({ password }) => (await send("put", `/api/other/lots/${lot.lot_id}/sets/${set.set_id}/cancel`, { password })).error}
+        />
+      );
     }
     const isIn = kind === "IN";
-    const max = isIn ? c.unplaced : c.inCold;
-    return {
-      title: `${isIn ? "เข้าห้องเย็น" : "ออกห้องเย็น"} — ${lot.lot_name}`, timeLabel: isIn ? "เวลาเข้าห้องเย็น" : "เวลาออกห้องเย็น",
-      hint: isIn ? `ยังไม่เข้าห้องเย็น ${c.unplaced} kg` : `อยู่ในห้องเย็น ${c.inCold} kg (ออกได้ทีละบางส่วน)`,
-      fields: [{ key: "qty_kg", label: isIn ? "น้ำหนักที่เข้า (kg)" : "น้ำหนักที่ออก (kg)", type: "number", required: true, defaultValue: String(max) }],
-      onSubmit: ({ values, at }) => (isIn ? post(`/api/other/lots/${lot.lot_id}/move`, { kind, qty_kg: values.qty_kg, moved_at: at }) : stampOut(lot, values, at)),
-    };
-  })();
+    const max = isIn ? c.unplaced : s.unassigned;
+    return (
+      <StampDialog
+        key={seq} title={`${isIn ? "เข้าห้องเย็น" : "ออกห้องเย็น"} — ${label}`} timeLabel={isIn ? "เวลาเข้าห้องเย็น" : "เวลาออกห้องเย็น"} onClose={close}
+        hint={isIn ? `ยังไม่เข้าห้องเย็น ${c.unplaced} kg — พิมพ์สลิปได้หลังบันทึก` : `อยู่ในห้องเย็น ${c.inCold} kg (ออกได้ทีละบางส่วน)`}
+        fields={[{ key: "qty_kg", label: isIn ? "น้ำหนักที่เข้า (kg)" : "น้ำหนักที่ออก (kg)", type: "number", required: true, defaultValue: String(max) }]}
+        onSubmit={({ values, at }) => (isIn ? stampIn(lot, values, at) : stampOut(lot, values, at))}
+      />
+    );
+  };
 
   return (
     <div style={{ backgroundColor: "#fff" }} className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
       <main className="max-w-8xl w-full mx-auto pt-2 pb-1 px-1 lg:px-8 flex-1 min-h-0 flex flex-col" style={{ color: "#1B2333" }}>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", mb: 1, flexShrink: 0 }}>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ kind: "new" })}>เพิ่มรายการ</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => openDialog({ kind: "new" })}>เพิ่มรายการ</Button>
           <Typography variant="body2" color="text.secondary">
             ควบคุม Delay: นอกห้องเย็น {fmtMin(LIMIT_OUTSIDE_MIN)} · ในห้องเย็นก่อนเปิดฝา {fmtMin(LIMIT_INSIDE_MIN)} · หลังเปิดฝา {fmtMin(LIMIT_AFTER_LID_MIN)}
           </Typography>
           <Box sx={{ flex: 1 }} />
-          <FormControlLabel control={<Switch size="small" checked={withClosed} onChange={(e) => setWithClosed(e.target.checked)} />} label="แสดงรายการที่ปิดแล้ว" />
+          <Button variant="outlined" startIcon={<HistoryIcon />} onClick={() => navigate("/other/history")} sx={{ textTransform: "none" }}>History (รายการที่ปิดแล้ว)</Button>
         </Box>
-        {error && <Alert severity="error" sx={{ mb: 1 }} action={<Button color="inherit" size="small" onClick={load}>ลองใหม่</Button>}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError("")} action={<Button color="inherit" size="small" onClick={load}>ลองใหม่</Button>}>{error}</Alert>}
         <Paper sx={{ borderRadius: "16px", overflow: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           <TableContainer sx={{ flex: 1, minHeight: 0 }}>
-            <Table stickyHeader size="small" sx={{ minWidth: 1100 }}>
+            <Table stickyHeader size="small" sx={{ minWidth: 1250 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ ...HEAD, width: 44 }} />
+                  <TableCell sx={HEAD}>ID</TableCell>
                   <TableCell sx={HEAD}>รายการ</TableCell>
                   <TableCell sx={HEAD} align="right">เตรียม (kg)</TableCell>
                   <TableCell sx={HEAD}>เตรียมเสร็จ</TableCell>
                   <TableCell sx={HEAD}>ในห้องเย็น</TableCell>
                   <TableCell sx={HEAD}>เปิดฝา</TableCell>
+                  <TableCell sx={HEAD}>ชุดย่อย</TableCell>
                   <TableCell sx={HEAD} align="right">ออกแล้ว (kg)</TableCell>
                   <TableCell sx={HEAD}>ทำรายการ</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map(({ lot, c }) => {
+                {rows.map(({ lot, c, s }) => {
                   const lv = LEVEL[c.worst];
                   const isOpen = open.has(lot.lot_id);
+                  const lid = !!lot.lid_open_at;
+                  const setsIn = s.sets.filter((x) => !x.out).length;
+                  const setsOut = s.sets.length - setsIn;
                   return (
                     <Fragment key={lot.lot_id}>
-                      <TableRow hover sx={{ background: lot.closed ? "#F3F4F6" : c.done ? "#DCEBFF" : lv.bg, opacity: lot.closed ? 0.7 : 1 }}>
+                      <TableRow hover sx={{ background: c.done ? "#DCEBFF" : lv.bg }}>
                         <TableCell><IconButton size="small" onClick={() => toggle(lot.lot_id)}>{isOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}</IconButton></TableCell>
+                        <TableCell><LotId lot={lot} /></TableCell>
                         <TableCell><strong>{lot.lot_name}</strong>{lot.ref_code ? <div style={{ fontSize: 12, color: "#6B7489" }}>{lot.ref_code}</div> : null}</TableCell>
-                        <TableCell align="right">{c.weight}</TableCell>
+                        <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                          {c.weight}
+                          <IconButton size="small" title="แก้ไขน้ำหนัก (ต้องใส่รหัส)" onClick={() => openDialog({ kind: "WEIGHT", lot })} sx={{ ml: 0.25 }}><EditIcon sx={{ fontSize: 16 }} /></IconButton>
+                        </TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(lot.prep_done_at)}</TableCell>
-                        <TableCell>{c.inCold > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.inCold} kg</b><Clock chunk={c.runningCold} limit={LIMIT_INSIDE_MIN} /></Box> : <span style={{ color: "#B0BAC9" }}>-</span>}</TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>{lot.lid_open_at ? <Chip size="small" color="warning" variant="outlined" label={fmtAt(lot.lid_open_at)} /> : <span style={{ color: "#B0BAC9" }}>ยังไม่เปิด</span>}</TableCell>
+                        <TableCell>{c.inCold > 0 ? <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}><b>{c.inCold} kg</b><Clock chunk={c.runningCold} limit={LIMIT_INSIDE_MIN} /></Box> : <span style={DIM}>-</span>}</TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>{lid ? <Chip size="small" color="warning" variant="outlined" label={fmtAt(lot.lid_open_at)} /> : <span style={DIM}>ยังไม่เปิด</span>}</TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                          {s.sets.length ? <>ในห้องเย็น <b>{setsIn}</b> · ออกแล้ว <b>{setsOut}</b></> : <span style={DIM}>-</span>}
+                          {lid && s.unassigned > 0 ? <div style={{ color: "#B26A00", fontSize: 12 }}>ยังไม่จัดชุด {s.unassigned} kg</div> : null}
+                        </TableCell>
                         <TableCell align="right">{c.outKg}</TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          {!lot.closed && (
-                            <>
-                              <Button size="small" variant="outlined" disabled={c.unplaced <= 0} onClick={() => setDialog({ kind: "IN", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เข้าห้องเย็น</Button>
-                              <Button size="small" variant="outlined" color="warning" disabled={c.inCold <= 0 || !!lot.lid_open_at} onClick={() => setDialog({ kind: "LID", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เปิดฝา</Button>
-                              <Button size="small" variant="outlined" disabled={c.inCold <= 0} onClick={() => setDialog({ kind: "OUT", lot })} sx={{ mr: 0.5, textTransform: "none" }}>ออกห้องเย็น</Button>
-                              <Button size="small" color="inherit" onClick={() => closeLot(lot)} sx={{ textTransform: "none" }}>ปิด</Button>
-                            </>
+                          <Button size="small" variant="outlined" disabled={c.unplaced <= 0} onClick={() => openDialog({ kind: "IN", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เข้าห้องเย็น</Button>
+                          <Button size="small" variant="outlined" color="warning" disabled={c.inCold <= 0 || lid} onClick={() => openDialog({ kind: "LID", lot })} sx={{ mr: 0.5, textTransform: "none" }}>เปิดฝา</Button>
+                          {lid ? (
+                            <Button size="small" variant="contained" disabled={s.unassigned <= 0} onClick={() => openDialog({ kind: "SPLIT", lot })} sx={{ mr: 0.5, textTransform: "none" }}>จัดชุด</Button>
+                          ) : (
+                            <Button size="small" variant="outlined" disabled={c.inCold <= 0} onClick={() => openDialog({ kind: "OUT", lot })} sx={{ mr: 0.5, textTransform: "none" }}>ออกห้องเย็น</Button>
                           )}
+                          <Button size="small" color="inherit" onClick={() => closeLot(lot)} sx={{ textTransform: "none" }}>ปิด</Button>
                         </TableCell>
                       </TableRow>
                       {isOpen && (
                         <TableRow>
                           <TableCell />
-                          <TableCell colSpan={7} sx={{ background: "#FAFBFF" }}>
-                            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1.4fr" }, gap: 2, py: 1 }}>
-                              <div>
-                                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>นอกห้องเย็น (เตรียมเสร็จ → เข้าห้องเย็น)</Typography>
-                                <Table size="small" sx={SUB}>
-                                  <TableHead><TableRow><TableCell align="right">น้ำหนัก</TableCell><TableCell>เวลา / เกณฑ์</TableCell><TableCell>เตรียมเสร็จ → เข้าห้องเย็น</TableCell></TableRow></TableHead>
-                                  <TableBody>
-                                    {c.outsideChunks.map((k, i) => (
-                                      <TableRow key={i}>
-                                        <TableCell align="right">{k.kg} kg</TableCell>
-                                        <TableCell><Clock chunk={k} limit={LIMIT_OUTSIDE_MIN} /></TableCell>
-                                        <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(k.fromAt)} → {k.toAt ? fmtAt(k.toAt) : <span style={{ color: "#B26A00" }}>ยังไม่เข้าห้องเย็น</span>}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                              <div>
-                                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>ในห้องเย็น (เข้า → ออก)</Typography>
-                                {c.coldChunks.length ? (
-                                  <Table size="small" sx={SUB}>
-                                    <TableHead><TableRow><TableCell align="right">น้ำหนัก</TableCell><TableCell>เวลา / เกณฑ์</TableCell><TableCell>เข้าห้องเย็น</TableCell><TableCell>ออกห้องเย็น</TableCell><TableCell>บรรจุเสร็จภายใน</TableCell><TableCell /></TableRow></TableHead>
-                                    <TableBody>
-                                      {c.coldChunks.map((k, i) => (
-                                        <TableRow key={i}>
-                                          <TableCell align="right">{k.kg} kg</TableCell>
-                                          <TableCell><Clock chunk={k} limit={LIMIT_INSIDE_MIN} /></TableCell>
-                                          <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(k.inAt)}</TableCell>
-                                          <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? fmtAt(k.outAt) : <span style={{ color: "#1552F0" }}>ยังอยู่ในห้องเย็น</span>}</TableCell>
-                                          <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? (k.packLeftMin > 0 ? fmtAt(k.packBy) : <span style={{ color: "#C62828" }}>ไม่เหลือเวลา</span>) : "-"}</TableCell>
-                                          <TableCell>{k.outAt && <IconButton size="small" title="พิมพ์สลิปออกห้องเย็น" onClick={() => openSlip(lot, k.outAt)}><PrintIcon fontSize="small" /></IconButton>}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : <span style={{ color: "#B0BAC9" }}>ยังไม่เข้าห้องเย็น</span>}
-                                {lot.note ? <div style={{ fontSize: 13, marginTop: 6, color: "#6B7489" }}>หมายเหตุ: {lot.note}</div> : null}
-                              </div>
-                            </Box>
+                          <TableCell colSpan={COLS - 1} sx={{ background: "#FAFBFF" }}>
+                            <LotDetail
+                              lot={lot} c={c} s={s} onPrint={setSlips}
+                              onSetOut={(set) => openDialog({ kind: "SET_OUT", lot, set })}
+                              onSetCancel={(set) => openDialog({ kind: "SET_CANCEL", lot, set })}
+                            />
                           </TableCell>
                         </TableRow>
                       )}
                     </Fragment>
                   );
                 })}
-                {!rows.length && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
+                {!rows.length && <TableRow><TableCell colSpan={COLS} align="center" sx={{ py: 5, color: "#90A4AE" }}>{loading ? "กำลังโหลด..." : "ไม่มีรายการ — กด \"เพิ่มรายการ\""}</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
       </main>
-      <OutSlip slip={slip} onClose={() => setSlip(null)} />
-      {dlg && <StampDialog open title={dlg.title} fields={dlg.fields} timeLabel={dlg.timeLabel} hint={dlg.hint} submitLabel={dlg.submitLabel} onClose={() => setDialog(null)} onSubmit={dlg.onSubmit} />}
+      <LotSlip slips={slips} onClose={() => setSlips(null)} />
+      {renderDialog()}
     </div>
   );
 };

@@ -58,6 +58,7 @@ import PackMoreFlows from "./pack/PackMoreFlows";
 import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/PackBatchDialogs";
 import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
+import ColdEditDialog from "./cold/ColdEditDialog";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -106,13 +107,19 @@ const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date &
 
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
+// a material in a cold room (v1 / v2): its Code (plan) / line / weight can be fixed from the tools of the row
+const IN_COLD = new Set(["อยู่ในห้องเย็น", "อยู่ในห้องเย็นใหญ่"]);
+// columns every account of the Role sees, also accounts that saved their columns before (added once, can be hidden again — useGridPrefs)
+const ENSURE_VISIBLE = { pack: [{ key: "w_total", after: "status" }, { key: "t_kg", after: "w_total" }] };
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
 // /ColdStorages HU stamps: เริ่มละลาย = ฟ้า, ละลายเสร็จ = แดง, จ่ายลงไลน์ (ส่งลงไลน์) = เขียว (row buttons and the scan buttons on the toolbar)
 const STAMP_COLOR = { start: "#0288D1", end: "#D32F2F", dispatch: "#2E7D32" };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
-// "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
-const CAN_ADD_RM = ["3", "4", "5", "6"].includes(localStorage.getItem("pos_id"));
+// "เพิ่ม RM" (หน้า managedelaymaster เดิม): เห็นเมื่อ Role (Workplace) ที่ใช้อยู่คือบรรจุ wp_id 4 (ค่าที่ตั้งตอน login / สลับ Role ที่ header)
+// อ่านตอนแสดงผล ไม่ใช่ตอนโหลดไฟล์ — หน้าที่โหลดไว้ก่อน login หรือก่อนสลับ Role ต้องเห็นค่าล่าสุด
+const ADD_RM_WP = ["4"];
+const canAddRM = () => ADD_RM_WP.includes(String(localStorage.getItem("wp_id") ?? "").trim());
 
 /** "น้ำหนัก (kg)" of the Pack confirm: typed per row, only for the rows that are ticked */
 const WeightInput = ({ value, disabled, onChange }) => {
@@ -151,6 +158,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
+  const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
   const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role) });
   const [statusDlg, setStatusDlg] = useState(false);
@@ -194,6 +202,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const running = useRef(false);    // one load at a time ...
   const again = useRef(false);      // ... a request that comes while one is running makes ONE more run afterwards
   const freshNext = useRef(false);  // ... and that run skips the server cache when one of the requests asked for it (right after a save)
+  const sinceNext = useRef(0);      // ... or asks for data read after this server time (the "at" of the newest sheetChanged event)
   const loadOnceRef = useRef(null); // always the latest loadOnce (the range / role may change while a load is running)
   const rangeKeyRef = useRef("");   // the answer of an old range must not replace the data of the new one
   const lastLoadAt = useRef(0);
@@ -208,14 +217,17 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   rangeKeyRef.current = `${role}|${range.all ? "all" : `${range.from}|${range.to}`}`;
 
-  const loadOnce = useCallback(async (freshRun) => {
+  const loadOnce = useCallback(async (freshRun, since) => {
     lastLoadAt.current = Date.now();
     const myKey = rangeKeyRef.current;
     if (!revRef.current) setLoading(true); // first load shows the spinner; the minute refresh does not flicker
     try {
       const params = range.all ? { days: DAYS } : { days: DAYS, open_from: range.from, open_to: range.to };
       if (revRef.current) params.rev = revRef.current;
+      // after a save of this page: fresh · after a save elsewhere: "since" — every open sheet asks with the same event time, so the server reads the
+      // database ONCE for all of them (a fresh load per screen on every event of every device was what kept the whole database busy)
       if (freshRun) params.fresh = 1;
+      else if (since) params.since = since;
       const res = await axios.get(`${API_URL}/api/sheet/rows`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "โหลดตารางไม่สำเร็จ");
       if (myKey !== rangeKeyRef.current) return; // the range / role changed while this was loading: a newer load is queued, drop this answer
@@ -255,10 +267,16 @@ const ParentComponent = ({ role, view = "work" }) => {
   // (an older answer can no longer arrive after a newer one and bring back the status the user just changed)
   const load = useCallback(async (opts) => {
     if (opts?.fresh === true) freshNext.current = true; // (onDone / onClick callbacks pass their own arguments: only an explicit { fresh: true } counts)
+    if (Number(opts?.since) > sinceNext.current) sinceNext.current = Number(opts.since);
     if (running.current) { again.current = true; return; }
     running.current = true;
     try {
-      do { again.current = false; const fresh = freshNext.current; freshNext.current = false; await loadOnceRef.current(fresh); } while (again.current);
+      do {
+        again.current = false;
+        const fresh = freshNext.current; const since = sinceNext.current;
+        freshNext.current = false; sinceNext.current = 0;
+        await loadOnceRef.current(fresh, since);
+      } while (again.current);
     } finally {
       running.current = false;
     }
@@ -275,10 +293,22 @@ const ParentComponent = ({ role, view = "work" }) => {
   useEffect(() => {
     if (!API_URL || view !== "work") return undefined;
     let timer = null;
+    let since = 0;
     // never give up reconnecting (a pm2 reload or a network drop must not freeze the live updates until the page is refreshed)
     const socket = io(API_URL, { transports: ["websocket"], reconnectionAttempts: Infinity, reconnectionDelay: 2000, reconnectionDelayMax: 10000, timeout: 10000 });
-    // an event is never dropped: right after our own load it is only postponed (a change of another user must not wait for the 1 minute timer); it reads from the database
-    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => load({ fresh: true }), Math.max(800, 3000 - (Date.now() - lastLoadAt.current))); };
+    // an event is never dropped: right after our own load it is only postponed (a change of another user must not wait for the 1 minute timer).
+    // One load per window: more events while it waits do not push it further away (a steady stream of saves used to postpone it for ever),
+    // they only move "since" to the newest event time (sheetChanged carries the server time of the save; the other events do not)
+    const refresh = (evt) => {
+      const at = Number(evt?.at) || 0;
+      if (at > since) since = at;
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        const s = since; since = 0;
+        load(s ? { since: s } : undefined);
+      }, Math.max(800, 3000 - (Date.now() - lastLoadAt.current)));
+    };
     // "sheetChanged": the server sends it after ANY successful write of any page, so a save on another device / Role shows here without a refresh (backend/sheetRealtime.js)
     // the server only sends these events to the rooms: join the ones that tell the table something changed.
     // (not saveRMForProdRoom: the server also pushes to it each time ANY page loads the plan list, which would make this table reload for ever)
@@ -365,6 +395,9 @@ const ParentComponent = ({ role, view = "work" }) => {
       }
     }
     if (r.__kind !== "map") return out;
+    if (IN_COLD.has(stLabel) && r.mapping_id) {
+      out.push({ col: "t_bar", key: "cold-edit", label: "แก้ไข Code / Line / น้ำหนัก", color: "#0F3FC4", icon: <EditOutlinedIcon fontSize="small" />, title: "แก้ไข Code (แผนผลิต) / Line / น้ำหนัก ของวัตถุดิบในห้องเย็น", run: () => setColdEdit({ row: r, seq: Date.now() }) });
+    }
     const st = String(r.rm_status || "");
     if (role === "cs1") {
       if (!r.cs_id && r.tro_id && CS1_DEST.includes(r.dest)) out.push({ col: "t_cs1", key: "in", label: "รับเข้า", color: "#E65100", run: () => trolleyRef.current?.checkin(r) });
@@ -486,7 +519,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Button variant="contained" size="small" startIcon={<ShoppingCartCheckoutOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("cart")}><span>ใส่รถเข็น</span>&nbsp;({selected.size})</Button>
       <Button variant="outlined" size="small" startIcon={<EditNoteOutlinedIcon />} disabled={!selected.size} onClick={() => openBatch("edit")}><span>แก้ไขแผนการผลิต</span>&nbsp;({selected.size})</Button>
       <Button variant="contained" size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!selected.size} onClick={() => openBatch("delete")}><span>ลบ</span>&nbsp;({selected.size})</Button>
-      {CAN_ADD_RM && <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
+      {canAddRM() && <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => moreRef.current?.addRM()}>เพิ่ม RM</Button>}
     </>
   );
   const actionBar = (
@@ -619,7 +652,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
     { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined };
+  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined, ensureVisible: ENSURE_VISIBLE[role] };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -690,6 +723,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Snackbar>
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
+      {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
       <CheckoutFlow ref={checkoutRef} onDone={reload} />

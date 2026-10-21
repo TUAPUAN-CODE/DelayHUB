@@ -6,6 +6,7 @@ const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 
 // Role "Other": Delay control of lots outside the trolley system + the chicken broth time stamp (moved here from the Prep Role)
 const DelayControlPage = lazy(() => import("./DelayControl/DelayControlPage"));
+const DelayHistoryPage = lazy(() => import("./DelayHistory/DelayHistoryPage"));
 const Timestamp = lazy(() => import("../Prep/Timestampbroth/Timestampborth.jsx"));
 
 function AppOther() {
@@ -19,6 +20,7 @@ function AppOther() {
         <Routes>
           <Route path="/" element={<Navigate to="/other/delay" replace />} />
           <Route path="/delay" element={<DelayControlPage />} />
+          <Route path="/history" element={<DelayHistoryPage />} />
           <Route path="/timestamp" element={<Timestamp />} />
         <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
         </Routes>

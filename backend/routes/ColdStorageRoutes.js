@@ -7401,9 +7401,10 @@ ORDER BY rmm.mapping_id DESC
                 )`;
             }
 
-            // Add status condition
-            if (status) {
-                if (status === 'exitColdRoom') {
+            // Add status condition (the history page sends the Thai names of its colour buttons)
+            const statusKey = { 'ออกห้องเย็น': 'exitColdRoom', 'เข้าห้องเย็น': 'enterColdRoom', 'รอดำเนินการ': 'pending' }[status] || status;
+            if (statusKey) {
+                if (statusKey === 'exitColdRoom') {
                     additionalWhereConditions += `
                     AND (
                         (h.out_cold_date_three IS NOT NULL AND h.come_cold_date_three IS NOT NULL)
@@ -7413,7 +7414,7 @@ ORDER BY rmm.mapping_id DESC
                         (h.out_cold_date IS NOT NULL AND h.come_cold_date IS NOT NULL AND h.come_cold_date_two IS NULL)
                     )
                 `;
-                } else if (status === 'enterColdRoom') {
+                } else if (statusKey === 'enterColdRoom') {
                     additionalWhereConditions += `
                     AND (
                         (h.come_cold_date_three IS NOT NULL AND h.out_cold_date_three IS NULL)
@@ -7423,7 +7424,7 @@ ORDER BY rmm.mapping_id DESC
                         (h.come_cold_date IS NOT NULL AND h.out_cold_date IS NULL)
                     )
                 `;
-                } else if (status === 'pending') {
+                } else if (statusKey === 'pending') {
                     additionalWhereConditions += `
                     AND h.come_cold_date IS NULL
                 `;
@@ -7495,29 +7496,52 @@ ORDER BY rmm.mapping_id DESC
                 }
             }
 
+            // the rows of the page: the same joins for the count and the page. The conditions above all start with "AND" — the old main query had
+            // no WHERE before them, so they were added to the LEFT JOIN of Slot and filtered nothing: every page sorted the WHOLE History
+            // (no search / date / status filter worked) and the page timed out
+            const baseFrom = `
+            FROM History h WITH (NOLOCK)
+            JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON h.mapping_id = rmm.mapping_id
+            JOIN RMForProd rmf WITH (NOLOCK) ON rmm.rmfp_id = rmf.rmfp_id
+            JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+            JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+            JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+            JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+            LEFT JOIN Slot s WITH (NOLOCK) ON rmm.tro_id = s.tro_id
+            WHERE 1=1
+            ${additionalWhereConditions}`;
+            const latestSql = `
+                CASE
+                    WHEN h.come_cold_date_three IS NOT NULL THEN h.come_cold_date_three
+                    WHEN h.out_cold_date_three IS NOT NULL THEN h.out_cold_date_three
+                    WHEN h.come_cold_date_two IS NOT NULL THEN h.come_cold_date_two
+                    WHEN h.out_cold_date_two IS NOT NULL THEN h.out_cold_date_two
+                    WHEN h.come_cold_date IS NOT NULL THEN h.come_cold_date
+                    ELSE h.out_cold_date
+                END`;
+
             // Count total query
             const countQuery = `
             SELECT COUNT(*) AS total
-            FROM History h
-            JOIN TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
-            JOIN RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
-            JOIN ProdRawMat pr ON rmf.prod_rm_id = pr.prod_rm_id
-            JOIN RawMat rm ON pr.mat = rm.mat
-            JOIN Production p ON pr.prod_id = p.prod_id
-            LEFT JOIN Slot s ON rmm.tro_id = s.tro_id
-            WHERE 1=1
-            ${additionalWhereConditions}
+            ${baseFrom}
         `;
 
-            // Main query
+            // Main query: step 1 sorts only the keys and takes the page; step 2 reads the wide columns (QC, batch text, ...) for those rows only
             const mainQuery = `
+            WITH pick AS (
+                SELECT h.hist_id, s.slot_id AS pick_slot_id, ${latestSql} AS latest_at
+                ${baseFrom}
+                ORDER BY latest_at DESC, h.hist_id DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
+            )
             SELECT
                 rm.mat_name AS rawMaterialName,
                 rm.mat AS mat,
                 ISNULL(
     (
         SELECT STRING_AGG(b2.batch_after, CHAR(13) + CHAR(10))
-        FROM Batch b2
+        FROM Batch b2 WITH (NOLOCK)
         WHERE b2.mapping_id = rmm.mapping_id
               AND b2.batch_after IS NOT NULL
     ),
@@ -7525,7 +7549,7 @@ ORDER BY rmm.mapping_id DESC
 ) AS batch,
                 p.doc_no + ' (' + h.rmm_line_name + ')' AS code,
                 h.tro_id AS trolleyId,
-                s.slot_id,
+                k.pick_slot_id AS slot_id,
                 h.weight_RM AS weight,
                 h.tray_count AS trayCount,
                 q.sq_remark,
@@ -7547,7 +7571,7 @@ ORDER BY rmm.mapping_id DESC
                 h.prepare_mor_night,
                 h.remark_rework,
                 h.receiver_qc_cold,
-                CONCAT(q.WorkAreaCode, \'-\', mwa.WorkAreaName, '/', q.md_no) AS machine_MD,
+                CONCAT(q.WorkAreaCode, '-', mwa.WorkAreaName, '/', q.md_no) AS machine_MD,
                 CONVERT(VARCHAR, h.rmit_date, 120) AS prepCompleteTime,
                 FORMAT(rmm.prep_to_cold_time, 'N2') AS ptc_time,
                 FORMAT(rmg.prep_to_cold, 'N2') AS standard_ptc,
@@ -7568,40 +7592,18 @@ ORDER BY rmm.mapping_id DESC
                 h.cold_to_pack_time,
                 rmg.cold_to_pack,
                 h.cold_dest
-            FROM
-                History h
-            JOIN
-                TrolleyRMMapping rmm ON h.mapping_id = rmm.mapping_id
-            JOIN
-                RMForProd rmf ON rmm.rmfp_id = rmf.rmfp_id
-            JOIN
-                ProdRawMat pr ON rmm.tro_production_id = pr.prod_rm_id
-            JOIN
-                RawMat rm ON pr.mat = rm.mat
-            JOIN
-                Production p ON pr.prod_id = p.prod_id
-            LEFT JOIN
-                Qc q ON rmm.qc_id = q.qc_id
-            LEFT JOIN
-                WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
-            JOIN
-                RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
-            LEFT JOIN
-                Slot s ON rmm.tro_id = s.tro_id
-            -- WHERE 1=1: the conditions start with AND; without it they were added to the ON of "LEFT JOIN Slot" and filtered nothing
-            WHERE 1=1
-            ${additionalWhereConditions}
-            ORDER BY
-    CASE
-        WHEN h.come_cold_date_three IS NOT NULL THEN h.come_cold_date_three
-        WHEN h.out_cold_date_three IS NOT NULL THEN h.out_cold_date_three
-        WHEN h.come_cold_date_two IS NOT NULL THEN h.come_cold_date_two
-        WHEN h.out_cold_date_two IS NOT NULL THEN h.out_cold_date_two
-        WHEN h.come_cold_date IS NOT NULL THEN h.come_cold_date
-        ELSE h.out_cold_date
-    END DESC
-            OFFSET @offset ROWS
-            FETCH NEXT @pageSize ROWS ONLY
+            FROM pick k
+            JOIN History h WITH (NOLOCK) ON h.hist_id = k.hist_id
+            JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON h.mapping_id = rmm.mapping_id
+            JOIN RMForProd rmf WITH (NOLOCK) ON rmm.rmfp_id = rmf.rmfp_id
+            JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+            JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+            JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+            JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+            LEFT JOIN Qc q WITH (NOLOCK) ON rmm.qc_id = q.qc_id
+            LEFT JOIN WorkAreas mwa WITH (NOLOCK) ON q.WorkAreaCode = mwa.WorkAreaCode
+            ORDER BY k.latest_at DESC, k.hist_id DESC
+            OPTION (MAX_GRANT_PERCENT = 3)
         `;
 
             // Prepare requests

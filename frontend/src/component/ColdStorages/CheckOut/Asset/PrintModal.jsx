@@ -31,13 +31,13 @@ const PrintModal = ({ open, onClose, data }) => {
         // More aggressive CSS to eliminate all margins and ensure content fits full width
         const css = `
             @page {
-                size: 72.1mm 297mm !important;
+                size: 80mm 297mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
             }
             
             html, body {
-                width: 72.1mm !important;
+                width: 80mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
                 overflow: hidden !important;
@@ -48,7 +48,7 @@ const PrintModal = ({ open, onClose, data }) => {
             }
             
             .print-container {
-                width: 72.1mm !important;
+                width: 80mm !important;
                 padding: 1mm !important;
                 margin: 0mm !important;
             }
@@ -57,8 +57,8 @@ const PrintModal = ({ open, onClose, data }) => {
                 .MuiDialog-paper {
                     margin: 0mm !important;
                     padding: 0mm !important;
-                    width: 72.1mm !important;
-                    max-width: 72.1mm !important;
+                    width: 80mm !important;
+                    max-width: 80mm !important;
                     box-shadow: none !important;
                 }
             }
@@ -310,8 +310,8 @@ open={open}
                     maxWidth: 'none',
                     margin: 0,
                     '@media print': {
-                        width: '72.1mm !important',
-                        maxWidth: '72.1mm !important',
+                        width: '80mm !important',
+                        maxWidth: '80mm !important',
                         height: 'auto',
                         minHeight: '200px',
                         margin: '0mm !important',
@@ -332,7 +332,7 @@ open={open}
                     flexDirection: "column",
                     alignItems: "center",
                     '@media print': {
-                        width: '72.1mm !important',
+                        width: '80mm !important',
                         padding: '1mm !important',
                         margin: '0mm !important',
                         overflow: 'visible',

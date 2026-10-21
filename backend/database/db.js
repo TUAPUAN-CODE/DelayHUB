@@ -137,6 +137,7 @@ const getPoolStats = () => {
 module.exports = {
   connectToDatabase,
   getPoolStats,
+  dbConfig, // lib/dbTuning.js เปิด connection แยก (timeout ยาวสำหรับสร้างดัชนี) ด้วยค่าเดียวกัน
   connectToDatabaseWC,
   sql: mssql,
 };
