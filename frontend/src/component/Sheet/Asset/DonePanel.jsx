@@ -30,6 +30,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
   const [error, setError] = useState("");
   const [activeKey, setActiveKey] = useState(null);
   const [exportKind, setExportKind] = useState(null); // "pdf" | "excel"
+  const [shown, setShown] = useState(null); // rows the grid shows now (after its search / column filters)
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -40,6 +41,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
       if (from && to) { params.date_from = from; params.date_to = to; }
       const res = await axios.get(`${API_URL}/api/sheet/done`, { params });
       if (!res.data?.success) throw new Error(res.data?.error || "ดึงข้อมูล Done ไม่สำเร็จ");
+      setShown(null);
       setMappings(res.data.mappings || []);
       setInfo({ capped: !!res.data.capped, limit: res.data.limit, from: res.data.date_from, to: res.data.date_to });
     } catch (err) {
@@ -63,6 +65,21 @@ const DonePanel = ({ gridKey, gridProps }) => {
 
   const rows = useMemo(() => (mappings ? buildRows([], mappings, {}, [], Date.now()) : []), [mappings]);
 
+  // Export takes the rows the user narrowed the grid down to; its Date is filled from them:
+  // every row packed on one day -> that day, else the fetched range when it is one day, else today
+  const exportRows = useMemo(() => {
+    if (!mappings) return [];
+    if (!shown) return mappings;
+    const ids = new Set(shown.map((r) => r.mapping_id).filter((v) => v !== null && v !== undefined));
+    return mappings.filter((m) => ids.has(m.mapping_id));
+  }, [mappings, shown]);
+  const exportDate = useMemo(() => {
+    const days = new Set(exportRows.map((r) => String(r.sc_pack_date || "").slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
+    if (days.size === 1) return [...days][0];
+    if (info?.from && info.from === info.to) return info.from;
+    return "";
+  }, [exportRows, info]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, px: 1.5, py: 1, mb: 1, flexShrink: 0 }}>
@@ -77,10 +94,10 @@ const DonePanel = ({ gridKey, gridProps }) => {
         </Select>
         <Button variant="contained" onClick={search} disabled={loading || (!!from && !!to && from > to)}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
-        <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!mappings?.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
+        <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!exportRows.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
+        <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!exportRows.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
       </Paper>
-      <DoneExportDialog open={!!exportKind} kind={exportKind} rows={mappings || []} onClose={() => setExportKind(null)} />
+      <DoneExportDialog open={!!exportKind} kind={exportKind} rows={exportRows} defaultDate={exportDate} onClose={() => setExportKind(null)} />
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (
         <Alert severity="warning" sx={{ mb: 1 }}>ข้อมูลถึงเพดาน {info.limit.toLocaleString()} แถว อาจยังมีแถวที่ไม่ได้แสดง — ลดช่วงวันที่หรือใส่คำค้นให้แคบลง หรือเพิ่มจำนวนสูงสุด</Alert>
@@ -100,7 +117,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
             <DataGrid
               fill detail gridKey={gridKey} title="Done" defaultExt={DEFAULT_EXT} rows={rows} rowKey={noKey} loading={loading} hideReload ctx={NO_TOOLS}
               activeKey={activeKey} onRowClick={(r) => setActiveKey((k) => (k === r.__key ? null : r.__key))}
-              searchPlaceholder="ค้นหาในผลลัพธ์ที่ดึงมา ... (คลิกแถวแล้วกด Detail → ผสมจาก เพื่อดูว่าผสมมาจากอะไร)" {...gridProps}
+              searchPlaceholder="ค้นหาในผลลัพธ์ที่ดึงมา ... (คลิกแถวแล้วกด Detail → ผสมจาก เพื่อดูว่าผสมมาจากอะไร)" {...gridProps} onShownRowsChange={setShown}
             />
           )}
         </div>

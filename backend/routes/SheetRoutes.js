@@ -69,7 +69,17 @@ const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%'
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
 
 /** scope "open" = the work table (everything not finished, however old) · scope "done" = finished rows, searched on demand (date range + text) */
-const buildMappingQuery = (scope = "open") => `
+// Done table by dates: the mappings that have a History time inside the range, found first by the date columns themselves.
+// Without it SQL Server worked out the latest History row of EVERY finished mapping ever (they only grow) before it could compare the dates.
+// It never drops a row the full condition keeps: a row whose DONE_DATE_SQL is in the range has that same History column in the range.
+const DONE_DATE_COLS = ["sc_pack_date", "out_cold_date", "come_cold_date", "rmit_date", "cooked_date"];
+const DONE_RANGE_SQL = `rmm.mapping_id IN (
+              SELECT hd.mapping_id FROM History hd WITH (NOLOCK)
+              WHERE ${DONE_DATE_COLS.map((c) => `(hd.${c} >= @date_from AND hd.${c} < DATEADD(DAY, 1, @date_to))`).join("\n                 OR ")}
+          )`;
+
+/** opts.dated (scope "done"): the request has a date range (no text) */
+const buildMappingQuery = (scope = "open", opts = {}) => `
   SELECT TOP (@mlimit)
       rmm.mapping_id,
       rmm.from_mapping_id,
@@ -193,7 +203,8 @@ const buildMappingQuery = (scope = "open") => `
       AND ${scope === "done" ? `
           ${DONE_SQL}
           -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
-          AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))
+          AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))${opts.dated ? `
+          AND ${DONE_RANGE_SQL}` : ""}
           -- text search: any of the data columns of the table (same columns as the Sheet's settings)
           AND (@q = N'' OR (
               rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
@@ -396,7 +407,7 @@ router.get("/sheet/done", async (req, res) => {
       .input("date_to", sql.Date, useDates ? dateTo : null)
       .input("q", sql.NVarChar(100), q)
       .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
-      .query(buildMappingQuery("done")));
+      .query(buildMappingQuery("done", { dated: useDates })));
 
     res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {

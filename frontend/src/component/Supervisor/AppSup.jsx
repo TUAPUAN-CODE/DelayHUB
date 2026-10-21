@@ -3,9 +3,6 @@ import { Suspense, lazy } from "react";
 
 import Sidebar from "./SidebarSup";
 
-import SheetPage from "../Sheet/SheetPage";
-import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
-const MappingToolPage = lazyMapping(() => import("../Sheet/MappingToolPage"));
 // ใช้ Lazy Loading เพื่อลดขนาดไฟล์ที่โหลดตอนแรก
 const TableUserPage = lazy(() => import("./TableUser/TableUserPage"));
 
@@ -16,8 +13,7 @@ const ProcessingTable = lazy(() => import("./TableRawmat/Processing/ProcessingTa
 const CookGroupTable = lazy(() => import("./TableRawmat/CookGroup/CookGroupTable"));
 const RawmatGroupTable = lazy(() => import("./TableRawmat/RawmatGroup/RawmatGroupTable"));
 
-// Production
-const ProdRawmatTable = lazy(() => import("./TableProduction/ProdRawmat/ProdRawmatTable"));
+// Production (Code): bound to every Mat automatically — the ProdRawmat page is no longer used
 const ProductionTable = lazy(() => import("./TableProduction/Production/ProductionTable"));
 
 
@@ -53,7 +49,6 @@ const routes = [
   // { path: "/CookGroup", element: <CookGroupTable /> },
 
   // จัดการการผลิต
-  { path: "/ProdRawmat", element: <ProdRawmatTable /> },
   { path: "/Production", element: <ProductionTable /> },
 
   // จัดการพนักงาน
@@ -103,16 +98,14 @@ function AppSup() {
         }
       >
         <Routes>
-          <Route path="/Sheet" element={<SheetPage role="sup" />} />
-        <Route path="/Mapping" element={<SuspenseMapping fallback={null}><MappingToolPage /></SuspenseMapping>} />
           <Route path="/Traceback" element={<TracebackPage />} />
           {/* the three old delay reports became one: old links go to the report */}
           {["/DelayTimepercentage_tie", "/DelayTimeTrackingRM", "/TrackTrolley/inprocess"].map((p) => (
             <Route key={p} path={p} element={<Navigate to="/sup/Report" replace />} />
           ))}
-          {/* pages that were removed: old links go to the sheet */}
-          {["/", "/TableMainSupv", "/TableToCold", "/HisInput", "/ipscvF", "/AddPKG", "/AddIGD", "/DelayTraking", "/import/rm/csv", "/delay/report", "/delay/report/line", "/DelayTimeTrackingRMinprocess"].map((p) => (
-            <Route key={p} path={p} element={<Navigate to="/sup/Sheet" replace />} />
+          {/* pages that were removed (the Sheet pages กำลังดำเนินการ / ดำเนินการเสร็จสิ้น, ค้นหา mapping_id and ProdRawmat too): old links go to ตารางวัตถุดิบ */}
+          {["/", "/Sheet", "/Mapping", "/ProdRawmat", "/TableMainSupv", "/TableToCold", "/HisInput", "/ipscvF", "/AddPKG", "/AddIGD", "/DelayTraking", "/import/rm/csv", "/delay/report", "/delay/report/line", "/DelayTimeTrackingRMinprocess"].map((p) => (
+            <Route key={p} path={p} element={<Navigate to="/sup/Rawmat" replace />} />
           ))}
           {routes.map((route, index) => (
             <Route key={index} path={route.path} element={route.element} />

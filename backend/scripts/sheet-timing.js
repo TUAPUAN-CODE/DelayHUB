@@ -12,7 +12,9 @@ const to = process.argv[3] || from;
 
 const bind = (r) => r
   .input("days", sql.Int, 7).input("limit", sql.Int, 3000).input("mlimit", sql.Int, 20000)
-  .input("open_from", sql.Date, from).input("open_to", sql.Date, to);
+  .input("open_from", sql.Date, from).input("open_to", sql.Date, to)
+  // the Done table (ดำเนินการเสร็จสิ้น) by the same dates, no text
+  .input("date_from", sql.Date, from).input("date_to", sql.Date, to).input("q", sql.NVarChar(100), "").input("q_like", sql.NVarChar(110), "%%");
 
 (async () => {
   const pool = await connectToDatabase();
@@ -27,7 +29,7 @@ const bind = (r) => r
   }
 
   console.log(`\n== ดัชนีที่ขึ้นต้นด้วยคอลัมน์ที่หน้า Sheet ค้นหา ==`);
-  const need = [["History", "mapping_id"], ["Batch", "mapping_id"], ["Slot", "tro_id"], ["RM_EmuMixed", "rmfp_id"], ["PackTrolley", "tro_id"], ["TrolleyRMMapping", "rmfp_id"], ["TrolleyRMMapping", "mapping_id"]];
+  const need = [["History", "mapping_id"], ["History", "sc_pack_date"], ["History", "out_cold_date"], ["Batch", "mapping_id"], ["Slot", "tro_id"], ["RM_EmuMixed", "rmfp_id"], ["PackTrolley", "tro_id"], ["TrolleyRMMapping", "rmfp_id"], ["TrolleyRMMapping", "mapping_id"]];
   for (const [t, c] of need) {
     const r = await pool.request().query(`
       SELECT COUNT(*) AS n FROM sys.index_columns ic
@@ -48,5 +50,6 @@ const bind = (r) => r
   await run("hus", buildHuQuery());
   await run("plans", buildPlanQuery());
   await run("mixed", buildMixedQuery());
+  await run("done", buildMappingQuery("done", { dated: true }));
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

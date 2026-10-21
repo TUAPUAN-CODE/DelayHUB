@@ -24,3 +24,15 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_PackTrolley_tro_id_st
 -- TrolleyRMMapping: สถานะ/ปลายทาง (ตารางดำเนินการเสร็จสิ้นกรองด้วย dest/rm_status) และ rmfp_id
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_TrolleyRMMapping_rmfp_id' AND object_id = OBJECT_ID(N'dbo.TrolleyRMMapping'))
     CREATE NONCLUSTERED INDEX IX_TrolleyRMMapping_rmfp_id ON dbo.TrolleyRMMapping (rmfp_id);
+
+-- History: วันที่ที่ตารางดำเนินการเสร็จสิ้นใช้กรองช่วงวัน (DONE_RANGE_SQL ใน routes/SheetRoutes.js) — ทำให้ค้นด้วยช่วงวันที่แบบ seek ได้ แทนการไล่ทั้งตาราง
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_History_sc_pack_date' AND object_id = OBJECT_ID(N'dbo.History'))
+    CREATE NONCLUSTERED INDEX IX_History_sc_pack_date ON dbo.History (sc_pack_date) INCLUDE (mapping_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_History_out_cold_date' AND object_id = OBJECT_ID(N'dbo.History'))
+    CREATE NONCLUSTERED INDEX IX_History_out_cold_date ON dbo.History (out_cold_date) INCLUDE (mapping_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_History_come_cold_date' AND object_id = OBJECT_ID(N'dbo.History'))
+    CREATE NONCLUSTERED INDEX IX_History_come_cold_date ON dbo.History (come_cold_date) INCLUDE (mapping_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_History_rmit_date' AND object_id = OBJECT_ID(N'dbo.History'))
+    CREATE NONCLUSTERED INDEX IX_History_rmit_date ON dbo.History (rmit_date) INCLUDE (mapping_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_History_cooked_date' AND object_id = OBJECT_ID(N'dbo.History'))
+    CREATE NONCLUSTERED INDEX IX_History_cooked_date ON dbo.History (cooked_date) INCLUDE (mapping_id);

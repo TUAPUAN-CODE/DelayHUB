@@ -285,7 +285,10 @@ const ColdStorageTable = ({
   totalRows = 0,
   handleChangePage,
   handleChangeRowsPerPage,
-  backgroundColor
+  backgroundColor,
+  // hidePagination: every row is already loaded (the history page reads a whole day / range), the table just scrolls
+  hidePagination = false,
+  height = 'calc(100vh - 16rem)',
 }) => {
   // จัดกลุ่มข้อมูลตามรถเข็น
   const [groupedData, setGroupedData] = useState([]);
@@ -351,7 +354,7 @@ const ColdStorageTable = ({
         variant="outlined"
         style={{ padding: '0 5px' }}
         sx={{
-          height: 'calc(100vh - 16rem)',
+          height,
           width: '100%',
           overflowY: 'auto',
           marginTop: 0,
@@ -403,7 +406,7 @@ const ColdStorageTable = ({
         </Table>
       </TableContainer>
 
-      <TablePagination
+      {!hidePagination && <TablePagination
         sx={{
           "& .MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows, .MuiTablePagination-toolbar": {
             fontSize: '12px',
@@ -424,7 +427,7 @@ const ColdStorageTable = ({
         labelDisplayedRows={({ from, to, count }) =>
           `${from}–${to} จาก ${count !== -1 ? count : `มากกว่า ${to}`}`
         }
-      />
+      />}
     </>
   );
 };

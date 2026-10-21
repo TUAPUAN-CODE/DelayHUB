@@ -25,7 +25,7 @@ const useTableToolsPlus = (rows, storeKey) => {
   const keys = useMemo(() => deriveColumns(rows), [rows]);
   const columns = useMemo(() => keys.map((k) => {
     // numbers / dates are sorted and labelled as such in the column dropdown
-    const vals = (rows || []).slice(0, 200).map((r) => r?.[k]).filter((v) => v !== null && v !== undefined && v !== "");
+    const vals = (Array.isArray(rows) ? rows : []).slice(0, 200).map((r) => r?.[k]).filter((v) => v !== null && v !== undefined && v !== "");
     const type = vals.length && vals.every((v) => typeof v === "number" || (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)))) ? "number"
       : vals.length && vals.every((v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) ? "time" : "text";
     return { key: k, label: prettify(k), kind: "data", type };

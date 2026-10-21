@@ -13,7 +13,6 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import withTableTools from "../../../Layout/withTableTools";
 // ─── Helper: derive display location string ───────────────────────────────────
 const getDisplayLocation = (row) => {
   const loc = row.trolley_location || '';
@@ -670,4 +669,6 @@ const TrolleyTable = ({ data, handleOpenEditModal }) => {
   );
 };
 
-export default withTableTools(TrolleyTable);
+// not wrapped with withTableTools: `data` is { trolleys, summary } (not an array) — the wrapper called data.slice() and the page
+// crashed with "(e || []).slice is not a function". The table has its own search / group / sort buttons.
+export default TrolleyTable;

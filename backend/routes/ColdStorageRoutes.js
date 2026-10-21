@@ -7337,7 +7337,8 @@ ORDER BY rmm.mapping_id DESC
 
         // Convert page and pageSize to numbers
         const pageNum = parseInt(page, 10) || 1;
-        const pageSizeNum = parseInt(pageSize, 10) || 100;
+        // the history page asks for a whole day / date range at once (one table that scrolls); capped so one request cannot read the whole History
+        const pageSizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 100, 1), 10000);
 
         try {
             const pool = await connectToDatabase();
@@ -7449,6 +7450,14 @@ ORDER BY rmm.mapping_id DESC
                             AND CONVERT(DATETIME, h.out_cold_date)
                             BETWEEN CONVERT(DATETIME, @startDate) AND CONVERT(DATETIME, @endDate)
                         )
+                    )
+                `;
+                } else if (filterType === 'any') {
+                    // entered or left the cold room (any round) inside the range
+                    additionalWhereConditions += `
+                    AND (
+                        ${["come_cold_date", "come_cold_date_two", "come_cold_date_three", "out_cold_date", "out_cold_date_two", "out_cold_date_three"]
+                            .map((c) => `(h.${c} >= CONVERT(DATETIME, @startDate) AND h.${c} <= CONVERT(DATETIME, @endDate))`).join("\n                        OR ")}
                     )
                 `;
                 } else if (filterType === 'enter') {
@@ -7573,6 +7582,8 @@ ORDER BY rmm.mapping_id DESC
                 RawMatGroup rmg ON rmf.rm_group_id = rmg.rm_group_id
             LEFT JOIN
                 Slot s ON rmm.tro_id = s.tro_id
+            -- WHERE 1=1: the conditions start with AND; without it they were added to the ON of "LEFT JOIN Slot" and filtered nothing
+            WHERE 1=1
             ${additionalWhereConditions}
             ORDER BY
     CASE
@@ -8220,7 +8231,8 @@ ORDER BY rmm.mapping_id DESC
                     start_defrost_date_four,
                     input_cd_date,
                     input_cd_date_two,
-                    input_cd_date_three
+                    input_cd_date_three,
+                    FORMAT(withdraw_date, 'dd/MM/yyyy HH:mm') AS withdraw_at
                 FROM SAP_Receive
                 WHERE hu = @hu AND status = 1
             `);
@@ -8257,7 +8269,10 @@ ORDER BY rmm.mapping_id DESC
                         await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
-                            message: "ยังไม่มีการเริ่มละลายรอบที่ 1 (start_defrost_date)",
+                            // the HU row was created by "จ่ายลงไลน์" (scan/sap) without thawing
+                            message: row.withdraw_at
+                                ? `ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์แล้ว (เมื่อ ${row.withdraw_at} น.) โดยไม่ได้ผ่านการละลาย จึงบันทึกเวลาเริ่มละลายไม่ได้`
+                                : "ป้ายนี้ยังไม่ได้ Time Stamp เวลาเริ่มละลายรอบที่ 1",
                         });
                     }
                     if (!row.input_cd_date) {
@@ -8410,7 +8425,9 @@ ORDER BY rmm.mapping_id DESC
                 await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
-                    message: "ไม่พบรอบที่รอ end_defrost หรือครบทุกรอบแล้ว",
+                    message: row.start_defrost_date
+                        ? "ป้ายนี้ Time Stamp เวลาละลายเสร็จแล้ว ถ้าจะละลายอีกครั้งต้องสแกนเริ่มละลายรอบใหม่ก่อน"
+                        : "ป้ายนี้ยังไม่ได้ Time Stamp เวลาเริ่มละลาย ต้องสแกนเริ่มละลายก่อน",
                 });
             }
 

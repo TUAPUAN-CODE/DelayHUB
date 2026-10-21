@@ -154,3 +154,25 @@ html[lang="km"] body, html[lang="km"] .MuiTypography-root, html[lang="km"] .MuiB
 
 /* tables with page buttons: the "rows per page" chooser is hidden to leave room for the rows (the page arrows stay) */
 .MuiTablePagination-selectLabel, .MuiTablePagination-input { display: none !important; }
+
+/* ---------- Printing a slip from a dialog (thermal printer, paper 80 x 297 mm) ----------
+   window.print() prints the whole page: the page behind the dialog (top bar, Sheet, the coloured body::before) came out on the
+   slip on some PCs and pushed the slip to the right / shrank it. While a dialog is open only that dialog is printed, as a plain
+   white block as wide as the paper the printer is set to, so the slip fills the paper at its normal font size. */
+@media print {
+  html, body { background: #fff !important; }
+  body::before { display: none !important; }
+  body:has(> .MuiDialog-root:not(.MuiModal-hidden)) > *:not(.MuiDialog-root):not(#__broth_slip__) { display: none !important; }
+  /* two dialogs open (a print modal over another dialog): only the top one is the slip */
+  body > .MuiDialog-root:has(~ .MuiDialog-root:not(.MuiModal-hidden)) { display: none !important; }
+  body > .MuiDialog-root { position: static !important; inset: auto !important; }
+  body > .MuiDialog-root .MuiBackdrop-root { display: none !important; }
+  body > .MuiDialog-root .MuiDialog-container { display: block !important; height: auto !important; opacity: 1 !important; transform: none !important; }
+  body > .MuiDialog-root .MuiDialog-paper {
+    position: static !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; max-height: none !important;
+    overflow: visible !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; transform: none !important;
+    background: #fff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+  body > .MuiDialog-root .MuiDialogContent-root { overflow: visible !important; max-height: none !important; }
+  body > .MuiDialog-root .MuiDialog-paper img, body > .MuiDialog-root .MuiDialog-paper canvas, body > .MuiDialog-root .MuiDialog-paper table { max-width: 100% !important; }
+}

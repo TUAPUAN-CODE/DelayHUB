@@ -185,6 +185,7 @@ router.get("/fetchProduction", async (req, res) => {
 
 
 const sql = require("mssql");
+const { safeRollback } = require("../lib/safeRollback");
 
 router.get("/fetchGroup", async (req, res) => {
   const { mat } = req.query; // Changed from req.body to req.query for GET requests
@@ -563,16 +564,32 @@ router.post("/add-production", async (req, res) => {
         });
     }
 
-    // เพิ่มข้อมูลลงในฐานข้อมูล
-    await pool
-      .request()
-      .input("code", code)
-      .input("doc_no", doc_no)
-      .input("line_type_id", line_type_id)
-      .query(`
-        INSERT INTO Production (code, doc_no, line_type_id)
-        VALUES (@code, @doc_no, @line_type_id)
-      `);
+    // เพิ่มแผนการผลิต + ผูกกับวัตถุดิบ (Mat) ทุกตัวในระบบทันที (ProdRawMat ไม่ต้องผูกเองแล้ว) — ทำใน transaction เดียว
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    try {
+      const inserted = await new sql.Request(transaction)
+        .input("code", code)
+        .input("doc_no", doc_no)
+        .input("line_type_id", line_type_id)
+        .query(`
+          INSERT INTO Production (code, doc_no, line_type_id)
+          OUTPUT INSERTED.prod_id
+          VALUES (@code, @doc_no, @line_type_id)
+        `);
+      await new sql.Request(transaction)
+        .input("prod_id", sql.Int, inserted.recordset[0].prod_id)
+        .query(`
+          INSERT INTO ProdRawMat (mat, prod_id)
+          SELECT rm.mat, @prod_id
+          FROM RawMat rm
+          WHERE NOT EXISTS (SELECT 1 FROM ProdRawMat pr WHERE pr.mat = rm.mat AND pr.prod_id = @prod_id)
+        `);
+      await transaction.commit();
+    } catch (txError) {
+      await safeRollback(transaction);
+      throw txError;
+    }
 
     res
       .status(201)
@@ -937,7 +954,10 @@ router.post("/import-prod-rawmat/CSV", async (req, res) => {
           .query(`SELECT prod_id FROM Production WHERE code = @code AND doc_no = @doc_no`);
 
         let prod_id;
+        let newProd = false;
+        let newMat = false;
         if (!prodResult.recordset.length) {
+          newProd = true;
           const insertProd = await pool.request()
             .input("code", code)
             .input("doc_no", doc_no)
@@ -958,6 +978,7 @@ router.post("/import-prod-rawmat/CSV", async (req, res) => {
           .query(`SELECT COUNT(*) AS count FROM RawMat WHERE mat = @mat`);
 
         if (matResult.recordset[0].count === 0) {
+          newMat = true;
           await pool.request()
             .input("mat", mat)
             .input("mat_name", mat_name)
@@ -980,6 +1001,26 @@ router.post("/import-prod-rawmat/CSV", async (req, res) => {
                 END
               `);
           }
+        }
+
+        // 2.5 Code ใหม่ผูกกับ Mat ทุกตัว / Mat ใหม่ผูกกับ Code ทุกตัว (เหมือนการเพิ่มทีละรายการในหน้า Supervisor)
+        if (newProd) {
+          await pool.request()
+            .input("prod_id", sql.Int, prod_id)
+            .query(`
+              INSERT INTO ProdRawMat (mat, prod_id)
+              SELECT rm.mat, @prod_id FROM RawMat rm
+              WHERE NOT EXISTS (SELECT 1 FROM ProdRawMat pr WHERE pr.mat = rm.mat AND pr.prod_id = @prod_id)
+            `);
+        }
+        if (newMat) {
+          await pool.request()
+            .input("mat", mat)
+            .query(`
+              INSERT INTO ProdRawMat (mat, prod_id)
+              SELECT @mat, p.prod_id FROM Production p
+              WHERE NOT EXISTS (SELECT 1 FROM ProdRawMat pr WHERE pr.mat = @mat AND pr.prod_id = p.prod_id)
+            `);
         }
 
         // 3. ตรวจสอบความเชื่อมโยงระหว่าง prod_id กับ mat ใน ProdRawMat

@@ -568,6 +568,17 @@ router.post("/add/rawmat", async (req, res) => {
         .input("mat_name", mat_name)
         .query(`INSERT INTO RawMat (mat, mat_name) VALUES (@mat, @mat_name)`);
 
+      // a new Mat is bound to every Code (Production) at once — ProdRawMat is no longer filled by hand
+      request = new sql.Request(transaction);
+      await request
+        .input("mat", mat)
+        .query(`
+          INSERT INTO ProdRawMat (mat, prod_id)
+          SELECT @mat, p.prod_id
+          FROM Production p
+          WHERE NOT EXISTS (SELECT 1 FROM ProdRawMat pr WHERE pr.mat = @mat AND pr.prod_id = p.prod_id)
+        `);
+
       // เพิ่ม RawMatCookedGroup
       for (const groupId of rm_group_ids) {
         request = new sql.Request(transaction);

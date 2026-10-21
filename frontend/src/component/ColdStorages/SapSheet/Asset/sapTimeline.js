@@ -101,17 +101,22 @@ export const planStamp = (kind, row) => {
   if (kind === "start") {
     for (let r = 1; r <= 4; r += 1) {
       if (get(row, "start_defrost", r)) continue;
-      if (r === 1) return { ok: true, round: 1 };
+      if (r === 1) {
+        // the HU is already in SAP_Receive without a start time: it was stamped "จ่ายลงไลน์" first (no thawing) — the server refuses it
+        const lastOut = [4, 3, 2, 1].find((x) => get(row, "withdraw", x));
+        if (lastOut) return { ok: false, reason: `ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์แล้ว (เมื่อ ${when(row, "withdraw", lastOut)}) โดยไม่ได้ผ่านการละลาย จึงบันทึกเวลาเริ่มละลายไม่ได้` };
+        return { ok: true, round: 1 };
+      }
       const prevIn = get(row, "input_cd", r - 1);
       if (!prevIn) {
         return {
           ok: false,
-          reason: `เริ่มละลาย${ordinal(r - 1)} ไปแล้วเมื่อ ${when(row, "start_defrost", r - 1)} ต้องรับเข้าห้องเย็น${ordinal(r - 1)} ก่อน จึงจะเริ่มละลาย${ordinal(r)} ได้`,
+          reason: `ป้ายนี้ Time Stamp เวลาเริ่มละลายแล้ว (${ordinal(r - 1)} เมื่อ ${when(row, "start_defrost", r - 1)}) ต้องรับเข้าห้องเย็นก่อน จึงจะเริ่มละลาย${ordinal(r)} ได้`,
         };
       }
       return { ok: true, round: r };
     }
-    return { ok: false, reason: `ครบ 4 รอบแล้ว (เริ่มละลายรอบสุดท้ายเมื่อ ${when(row, "start_defrost", 4)}) สแกนเพิ่มไม่ได้` };
+    return { ok: false, reason: `ป้ายนี้ Time Stamp เวลาเริ่มละลายครบ 4 รอบแล้ว (รอบสุดท้ายเมื่อ ${when(row, "start_defrost", 4)}) สแกนเพิ่มไม่ได้` };
   }
 
   if (kind === "end") {
@@ -119,8 +124,8 @@ export const planStamp = (kind, row) => {
       if (get(row, "start_defrost", r) && !get(row, "end_defrost", r)) return { ok: true, round: r };
     }
     const lastEnd = [4, 3, 2, 1].find((r) => get(row, "end_defrost", r));
-    if (lastEnd) return { ok: false, reason: `ละลายเสร็จไปแล้วเมื่อ ${when(row, "end_defrost", lastEnd)} ถ้าจะละลายอีกครั้งต้องเริ่มละลายรอบใหม่ก่อน` };
-    return { ok: false, reason: "ยังไม่ได้เริ่มละลาย ต้องบันทึก \"เริ่มละลาย\" ก่อน จึงจะบันทึก \"ละลายเสร็จ\" ได้" };
+    if (lastEnd) return { ok: false, reason: `ป้ายนี้ Time Stamp เวลาละลายเสร็จแล้ว (เมื่อ ${when(row, "end_defrost", lastEnd)}) ถ้าจะละลายอีกครั้งต้องสแกนเริ่มละลายรอบใหม่ก่อน` };
+    return { ok: false, reason: "ป้ายนี้ยังไม่ได้ Time Stamp เวลาเริ่มละลาย ต้องสแกน \"เริ่มละลาย\" ก่อน จึงจะบันทึก \"ละลายเสร็จ\" ได้" };
   }
 
   if (kind === "linein") {
@@ -139,12 +144,12 @@ export const planStamp = (kind, row) => {
       if (!get(row, "input_cd", r - 1)) {
         return {
           ok: false,
-          reason: `จ่ายลงไลน์${ordinal(r - 1)} ไปแล้วเมื่อ ${when(row, "withdraw", r - 1)} ต้องรับเข้าห้องเย็น${ordinal(r - 1)} ก่อน จึงจะจ่ายลงไลน์${ordinal(r)} ได้`,
+          reason: `ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์แล้ว (${ordinal(r - 1)} เมื่อ ${when(row, "withdraw", r - 1)}) ต้องรับเข้าห้องเย็นก่อน จึงจะจ่ายลงไลน์${ordinal(r)} ได้`,
         };
       }
       return { ok: true, round: r };
     }
-    return { ok: false, reason: `ครบ 4 รอบแล้ว (จ่ายลงไลน์รอบสุดท้ายเมื่อ ${when(row, "withdraw", 4)}) สแกนเพิ่มไม่ได้` };
+    return { ok: false, reason: `ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์ครบ 4 รอบแล้ว (รอบสุดท้ายเมื่อ ${when(row, "withdraw", 4)}) สแกนเพิ่มไม่ได้` };
   }
 
   if (kind === "checkin") {
@@ -166,13 +171,14 @@ export const simplifyServerMessage = (message) => {
     [/Missing or invalid required fields/i, "ข้อมูลจากป้ายไม่ครบ (ต้องมีรหัสวัตถุดิบ, Batch และ HU — การเริ่ม/จบละลายต้องมีน้ำหนักด้วย)"],
     [/ไม่พบข้อมูล HU/, "ไม่พบ HU นี้ในระบบ (ยังไม่เคยสแกนเริ่มละลาย/จ่ายลงไลน์)"],
     [/ครบ 4 รอบแล้ว/, "HU นี้ทำครบ 4 รอบแล้ว สแกนเพิ่มไม่ได้"],
-    [/ยังไม่มีการรับเข้าห้องเย็น(รอบ ?(\d))?/, "ยังไม่ได้รับเข้าห้องเย็นรอบก่อนหน้า จึงยังทำรอบถัดไปไม่ได้"],
-    [/ยังไม่มีการเริ่มละลาย/, "ยังไม่ได้เริ่มละลายรอบก่อนหน้า"],
-    [/ไม่พบรอบที่รอ end_defrost/, "ไม่มีรอบที่กำลังละลายอยู่ (ยังไม่ได้เริ่มละลาย หรือละลายเสร็จไปแล้ว)"],
+    [/^ป้ายนี้/, null], // the server already says it plainly
+    [/ยังไม่มีการรับเข้าห้องเย็น(รอบ ?(\d))?/, "ป้ายนี้ยังไม่ได้รับเข้าห้องเย็นหลังรอบก่อนหน้า จึงยังทำรอบถัดไปไม่ได้"],
+    [/ยังไม่มีการเริ่มละลาย/, "ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์แล้ว โดยไม่ได้ผ่านการละลาย จึงบันทึกเวลาเริ่มละลายไม่ได้"],
+    [/ไม่พบรอบที่รอ end_defrost/, "ป้ายนี้ไม่มีรอบที่กำลังละลายอยู่ (ยังไม่ได้ Time Stamp เวลาเริ่มละลาย หรือ Time Stamp เวลาละลายเสร็จไปแล้ว)"],
     [/ไม่พบข้อมูล HU นี้/, "ไม่พบ HU นี้ในระบบ"],
   ];
   const hit = table.find(([re]) => re.test(m));
-  return hit ? hit[1] : m;
+  return hit && hit[1] ? hit[1] : m;
 };
 
 /** parse the tag content "mat|batch|hu|weight" */

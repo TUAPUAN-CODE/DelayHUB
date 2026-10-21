@@ -107,6 +107,8 @@ const canPack = (r) => r.__kind === "map" && !!r.mapping_id && !r.sc_pack_date &
 const CS1_DEST = ["เข้าห้องเย็น", "รอCheckin", "ห้องเย็น", "ส่งกลับจากห้องเย็นใหญ่"];
 const CS2_DEST = ["ห้องเย็นใหญ่", "เข้าห้องเย็นใหญ่"];
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
+// /ColdStorages HU stamps: เริ่มละลาย = ฟ้า, ละลายเสร็จ = แดง, จ่ายลงไลน์ (ส่งลงไลน์) = เขียว (row buttons and the scan buttons on the toolbar)
+const STAMP_COLOR = { start: "#0288D1", end: "#D32F2F", dispatch: "#2E7D32" };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
 // "เพิ่ม RM" (หน้า managedelaymaster เดิม) เห็นเฉพาะตำแหน่งเหล่านี้
@@ -312,9 +314,9 @@ const ParentComponent = ({ role, view = "work" }) => {
         return { col: "t_stamp", key: kind, label, color, icon, ok: plan.ok, title: plan.ok ? `${label}${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => (kind === "checkin" ? hu.rowCheckin(h) : hu.rowStamp(kind, h)) };
       };
       out.push(
-        mk("start", "เริ่มละลาย", "#0277BD", <AcUnitIcon fontSize="small" />),
-        mk("end", "ละลายเสร็จ", "#047857", <CheckCircleOutlineIcon fontSize="small" />),
-        mk("dispatch", "จ่ายลงไลน์", "#1552F0", <LocalShippingOutlinedIcon fontSize="small" />),
+        mk("start", "เริ่มละลาย", STAMP_COLOR.start, <AcUnitIcon fontSize="small" />),
+        mk("end", "ละลายเสร็จ", STAMP_COLOR.end, <CheckCircleOutlineIcon fontSize="small" />),
+        mk("dispatch", "จ่ายลงไลน์", STAMP_COLOR.dispatch, <LocalShippingOutlinedIcon fontSize="small" />),
         mk("checkin", "รับเข้าห้องเย็น", "#6A1B9A", <WarehouseOutlinedIcon fontSize="small" />),
       );
     }
@@ -591,7 +593,7 @@ const ParentComponent = ({ role, view = "work" }) => {
         </>
       )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
-        <Button key={k} variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan(k)}>
+        <Button key={k} variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan(k)} sx={{ bgcolor: STAMP_COLOR[k], "&:hover": { bgcolor: STAMP_COLOR[k], filter: "brightness(.9)" } }}>
           สแกน {{ start: "เริ่มละลาย", end: "ละลายเสร็จ", dispatch: "จ่ายลงไลน์" }[k]}
         </Button>
       ))}

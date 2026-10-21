@@ -7,6 +7,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 /** Rooms of the cold storage module (cs_id of table Slot). */
 export const ROOM_NAMES = { 1: "CSR 3", 2: "Chill 2", 3: "Chill 4", 4: "Chill 5", 5: "Chill 6", 6: "4C", 7: "Ante", 8: "LargeRoom" };
 export const roomName = (cs_id) => ROOM_NAMES[cs_id] ?? `ห้อง ${cs_id}`;
+/** rooms not offered in the slot layout of /coldStorage: 4C (cs_id 6) and ห้อง 10 - 46 (rooms of the v2 module /ColdStorages) */
+export const isHiddenRoom = (cs_id) => Number(cs_id) === 6 || (Number(cs_id) >= 10 && Number(cs_id) <= 46);
 
 /**
  * Check-in option of the existing API (/cold/checkin/check/Trolley) for the rm_status of the trolley's material.

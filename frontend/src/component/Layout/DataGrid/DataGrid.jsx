@@ -111,6 +111,8 @@ const DataGrid = ({
   statusChips,
   // onCellEdit(row, col): double-click on a cell of a column marked `editable` (edit mode of the Supervisor)
   onCellEdit,
+  // onShownRowsChange(rows): the rows the table shows now (after search / column filter / colour / status chip, in display order)
+  onShownRowsChange,
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt });
   // prepareRows(rows, ext): lets a page re-derive row fields from the account's own settings (ext) — it must return the same array when nothing changes
@@ -200,6 +202,9 @@ const DataGrid = ({
   // a status chip that is pressed shows only the rows of that status
   const shownRows = useMemo(() => filtered.filter((r) => (!colorOnly || colorOf(r) === colorOnly) && (!leadStatus || r.__status?.label === leadStatus)), [filtered, colorOnly, colorOf, leadStatus]);
   const sorted = useMemo(() => sortRows(shownRows, prefs.sorts, colByKey, null), [shownRows, prefs.sorts, colByKey]);
+  const shownCbRef = useRef(onShownRowsChange);
+  shownCbRef.current = onShownRowsChange;
+  useEffect(() => { shownCbRef.current?.(sorted); }, [sorted]);
 
   const pageRows = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
   // windowing: only the rows near the visible part of the table are in the DOM (the rest are two spacer rows). Hundreds of rows x dozens of cells
