@@ -22,6 +22,7 @@ import "./index.css";
 import { initI18n } from "./i18n/translator";
 import "./services/authClient";
 import "./services/dedupeMutations";
+import "./services/slipFitLines"; // slip lines that would wrap at 80 mm get a smaller font when printed
 
 // Find the root DOM node
 const container = document.getElementById("root");
