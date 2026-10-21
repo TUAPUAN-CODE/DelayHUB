@@ -7536,6 +7536,7 @@ ORDER BY rmm.mapping_id DESC
                 FETCH NEXT @pageSize ROWS ONLY
             )
             SELECT
+                rmm.mapping_id,
                 rm.mat_name AS rawMaterialName,
                 rm.mat AS mat,
                 ISNULL(

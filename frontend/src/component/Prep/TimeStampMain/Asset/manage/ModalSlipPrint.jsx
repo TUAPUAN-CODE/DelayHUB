@@ -207,6 +207,20 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
             ข้อมูลวัตถุดิบ
           </Typography>
 
+          {/* เลขรายการ (mapping_id) */}
+          {data?.mapping_id != null && (
+            <Typography className="print-text" sx={{ 
+              fontSize: "22px",
+              color: "#464646",
+              margin: "10px",
+              '@media print': {
+                fontSize: '10px',
+                margin: '2px 0',
+              },
+            }}>
+              รายการ : {data?.mapping_id ?? "-"}
+            </Typography>
+          )}
           <Typography className="print-text" sx={{ 
             fontSize: "22px",
             color: "#464646",
