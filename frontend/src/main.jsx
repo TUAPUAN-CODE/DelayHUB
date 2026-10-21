@@ -23,6 +23,7 @@ import { initI18n } from "./i18n/translator";
 import "./services/authClient";
 import "./services/dedupeMutations";
 import "./services/slipFitLines"; // slip lines that would wrap at 80 mm get a smaller font when printed
+import "./services/slipIframePrint"; // a slip prints as one piece as long as its data (paper 80 mm x the slip length)
 
 // Find the root DOM node
 const container = document.getElementById("root");
