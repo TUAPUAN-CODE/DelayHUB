@@ -5,6 +5,7 @@ import { printSlip } from "../../../../services/slipPrint";
 import { Box, Button, Typography, Dialog, Divider, CircularProgress } from '@mui/material';
 import axios from "axios";
 import { QRCodeCanvas } from "qrcode.react";
+import { RemarkCsLine, loadRemarkCs } from "../../../Layout/RemarkCs";
 axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -86,7 +87,11 @@ const PrintModal = ({ open, onClose, data }) => {
                         axios.get(`${API_URL}/api/coldstorage/history/test/${item.mapping_id}`)
                     );
 
-                    const results = await Promise.all(historyPromises);
+                    // the Remark CS lines too, so a slip printed without a click already has them
+                    const [results] = await Promise.all([
+                        Promise.all(historyPromises),
+                        loadRemarkCs(data.materials.map((m) => ({ mappingId: m.mapping_id, mat: m.material_code || m.mat, batch: m.batch }))),
+                    ]);
                     const historiesWithIndex = results.map((result, index) => ({
                         materialIndex: index,
                         history: result.data.history || [],
@@ -1377,6 +1382,9 @@ const MaterialItem = ({
                     <span style={{ color: '#666' }}>เตรียมงานให้กะ:</span> {item.prepare_mor_night}
                 </Box>
             )}
+            <Box sx={{ mb: 0.5, fontSize: fontSizes.value.screen, '@media print': { fontSize: fontSizes.value.print } }}>
+                <RemarkCsLine mappingId={item.mapping_id} mat={item.material_code || item.mat} batch={item.batch} />
+            </Box>
             {/* QR Code per material */}
             <Box
                 sx={{

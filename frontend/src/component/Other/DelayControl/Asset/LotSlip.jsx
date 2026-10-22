@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import { fmtAt } from "./lotCalc";
+import { RemarkCsLine } from "../../../Layout/RemarkCs";
 
 // Slips of the Role "Other" for the 72.1 mm thermal printer (same paper as the QC Check slip): one or several (e.g. every set of a "จัดชุด"),
 // one paper each. The printed copy is a separate block at the end of <body>: printing hides everything else (also this dialog),
@@ -32,6 +33,8 @@ const SlipBody = ({ slip }) => (
     <Divider sx={{ my: 0.75, borderStyle: "dashed", borderColor: "#999" }} />
     <Info label="รายการ" value={slip.lot.lot_name} bold />
     {slip.lot.ref_code ? <Info label="Batch / รหัส" value={slip.lot.ref_code} /> : null}
+    {/* a lot of the Role "Other" is not an HU from the big cold room: no Remark CS of its own ("-"), shown like on every slip */}
+    <RemarkCsLine style={{ fontSize: 13, padding: "1px 0", margin: 0 }} />
     <Info label="น้ำหนัก" value={`${slip.kg} kg`} bold />
     <Divider sx={{ my: 0.75, borderStyle: "dashed", borderColor: "#999" }} />
     {slip.rows.map((r, i) => (

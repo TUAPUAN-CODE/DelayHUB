@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Box, Button, Typography, Dialog } from '@mui/material';
 import PrintIcon from "@mui/icons-material/Print";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
+import { RemarkCsLine } from "../../../../Layout/RemarkCs";
 
 const ModalSlipPrint = ({ open, onClose, data }) => {
   useEffect(() => {
@@ -90,6 +91,8 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
   
   const materialName = data?.mat_name || "ไม่มีข้อมูล";
   const materialCode = data?.mat || "ไม่มีข้อมูล";
+  // the batches of the slip (strings or rows), for its Remark CS
+  const remarkBatch = [data?.batch, ...batchArray.map((b) => (typeof b === "string" ? b : b?.batch || b?.batch_before))].filter(Boolean).join(",");
   const withdraw_date = data?.withdraw_date || "ไม่มีข้อมูล";
   const productionValue = data?.production || "ไม่มีข้อมูล";
   const level_eu = data?.level_eu || input2?.level_eu || "-";
@@ -257,6 +260,19 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
               </Typography>
             </Box>
           )}
+
+          {/* Remark CS of the HU (typed at the big cold room receive), "-" when none */}
+          <Box sx={{
+            fontSize: "22px",
+            color: "#464646",
+            margin: "10px",
+            '@media print': {
+              fontSize: '10px',
+              margin: '2px 0',
+            },
+          }}>
+            <RemarkCsLine mappingId={data?.mapping_id} hu={data?.hu} mat={data?.mat} batch={remarkBatch} style={{ margin: 0 }} />
+          </Box>
 
           <Typography className="print-text" sx={{ 
             fontSize: "22px",

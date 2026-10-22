@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Button, Typography, Dialog } from '@mui/material';
+import { RemarkCsLine } from "../../../Layout/RemarkCs";
 import PrintIcon from '@mui/icons-material/Print';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import AcUnitIcon from '@mui/icons-material/AcUnit';
@@ -528,6 +529,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                                 {material.mat && <InfoRow label="รหัสวัตถุดิบ" value={material.mat} />}
                                                                 {material.mat && <InfoRow label="ชื่อวัตถุดิบ" value={material.mat_name} />}
                                                                 {material.batch_after && <InfoRow label="Batch" value={material.batch_after} />}
+                                                                <Box sx={REMARK_CS_SX}><RemarkCsLine mappingId={material.mapping_id} hu={material.hu} mat={material.mat} batch={[material.batch, material.batch_after].filter(Boolean).join(",")} /></Box>
                                                                 {material.code && material.doc_no && (
                                                                     <InfoRow label="เอกสารอ้างอิง" value={`${material.code}-(${material.doc_no})`} />
                                                                 )}
@@ -758,6 +760,7 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
                                                         {material.mat && <InfoRow label="รหัสวัตถุดิบ" value={material.mat} />}
                                                         {material.mat && <InfoRow label="ชื่อวัตถุดิบ" value={material.mat_name} />}
                                                         {material.batch_after && <InfoRow label="Batch" value={material.batch_after} />}
+                                                        <Box sx={REMARK_CS_SX}><RemarkCsLine mappingId={material.mapping_id} hu={material.hu} mat={material.mat} batch={[material.batch, material.batch_after].filter(Boolean).join(",")} /></Box>
                                                         {material.code && material.doc_no && (
                                                             <InfoRow label="เอกสารอ้างอิง" value={`${material.code}-(${material.doc_no})`} />
                                                         )}
@@ -1006,6 +1009,9 @@ const SendColdPrinter = ({ open, onClose, data, status }) => {
         </Dialog>
     );
 };
+
+// "Remark CS" of the material (always shown, "-" when none), in the size of the InfoRow lines
+const REMARK_CS_SX = { color: "#464646", fontSize: "20px", mb: 0.5, "@media print": { fontSize: "12px", mb: 0.2 } };
 
 // คอมโพเนนต์ย่อยสำหรับแสดงข้อมูลแต่ละแถว
 const InfoRow = ({ label, value, indent = false, highlight = false }) => {

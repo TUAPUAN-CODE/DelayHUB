@@ -1,5 +1,6 @@
 const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
+const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs } = require("../lib/remarkCs");
 // ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
 const dateRangeFromQuery = (q) => {
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
@@ -9290,9 +9291,37 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
   }
 });
 
+  // GET /api/prep/sap/remark-cs?hu= : the Remark CS of a HU (the receive dialog shows it, the user can change it)
+  router.get("/prep/sap/remark-cs", async (req, res) => {
+    try {
+      const hu = parseInt(req.query.hu, 10);
+      if (!Number.isInteger(hu)) return res.status(400).json({ success: false, error: "HU ไม่ถูกต้อง" });
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const r = await remarkCsOf(pool, { hus: String(hu) });
+      res.json({ success: true, data: { hu, remark_cs: r.hu[hu] || "" } });
+    } catch (err) {
+      console.error("❌ [Route GET /prep/sap/remark-cs] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // GET /api/prep/remark-cs?mapping_ids=1,2&hus=…&keys=MAT|BATCH,… : the Remark CS printed on the slips (frontend Layout/RemarkCs.jsx)
+  router.get("/prep/remark-cs", async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const data = await remarkCsOf(pool, { mappingIds: req.query.mapping_ids, hus: req.query.hus, keys: req.query.keys });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("❌ [Route GET /prep/remark-cs] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   router.post("/prep/checkin/sap", async (req, res) => {
     try {
-      const { hu } = req.body;
+      const { hu, remark_cs } = req.body;
 
       if (!hu) {
         return res.status(400).json({ success: false, error: "กรุณากรอกข้อมูลให้ครบ" });
@@ -9351,6 +9380,15 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
             END
           WHERE hu = @hu AND status = 1
         `);
+
+      // Remark CS: one note per HU, the one typed now replaces the earlier one (the dialog shows the current one first)
+      if (remark_cs !== undefined) {
+        await ensureRemarkCsColumn(pool);
+        await pool.request()
+          .input("hu", sql.Int, parseInt(hu, 10))
+          .input("remark_cs", sql.NVarChar(500), cleanRemarkCs(remark_cs))
+          .query("UPDATE SAP_Receive SET remark_cs = @remark_cs WHERE hu = @hu AND status = 1");
+      }
 
       // บอกว่ารับเข้ารอบที่เท่าไร
       let round = 1;

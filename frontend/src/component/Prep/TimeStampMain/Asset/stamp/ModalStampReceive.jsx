@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, Divider, Button, Dialog,
-  CircularProgress, Alert
+  CircularProgress, Alert, TextField
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -43,13 +43,26 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState(null);
   const [showAlert, setShowAlert] = useState(false);
+  // Remark CS: one note per HU, printed on every slip; the current one of this HU is shown first and can be changed / cleared
+  const [remarkCs, setRemarkCs] = useState("");
+  const [remarkLoading, setRemarkLoading] = useState(false);
 
   // reset เมื่อเปิด
   useEffect(() => {
-    if (open) {
-      setError(null);
+    if (!open) return undefined;
+    setError(null);
+    setRemarkCs("");
+    let alive = true;
+    const h = parseInt(hu, 10);
+    if (Number.isInteger(h)) {
+      setRemarkLoading(true);
+      axios.get(`${API_URL}/api/prep/sap/remark-cs`, { params: { hu: h } })
+        .then((res) => { if (alive) setRemarkCs(res.data?.data?.remark_cs || ""); })
+        .catch((err) => console.error("❌ Remark CS load error:", err))
+        .finally(() => { if (alive) setRemarkLoading(false); });
     }
-  }, [open]);
+    return () => { alive = false; };
+  }, [open, hu]);
 
   const handleConfirm = async () => {
     try {
@@ -60,6 +73,7 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
         mat:   material,
         batch: batch,
         hu:    parseInt(hu, 10), 
+        remark_cs: remarkCs.trim(),
       };
 
       console.log("📤 Sending payload:", payload);
@@ -107,6 +121,14 @@ const ModalEditPD = ({ open, onClose, material, batch, hu }) => {
             <InfoRow label="Batch"    value={batch} />
             <InfoRow label="HU"       value={hu} />
           </Box>
+
+          {/* Remark CS (ไม่บังคับ) — แสดงในทุกสลีปของวัตถุดิบจาก HU นี้ */}
+          <TextField
+            label="Remark CS" placeholder="หมายเหตุ (แสดงในทุกสลีป)" value={remarkCs} onChange={(e) => setRemarkCs(e.target.value.slice(0, 500))}
+            fullWidth size="small" multiline minRows={2} disabled={isLoading || remarkLoading}
+            helperText={remarkLoading ? "กำลังโหลด Remark CS เดิม..." : `${remarkCs.length}/500 · ไม่บังคับ`}
+            sx={{ mb: 2.5 }}
+          />
 
           {/* Error */}
           {error && (
