@@ -64,6 +64,7 @@ import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibi
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
 import LinePicker from "./pack/LinePicker";
 import ReworkFlows from "./prep/ReworkFlows";
+import PendingReturnDialog from "./prep/PendingReturnDialog";
 import ModalStampReceive from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReceive";
 import ModalStampBoil from "../../Prep/TimeStampMain/Asset/stamp/ModalStampBoil";
 import ModalStampReturn from "../../Prep/TimeStampMain/Asset/stamp/ModalStampReturn";
@@ -183,6 +184,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   }, []);
   const [editTarget, setEditTarget] = useState(null);
   const [planPick, setPlanPick] = useState(null);
+  const [returnAsk, setReturnAsk] = useState(null); // { plan, pending, seq }: the plan has material waiting for "กลับมาเตรียม" (PendingReturnDialog)
   // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
   // ค่ากลางของทุกบัญชี: ลำดับสถานะ (statusOrder), ชื่อที่แสดง (statusLabels), สีปุ่ม/ตัวอักษร (statusStyles)
   const [globalSettings, setGlobalSettings] = useState({});
@@ -335,6 +337,29 @@ const ParentComponent = ({ role, view = "work" }) => {
   const hu = useHuStamps({ findHu: (h) => huRef.current.find((r) => String(r.hu) === String(h)), reload });
 
   // ── the tools a Role has on one row; every item says which tool column (col) it belongs to ──
+  // "ใส่รถเข็น" of a production plan: when material of the same plan came back (out of the cold room / oven) and waits for "กลับมาเตรียม",
+  // ask first — a new trolley made from the plan is a new mapping without its cold-room history. The check is on the server, not on the
+  // rows of the table (the work table holds only its date range). When the check fails the usual form opens (it only guides).
+  const planCartBusy = useRef(false);
+  const openPlanCart = useCallback(async (plan) => {
+    if (planCartBusy.current) return;
+    planCartBusy.current = true;
+    try {
+      let pending = [];
+      try {
+        const res = await axios.get(`${API_URL}/api/prep/plan/pending-return`, { params: { rmfp_id: plan.rmfp_id } });
+        pending = res.data?.success ? res.data.data || [] : [];
+      } catch (err) {
+        console.error("[Sheet] pending-return check error:", err);
+      }
+      if (!pending.length) { manageRef.current?.openCart(plan); return; }
+      // the row of the table when it is loaded: the "กลับมาเตรียม" form gets the same data as from the button of that row
+      const byId = new Map(allRowsRef.current.filter((x) => x.__kind === "map").map((x) => [String(x.mapping_id), x]));
+      setReturnAsk({ plan, pending: pending.map((x) => ({ ...x, ...(byId.get(String(x.mapping_id)) || {}), out_cold_at: x.out_cold_at })), seq: Date.now() });
+    } finally {
+      planCartBusy.current = false;
+    }
+  }, []);
   const tools = useCallback((r) => {
     const out = [];
     const h = r.__hu;
@@ -386,7 +411,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       // ปุ่มของแผนการผลิตอยู่ในแถบ "แถวที่เลือก" (col t_bar ไม่ใช่คอลัมน์ในตาราง) — ปุ่มละ 1 อัน; ถ้ามีหลายแผนจะให้เลือกแผนก่อน
       if (r.__plans?.length) {
         const pick = (action) => {
-          if (r.__plans.length === 1) return (action === "cart" ? manageRef.current?.openCart : manageRef.current?.openEdit)?.(r.__plans[0]);
+          if (r.__plans.length === 1) return action === "cart" ? openPlanCart(r.__plans[0]) : manageRef.current?.openEdit?.(r.__plans[0]);
           setPlanPick({ action, plans: r.__plans });
         };
         out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
@@ -434,7 +459,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (r.tro_id && CHECKIN_DEST.includes(r.dest)) out.push({ col: "t_checkin", key: "checkin", label: "Check In", color: "#6A1B9A", run: () => moreRef.current?.checkin(r, allRowsRef.current) });
     }
     return out;
-  }, [role, hu, weights, selected]);
+  }, [role, hu, weights, selected, openPlanCart]);
   // ctx must keep the same identity, otherwise every row of the grid renders again at each click: the grid reads the latest tools() through a ref
   const toolsRef = useRef(tools);
   toolsRef.current = tools;
@@ -708,7 +733,7 @@ const ParentComponent = ({ role, view = "work" }) => {
                 <Button
                   key={p.rmfp_id} fullWidth variant="outlined"
                   sx={{ justifyContent: "flex-start", mb: 1, textTransform: "none" }}
-                  onClick={() => { const m = manageRef.current; const open = planPick.action === "cart" ? m?.openCart : m?.openEdit; setPlanPick(null); open?.(p); }}
+                  onClick={() => { const action = planPick.action; setPlanPick(null); if (action === "cart") openPlanCart(p); else manageRef.current?.openEdit?.(p); }}
                 >
                   {[p.production, p.rm_group_name, p.level_eu && `EU ${p.level_eu}`].filter(Boolean).join(" · ") || `แผน ${p.rmfp_id}`}
                 </Button>
@@ -722,6 +747,13 @@ const ParentComponent = ({ role, view = "work" }) => {
             setPrimaryBatch={(v) => setScan((s) => ({ ...s, mat: v }))} setSecondaryBatch={(v) => setScan((s) => ({ ...s, batch: v }))} setHu={(v) => setScan((s) => ({ ...s, hu: v }))}
           />
           {scan.review && <DataReviewSAP open onClose={() => { setScan((s) => ({ ...s, review: false })); reload(); }} material={scan.mat} batch={scan.batch} hu={scan.hu} />}
+          {returnAsk && (
+            <PendingReturnDialog
+              key={returnAsk.seq} plan={returnAsk.plan} pending={returnAsk.pending} onClose={() => setReturnAsk(null)}
+              onNewCart={() => { const p = returnAsk.plan; setReturnAsk(null); manageRef.current?.openCart(p); }}
+              onReturn={(x) => { setReturnAsk(null); reworkRef.current?.cart(x, "import"); }}
+            />
+          )}
           <ReworkFlows ref={reworkRef} onDone={reload} onNotify={setToast} />
           <EmulsionFlows ref={mixRefs.emu} onDone={afterMix} />
           <BatchFlows ref={mixRefs.batch} onDone={afterMix} />

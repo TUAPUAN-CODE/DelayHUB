@@ -6873,6 +6873,51 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
   });
 
 
+  // GET /api/prep/plan/pending-return?rmfp_id= : material of this production plan (RMForProd) that came back and waits for "กลับมาเตรียม"
+  // (same rule as the "กลับมาเตรียม" rows of the Sheet, reworkKind B in frontend Sheet/Asset/prep/kinds.js). The Sheet asks it before
+  // "ใส่รถเข็น" of the plan: a new trolley made from the plan is a new mapping without the cold-room history of the material that came back.
+  // Not limited to the date range of the work table (the material may have come out of the cold room days ago).
+  router.get("/prep/plan/pending-return", async (req, res) => {
+    try {
+      const rmfpId = parseInt(req.query.rmfp_id, 10);
+      if (!Number.isInteger(rmfpId) || rmfpId <= 0) return res.status(400).json({ success: false, error: "rmfp_id ไม่ถูกต้อง" });
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      const result = await pool.request()
+        .input("rmfp_id", sql.Int, rmfpId)
+        .query(`
+          SELECT rmm.mapping_id, CAST(rmm.tro_id AS NVARCHAR(20)) AS tro_id, rmm.rmfp_id, rmm.weight_RM, rmm.rm_status, rmm.stay_place, rmm.dest,
+                 rmm.rmm_line_name, rmg.rm_type_id, pr.mat, rm.mat_name, rmf.batch, bx.batch_after,
+                 CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS code,
+                 CONVERT(NVARCHAR(16), h.cooked_date, 120) AS cooked_date,
+                 CONVERT(NVARCHAR(16), COALESCE(h.out_cold_date_three, h.out_cold_date_two, h.out_cold_date), 120) AS out_cold_at,
+                 h.edit_rework
+          FROM TrolleyRMMapping rmm WITH (NOLOCK)
+          JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+          LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+          LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = rmm.tro_production_id
+          LEFT JOIN RawMat rm WITH (NOLOCK) ON rm.mat = pr.mat
+          LEFT JOIN Production p WITH (NOLOCK) ON p.prod_id = pr.prod_id
+          OUTER APPLY (SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id) bx
+          OUTER APPLY (
+            SELECT TOP (1) hh.cooked_date, hh.out_cold_date, hh.out_cold_date_two, hh.out_cold_date_three, hh.edit_rework
+            FROM History hh WITH (NOLOCK)
+            WHERE hh.mapping_id = rmm.mapping_id
+            ORDER BY hh.hist_id DESC
+          ) h
+          WHERE rmm.rmfp_id = @rmfp_id AND rmm.weight_RM > 0
+            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) IN (N'ออกห้องเย็น', N'หม้ออบ', N'จุดเตรียม', N'ออกห้องเย็นใหญ่')
+            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'จุดเตรียม', N'ส่งกลับจากห้องเย็นใหญ่')
+            AND LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'QcCheck รอกลับมาเตรียม', N'QcCheck รอ MD', N'รอกลับมาเตรียม', N'รอ Qc', N'QcCheck')
+          ORDER BY rmm.mapping_id
+        `);
+      res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error("❌ [Route GET /prep/plan/pending-return] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   router.get("/prep/matimport/fetchRMForProd", async (req, res) => {
     try {
       const { rm_type_ids } = req.query;
