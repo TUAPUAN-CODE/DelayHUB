@@ -159,7 +159,7 @@ JOIN Production p        ON pr.prod_id            = p.prod_id
 JOIN RawMatCookedGroup rmcg
                          ON rm.mat                = rmcg.mat
                         AND rmcg.rm_group_id      = rmf.rm_group_id   -- ✅ ล็อก group ให้ตรงกับ RMForProd ป้องกันบาน
-JOIN Mat m ON rmm.mapping_id = m.mapping_id
+LEFT JOIN Mat m ON rmm.mapping_id = m.mapping_id   -- mat_2x only: a mapping without a Mat row is still waiting for QC
 JOIN RawMatGroup rmg     ON rmcg.rm_group_id      = rmg.rm_group_id
 JOIN History htr         ON rmm.mapping_id        = htr.mapping_id
 LEFT JOIN (
@@ -173,7 +173,9 @@ LEFT JOIN (
 ) b ON rmm.mapping_id = b.mapping_id
 WHERE
     rmm.stay_place IN ('จุดเตรียม', 'หม้ออบ')
-    AND rmm.dest    IN ('รอCheckin','ห้องเย็นใหญ่')
+    -- every place the preparation sends a trolley to before QC: รอCheckin / ห้องเย็นใหญ่ and also เข้าห้องเย็น / ไปบรรจุ
+    -- (/qc/check keeps that dest when QC passes). Keep in sync with packStage "qc" of the Sheet (frontend Sheet/Asset/buildRows.js)
+    AND rmm.dest    IN ('รอCheckin', 'ห้องเย็นใหญ่', 'เข้าห้องเย็น', 'ไปบรรจุ')
     AND rmm.rm_status IN ('รอQCตรวจสอบ', 'รอ MD')
     AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
 GROUP BY

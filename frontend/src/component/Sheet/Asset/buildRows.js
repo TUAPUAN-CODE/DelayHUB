@@ -30,11 +30,14 @@ export const lastActivity = (row) => {
 
 const safeDbs = (row, now) => { try { return getDbs(row, now); } catch (err) { console.error("[Sheet] DBS error:", err); return []; } };
 
+const QC_DESTS = ["รอCheckin", "ห้องเย็นใหญ่", "เข้าห้องเย็น", "ไปบรรจุ"];
+
 /** Pack stage of a mapping (same rules as the old Pack page): qc = waiting for QC · ready = can be put in a trolley · trolley = in a trolley, can be sent on */
 export const packStage = (r) => {
   if (r.__kind !== "map") return null;
   const st = String(r.rm_status || "");
-  if (["จุดเตรียม", "หม้ออบ"].includes(r.stay_place) && ["รอCheckin", "ห้องเย็นใหญ่"].includes(r.dest) && ["รอQCตรวจสอบ", "รอ MD"].includes(st)) return "qc";
+  // waiting for QC wherever the preparation sends the trolley (same list as GET /api/qc/fetchRMForProd, which the "ตรวจ QC" button opens)
+  if (["จุดเตรียม", "หม้ออบ"].includes(r.stay_place) && QC_DESTS.includes(r.dest) && ["รอQCตรวจสอบ", "รอ MD"].includes(st)) return "qc";
   if (r.tro_id && ["บรรจุ", "รถเข็นรอจัดส่ง"].includes(r.dest)) return "trolley";
   if (
     !r.tro_id && ["จุดเตรียม", "ออกห้องเย็น", "create_manual"].includes(r.stay_place) && ["ไปบรรจุ", "บรรจุ", "create_manual", "รอCheckin"].includes(r.dest)
