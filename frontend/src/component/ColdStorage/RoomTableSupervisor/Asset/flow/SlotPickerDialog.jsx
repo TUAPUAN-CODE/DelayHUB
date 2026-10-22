@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Tab, Tabs, Tooltip, Typography } from "@mui/material";
-import { fetchSlots, roomName } from "./coldApi";
+import { fetchSlots, isHiddenRoom, roomName } from "./coldApi";
 
 /** Slots grouped like the old room pages: column = first character of slot_id, row = the rest. */
 const buildGrid = (slots) => {
@@ -35,7 +35,7 @@ const SlotPickerDialog = ({ open, title, subtitle, currentSlot, onPick, onClose 
     let alive = true;
     setLoading(true); setError("");
     fetchSlots()
-      .then((data) => { if (alive) setSlots(data.filter((s) => s.slot_status)); })
+      .then((data) => { if (alive) setSlots(data.filter((s) => s.slot_status && !isHiddenRoom(s.cs_id))); })
       .catch((err) => { console.error("โหลดช่องจอดไม่สำเร็จ:", err); if (alive) setError("โหลดช่องจอดไม่สำเร็จ"); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };

@@ -8,6 +8,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { AddShoppingCart as AddShoppingCartIcon } from "@mui/icons-material";
 
 axios.defaults.withCredentials = true;
+import { isHiddenRoom } from "../../../ColdStorage/RoomTableSupervisor/Asset/flow/coldApi";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("th-TH", { maximumFractionDigits: 2 }) : "-");
@@ -60,7 +61,8 @@ const GatherSelected = ({ onClose, rows, trolleys, role, onDone }) => {
       try {
         const res = await axios.get(`${API_URL}/api/coldstorage/gather/targets`, { params: { v: role === "cs2" ? 2 : 1 } });
         if (cancel || !res.data?.success) return;
-        const data = res.data.data;
+        // /coldStorage does not offer 4C and ห้อง 10 - 46 (same rule as its slot layout)
+        const data = role === "cs1" ? { ...res.data.data, rooms: (res.data.data.rooms || []).filter((x) => !isHiddenRoom(x.cs_id)) } : res.data.data;
         setTargets(data);
         const own = rows.find((r) => data.rooms.some((x) => x.cs_id === r.cs_id))?.cs_id;
         setRoomId((cur) => (cur !== "" ? cur : own ?? data.rooms[0]?.cs_id ?? ""));

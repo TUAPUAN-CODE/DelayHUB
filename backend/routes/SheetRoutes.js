@@ -60,7 +60,17 @@ const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%'
 const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
 
 /** scope "open" = the work table (everything not finished, however old) · scope "done" = finished rows, searched on demand (date range + text) */
-const buildMappingQuery = (scope = "open") => {
+// Done table by dates: the mappings that have a History time inside the range, found first by the date columns themselves.
+// Without it SQL Server worked out the latest History row of EVERY finished mapping ever (they only grow) before it could compare the dates.
+// It never drops a row the full condition keeps: a row whose DONE_DATE_SQL is in the range has that same History column in the range.
+const DONE_DATE_COLS = ["sc_pack_date", "out_cold_date", "come_cold_date", "rmit_date", "cooked_date"];
+const DONE_RANGE_SQL = `rmm.mapping_id IN (
+              SELECT hd.mapping_id FROM History hd WITH (NOLOCK)
+              WHERE ${DONE_DATE_COLS.map((c) => `(hd.${c} >= @date_from AND hd.${c} < DATEADD(DAY, 1, @date_to))`).join("\n                 OR ")}
+          )`;
+
+/** opts.dated (scope "done"): the request has a date range (no text) */
+const buildMappingQuery = (scope = "open", opts = {}) => {
   const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
         -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
         -- COLLATE Thai_100_BIN2: a LIKE '%..%' under the database collation (Thai_100_CI_AI) calls the OS string compare for every row (~10 s per column on 5e5 rows, and it is not counted as CPU); the marker is a fixed text written by the app, so a binary compare is exact and ~100x faster
@@ -95,7 +105,8 @@ const buildMappingQuery = (scope = "open") => {
         AND ${scope === "done" ? `
             ${DONE_SQL}
             -- dates: optional (NULL = no date filter). A text search ignores the dates (the server sends NULL dates with a text)
-            AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))
+            AND (@date_from IS NULL OR (${DONE_DATE_SQL} >= @date_from AND ${DONE_DATE_SQL} < DATEADD(DAY, 1, @date_to)))${opts.dated ? `
+            AND ${DONE_RANGE_SQL}` : ""}
             -- text search: any of the data columns of the table (same columns as the Sheet's settings)
             AND (@q = N'' OR (
                 rm.mat_name LIKE @q_like OR rm.mat LIKE @q_like OR rmg.rm_group_name LIKE @q_like
@@ -192,8 +203,11 @@ const buildMappingQuery = (scope = "open") => {
       COALESCE(NULLIF(b.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_after,
       emx.emulsion_text,
       sl.slot_id,
-      cs.cs_id,
-      cs.cs_name,
+      -- the room comes from Slot: table ColdStorage only lists the large rooms (cs_id 10-46), so the small rooms of /coldStorage (cs_id 1-8)
+      -- got a NULL cs_id here and their rows never showed "อยู่ในห้องเย็น" (names of 1-8 = ROOM_NAMES of ColdStorage/.../flow/coldApi.js)
+      sl.cs_id,
+      COALESCE(cs.cs_name, CASE sl.cs_id WHEN 1 THEN N'CSR 3' WHEN 2 THEN N'Chill 2' WHEN 3 THEN N'Chill 4' WHEN 4 THEN N'Chill 5'
+          WHEN 5 THEN N'Chill 6' WHEN 6 THEN N'4C' WHEN 7 THEN N'Ante' WHEN 8 THEN N'LargeRoom' END) AS cs_name,
       h.hist_id,
       ${HIST_DATES.map((c) => fmt("h", c)).join(",\n      ")},
       ${HIST_TEXT.map((c) => `h.${c}`).join(",\n      ")}
@@ -451,7 +465,7 @@ router.get("/sheet/done", async (req, res) => {
       .input("date_to", sql.Date, useDates ? dateTo : null)
       .input("q", sql.NVarChar(100), q)
       .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
-      .query(buildMappingQuery("done")));
+      .query(buildMappingQuery("done", { dated: useDates })));
 
     res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
@@ -751,6 +765,8 @@ const EDIT_MAP = {
 };
 HIST_DATES.forEach((c) => { EDIT_MAP[c] = { t: "hist", kind: "date" }; });
 HIST_TEXT.forEach((c) => { EDIT_MAP[c] = { t: "hist", sql: () => sql.NVarChar(500) }; });
+// TrolleyRMMapping columns that History also holds (and the history-page slips print from History): an edit is written to both
+const HIST_MIRROR = ["weight_RM", "tray_count", "tro_id", "rmm_line_name", "dest"];
 const EDIT_TEXT_MAX = 500;
 const EDIT_BATCH_MAX = 60;
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
@@ -953,9 +969,30 @@ const sheetEditHandler = (opts = {}) => async (req, res) => {
         });
         await r.query(`UPDATE TrolleyRMMapping SET ${sets.join(", ")} WHERE mapping_id = @id`);
       }
+      const extraLog = [];
+      // the slips of the history pages (ประวัติห้องเย็น /coldStorage/HisInput, ประวัติการตรวจ QC /qualitycontrol/HisCheck) read these values from History:
+      // write the edited value to the latest History row too, so a slip printed again after the edit shows it (e.g. a vendor lot that had to be corrected).
+      // A cleared trolley (row taken off its trolley) is not copied: History keeps the trolley it was on.
+      const mirror = mapSets.filter((x) => HIST_MIRROR.includes(x.col) && x.value !== null);
+      const mirrorTypes = {};
+      for (const x of mirror) mirrorTypes[x.col] = await histColumnType(pool, x.col);
+      const mirrorCols = mirror.filter((x) => mirrorTypes[x.col]);
+      if (mirrorCols.length) {
+        const r = new sql.Request(tx).input("id", sql.Int, mappingId);
+        const sets = mirrorCols.map((x, i) => {
+          const name = `hm${i}`;
+          if (x.def.kind === "int") r.input(name, sql.Int, x.value);
+          else if (x.def.kind === "num") r.input(name, sql.Float, x.value);
+          else r.input(name, x.def.sql(), x.value);
+          return `[${x.col}] = @${name}`;
+        });
+        const hu = await r.query(`
+          UPDATE History SET ${sets.join(", ")}
+          WHERE hist_id = (SELECT TOP 1 hh.hist_id FROM History hh WITH (UPDLOCK) WHERE hh.mapping_id = @id ORDER BY hh.hist_id DESC)`);
+        if (hu.rowsAffected[0] > 0) mirrorCols.forEach((x) => extraLog.push({ tn: "History", cn: x.col, ov: x.oldVal === null || x.oldVal === undefined ? null : String(x.oldVal), nv: String(x.value) }));
+      }
       // the row left its trolley (tro_id cleared) and body.release_trolley: when nothing else is on that trolley, the trolley is free again
       // (same clean-up as moving the last material out of a trolley in the cold room: Slot emptied, Trolley.tro_status = 1)
-      const extraLog = [];
       const clearedTro = applied.find((x) => x.col === "tro_id" && x.value === null && x.oldVal);
       if (clearedTro && body.release_trolley === true) {
         const oldTro = String(clearedTro.oldVal);

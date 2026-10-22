@@ -1,546 +1,146 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  Box, 
-  TextField, 
-  InputAdornment, 
-  Paper, 
-  Typography, 
+import {
+  Box,
+  TextField,
+  InputAdornment,
+  Paper,
+  Typography,
   CircularProgress,
-  IconButton,
   Button,
-  Collapse,
-  Chip,
-  Divider,
-  FormControl,
-  RadioGroup,
-  FormControlLabel,
-  Radio
+  MenuItem,
+  Alert,
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import DateRangeIcon from '@mui/icons-material/DateRange';
-import CloseIcon from '@mui/icons-material/Close';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import TodayIcon from '@mui/icons-material/Today';
 import ColdStorageTable from "./Table";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ปุ่มสำหรับกรองข้อมูล
+// a whole day / date range is read at once and shown in one table that scrolls (no pages)
+const MAX_ROWS = 10000;
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const thaiDate = (v) => (v ? new Date(`${v}T00:00:00`).toLocaleDateString('th-TH') : '...');
+const FILTER_TYPES = [
+  { value: 'any', label: 'เข้าหรือออกห้องเย็น' },
+  { value: 'enter', label: 'เข้าห้องเย็น (ครั้งล่าสุด)' },
+  { value: 'exit', label: 'ออกห้องเย็น (ครั้งล่าสุด)' },
+];
 
 const ParentComponent = () => {
-  // State สำหรับข้อมูลดิบที่ได้จาก API และข้อมูลที่กรองแล้ว
-  const [allColdStorageData, setAllColdStorageData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [data, setData] = useState([]);
+  const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // State สำหรับการค้นหาและกรอง
+
+  // ค้นหา: คำค้นส่งไปค้นใน DB (หน่วง 400ms หลังหยุดพิมพ์) — ค้นทั้งฐานข้อมูล ไม่สนช่วงวันที่
   const [searchTerm, setSearchTerm] = useState("");
-  // คำค้นที่ส่งไปค้นใน DB (หน่วง 400ms หลังหยุดพิมพ์) — ค้นทั้งฐานข้อมูล ไม่สนช่วงวันที่
   const [dbTerm, setDbTerm] = useState("");
-  const [selectedColor, setSelectedColor] = useState('');
-  
-  // State สำหรับการค้นหาตามช่วงเวลา
-  const [showDateFilter, setShowDateFilter] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isDateFiltering, setIsDateFiltering] = useState(false);
-  const [filterType, setFilterType] = useState('exit'); // 'exit' สำหรับออกห้องเย็น, 'enter' สำหรับเข้าห้องเย็น
-  
-  // State สำหรับ Pagination
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
-  const [totalRows, setTotalRows] = useState(0);
-  
-  // State สำหรับเก็บพารามิเตอร์การดึงข้อมูลปัจจุบัน
-  const [queryParams, setQueryParams] = useState({
-    page: 1,
-    pageSize: 20
-  });
+
+  // ช่วงวันที่: เปิดหน้ามาเป็นวันนี้ (วันเดียว = เลือกวันเริ่มกับวันสิ้นสุดเป็นวันเดียวกัน)
+  const [startDate, setStartDate] = useState(() => ymd(new Date()));
+  const [endDate, setEndDate] = useState(() => ymd(new Date()));
+  const [filterType, setFilterType] = useState('any');
 
   useEffect(() => {
     const t = setTimeout(() => { setDbTerm(searchTerm.trim()); }, 400);
     return () => clearTimeout(t);
   }, [searchTerm]);
-  useEffect(() => { setPage(0); }, [dbTerm]);
 
-  // ดึงข้อมูลจาก API
+  const badRange = !startDate || !endDate || endDate < startDate;
+
   useEffect(() => {
+    if (!dbTerm && badRange) return;
+    let alive = true;
     const fetchColdStorageData = async () => {
       try {
         setLoading(true);
-        
-        // คำนวณพารามิเตอร์สำหรับการเรียก API
-        const params = {
-          page: page + 1,
-          pageSize: rowsPerPage
-        };
-        
-        // เพิ่มพารามิเตอร์สถานะ (ถ้ามี)
-        if (selectedColor) {
-          params.status = { 
-            green: 'ออกห้องเย็น', 
-            yellow: 'รอดำเนินการ', 
-            red: 'เข้าห้องเย็น' 
-          }[selectedColor];
-        }
-        
-        // ค้นหาใน DB: ใช้คำค้นแทนช่วงวันที่ (ได้ผลทั้งฐานข้อมูล)
+        setError(null);
+        const params = { page: 1, pageSize: MAX_ROWS };
         if (dbTerm) params.searchTerm = dbTerm;
+        else { params.startDate = startDate; params.endDate = endDate; params.filterType = filterType; }
 
-        // เพิ่ม params สำหรับการกรองตามวันที่
-        if (!dbTerm && isDateFiltering && startDate && endDate) {
-          params.startDate = `${startDate}`;
-          params.endDate = `${endDate}`;
-          params.filterType = filterType;
-        }
-
-        // บันทึกพารามิเตอร์ที่ใช้ในการดึงข้อมูลปัจจุบัน
-        setQueryParams(params);
-        
-        console.log('ส่งคำขอข้อมูลด้วยพารามิเตอร์:', params);
         const response = await axios.get(`${API_URL}/api/coldstorage/history`, { params });
-
-        console.log('ได้รับข้อมูลจาก API:', response.data);
-
-        // ตรวจสอบและจัดการข้อมูล
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          // เก็บข้อมูลทั้งหมดที่ได้จาก API
-          setAllColdStorageData(response.data.data);
-          setFilteredData(response.data.data);
-          setTotalRows(response.data.total || response.data.data.length);
-          
-          console.log(`พบข้อมูล ${response.data.data.length} รายการ จากทั้งหมด ${response.data.total} รายการ`);
-          
-          // ถ้าไม่พบข้อมูลและมีการกรองวันที่ แสดงข้อความแจ้งเตือน
-          if (response.data.data.length === 0 && isDateFiltering) {
-            alert(`ไม่พบข้อมูล${filterType === 'exit' ? 'ออก' : 'เข้า'}ห้องเย็นในช่วงวันที่ ${new Date(startDate).toLocaleDateString('th-TH')} - ${new Date(endDate).toLocaleDateString('th-TH')}`);
-          }
+        if (!alive) return;
+        if (response.data && Array.isArray(response.data.data)) {
+          setData(response.data.data);
+          setTotalRows(response.data.total ?? response.data.data.length);
         } else {
-          console.error("รูปแบบข้อมูลไม่ถูกต้อง:", response.data);
+          console.error("[ColdStorage History] รูปแบบข้อมูลไม่ถูกต้อง:", response.data);
           setError("รูปแบบข้อมูลไม่ถูกต้อง");
         }
-        
-        setLoading(false);
       } catch (err) {
-        console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", err);
-        setError(`ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้: ${err.message}`);
-        setLoading(false);
+        console.error("[ColdStorage History] fetch error:", err);
+        if (alive) setError(`ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้: ${err.response?.data?.message || err.message}`);
+      } finally {
+        if (alive) setLoading(false);
       }
     };
-
     fetchColdStorageData();
-  }, [page, rowsPerPage, selectedColor, dbTerm, isDateFiltering && startDate, isDateFiltering && endDate, isDateFiltering && filterType]);
+    return () => { alive = false; };
+  }, [dbTerm, startDate, endDate, filterType, badRange]);
 
-  // ฟังก์ชันสำหรับกรองข้อมูลโดยใช้ searchTerm (ทำงานเฉพาะ client-side)
-  useEffect(() => {
-    // ถ้าไม่มีข้อมูลหรือ searchTerm ว่างเปล่า — หรือผลที่ได้มาจากการค้นใน DB แล้ว — ให้แสดงข้อมูลทั้งหมดที่ได้มา
-    if (!allColdStorageData.length || !searchTerm.trim() || dbTerm === searchTerm.trim()) {
-      setFilteredData(allColdStorageData);
-      return;
-    }
-    
-    // กรองข้อมูลตาม searchTerm (ตัวอย่างเช่นค้นหาตามชื่อ, ID หรือข้อมูลอื่นๆ)
-    // const filtered = allColdStorageData.filter(item => {
-    //   // ตรวจสอบว่า searchTerm มีค่าหรือไม่
-    //   if (!searchTerm) return true;
-      
-    //   const term = searchTerm.toLowerCase();
-      
-    //   return (
-    //     // ค้นหาตาม trolleyId หรือ tro_id จากข้อมูล SQL
-    //     (item.trolleyId && item.trolleyId.toString().toLowerCase().includes(term)) ||
-    //     (item.tro_id && item.tro_id.toString().toLowerCase().includes(term)) ||
-        
-    //     // ค้นหาด้วยฟิลด์อื่นๆ
-    //     (item.rawMaterialName && item.rawMaterialName.toLowerCase().includes(term)) ||
-    //     (item.code && item.code.toString().toLowerCase().includes(term)) ||
-    //     (item.batch && item.batch.toString().toLowerCase().includes(term)) ||
-    //     (item.mat && item.mat.toString().toLowerCase().includes(term)) ||
-    //     (item.come_cold_date && item.come_cold_date.toString().toLowerCase().includes(term)) ||
-    //     (item.slot_id && item.slot_id.toString().toLowerCase().includes(term))
-    //   );
-    // });
-    const filtered = allColdStorageData.filter(item => {
-      // ถ้าไม่มี searchTerm ให้แสดงทั้งหมด
-      if (!searchTerm) return true;
-      
-      const term = searchTerm.toLowerCase();
-      
-      // สร้างฟังก์ชันสำหรับตรวจสอบวันที่
-      const matchesDate = (dateString) => {
-        if (!dateString) return false;
-        
-        // ทดสอบการค้นหาแบบตรงๆ ก่อน
-        if (dateString.toLowerCase().includes(term)) return true;
-        
-        try {
-          const itemDate = new Date(dateString);
-          
-          // รูปแบบวันที่ต่างๆ
-          const day = itemDate.getDate();
-          const month = itemDate.getMonth() + 1;
-          const yearAD = itemDate.getFullYear();
-          const yearBE = yearAD + 543; // แปลงเป็นปี พ.ศ.
-          
-          // ปรับให้วันที่และเดือนเป็นเลข 2 หลักเสมอ (01, 02, ...)
-          const dayStr = day.toString().padStart(2, '0');
-          const monthStr = month.toString().padStart(2, '0');
-          
-          // สร้างรูปแบบวันที่ต่างๆ ที่อาจใช้ค้นหา
-          const formats = [
-            // รูปแบบไทย (พ.ศ.)
-            `${dayStr}/${monthStr}/${yearBE}`,
-            `${dayStr}-${monthStr}-${yearBE}`,
-            `${dayStr}.${monthStr}.${yearBE}`,
-            // รูปแบบสากล (ค.ศ.)
-            `${dayStr}/${monthStr}/${yearAD}`,
-            `${dayStr}-${monthStr}-${yearAD}`,
-            `${dayStr}.${monthStr}.${yearAD}`,
-            // รูปแบบอเมริกัน
-            `${monthStr}/${dayStr}/${yearAD}`,
-            `${monthStr}-${dayStr}-${yearAD}`,
-            // รูปแบบ ISO
-            `${yearAD}-${monthStr}-${dayStr}`,
-            // แบบไม่มีศูนย์นำหน้า
-            `${day}/${month}/${yearBE}`,
-            `${day}/${month}/${yearAD}`,
-            `${day}-${month}-${yearBE}`,
-            `${day}-${month}-${yearAD}`
-          ];
-          
-          // ตรวจสอบว่า searchTerm ตรงกับรูปแบบใดรูปแบบหนึ่งหรือไม่
-          return formats.some(format => format.includes(term));
-        } catch (e) {
-          return false;
-        }
-      };
-    
-      return (
-        // ค้นหาตามฟิลด์อื่นๆ เหมือนเดิม...
-        (item.trolleyId && item.trolleyId.toString().toLowerCase().includes(term)) ||
-        (item.tro_id && item.tro_id.toString().toLowerCase().includes(term)) ||
-        (item.rawMaterialName && item.rawMaterialName.toLowerCase().includes(term)) ||
-        (item.code && item.code.toString().toLowerCase().includes(term)) ||
-        (item.batch && item.batch.toString().toLowerCase().includes(term)) ||
-        (item.mat && item.mat.toString().toLowerCase().includes(term)) ||
-        (item.slot_id && item.slot_id.toString().toLowerCase().includes(term)) ||
-        
-        // ค้นหาตามวันที่ต่างๆ
-        matchesDate(item.come_cold_date) ||
-        matchesDate(item.enterColdTime1) ||
-        matchesDate(item.exitColdTime1) ||
-        matchesDate(item.enterColdTime2) ||
-        matchesDate(item.exitColdTime2) ||
-        matchesDate(item.enterColdTime3) ||
-        matchesDate(item.exitColdTime3) ||
-        matchesDate(item.cooked_date) ||
-        matchesDate(item.rmit_date) ||
-        matchesDate(item.prepCompleteTime)
-      );
-    });
-    
-    setFilteredData(filtered);
-  }, [searchTerm, dbTerm, allColdStorageData]);
-
-  // จัดการการเปลี่ยนหน้า - ต้องดึงข้อมูลใหม่จาก API
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // จัดการการเปลี่ยนจำนวนแถวต่อหน้า - ต้องดึงข้อมูลใหม่จาก API
-  const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 10);
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
-  };
-
-  // จัดการการเปลี่ยนฟิลเตอร์สี - ต้องดึงข้อมูลใหม่จาก API
-  const handleFilterChange = (color) => {
-    setSelectedColor(color === selectedColor ? '' : color);
-    // รีเซ็ตเพจเมื่อเปลี่ยนการกรอง
-    setPage(0);
-  };
-  
-  // จัดการการค้นหาตามช่วงเวลา - ต้องดึงข้อมูลใหม่จาก API
-  const handleDateSearch = () => {
-    if (!startDate || !endDate) {
-      alert('กรุณาระบุวันที่เริ่มต้นและวันที่สิ้นสุด');
-      return;
-    }
-    
-    // ตรวจสอบช่วงวันที่
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (end < start) {
-      alert('วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น');
-      return;
-    }
-    
-    console.log(`กำลังค้นหาข้อมูล ${filterType === 'exit' ? 'ออกห้องเย็น' : 'เข้าห้องเย็น'} ระหว่างวันที่ ${startDate} ถึง ${endDate}`);
-    
-    setIsDateFiltering(true);
-    // กลับไปหน้าแรกเมื่อมีการค้นหาใหม่
-    setPage(0);
-  };
-  
-  // รีเซ็ตการค้นหาตามช่วงเวลา
-  const handleResetDateFilter = () => {
-    setStartDate('');
-    setEndDate('');
-    setIsDateFiltering(false);
-    // รีเซ็ตเพจเมื่อเปลี่ยนการกรอง
-    setPage(0);
-  };
-  
-  // จัดการการปิดแสดงการกรองวันที่
-  const handleCloseDateFilter = () => {
-    setShowDateFilter(false);
-    // ถ้ามีการกรองอยู่แล้ว ให้คงไว้
-    if (!isDateFiltering) {
-      setStartDate('');
-      setEndDate('');
-    }
-  };
-
-  // จัดการการเปลี่ยนแปลงข้อความค้นหา (ทำงานเฉพาะ client-side)
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  // แสดงสถานะการค้นหาตามช่วงเวลา
-  const getDateFilterChipLabel = () => {
-    const filterTypeText = filterType === 'exit' ? 'ออกห้องเย็น' : 'เข้าห้องเย็น';
-    return `${filterTypeText}: ${startDate ? new Date(startDate).toLocaleDateString('th-TH') : '...'} - ${endDate ? new Date(endDate).toLocaleDateString('th-TH') : '...'}`;
-  };
-
-  // แสดงข้อความโหลด
-  if (loading) {
-    return (
-      <Paper sx={{ 
-        width: '100%', 
-        height: 'calc(100vh - 5rem)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <CircularProgress />
-      </Paper>
-    );
-  }
-
-  // แสดงข้อความ error
-  if (error) {
-    return (
-      <Paper sx={{ 
-        width: '100%', 
-        height: 'calc(100vh - 5rem)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <Box sx={{ 
-          padding: '20px', 
-          textAlign: 'center', 
-          backgroundColor: '#fff3cd',
-          borderRadius: '8px'
-        }}>
-          <Typography color="error" variant="h6">
-            {error}
-          </Typography>
-        </Box>
-      </Paper>
-    );
-  }
+  const setToday = () => { const t = ymd(new Date()); setStartDate(t); setEndDate(t); };
+  const rangeLabel = startDate === endDate ? `วันที่ ${thaiDate(startDate)}` : `${thaiDate(startDate)} - ${thaiDate(endDate)}`;
 
   return (
-    <Paper sx={{ 
-      width: '100%', 
+    <Paper sx={{
+      width: '100%',
       height: 'calc(100vh - 5rem)',
-      overflow: 'hidden', 
-      boxShadow: '0px 0px 3px rgba(0, 0, 0, 0.2)'
+      overflow: 'hidden',
+      boxShadow: '0px 0px 3px rgba(0, 0, 0, 0.2)',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
-      
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: { xs: 'column', sm: 'row' }, 
-        alignItems: 'center', 
-        gap: 1, 
-        paddingX: 2, 
-        height: { xs: 'auto', sm: '60px' }, 
-        margin: '5px 5px' 
-      }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, px: 2, py: 1 }}>
         <TextField
-          variant="outlined"
-          fullWidth
+          size="small" type="date" label="ตั้งแต่วันที่" value={startDate}
+          onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 165 }}
+          disabled={!!dbTerm}
+        />
+        <TextField
+          size="small" type="date" label="ถึงวันที่" value={endDate}
+          onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 165 }}
+          disabled={!!dbTerm}
+        />
+        <TextField size="small" select label="นับจาก" value={filterType} onChange={(e) => setFilterType(e.target.value)} sx={{ width: 210 }} disabled={!!dbTerm}>
+          {FILTER_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+        </TextField>
+        <Button size="small" variant="outlined" startIcon={<TodayIcon />} onClick={setToday} disabled={!!dbTerm}>วันนี้</Button>
+        <TextField
+          size="small"
           placeholder="พิมพ์เพื่อค้นหาจากฐานข้อมูล (วัตถุดิบ / Batch / รถเข็น / รายการ / แผนผลิต / HU / ช่อง)..."
           value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            sx: { height: "40px" },
-          }}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              height: "40px",
-              fontSize: "14px",
-              borderRadius: "8px",
-              color: "#6B7489",
-            },
-            "& input": {
-              padding: "8px",
-            },
-          }}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>) }}
+          sx={{ flex: 1, minWidth: 260 }}
         />
-        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-start", alignItems: "center" }}>
-          
-          <IconButton 
-            sx={{ 
-              border: '1px solid #cbcbcb', 
-              borderRadius: '5px',
-              padding: '7px',
-              color: showDateFilter || isDateFiltering ? '#1552F0' : 'inherit',
-              backgroundColor: showDateFilter || isDateFiltering ? 'rgba(25, 118, 210, 0.08)' : 'inherit'
-            }}
-            onClick={() => setShowDateFilter(!showDateFilter)}
-          >
-            <DateRangeIcon fontSize="medium" />
-          </IconButton>
-          
-          {isDateFiltering && (
-            <Chip 
-              label={getDateFilterChipLabel()} 
-              color="primary" 
-              variant="outlined"
-              size="small"
-              onDelete={handleResetDateFilter}
-              sx={{ height: '32px' }}
-            />
-          )}
-        </Box>
       </Box>
-      
-      {/* ส่วนค้นหาตามช่วงเวลา */}
-      <Collapse in={showDateFilter}>
-        <Box 
-          sx={{ 
-            mx: 2, 
-            my: 1, 
-            p: 2, 
-            border: '1px solid #E3E8F2', 
-            borderRadius: '8px',
-            bgcolor: 'background.paper'
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, color: '#333' }}>
-              <CalendarTodayIcon fontSize="small" />
-              ค้นหาตามช่วงเวลา
-            </Typography>
-            <IconButton size="small" onClick={handleCloseDateFilter}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          
-          <Divider sx={{ mb: 2 }} />
-          
-          {/* เลือกประเภทการกรอง (เข้า/ออกห้องเย็น) */}
-          <FormControl component="fieldset" sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              เลือกประเภทการกรอง:
-            </Typography>
-            <RadioGroup
-              row
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <FormControlLabel value="enter" control={<Radio size="small" />} label="เข้าห้องเย็น" />
-              <FormControlLabel value="exit" control={<Radio size="small" />} label="ออกห้องเย็น" />
-            </RadioGroup>
-          </FormControl>
-          
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-            <TextField
-              label="วันที่เริ่มต้น"
-              type="date"
-              fullWidth
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarTodayIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              label="วันที่สิ้นสุด"
-              type="date"
-              fullWidth
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarTodayIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-            <Button 
-              variant="outlined" 
-              size="small" 
-              onClick={handleResetDateFilter}
-              sx={{ borderRadius: '4px' }}
-            >
-              รีเซ็ต
-            </Button>
-            <Button 
-              variant="contained" 
-              size="small" 
-              onClick={handleDateSearch}
-              sx={{ borderRadius: '4px' }}
-              startIcon={<FilterAltIcon />}
-              disabled={!startDate || !endDate}
-            >
-              ค้นหา
-            </Button>
-          </Box>
-        </Box>
-      </Collapse>
 
-      {/* แสดงข้อความจำนวนผลลัพธ์ */}
-      {searchTerm && (
-        <Box sx={{ px: 2, py: 1 }}>
+      <Box sx={{ px: 2, pb: 1 }}>
+        {badRange && !dbTerm ? (
+          <Alert severity="warning" sx={{ py: 0 }}>วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น</Alert>
+        ) : (
           <Typography variant="body2" color="text.secondary">
-            พบ {filteredData.length} รายการจากคำค้นหา "{searchTerm}"
+            {dbTerm
+              ? `ผลค้นหา "${dbTerm}" (ทุกวันที่) ${loading ? '' : `${data.length.toLocaleString()} รายการ`}`
+              : `${rangeLabel} · ${FILTER_TYPES.find((t) => t.value === filterType)?.label} ${loading ? '' : `· ${data.length.toLocaleString()} รายการ`}`}
+            {!loading && totalRows > data.length && ` (แสดง ${data.length.toLocaleString()} จาก ${totalRows.toLocaleString()} — ลดช่วงวันที่ให้แคบลง)`}
           </Typography>
-        </Box>
-      )}
+        )}
+      </Box>
 
-      {/* ตารางข้อมูล */}
-      <ColdStorageTable 
-        filteredData={filteredData}
-        page={page}
-        rowsPerPage={rowsPerPage}
-        totalRows={totalRows}
-        handleChangePage={handleChangePage}
-        handleChangeRowsPerPage={handleChangeRowsPerPage}
-      />
+      {error && <Alert severity="error" sx={{ mx: 2, mb: 1 }}>{error}</Alert>}
+
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 1, pb: 1 }}>
+        {loading ? (
+          <Box sx={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ColdStorageTable filteredData={data} hidePagination height="calc(100vh - 21rem)" />
+        )}
+      </Box>
     </Paper>
   );
 };

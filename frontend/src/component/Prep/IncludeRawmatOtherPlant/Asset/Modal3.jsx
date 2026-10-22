@@ -198,6 +198,7 @@ const Modal3 = ({ open, onClose, data, onEdit, cookedDateTimeNew, mat_name, with
       // สร้างข้อมูลสำหรับการพิมพ์
       const printData = {
         tro_id: tro_id,
+        mapping_id: apiResponse.data?.mapping_id ?? null, // เลขรายการที่ server เพิ่งสร้าง (แสดงในสลีป)
         batch_after: batchAfter || batchBefore,
         dest: input2?.deliveryLocation || "",
         mat_name: materialName,

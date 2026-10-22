@@ -27,7 +27,7 @@ export const compareValues = (a, b) => {
 export const deriveColumns = (rows) => {
   const keys = [];
   const seen = new Set();
-  (rows || []).slice(0, 200).forEach((row) => {
+  (Array.isArray(rows) ? rows : []).slice(0, 200).forEach((row) => {
     if (!row || typeof row !== "object") return;
     Object.keys(row).forEach((k) => {
       if (seen.has(k) || k.startsWith("_")) return;

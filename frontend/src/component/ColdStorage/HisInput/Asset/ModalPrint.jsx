@@ -749,6 +749,10 @@ const MaterialItem = ({
         </Box>
 
         {/* Material Name - Full Width */}
+        {/* เลขรายการ (mapping_id) ของวัตถุดิบนี้ */}
+        <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+            <InlineInfoItem label="รายการ" value={material.mapping_id != null ? String(material.mapping_id) : "ไม่มีข้อมูล"} fontSizes={fontSizes} />
+        </Box>
         <Box sx={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",

@@ -78,7 +78,13 @@ const MappingTool = () => {
     return { ...m, __kind: "map", __status: null, __hidden: true };
   }, [state.mapping, state.hu]);
 
-  const ask = (fn) => () => { if (unlocked || hasUnlock()) { setUnlocked(true); fn(); } else setUnlockAsk(true); };
+  const ask = (fn) => () => { if (hasUnlock()) { setUnlocked(true); fn(); } else { setUnlocked(false); setUnlockAsk(true); } };
+  // the server refused the permit (expired / typed by another user in this tab): show "locked" again, the next edit asks the password
+  useEffect(() => {
+    const drop = () => setUnlocked(false);
+    window.addEventListener("setting-unlock-dropped", drop);
+    return () => window.removeEventListener("setting-unlock-dropped", drop);
+  }, []);
   const afterSave = (msg) => { setTimeTarget(null); setStatusOpen(false); setToast(msg); search(state.mapping.mapping_id, true); };
 
   const editableDates = useMemo(() => new Set(state.editable), [state.editable]);
@@ -91,7 +97,7 @@ const MappingTool = () => {
           onKeyDown={(e) => { if (e.key === "Enter") search(input); }} inputProps={{ inputMode: "numeric" }} sx={{ width: 200 }} />
         <Button variant="contained" startIcon={state.loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />} disabled={state.loading || !input} onClick={() => search(input)}>ค้นหา</Button>
         <Box sx={{ flex: 1 }} />
-        {unlocked || hasUnlock()
+        {unlocked && hasUnlock()
           ? <Chip color="success" variant="outlined" icon={<LockOpenIcon />} label="ปลดล็อกแล้ว · แก้ไขได้" />
           : <Button size="small" startIcon={<LockOpenIcon />} onClick={() => setUnlockAsk(true)}>ใส่รหัสผ่านเพื่อแก้ไข</Button>}
       </Paper>

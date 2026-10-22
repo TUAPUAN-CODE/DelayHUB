@@ -577,6 +577,18 @@ const ModalPrintDetail = ({ open, onClose, data, onEdit, dataForModal3 }) => {
                             Production
                         </Typography>
 
+                        {/* เลขรายการ (mapping_id) */}
+                        <Typography variant="h6" className="print-text" sx={{
+                            color: "#464646",
+                            fontSize: "22px",
+                            margin: "10px",
+                            '@media print': {
+                                fontSize: '10px',
+                                margin: '2px 0',
+                            },
+                        }}>
+                            รายการ : {mapping_id ?? "-"}
+                        </Typography>
                         <Typography variant="h6" className="print-text" sx={{
                             color: "#464646",
                             fontSize: "22px",

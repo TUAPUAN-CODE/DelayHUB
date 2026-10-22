@@ -44,7 +44,7 @@ import EditCellDialog, { canEditColumn } from "./EditCellDialog";
 import { prepareSheetRows } from "./prepareRows";
 import useHuStamps from "./useHuStamps";
 import { columnsForRole, defaultVisible, GROUPS } from "./columns";
-import { buildRows, statusOf } from "./buildRows";
+import { buildRows, statusOf, setStatusRole } from "./buildRows";
 import StatusOrderSettings, { fullStatusOrder } from "./StatusOrderSettings";
 import StatusStyleSettings, { statusLook } from "./StatusStyleSettings";
 import RowColorSettings from "./RowColorSettings";
@@ -112,6 +112,8 @@ const IN_COLD = new Set(["อยู่ในห้องเย็น", "อย�
 // columns every account of the Role sees, also accounts that saved their columns before (added once, can be hidden again — useGridPrefs)
 const ENSURE_VISIBLE = { pack: [{ key: "w_total", after: "status" }, { key: "t_kg", after: "w_total" }] };
 const PREP_STAMPS = { receive: ModalStampReceive, boil: ModalStampBoil, return: ModalStampReturn };
+// /ColdStorages HU stamps: เริ่มละลาย = ฟ้า, ละลายเสร็จ = แดง, จ่ายลงไลน์ (ส่งลงไลน์) = เขียว (row buttons and the scan buttons on the toolbar)
+const STAMP_COLOR = { start: "#0288D1", end: "#D32F2F", dispatch: "#2E7D32" };
 // ประเภทวัตถุดิบของผู้ใช้ (ใช้ซ่อนปุ่มสแกน SAP ของบางตำแหน่งเท่านั้น — ไม่กรองข้อมูลในตารางแล้ว)
 const MY_TYPES = (() => { try { return (JSON.parse(localStorage.getItem("rm_type_id")) || []).map(Number); } catch { return []; } })();
 // "เพิ่ม RM" (หน้า managedelaymaster เดิม): เห็นเมื่อ Role (Workplace) ที่ใช้อยู่คือบรรจุ wp_id 4 (ค่าที่ตั้งตอน login / สลับ Role ที่ header)
@@ -173,6 +175,12 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (hasUnlock()) { setEditMode(true); setToast("โหมดแก้ไข: ดับเบิลคลิกที่เซลล์ที่ต้องการแก้"); } else setUnlockAsk(true);
     },
   }), [editMode]);
+  // the server refused the permit (expired / typed by another user in this tab): leave edit mode, the next edit asks the password again
+  useEffect(() => {
+    const drop = () => setEditMode(false);
+    window.addEventListener("setting-unlock-dropped", drop);
+    return () => window.removeEventListener("setting-unlock-dropped", drop);
+  }, []);
   const [editTarget, setEditTarget] = useState(null);
   const [planPick, setPlanPick] = useState(null);
   // ลำดับสถานะบนแถบเหนือตาราง: ค่ากลางที่ทุกบัญชีใช้ร่วมกัน (GET /api/sheet/global-settings)
@@ -333,7 +341,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     const stLabel = statusOf(r).label;
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
-      if (r.__kind === "map" && !r.cs_id && r.tro_id && CS2_DEST.includes(r.dest)) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
+      // every row of this status can be checked in (whatever dest says): the dialog shows the rooms (cs_id 10 - 46) and the slot layout of the room picked
+      if (r.__kind === "map" && !r.cs_id && r.tro_id) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", run: () => largeRef.current?.checkin(r) });
+      else if (r.__kind === "map" && !r.cs_id) out.push({ col: "t_cs2", key: "in", label: "รับเข้า", color: "#E65100", ok: false, title: "ยังไม่ได้อยู่บนรถเข็น — ต้องใส่รถเข็นก่อนจึงรับเข้าห้องเย็นได้", run: () => {} });
       return out;
     }
     if (role === "cs2" && h) {
@@ -342,9 +352,9 @@ const ParentComponent = ({ role, view = "work" }) => {
         return { col: "t_stamp", key: kind, label, color, icon, ok: plan.ok, title: plan.ok ? `${label}${plan.round ? ` (รอบที่ ${plan.round})` : ""}` : plan.reason, run: () => (kind === "checkin" ? hu.rowCheckin(h) : hu.rowStamp(kind, h)) };
       };
       out.push(
-        mk("start", "เริ่มละลาย", "#0277BD", <AcUnitIcon fontSize="small" />),
-        mk("end", "ละลายเสร็จ", "#047857", <CheckCircleOutlineIcon fontSize="small" />),
-        mk("dispatch", "จ่ายลงไลน์", "#1552F0", <LocalShippingOutlinedIcon fontSize="small" />),
+        mk("start", "เริ่มละลาย", STAMP_COLOR.start, <AcUnitIcon fontSize="small" />),
+        mk("end", "ละลายเสร็จ", STAMP_COLOR.end, <CheckCircleOutlineIcon fontSize="small" />),
+        mk("dispatch", "จ่ายลงไลน์", STAMP_COLOR.dispatch, <LocalShippingOutlinedIcon fontSize="small" />),
         mk("checkin", "รับเข้าห้องเย็น", "#6A1B9A", <WarehouseOutlinedIcon fontSize="small" />),
       );
     }
@@ -434,6 +444,7 @@ const ParentComponent = ({ role, view = "work" }) => {
 
   // built-in colour of each status (for the settings page) + the global names / colours put on every row (the original label stays for the rules)
   const { allRows, statusDefaults } = useMemo(() => {
+    setStatusRole(role);
     const built = buildRows(data.hus, data.mappings, mix, plans, now, mixed);
     const defaults = {};
     const names = globalSettings.statusLabels || {};
@@ -447,7 +458,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       r.__status = { ...st, name: names[st.label] || st.label, color: look.fg, bg: look.bg, onBg: look.onBg, onFg: look.onFg, styled };
     });
     return { allRows: built, statusDefaults: defaults };
-  }, [data, mix, plans, now, mixed, globalSettings]);
+  }, [data, mix, plans, now, mixed, globalSettings, role]);
   const allRowsRef = useRef([]);
   allRowsRef.current = allRows;
   const shownStatuses = useMemo(() => new Set(statusPrefs.visible), [statusPrefs.visible]);
@@ -629,7 +640,7 @@ const ParentComponent = ({ role, view = "work" }) => {
         </>
       )}
       {role === "cs2" && ["start", "end", "dispatch"].map((k) => (
-        <Button key={k} variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan(k)}>
+        <Button key={k} variant="contained" size="small" startIcon={<QrCodeScannerIcon />} onClick={() => hu.openScan(k)} sx={{ bgcolor: STAMP_COLOR[k], "&:hover": { bgcolor: STAMP_COLOR[k], filter: "brightness(.9)" } }}>
           สแกน {{ start: "เริ่มละลาย", end: "ละลายเสร็จ", dispatch: "จ่ายลงไลน์" }[k]}
         </Button>
       ))}

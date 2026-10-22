@@ -23,9 +23,9 @@ const toReportRow = (r) => ({
 
 /**
  * ออกรายงาน Delay จากหน้าดำเนินการเสร็จสิ้น: PDF (แบบเดียวกับหน้า Report, บันทึกเข้า "ประวัติ Report" ได้) หรือ Excel ตามแบบฟอร์ม F3PFPV04
- * rows = แถวที่ดึงมาในตาราง Done
+ * rows = แถวที่แสดงในตาราง Done
  */
-const DoneExportDialog = ({ open, kind, rows, onClose }) => {
+const DoneExportDialog = ({ open, kind, rows, defaultDate, onClose }) => {
   const lines = useMemo(() => [...new Set((rows || []).map((r) => r.rmm_line_name).filter(Boolean))].sort(), [rows]);
   const [f, setF] = useState({});
   const [saveHistory, setSaveHistory] = useState(true);
@@ -35,10 +35,11 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
   useEffect(() => {
     if (!open) return;
     const d = new Date();
-    setF({ date: `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, shift: "", sortBy: "time", line: "", plant: "", recordedBy: userName(), reviewedBy: "", qcManager: "" });
+    // Date = the day the user narrowed the Done table to (defaultDate), else today
+    setF({ date: defaultDate || `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, shift: "", sortBy: "time", line: "", plant: "", recordedBy: userName(), reviewedBy: "", qcManager: "" });
     setMsg({ type: "", text: "" });
     setBusy(false);
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- defaultDate is read when the dialog opens
 
   const chosen = useMemo(() => (rows || [])
     .filter((r) => !f.line || r.rmm_line_name === f.line)
@@ -112,7 +113,7 @@ const DoneExportDialog = ({ open, kind, rows, onClose }) => {
           <FormControlLabel control={<Checkbox checked={saveHistory} onChange={(e) => setSaveHistory(e.target.checked)} />} label="บันทึก PDF เข้า ประวัติ Report" />
         )}
         <Typography variant="body2" color="text.secondary">
-          จะออกรายงาน {chosen.length} แถว (แถวที่ดึงมาในตาราง Done{f.line ? ` ไลน์ ${f.line}` : ""} เรียงตาม{f.sortBy === "code" ? " Code" : "เวลาบรรจุเสร็จ"}){kind === "excel" ? " · 17 แถวต่อหน้า เกินแล้วขึ้นชีตใหม่" : ""}
+          จะออกรายงาน {chosen.length} แถว (แถวที่แสดงในตาราง Done{f.line ? ` ไลน์ ${f.line}` : ""} เรียงตาม{f.sortBy === "code" ? " Code" : "เวลาบรรจุเสร็จ"}){kind === "excel" ? " · 17 แถวต่อหน้า เกินแล้วขึ้นชีตใหม่" : ""}
         </Typography>
         {msg.text && <Alert severity={msg.type || "info"}>{msg.text}</Alert>}
       </DialogContent>

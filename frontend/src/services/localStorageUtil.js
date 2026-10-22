@@ -22,6 +22,7 @@ export const clearUserLocalStorage = () => {
     }
     localStorage.clear();
     for (const [k, v] of keep) localStorage.setItem(k, v);
+    sessionStorage.removeItem("sheetSettingUnlockToken"); // the edit permit (authClient UNLOCK_KEY) belongs to the user who leaves
   } catch (err) {
     console.error("clearUserLocalStorage error:", err);
   }

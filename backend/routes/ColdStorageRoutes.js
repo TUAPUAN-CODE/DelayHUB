@@ -6319,7 +6319,8 @@ ORDER BY rmm.mapping_id DESC
 
 
     router.put("/largecold/checkin/update/Trolley", async (req, res) => {
-        const { tro_id, cs_id, section_leader } = req.body;  // ✅ เอา slot_id ออก
+        // slot_id (optional): the slot picked on the room layout of /ColdStorages/Sheet; without it the first free slot of the room is used
+        const { tro_id, cs_id, section_leader, slot_id: pickedSlot } = req.body;
 
         const pool = await connectToDatabase();
         const transaction = pool.transaction();
@@ -6352,20 +6353,25 @@ ORDER BY rmm.mapping_id DESC
                 });
             }
 
-            // ── STEP 3: ✅ หา slot ว่างใน cs_id นั้น (tro_id = NULL) ──────────────
+            // ── STEP 3: ✅ หา slot ว่างใน cs_id นั้น (tro_id = NULL) — หรือช่องที่ผู้ใช้เลือกจาก layout ──────────────
             const availableSlotResult = await transaction
                 .request()
                 .input("cs_id", sql.Int, cs_id)
+                .input("picked", sql.VarChar(50), pickedSlot ? String(pickedSlot) : null)
                 .query(`
                 SELECT TOP 1 slot_id
                 FROM Slot
                 WHERE cs_id = @cs_id AND tro_id IS NULL
+                  AND (@picked IS NULL OR slot_id = @picked)
                 ORDER BY slot_id ASC
             `);
 
             if (availableSlotResult.recordset.length === 0) {
                 await safeRollback(transaction);
-                return res.status(400).json({ success: false, message: "ไม่มีช่องว่างในห้องเย็นนี้" });
+                return res.status(400).json({
+                    success: false,
+                    message: pickedSlot ? `ช่อง ${pickedSlot} ไม่ว่างแล้ว (มีรถเข็นอื่นเข้าไปก่อน) กรุณาเลือกช่องใหม่` : "ไม่มีช่องว่างในห้องเย็นนี้",
+                });
             }
 
             const slot_id = availableSlotResult.recordset[0].slot_id;  // ✅ ได้ slot_id จาก DB
@@ -7375,7 +7381,8 @@ ORDER BY rmm.mapping_id DESC
 
         // Convert page and pageSize to numbers
         const pageNum = parseInt(page, 10) || 1;
-        const pageSizeNum = parseInt(pageSize, 10) || 100;
+        // the history page asks for a whole day / date range at once (one table that scrolls); capped so one request cannot read the whole History
+        const pageSizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 100, 1), 10000);
 
         try {
             const pool = await connectToDatabase();
@@ -7490,6 +7497,14 @@ ORDER BY rmm.mapping_id DESC
                         )
                     )
                 `;
+                } else if (filterType === 'any') {
+                    // entered or left the cold room (any round) inside the range
+                    additionalWhereConditions += `
+                    AND (
+                        ${["come_cold_date", "come_cold_date_two", "come_cold_date_three", "out_cold_date", "out_cold_date_two", "out_cold_date_three"]
+                            .map((c) => `(h.${c} >= CONVERT(DATETIME, @startDate) AND h.${c} <= CONVERT(DATETIME, @endDate))`).join("\n                        OR ")}
+                    )
+                `;
                 } else if (filterType === 'enter') {
                     // Filter by entry time to cold room
                     additionalWhereConditions += `
@@ -7559,6 +7574,7 @@ ORDER BY rmm.mapping_id DESC
                 FETCH NEXT @pageSize ROWS ONLY
             )
             SELECT
+                rmm.mapping_id,
                 rm.mat_name AS rawMaterialName,
                 rm.mat AS mat,
                 ISNULL(
@@ -8262,7 +8278,8 @@ ORDER BY rmm.mapping_id DESC
                     start_defrost_date_four,
                     input_cd_date,
                     input_cd_date_two,
-                    input_cd_date_three
+                    input_cd_date_three,
+                    FORMAT(withdraw_date, 'dd/MM/yyyy HH:mm') AS withdraw_at
                 FROM SAP_Receive
                 WHERE hu = @hu AND status = 1
             `);
@@ -8299,7 +8316,10 @@ ORDER BY rmm.mapping_id DESC
                         await safeRollback(transaction);
                         return res.status(400).json({
                             success: false,
-                            message: "ยังไม่มีการเริ่มละลายรอบที่ 1 (start_defrost_date)",
+                            // the HU row was created by "จ่ายลงไลน์" (scan/sap) without thawing
+                            message: row.withdraw_at
+                                ? `ป้ายนี้ Time Stamp เวลาจ่ายลงไลน์แล้ว (เมื่อ ${row.withdraw_at} น.) โดยไม่ได้ผ่านการละลาย จึงบันทึกเวลาเริ่มละลายไม่ได้`
+                                : "ป้ายนี้ยังไม่ได้ Time Stamp เวลาเริ่มละลายรอบที่ 1",
                         });
                     }
                     if (!row.input_cd_date) {
@@ -8452,7 +8472,9 @@ ORDER BY rmm.mapping_id DESC
                 await safeRollback(transaction);
                 return res.status(400).json({
                     success: false,
-                    message: "ไม่พบรอบที่รอ end_defrost หรือครบทุกรอบแล้ว",
+                    message: row.start_defrost_date
+                        ? "ป้ายนี้ Time Stamp เวลาละลายเสร็จแล้ว ถ้าจะละลายอีกครั้งต้องสแกนเริ่มละลายรอบใหม่ก่อน"
+                        : "ป้ายนี้ยังไม่ได้ Time Stamp เวลาเริ่มละลาย ต้องสแกนเริ่มละลายก่อน",
                 });
             }
 

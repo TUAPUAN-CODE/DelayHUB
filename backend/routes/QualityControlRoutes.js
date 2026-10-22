@@ -985,6 +985,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
 					OR q.md_no LIKE @like OR htr.hu LIKE @like OR htr.receiver_qc LIKE @like
 				)`;
 			// a row belongs to the day it was prepared (rmit_date) OR the day it was QC-checked (qc_datetime): a lot prepared on the 19th and checked on the 20th is on both days
+			// rows put on a trolley as "รอกลับมาเตรียม" (no QC check, their slip is printed by the prep point) are listed too, so the slip can be printed again
+			const WAIT_SQL = `(rmm.qc_id IS NULL AND (htr.rm_status = N'รอกลับมาเตรียม' OR rmm.rm_status = N'รอกลับมาเตรียม'))`;
 			const dateWhere = `((htr.rmit_date >= @start AND htr.rmit_date < DATEADD(DAY, 1, @end)) OR (q.qc_datetime >= @start AND q.qc_datetime < DATEADD(DAY, 1, @end)))`;
 			const mainQuery = `
 			SELECT ${q ? "TOP (500)" : ""}
@@ -1007,7 +1009,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
 				rmg.rm_group_id AS rmg_rm_group_id,
 				rmm.rm_status,
 				htr.cooked_date,
-				q.general_remark,
+				COALESCE(q.general_remark, CASE WHEN ${WAIT_SQL} THEN N'รอกลับมาเตรียม' END) AS general_remark,
+				CASE WHEN ${WAIT_SQL} THEN 1 ELSE 0 END AS rework_wait,
 				q.sq_remark,
 				q.md,
 				q.md_remark,
@@ -1052,10 +1055,11 @@ ORDER BY MAX(htr.cooked_date) DESC;
 			LEFT JOIN RawMatGroup rmg ON rmg.rm_group_id = rmf.rm_group_id
 			JOIN History htr ON rmm.mapping_id = htr.mapping_id
 			LEFT JOIN Batch b ON rmm.mapping_id = b.mapping_id
-			JOIN QC q ON rmm.qc_id = q.qc_id
+			LEFT JOIN QC q ON rmm.qc_id = q.qc_id
 			LEFT JOIN WorkAreas mwa ON q.WorkAreaCode = mwa.WorkAreaCode
 			WHERE
-				${q ? searchWhere : dateWhere}
+				(q.qc_id IS NOT NULL OR ${WAIT_SQL})
+				AND ${q ? searchWhere : dateWhere}
 			GROUP BY
 				rmm.mapping_id,
 				rmf.rmfp_id,
@@ -1071,6 +1075,8 @@ ORDER BY MAX(htr.cooked_date) DESC;
 				ps.process_name,
 				htr.tro_id,
 				rmm.level_eu,
+				rmm.qc_id,
+				htr.rm_status,
 				rmf.rm_group_id,
 				rmg.rm_group_id,
 				rmm.rm_status,

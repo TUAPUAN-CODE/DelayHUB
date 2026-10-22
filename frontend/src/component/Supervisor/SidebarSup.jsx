@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { Fish, Factory, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Table2, CheckCircle2, Route as RouteIcon } from "lucide-react";
-import { Search as MappingSearchIcon } from "lucide-react";
+import { Fish, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Route as RouteIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarSup = () => {
@@ -10,8 +9,6 @@ const SidebarSup = () => {
   const sections = useMemo(() => [
     {
       items: [
-        { name: "กำลังดำเนินการ", icon: Table2, href: "/sup/Sheet" },
-        { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/sup/Sheet?view=done" },
         {
           name: "วัตถุดิบ", icon: Fish,
           submenu: [
@@ -19,12 +16,7 @@ const SidebarSup = () => {
             { name: "ตารางประเภทวัตถุดิบ", href: "/sup/RawmatType" },
             { name: "ตารางกลุ่มเวลาวัตถุดิบ", href: "/sup/RawmatGroup" },
             { name: "ตารางการแปรรูป", href: "/sup/Processing" },
-          ],
-        },
-        {
-          name: "การผลิต", icon: Factory,
-          submenu: [
-            { name: "ตารางการผลิตวัตถุดิบ", href: "/sup/ProdRawmat" },
+            // Production (Code) is bound to every Mat automatically, so the old "ตารางการผลิตวัตถุดิบ" (ProdRawmat) page is gone
             { name: "ตารางแผนการผลิต", href: "/sup/Production" },
           ],
         },
@@ -46,7 +38,7 @@ const SidebarSup = () => {
         { name: "Metal Detector", icon: ScanEye, href: "/sup/MDmanage" },
         { name: "Report", icon: Timer, href: "/sup/Report" },
         { name: "Traceback", icon: RouteIcon, href: "/sup/Traceback" },
-        { name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/sup/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
+        { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
     },
   ], [canManageTrolley]);

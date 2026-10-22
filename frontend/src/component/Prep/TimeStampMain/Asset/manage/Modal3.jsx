@@ -250,6 +250,7 @@ const Modal3 = ({
       // สร้างข้อมูลสำหรับการพิมพ์
       const printData = {
         tro_id: tro_id,
+        mapping_id: apiResponse.data?.mapping_id ?? null, // เลขรายการที่ server เพิ่งสร้าง (แสดงในสลีป)
         batch_after:
           batchAfterArray.length > 0
             ? batchAfterArray.map((item) => item.batch_after).join(", ")

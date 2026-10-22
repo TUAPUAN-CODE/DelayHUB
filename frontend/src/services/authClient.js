@@ -67,12 +67,23 @@ const addHeaders = (headersLike, url, method) => {
 };
 
 // ── axios: ที่ระดับ adapter เพื่อให้ครอบคลุม axios.create() ที่สร้างทีหลังด้วย ──
+// the server refused the Setting permit (expired / typed by another user in this tab): drop it, so the page shows "locked" and asks the password again
+const handleForbidden = (raw) => {
+  let data = raw;
+  if (typeof raw === "string") { try { data = JSON.parse(raw); } catch { data = null; } }
+  if (data && data.code === "SETTING_UNLOCK_REQUIRED") {
+    setUnlockToken(null);
+    try { window.dispatchEvent(new Event("setting-unlock-dropped")); } catch { /* old browser */ }
+  }
+};
+
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 axios.defaults.adapter = (config) => {
   const url = `${config.baseURL || ""}${config.url || ""}`;
   if (isApiUrl(url)) addHeaders(config.headers, url, config.method || "get");
   return baseAdapter(config).catch((err) => {
     if (err && err.response && err.response.status === 401) handleUnauthorized(err.response.data);
+    if (err && err.response && err.response.status === 403) handleForbidden(err.response.data);
     throw err;
   });
 };
@@ -87,6 +98,7 @@ if (typeof window !== "undefined" && typeof window.fetch === "function" && !wind
     addHeaders(headers, url, (init && init.method) || (typeof input !== "string" && input && input.method) || "GET");
     return nativeFetch(input, { ...(init || {}), headers }).then((res) => {
       if (res.status === 401) res.clone().json().then(handleUnauthorized).catch((e) => { console.error('authClient: อ่านผลตอบกลับ 401 ไม่ได้', e); });
+      if (res.status === 403) res.clone().json().then(handleForbidden).catch((e) => { console.error('authClient: อ่านผลตอบกลับ 403 ไม่ได้', e); });
       return res;
     });
   };

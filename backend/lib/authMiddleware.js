@@ -184,9 +184,21 @@ const adminOrUnlock = (req) => {
   const t = req.headers["x-setting-unlock"];
   if (typeof t === "string") {
     const v = verifyToken(t);
-    if (v.ok && v.payload.typ === "setting" && req.user && v.payload.user_id === req.user.user_id) return null;
+    if (v.ok && v.payload.typ === "setting" && req.user && Number(v.payload.user_id) === Number(req.user.user_id)) return null;
+    // a permit was sent but cannot be used: expired, or typed in this browser tab by another user (the tab keeps it after a change of login)
+    if (!v.ok) return v.reason === "expired" ? "unlock_expired" : "unlock_invalid";
+    return "unlock_other_user";
   }
   return "admin_or_password";
+};
+
+// what the user is told for each refusal (the page asks the password again for the unlock_* / admin_or_password codes)
+const DENY_TEXT = {
+  admin_or_password: "ต้องใส่รหัสผ่านแก้ไขข้อมูลก่อน (หรือใช้บัญชี Supervisor / Master)",
+  unlock_expired: "การปลดล็อกหมดอายุแล้ว กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่",
+  unlock_other_user: "การปลดล็อกในหน้านี้เป็นของผู้ใช้คนอื่น กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่ด้วยบัญชีของคุณ",
+  unlock_invalid: "การปลดล็อกใช้ไม่ได้ กรุณาใส่รหัสผ่านแก้ไขข้อมูลใหม่",
+  role_not_allowed: "Role ของบัญชีนี้ไม่มีสิทธิ์ทำรายการนี้ (กำหนดใน backend/config/rolePolicy.json)",
 };
 // เจ้าของข้อมูลเองหรือ admin (user_id มาจาก query / body)
 const selfOrAdmin = (pick) => (req) => {
@@ -216,8 +228,10 @@ const RULES = [
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "GET", p: /^\/api\/user\/permissions$/, check: selfOrAdmin((req) => req.query.user_id) },
   // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)
-  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock },
-  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
+  { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock, final: true },
+  { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock, final: true },
+  // what the page "ค้นหา mapping_id" reads (it is on the menu of every Role): any logged-in user, not narrowed by rolePolicy.json
+  { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "PUT", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.body && req.body.user_id) },
@@ -257,12 +271,14 @@ const authorize = (req, res, next) => {
 
   let violation = null;
   let soft = false;
+  let final = false; // a code rule marked "final" decides alone (e.g. the edit password of "ค้นหา mapping_id": any Role with the password), rolePolicy.json is not applied
   for (const rule of RULES) {
     if (rule.m !== req.method || !rule.p.test(req.path)) continue;
     violation = rule.check(req);
     if (violation) break;
+    if (rule.final) final = true;
   }
-  if (!violation) {
+  if (!violation && !final) {
     for (const rule of fileRules) {
       if ((rule.m !== "*" && rule.m !== req.method) || !rule.p.test(req.path)) continue;
       if (!hasRole(req.user, [...rule.roles, ...ADMIN_ROLES])) { violation = "role_not_allowed"; soft = rule.soft; break; }
@@ -273,7 +289,8 @@ const authorize = (req, res, next) => {
   metrics.inc("authz_denied_total", { reason: violation, mode, soft: soft ? "1" : "0" });
   if (mode === "enforce" && !soft) {
     logger.warn("forbidden", { id: req.id, method: req.method, path: req.path, user_id: req.user.user_id, reason: violation });
-    return res.status(403).json({ success: false, error: "ไม่มีสิทธิ์ทำรายการนี้", code: "FORBIDDEN" });
+    const unlockNeeded = violation === "admin_or_password" || violation.startsWith("unlock_");
+    return res.status(403).json({ success: false, error: DENY_TEXT[violation] || "ไม่มีสิทธิ์ทำรายการนี้", code: unlockNeeded ? "SETTING_UNLOCK_REQUIRED" : "FORBIDDEN", reason: violation });
   }
   warnSampled("authz_would_deny", req, { user_id: req.user.user_id, reason: violation });
   return next();

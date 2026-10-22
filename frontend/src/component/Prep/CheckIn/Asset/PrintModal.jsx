@@ -541,6 +541,7 @@ const PrintModal = ({ open, onClose, data }) => {
                             index={0}
                             item={{
                                 material_code,
+                                mapping_id: data?.mapping_id,
                                 materialName,
                                 production,
                                 batch,
@@ -777,6 +778,10 @@ const MaterialItem = ({
                     <InfoItem label="Level EU" value={item.levelEu} fontSizes={fontSizes} />
                 </Box>
 
+                {/* เลขรายการ (mapping_id) ของวัตถุดิบนี้ */}
+                <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+                    <InlineInfoItem label="รายการ" value={item.mapping_id != null ? String(item.mapping_id) : "ไม่มีข้อมูล"} fontSizes={fontSizes} />
+                </Box>
                 <Box sx={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
