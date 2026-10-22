@@ -70,7 +70,9 @@ const useGridPrefs = (gridKey, defaults) => {
           const merged = {
             visible: cfg.visible?.length ? cfg.visible : prev.visible,
             sorts: cfg.sorts || prev.sorts,
-            ext: { ...prev.ext, ...(cfg.ext || {}) },
+            // what was added is judged on the SAVED config: the local copy is marked "added" when the page opens, but the server's visible list
+            // replaces the local one here — keeping the local mark meant the column / status was never added for an account that had saved before
+            ext: { ...prev.ext, ...(cfg.ext || {}), __ensured: cfg.ext?.__ensured || [] },
             pins: cfg.pins ?? prev.pins,
           };
           const next = applyEnsure(merged, defaultsRef.current.ensure);
