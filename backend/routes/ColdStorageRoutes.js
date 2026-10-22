@@ -2247,6 +2247,25 @@ ORDER BY
         }
     });
 
+    // ── date + time of a check-in / check-out picked on the page (/coldStorage Sheet: now by default, can be changed) ──────────
+    // "YYYY-MM-DD HH:mm[:ss]" in the local time of the server, like GETDATE(). Not sent = now. Refused: not a date, in the future
+    // (more than 5 minutes: the clock of the device), more than 30 days back.
+    const STAMP_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/;
+    const parseStamp = (v) => {
+        if (v === undefined || v === null || v === "") return { text: null, ms: Date.now() };
+        const m = STAMP_RE.exec(String(v).trim());
+        if (!m) return { error: "รูปแบบวันเวลาไม่ถูกต้อง" };
+        const [, y, mo, d, h, mi, sec = "00"] = m;
+        const date = new Date(+y, +mo - 1, +d, +h, +mi, +sec);
+        if (date.getFullYear() !== +y || date.getMonth() !== +mo - 1 || date.getDate() !== +d || +h > 23 || +mi > 59 || +sec > 59) return { error: "วันเวลาไม่ถูกต้อง" };
+        if (date.getTime() > Date.now() + 5 * 60000) return { error: "เลือกวันเวลาในอนาคตไม่ได้" };
+        if (date.getTime() < Date.now() - 30 * 86400000) return { error: "เลือกย้อนหลังได้ไม่เกิน 30 วัน" };
+        return { text: `${y}-${mo}-${d} ${h}:${mi}:${sec}`, ms: date.getTime() };
+    };
+    // the picked time in a query (input @stamp NVARCHAR(19), NULL = now)
+    const STAMP_SQL = "COALESCE(CONVERT(DATETIME, @stamp, 120), GETDATE())";
+    const histDt = (c) => `TRY_CONVERT(DATETIME2(0), h.${c})`;
+
     // ── FIFO of the cold rooms of /coldStorage (cs_id < 10) ───────────────────────────────────────────────────────────────
     // A trolley is sent out "FIFO" when no other material with the same mat, Code (doc_no of the plan) and line has been in a cold room
     // longer: entered earlier (the entry of its current stay: come_cold_date / _two / _three without its out date) and still in a slot.
@@ -2315,7 +2334,7 @@ ORDER BY
             const {
                 tro_id, slot_id, rm_cold_status, rm_status,
                 dest, operator, materials, storage_purpose,
-                deposit_days, cold_remark
+                deposit_days, cold_remark, out_cold_at
             } = req.body;
 
             if (!tro_id || !slot_id || !rm_status || !dest || !materials) {
@@ -2323,8 +2342,35 @@ ORDER BY
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
+            const stamp = parseStamp(out_cold_at);
+            if (stamp.error) return res.status(400).json({ success: false, error: stamp.error, message: stamp.error });
+
             const pool = await connectToDatabase();
             if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+            // the picked exit time must not be before the entry of the current stay in the cold room
+            if (stamp.text) {
+                for (const m of materials) {
+                    const id = parseInt(m.mapping_id, 10);
+                    if (!Number.isInteger(id)) continue;
+                    const early = await pool.request()
+                        .input("mapping_id", sql.Int, id)
+                        .input("stamp", sql.NVarChar(19), stamp.text)
+                        .query(`
+                        SELECT TOP (1) CONVERT(NVARCHAR(16), x.in_at, 120) AS in_at
+                        FROM (SELECT TOP (1) hh.come_cold_date, hh.out_cold_date, hh.come_cold_date_two, hh.out_cold_date_two, hh.come_cold_date_three, hh.out_cold_date_three
+                              FROM History hh WITH (NOLOCK) WHERE hh.mapping_id = @mapping_id ORDER BY hh.hist_id DESC) h
+                        CROSS APPLY (SELECT CASE
+                            WHEN h.come_cold_date_three IS NOT NULL AND h.out_cold_date_three IS NULL THEN ${histDt("come_cold_date_three")}
+                            WHEN h.come_cold_date_two IS NOT NULL AND h.out_cold_date_two IS NULL THEN ${histDt("come_cold_date_two")}
+                            WHEN h.come_cold_date IS NOT NULL AND h.out_cold_date IS NULL THEN ${histDt("come_cold_date")} END AS in_at) x
+                        WHERE x.in_at > CONVERT(DATETIME2(0), @stamp, 120)`);
+                    if (early.recordset.length) {
+                        const msg = `เวลาออกห้องเย็นต้องไม่ก่อนเวลาเข้าห้องเย็น (${early.recordset[0].in_at}) ของรายการ ${id}`;
+                        return res.status(400).json({ success: false, error: msg, message: msg });
+                    }
+                }
+            }
 
             const transaction = new sql.Transaction(pool);
             await transaction.begin();
@@ -2430,15 +2476,15 @@ ORDER BY
                     SET
                         out_cold_date = CASE
                             WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
-                            THEN GETDATE() ELSE out_cold_date END,
+                            THEN ${STAMP_SQL} ELSE out_cold_date END,
 
                         out_cold_date_two = CASE
                             WHEN come_cold_date_two IS NOT NULL AND out_cold_date_two IS NULL
-                            THEN GETDATE() ELSE out_cold_date_two END,
+                            THEN ${STAMP_SQL} ELSE out_cold_date_two END,
 
                         out_cold_date_three = CASE
                             WHEN come_cold_date_three IS NOT NULL AND out_cold_date_three IS NULL
-                            THEN GETDATE() ELSE out_cold_date_three END,
+                            THEN ${STAMP_SQL} ELSE out_cold_date_three END,
 
                         receiver_out_cold = CASE
                             WHEN come_cold_date IS NOT NULL AND out_cold_date IS NULL
@@ -2460,7 +2506,7 @@ ORDER BY
 
                     // ✅ pack_checkin_date เฉพาะ dest = 'บรรจุ'
                     if (dest === 'บรรจุ') {
-                        historyUpdateQuery += `, pack_checkin_date = GETDATE()`;
+                        historyUpdateQuery += `, pack_checkin_date = ${STAMP_SQL}`;
                     }
 
                     // ── ดึงสถานะรอบปัจจุบันเพื่อเลือก column ที่จะ update ──────────
@@ -2489,6 +2535,7 @@ ORDER BY
 
                     const histReq = new sql.Request(transaction)
                         .input("mapping_id", mapping_id)
+                        .input("stamp", sql.NVarChar(19), stamp.text)
                         .input("operator", sql.NVarChar, operator)
                         .input("dest", sql.VarChar, dest)
                         .input("cold_to_pack_time", updatedRmData.cold_to_pack_time)
@@ -5666,7 +5713,10 @@ ORDER BY rmm.mapping_id DESC
 
 
     router.put("/cold/checkin/update/Trolley", async (req, res) => {
-        const { tro_id, cs_id, slot_id, selectedOption } = req.body;
+        const { tro_id, cs_id, slot_id, selectedOption, come_cold_at } = req.body;
+        // the entry time picked on the page (now when not sent): written to History and used for the delay times below
+        const stamp = parseStamp(come_cold_at);
+        if (stamp.error) return res.status(400).json({ success: false, message: stamp.error, error: stamp.error });
 
         const pool = await connectToDatabase();
         const transaction = pool.transaction();
@@ -5697,6 +5747,25 @@ ORDER BY rmm.mapping_id DESC
                     success: false,
                     message: `รถเข็นนี้อยู่ในห้องเย็นอยู่แล้ว (ช่อง ${trolleyInColdResult.recordset[0].slot_id})`
                 });
+            }
+
+            // the picked entry time must not be before the last exit of these materials from a cold room (2nd / 3rd stay)
+            if (stamp.text) {
+                const early = await transaction.request()
+                    .input("tro_id", sql.VarChar(4), tro_id)
+                    .input("stamp", sql.NVarChar(19), stamp.text)
+                    .query(`
+                    SELECT TOP (1) rmm.mapping_id, CONVERT(NVARCHAR(16), o.last_out, 120) AS last_out
+                    FROM TrolleyRMMapping rmm
+                    OUTER APPLY (SELECT TOP (1) hh.out_cold_date, hh.out_cold_date_two, hh.out_cold_date_three
+                                 FROM History hh WHERE hh.mapping_id = rmm.mapping_id ORDER BY hh.hist_id DESC) h
+                    CROSS APPLY (SELECT MAX(v) AS last_out FROM (VALUES (${histDt("out_cold_date")}), (${histDt("out_cold_date_two")}), (${histDt("out_cold_date_three")})) t(v)) o
+                    WHERE rmm.tro_id = @tro_id AND o.last_out > CONVERT(DATETIME2(0), @stamp, 120)`);
+                if (early.recordset.length) {
+                    await safeRollback(transaction);
+                    const msg = `เวลาเข้าห้องเย็นต้องไม่ก่อนเวลาออกห้องเย็นครั้งก่อน (${early.recordset[0].last_out}) ของรายการ ${early.recordset[0].mapping_id}`;
+                    return res.status(400).json({ success: false, message: msg, error: msg });
+                }
             }
 
             // ตรวจสอบว่าช่องเก็บว่างหรือไม่
@@ -5893,7 +5962,7 @@ ORDER BY rmm.mapping_id DESC
 
                     if (mixQuery.recordset.length > 0 && mixQuery.recordset[0].mixed_date) {
                         const mixedDate = new Date(mixQuery.recordset[0].mixed_date);
-                        const currentDate = new Date();
+                        const currentDate = new Date(stamp.ms);
                         const timeDiffMinutes = (currentDate - mixedDate) / (1000 * 60);
 
                         debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก mixed_date`);
@@ -5945,7 +6014,7 @@ ORDER BY rmm.mapping_id DESC
 
                     if (reworkQuery.recordset.length > 0 && reworkQuery.recordset[0].qc_date) {
                         const qcDate = new Date(reworkQuery.recordset[0].qc_date);
-                        const currentDate = new Date();
+                        const currentDate = new Date(stamp.ms);
                         const timeDiffMinutes = (currentDate - qcDate) / (1000 * 60);
 
                         debugLog(`RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก qc_date`);
@@ -6003,7 +6072,7 @@ ORDER BY rmm.mapping_id DESC
 
                         if (ptcResult.recordset.length > 0) {
                             const prepToCold = ptcResult.recordset[0].prep_to_cold;
-                            const currentDate = new Date();
+                            const currentDate = new Date(stamp.ms);
 
                             const referenceDate = ptcResult.recordset[0].rmit_date ?
                                 new Date(ptcResult.recordset[0].rmit_date) :
@@ -6061,7 +6130,7 @@ ORDER BY rmm.mapping_id DESC
                                 referenceType = ptcQuery.recordset[0].rmit_date ? 'rmit_date' : 'cooked_date';
                             }
 
-                            const currentDate = new Date();
+                            const currentDate = new Date(stamp.ms);
                             const timeDiffMinutes = (currentDate - referenceDate) / (1000 * 60);
 
                             debugLog(`MP ID : ${mapping_id} ,RMFP ID: ${rmfp_id}, ใช้เวลาอ้างอิงจาก: ${referenceType}`);
@@ -6168,22 +6237,23 @@ ORDER BY rmm.mapping_id DESC
 
                     const historyUpdateResult = await transaction.request()
                         .input("mapping_id", sql.Int, mapping_id)
+                        .input("stamp", sql.NVarChar(19), stamp.text)
                         .query(`
                         UPDATE History
                         SET
                             come_cold_date =
                                 CASE
-                                    WHEN come_cold_date IS NULL THEN GETDATE()
+                                    WHEN come_cold_date IS NULL THEN ${STAMP_SQL}
                                     ELSE come_cold_date
                                 END,
                             come_cold_date_two =
                                 CASE
-                                    WHEN come_cold_date IS NOT NULL AND come_cold_date_two IS NULL THEN GETDATE()
+                                    WHEN come_cold_date IS NOT NULL AND come_cold_date_two IS NULL THEN ${STAMP_SQL}
                                     ELSE come_cold_date_two
                                 END,
                             come_cold_date_three =
                                 CASE
-                                    WHEN come_cold_date IS NOT NULL AND come_cold_date_two IS NOT NULL AND come_cold_date_three IS NULL THEN GETDATE()
+                                    WHEN come_cold_date IS NOT NULL AND come_cold_date_two IS NOT NULL AND come_cold_date_three IS NULL THEN ${STAMP_SQL}
                                     ELSE come_cold_date_three
                                 END
                         WHERE mapping_id = @mapping_id

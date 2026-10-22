@@ -11,6 +11,9 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 import ModalAlert from "../../../../../Popup/AlertSuccess";
 import FifoNotice from "../flow/FifoNotice";
+import dayjs from "dayjs";
+import StampTimeField, { stampProblem, stampText } from "../flow/StampTimeField";
+import { calculateMaterialDelayTimeAt } from "./delayTime";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -25,7 +28,7 @@ const QcCheck = ({
   name_edit_prod_two, name_edit_prod_three, first_prod, two_prod, three_prod,
   qccheck_cold, receiver_qc_cold, approver, production, remark_rework,
   remark_rework_cold, edit_rework, prepare_mor_night,
-  storage_purpose, depositDays, coldRemark, histamineMap, fifoWarning,
+  storage_purpose, depositDays, coldRemark, histamineMap, fifoWarning, outAt,
 }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -120,6 +123,7 @@ const QcCheck = ({
       deposit_days: depositDays || null,
       cold_remark: coldRemark || null,
       materials: processedMaterials.length > 0 ? processedMaterials : materials,
+      out_cold_at: stampText(outAt), // the exit time picked on the page (History out_cold_date)
     };
 
     console.log("📤 Payload:", JSON.stringify(payload, null, 2));
@@ -201,6 +205,7 @@ const QcCheck = ({
           <Stack spacing={0.5} sx={{ mb: 2 }}>
             <Typography color="rgba(0,0,0,0.6)">ป้ายทะเบียน: {tro_id}</Typography>
             <Typography color="rgba(0,0,0,0.6)">สถานที่จัดส่ง: {Location}</Typography>
+            <Typography sx={{ fontWeight: 700 }}>เวลาออกห้องเย็น: {outAt ? dayjs(outAt).format("DD/MM/YYYY HH:mm") : "-"}</Typography>
             {storage_purpose && (
               <Typography color="rgba(0,0,0,0.6)">วัตถุประสงค์: {storage_purpose}</Typography>
             )}
@@ -258,6 +263,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
   const [coldRemark, setColdRemark] = useState("");
   // ✅ histamineMap — { [mapping_id]: string }
   const [histamineMap, setHistamineMap] = useState({});
+  const [outAt, setOutAt] = useState(null); // date + time of the exit: now when the dialog opens, can be changed (24 h)
 
   const {
     batch, mat, rmfp_id, rm_cold_status, rm_status, tro_id, slot_id,
@@ -275,7 +281,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     if (open) {
       setLocation(""); setoperator(""); setStoragePurpose("");
       setShowColdStorageOptions(false); setHistamineMap({}); setDepositDays("");
-      setColdRemark(""); setErrorMessage("");
+      setColdRemark(""); setErrorMessage(""); setOutAt(dayjs());
       const firstName = localStorage.getItem('first_name') || '';
       if (firstName) setoperator(firstName.trim());
     }
@@ -294,7 +300,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
 
   const calculateDelayTimeForItem = (item) => {
     if (!item.latestComeColdDate) return formattedDelayTime;
-    return Number(((new Date() - new Date(item.latestComeColdDate)) / (1000 * 60 * 60)).toFixed(2));
+    const at = outAt && dayjs(outAt).isValid() ? dayjs(outAt).toDate() : new Date();
+    return Number(((at - new Date(item.latestComeColdDate)) / (1000 * 60 * 60)).toFixed(2));
   };
 
   const formatSpecialChars = (v) => (!v || v === "/") ? "-" : v;
@@ -332,10 +339,17 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
       setErrorMessage("กรุณากรอกจำนวนวันที่ฝากเก็บ");
       return;
     }
+    const timeProblem = stampProblem(outAt);
+    if (timeProblem) { setErrorMessage(`วันเวลาออกห้องเย็น: ${timeProblem}`); return; }
     setErrorMessage(""); setShowLocationError(false);
+    // the delay times at the picked exit time (they were worked out with "now" when the trolley was opened)
+    const at = dayjs(outAt).toDate();
     const processedMats = materials.length > 0
-      ? materials.map(item => item.formattedDelayTime !== undefined
-        ? item : { ...item, formattedDelayTime: calculateDelayTimeForItem(item) })
+      ? materials.map((item) => {
+        const d = calculateMaterialDelayTimeAt(item, at);
+        const timed = { ...item, delayTime: d.statusMessage, delayTimeColor: d.color };
+        return timed.formattedDelayTime !== undefined ? timed : { ...timed, formattedDelayTime: calculateDelayTimeForItem(timed) };
+      })
       : materials;
     setProcessedMaterials(processedMats);
     setIsConfirmProdOpen(true);
@@ -408,6 +422,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
 
             <Divider />
             <Typography color="rgba(0,0,0,0.6)">เลขรถเข็น: {tro_id}</Typography>
+            <Box sx={{ maxWidth: 320 }}>
+              <StampTimeField label="วันเวลาออกห้องเย็น" value={outAt} onChange={setOutAt} />
+            </Box>
             <Divider />
 
             {/* ── Location ── */}
@@ -603,6 +620,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         coldRemark={coldRemark || null}
         histamineMap={histamineMap}       // ✅ ส่ง map ทั้งก้อน
         fifoWarning={fifo_warning}
+        outAt={outAt}
         materials={processedMaterials.length > 0 ? processedMaterials : materials}
       />
     </>

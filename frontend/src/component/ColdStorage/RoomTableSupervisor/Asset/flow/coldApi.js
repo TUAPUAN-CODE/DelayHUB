@@ -72,14 +72,15 @@ export async function releaseSlot({ cs_id, slot_id }) {
 }
 
 /** Checks of the existing check-in API, then the check-in itself. Throws Error(message) in Thai when refused. */
-export async function checkinTrolley({ tro_id, cs_id, slot_id, selectedOption }) {
+/** come_cold_at: the entry time picked on the page ("YYYY-MM-DD HH:mm:ss"), null = now */
+export async function checkinTrolley({ tro_id, cs_id, slot_id, selectedOption, come_cold_at = null }) {
   try {
     await axios.get(`${API_URL}/api/cold/checkin/check/Trolley`, { params: { tro_id, cs_id, slot_id, selectedOption } });
   } catch (err) {
     throw new Error(apiMessage(err, "ตรวจสอบรถเข็นไม่ผ่าน"));
   }
   try {
-    const res = await axios.put(`${API_URL}/api/cold/checkin/update/Trolley`, { tro_id, cs_id, slot_id, selectedOption });
+    const res = await axios.put(`${API_URL}/api/cold/checkin/update/Trolley`, { tro_id, cs_id, slot_id, selectedOption, come_cold_at });
     return res.data;
   } catch (err) {
     throw new Error(apiMessage(err, "รับเข้าห้องเย็นไม่สำเร็จ"));
