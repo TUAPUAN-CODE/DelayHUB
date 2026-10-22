@@ -2,6 +2,10 @@
 // ModalEditPD (check-out) shows these values for every material.
 const API_URL = import.meta.env.VITE_API_URL;
 
+// calculateMaterialDelayTimeAt(material, at): the same values at the check-out time picked on the page (not now), without changing rm_status again
+let clockAt = null;
+const nowDate = () => (clockAt ? new Date(clockAt) : new Date());
+
 const updateRmStatus = async (mapping_id) => {
   try {
     console.log('Attempting to update status for mapping_id:', mapping_id);
@@ -69,13 +73,13 @@ const getLatestComeColdDateForMaterial = (material) => {
 const calculateTimeDifferenceForMaterial = (comeColdDateTime) => {
   if (!comeColdDateTime) return null;
   const comecolddatetime = new Date(comeColdDateTime);
-  const currentDate = new Date();
+  const currentDate = nowDate();
   return (currentDate - comecolddatetime) / (1000 * 60);
 };
 
 // รวมเวลาอยู่ในห้องเย็นทุกรอบ (นาที)
 const calculateTotalColdMinutes = (material) => {
-  const now = new Date();
+  const now = nowDate();
   const pairs = [
     [material.come_cold_date,       material.out_cold_date],
     [material.come_cold_date_two,   material.out_cold_date_two],
@@ -110,6 +114,7 @@ const calculateMaterialDelayTime = (material) => {
   console.log("Calculating delay time for material:", material);
 
   const checkAndUpdateMaterialStatus = (material, percentage) => {
+    if (clockAt) return false; // a time picked on the page: the status was already checked when the trolley was opened
     if (percentage > 100 && material.materialStatus !== "รอแก้ไข" && material.mapping_id) {
       try {
         updateRmStatus(material.mapping_id);
@@ -374,4 +379,13 @@ const calculateMaterialDelayTime = (material) => {
   }
 };
 
-export { calculateMaterialDelayTime };
+const calculateMaterialDelayTimeAt = (material, at) => {
+  clockAt = at ? new Date(at).getTime() : null;
+  try {
+    return calculateMaterialDelayTime(material);
+  } finally {
+    clockAt = null;
+  }
+};
+
+export { calculateMaterialDelayTime, calculateMaterialDelayTimeAt };
