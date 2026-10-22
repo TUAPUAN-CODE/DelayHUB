@@ -738,7 +738,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
-      <CheckoutFlow ref={checkoutRef} onDone={reload} />
+      <CheckoutFlow ref={checkoutRef} onDone={reload} fifo />
       <LargeFlows ref={largeRef} onDone={reload} />
       {batch?.kind === "cart" && <BatchCartDialog rows={batch.rows} weights={weights} onClose={closeBatch} onDone={reload} />}
       {batch?.kind === "edit" && <BatchEditPlanDialog rows={batch.rows} onClose={closeBatch} onDone={reload} />}

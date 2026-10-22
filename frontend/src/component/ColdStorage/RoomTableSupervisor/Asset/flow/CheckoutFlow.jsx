@@ -1,8 +1,10 @@
 import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import axios from "axios";
-import { Alert, Snackbar } from "@mui/material";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from "@mui/material";
 import ModalEditPD from "../checkout/ModalEditPD";
 import { calculateMaterialDelayTime } from "../checkout/delayTime";
+import { fetchFifoBlockers } from "./coldApi";
+import FifoNotice from "./FifoNotice";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -11,6 +13,8 @@ const API_URL = import.meta.env.VITE_API_URL;
  * Check-out ("ส่งออก") of a trolley from the cold room: the dialogs of the old check-out page (quality check + slip + out of the cold room).
  * Those dialogs work on a whole trolley (all its materials), so the trolley is loaded from the same two APIs the old page used and
  * then handed to ModalEditPD exactly as before. Open it through the ref:  ref.current.open(row)
+ * fifo: the trolley is not opened while a material with the same mat / Code / line entered a cold room before it (FIFO, see FifoNotice);
+ * the server refuses the check-out too (outcoldstorage with fifo: true)
  */
   const buildEditData = (data) => {
     // ตรวจสอบ ptc_time จากทั้งระดับบนสุดและใน materials
@@ -275,15 +279,25 @@ const groupTrolley = (items) => {
 
 // The large cold room module (/coldStorages) reuses this flow with its own API prefix, delay calculation and dialog.
 const CheckoutFlow = forwardRef(function CheckoutFlow(
-  { onDone, apiBase = "/api/coldstorage", Modal = ModalEditPD, delayFn = calculateMaterialDelayTime },
+  { onDone, apiBase = "/api/coldstorage", Modal = ModalEditPD, delayFn = calculateMaterialDelayTime, fifo = false },
   ref,
 ) {
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [fifoBlock, setFifoBlock] = useState(null); // { tro_id, list, message }: FIFO says another trolley has to leave first
 
   const load = useCallback(async (row) => {
     try {
+      if (fifo) {
+        try {
+          const { list, message: text } = await fetchFifoBlockers(row.tro_id);
+          if (list.length) { setFifoBlock({ tro_id: row.tro_id, list, message: text }); return; }
+        } catch (err) {
+          // the check-out itself is checked again by the server
+          console.error("ตรวจ FIFO ไม่สำเร็จ:", err);
+        }
+      }
       const [regular, mixed] = await Promise.all([
         axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`),
         // not every module has a mixed-material export list: treat a missing one as "no mixed materials"
@@ -304,13 +318,20 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
       console.error("โหลดรายการส่งออกไม่สำเร็จ:", err);
       setMessage("โหลดข้อมูลส่งออกไม่สำเร็จ");
     }
-  }, [apiBase, delayFn]);
+  }, [apiBase, delayFn, fifo]);
 
   useImperativeHandle(ref, () => ({ open: load }), [load]);
 
   return (
     <>
       {data && <Modal open={open} onClose={() => setOpen(false)} onNext={() => setOpen(false)} data={data} onSuccess={() => { setOpen(false); onDone?.(); }} />}
+      {fifoBlock && (
+        <Dialog open onClose={() => setFifoBlock(null)} fullWidth maxWidth="md">
+          <DialogTitle>ส่งออกรถเข็น {fifoBlock.tro_id} ไม่ได้ — ต้องส่งออกตามลำดับที่เข้าห้องเย็น (FIFO)</DialogTitle>
+          <DialogContent dividers><FifoNotice message={fifoBlock.message} list={fifoBlock.list} /></DialogContent>
+          <DialogActions><Button variant="contained" onClick={() => setFifoBlock(null)}>ปิด</Button></DialogActions>
+        </Dialog>
+      )}
       <Snackbar open={Boolean(message)} autoHideDuration={5000} onClose={() => setMessage("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity="warning" onClose={() => setMessage("")}>{message}</Alert>
       </Snackbar>
