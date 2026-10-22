@@ -3,6 +3,7 @@ import { Box, Button, Typography, Dialog } from '@mui/material';
 import PrintIcon from "@mui/icons-material/Print";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import { QRCodeCanvas } from "qrcode.react";
+import { RemarkCsLine } from "../../../Layout/RemarkCs";
 
 
 
@@ -427,6 +428,18 @@ const ModalPrint = ({ open, onClose, rowData }) => {
           }}>
             Batch หัลงเตรียม : {rowData?.batch_after || "ไม่มีข้อมูล"}
           </Typography>
+          {/* Remark CS of the HU (typed at the big cold room receive), "-" when none */}
+          <Box sx={{
+            color: "#464646",
+            fontSize: "22px",
+            margin: "10px",
+            '@media print': {
+              fontSize: '10px',
+              margin: '2px 0',
+            },
+          }}>
+            <RemarkCsLine mappingId={rowData?.mapping_id} mat={rowData?.mat} batch={[rowData?.batch_before, rowData?.batch_after].filter(Boolean).join(",")} style={{ margin: 0 }} />
+          </Box>
 
           <Typography variant="h6" className="print-text" sx={{
             color: "#464646",

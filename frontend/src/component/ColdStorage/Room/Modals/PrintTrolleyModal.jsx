@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { RemarkCsLine, loadRemarkCs } from "../../../Layout/RemarkCs";
 import {
   Box,
   Button,
@@ -108,7 +109,11 @@ const PrintTrolleyModal = ({ open, onClose, trolleyId, slotId }) => {
               axios.get(`${API_URL}/api/coldstorage/history/${item.mapping_id}`)
             );
 
-            const results = await Promise.all(historyPromises);
+            // the Remark CS lines too, so the slip is complete when it prints
+            const [results] = await Promise.all([
+              Promise.all(historyPromises),
+              loadRemarkCs(trolleyInfo.materials.map((m) => ({ mappingId: m.mapping_id, mat: m.mat, batch: m.batch }))),
+            ]);
             const historiesWithIndex = results.map((result, index) => ({
               materialIndex: index,
               history: result.data.history || [],
@@ -1119,6 +1124,9 @@ const MaterialItem = ({
           <span style={{ color: '#666' }}>เตรียมงานให้กะ:</span> {item.prepare_mor_night}
         </Box>
       )}
+      <Box sx={{ mb: 0.5, fontSize: fontSizes.value.screen, '@media print': { fontSize: fontSizes.value.print } }}>
+        <RemarkCsLine mappingId={item.mapping_id} mat={item.mat} batch={item.batch} />
+      </Box>
       {/* QR Code per material */}
 <Box
     sx={{

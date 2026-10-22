@@ -8,6 +8,7 @@ import {
   Divider,
   CircularProgress
 } from '@mui/material';
+import { RemarkCsLine } from "../../../Layout/RemarkCs";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -752,6 +753,9 @@ const MaterialItem = ({
         {/* เลขรายการ (mapping_id) ของวัตถุดิบนี้ */}
         <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
             <InlineInfoItem label="รายการ" value={material.mapping_id != null ? String(material.mapping_id) : "ไม่มีข้อมูล"} fontSizes={fontSizes} />
+        </Box>
+        <Box sx={{ mb: 0.5, fontSize: fontSizes.value.screen, '@media print': { marginBottom: '1px', fontSize: fontSizes.value.print } }}>
+          <RemarkCsLine mappingId={material.mapping_id} mat={material.mat} batch={material.batch} />
         </Box>
         <Box sx={{
           display: "grid",

@@ -3,6 +3,7 @@ import { Box, Button, Typography, Dialog, Divider } from '@mui/material';
 import PrintIcon from "@mui/icons-material/Print";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import { QRCodeCanvas } from "qrcode.react";
+import { useRemarkCs } from "../../../Layout/RemarkCs";
 
 const ModalSlipPrint = ({ open, onClose, data }) => {
   const printRef = useRef(null);
@@ -125,6 +126,9 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
     window.addEventListener("afterprint", handleAfterPrint);
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, [onClose]);
+
+  // Remark CS of the HU (typed at the big cold room receive): a packaging HU has none, "-" then
+  const remarkCs = useRemarkCs([{ hu: data?.hu }]);
 
   if (!data) return null;
 
@@ -385,6 +389,7 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
           <FieldRow label="LOT" value={data.lot} />
           <FieldRow label="ROLL NO." value={data.roll_no} />
           <FieldRow label="HU" value={data.hu} />
+          <FieldRow label="Remark CS" value={remarkCs} />
           <FieldRow label="SIZE" value={data.size} />
           <FieldRow label="TE" value={data.te} />
           <FieldRow label="จำนวน" value={data.qty} />

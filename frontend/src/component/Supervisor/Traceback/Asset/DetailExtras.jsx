@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
+import { RemarkCsLine } from '../../../Layout/RemarkCs';
 import { T } from './tracebackUI';
 import { Tag, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
 import { fmtDT, fmtD, fmtNum, uniq, exceptionList, EXCEPTION_LABEL } from './tracebackCore';
@@ -153,6 +154,7 @@ export const QrLabelsDialog = ({ open, onClose, data, linkBase }) => {
                 <div style={{ fontFamily: 'ui-monospace,monospace' }}>Batch {m.batch_before || '-'}</div>
                 <div>{fmtNum(m.weight_RM, 1)} kg · {m.rmm_line_name || '-'}</div>
                 <div>{s.doc_no}</div>
+                <RemarkCsLine mappingId={m.mapping_id} mat={m.mat} batch={m.batch_before} style={{ margin: 0 }} />
               </div>
             </div>
           ))}

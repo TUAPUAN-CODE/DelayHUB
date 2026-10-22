@@ -13,6 +13,9 @@ axios.defaults.withCredentials = true;
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// every slip of the system shows the Remark CS of its HU: the broth is not an HU from the big cold room, so it has none ("-")
+const REMARK_CS_ROW = `<div class="bs-row"><span class="bs-label">Remark CS</span><span class="bs-value">-</span></div>`;
+
 const printBrothSlip = () => {
   const now = new Date();
   const cool = new Date(now.getTime() + 30 * 60 * 1000);
@@ -30,6 +33,7 @@ const printBrothSlip = () => {
     <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${fmt(now)}</span></div>
     <div class="bs-row"><span class="bs-label">ทำเย็นเสร็จ</span><span class="bs-value">${fmt(cool)}</span></div>
     <div class="bs-row"><span class="bs-label">Delay</span><span class="bs-value">${fmt(delay)}</span></div>
+    ${REMARK_CS_ROW}
   `);
 };
 
@@ -88,6 +92,7 @@ const printStartSlip = (row) => {
     <div class="bs-title">น้ำอบไก่</div>
     <div class="bs-row"><span class="bs-label">NO</span><span class="bs-value">${esc(row.time_stamp_ck)}</span></div>
     <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${esc(row.start_datetime)}</span></div>
+    ${REMARK_CS_ROW}
   `);
 };
 
@@ -99,6 +104,7 @@ const printFullSlip = (row) => {
     <div class="bs-row"><span class="bs-label">เก็บ</span><span class="bs-value">${esc(row.start_datetime)}</span></div>
     <div class="bs-row"><span class="bs-label">ทำเย็นเสร็จ</span><span class="bs-value">${esc(row.cooling_datetime)}</span></div>
     <div class="bs-row"><span class="bs-label">Delay</span><span class="bs-value">${esc(row.end_datetime)}</span></div>
+    ${REMARK_CS_ROW}
   `);
 };
 

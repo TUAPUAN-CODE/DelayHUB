@@ -3,6 +3,7 @@ import { useRef as useSlipRef } from "react";
 import SlipPrintSettings from "../../../Layout/SlipPrintSettings";
 import { printSlip } from "../../../../services/slipPrint";
 import { QRCodeCanvas } from "qrcode.react";
+import { RemarkCsLine } from "../../../Layout/RemarkCs";
 import { useState, useEffect } from "react";
 import {
 	Box,
@@ -723,6 +724,19 @@ open={open}
 
 						{/* ✅ Batch หลัง - ใช้ helper renderBatchList */}
 						{renderBatchList(batch_after, 'Batch หลังเตรียม')}
+
+						{/* Remark CS of the HU (typed at the big cold room receive), "-" when none */}
+						<Box sx={{
+							color: "#464646",
+							fontSize: "22px",
+							margin: "10px",
+							'@media print': {
+								fontSize: '10px',
+								margin: '2px 0',
+							},
+						}}>
+							<RemarkCsLine mappingId={mapping_id} mat={mat} batch={[batch_before, batch_after].filter(Boolean).join(",")} style={{ margin: 0 }} />
+						</Box>
 
 
 						<Typography variant="h6" className="print-text" sx={{
