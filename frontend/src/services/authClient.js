@@ -60,18 +60,22 @@ const addHeaders = (headersLike, url, method) => {
   const unlock = getUnlockToken();
   const m = String(method).toUpperCase();
   const path = pathOf(url);
-  // the Setting permit goes with saving the table settings and with editing table data (button "แก้ไขข้อมูล" in the top bar)
-  if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit")) || (m === "PUT" && /\/api\/traceback\/holds\/\d+\/release$/.test(path))) && !headersLike.has("X-Setting-Unlock")) {
+  // the Setting permit goes with saving the table settings, with editing table data (button "แก้ไขข้อมูล" in the top bar / page "ค้นหา mapping_id")
+  // and with reading the edit history (GET /api/sheet/edit-log needs it too: without it a Role other than Supervisor / Master got 403 right after
+  // unlocking, and that 403 threw the permit away — the next edit was refused although the page said "ปลดล็อกแล้ว")
+  if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit")) || (m === "GET" && path.endsWith("/api/sheet/edit-log"))
+    || (m === "PUT" && /\/api\/traceback\/holds\/\d+\/release$/.test(path))) && !headersLike.has("X-Setting-Unlock")) {
     headersLike.set("X-Setting-Unlock", unlock);
   }
 };
 
 // ── axios: ที่ระดับ adapter เพื่อให้ครอบคลุม axios.create() ที่สร้างทีหลังด้วย ──
-// the server refused the Setting permit (expired / typed by another user in this tab): drop it, so the page shows "locked" and asks the password again
+// the server refused the Setting permit that was SENT (expired / typed by another user in this tab): drop it, so the page shows "locked" and asks
+// the password again. A request that went without the permit (reason "admin_or_password") does not drop the permit this tab holds.
 const handleForbidden = (raw) => {
   let data = raw;
   if (typeof raw === "string") { try { data = JSON.parse(raw); } catch { data = null; } }
-  if (data && data.code === "SETTING_UNLOCK_REQUIRED") {
+  if (data && data.code === "SETTING_UNLOCK_REQUIRED" && String(data.reason || "").startsWith("unlock_")) {
     setUnlockToken(null);
     try { window.dispatchEvent(new Event("setting-unlock-dropped")); } catch { /* old browser */ }
   }
