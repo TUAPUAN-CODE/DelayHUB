@@ -13,8 +13,8 @@ const API_URL = import.meta.env.VITE_API_URL;
  * Check-out ("ส่งออก") of a trolley from the cold room: the dialogs of the old check-out page (quality check + slip + out of the cold room).
  * Those dialogs work on a whole trolley (all its materials), so the trolley is loaded from the same two APIs the old page used and
  * then handed to ModalEditPD exactly as before. Open it through the ref:  ref.current.open(row)
- * fifo: the trolley is not opened while a material with the same mat / Code / line entered a cold room before it (FIFO, see FifoNotice);
- * the server refuses the check-out too (outcoldstorage with fifo: true)
+ * fifo: when a material with the same mat / Code / line entered a cold room before this trolley (FIFO, see FifoNotice) a warning comes first;
+ * "ส่งออกต่อ" opens the check-out with data.fifo_warning, its slip says "จ่ายไม่ FIFO" above the QR code of those materials
  */
   const buildEditData = (data) => {
     // ตรวจสอบ ptc_time จากทั้งระดับบนสุดและใน materials
@@ -285,19 +285,11 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [fifoBlock, setFifoBlock] = useState(null); // { tro_id, list, message }: FIFO says another trolley has to leave first
+  const [fifoAsk, setFifoAsk] = useState(null); // { row, list, message }: other trolleys of the same mat / Code / line entered the cold room first
 
-  const load = useCallback(async (row) => {
+  // fifoWarning: { message, list, ids } when the user goes on although it is not FIFO
+  const openCheckout = useCallback(async (row, fifoWarning = null) => {
     try {
-      if (fifo) {
-        try {
-          const { list, message: text } = await fetchFifoBlockers(row.tro_id);
-          if (list.length) { setFifoBlock({ tro_id: row.tro_id, list, message: text }); return; }
-        } catch (err) {
-          // the check-out itself is checked again by the server
-          console.error("ตรวจ FIFO ไม่สำเร็จ:", err);
-        }
-      }
       const [regular, mixed] = await Promise.all([
         axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`),
         // not every module has a mixed-material export list: treat a missing one as "no mixed materials"
@@ -312,24 +304,46 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
         const { statusMessage, color } = delayFn(m);
         return { ...m, delayTime: statusMessage, delayTimeColor: color };
       });
-      setData(buildEditData({ ...trolley, ptc_time: trolley.ptc_time, materials }));
+      setData({ ...buildEditData({ ...trolley, ptc_time: trolley.ptc_time, materials }), fifo_warning: fifoWarning });
       setOpen(true);
     } catch (err) {
       console.error("โหลดรายการส่งออกไม่สำเร็จ:", err);
       setMessage("โหลดข้อมูลส่งออกไม่สำเร็จ");
     }
-  }, [apiBase, delayFn, fifo]);
+  }, [apiBase, delayFn]);
+
+  const load = useCallback(async (row) => {
+    if (fifo) {
+      try {
+        const { list, message: text } = await fetchFifoBlockers(row.tro_id);
+        if (list.length) { setFifoAsk({ row, list, message: text }); return; }
+      } catch (err) {
+        // only a warning: the check-out goes on
+        console.error("ตรวจ FIFO ไม่สำเร็จ:", err);
+      }
+    }
+    await openCheckout(row);
+  }, [fifo, openCheckout]);
+
+  const goOnNotFifo = () => {
+    const ask = fifoAsk;
+    setFifoAsk(null);
+    openCheckout(ask.row, { message: ask.message, list: ask.list, ids: [...new Set(ask.list.map((x) => String(x.mapping_id)))] });
+  };
 
   useImperativeHandle(ref, () => ({ open: load }), [load]);
 
   return (
     <>
       {data && <Modal open={open} onClose={() => setOpen(false)} onNext={() => setOpen(false)} data={data} onSuccess={() => { setOpen(false); onDone?.(); }} />}
-      {fifoBlock && (
-        <Dialog open onClose={() => setFifoBlock(null)} fullWidth maxWidth="md">
-          <DialogTitle>ส่งออกรถเข็น {fifoBlock.tro_id} ไม่ได้ — ต้องส่งออกตามลำดับที่เข้าห้องเย็น (FIFO)</DialogTitle>
-          <DialogContent dividers><FifoNotice message={fifoBlock.message} list={fifoBlock.list} /></DialogContent>
-          <DialogActions><Button variant="contained" onClick={() => setFifoBlock(null)}>ปิด</Button></DialogActions>
+      {fifoAsk && (
+        <Dialog open onClose={() => setFifoAsk(null)} fullWidth maxWidth="md">
+          <DialogTitle>รถเข็น {fifoAsk.row.tro_id} จ่ายไม่ FIFO — มีรถเข็นที่เข้าห้องเย็นก่อน</DialogTitle>
+          <DialogContent dividers><FifoNotice message={fifoAsk.message} list={fifoAsk.list} /></DialogContent>
+          <DialogActions>
+            <Button onClick={() => setFifoAsk(null)}>ยกเลิก</Button>
+            <Button variant="contained" color="warning" onClick={goOnNotFifo}>ส่งออกต่อ (จ่ายไม่ FIFO)</Button>
+          </DialogActions>
         </Dialog>
       )}
       <Snackbar open={Boolean(message)} autoHideDuration={5000} onClose={() => setMessage("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>

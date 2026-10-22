@@ -25,7 +25,7 @@ const OPTION_BY_STATUS = {
 };
 export const checkinOptionOf = (rmStatus) => OPTION_BY_STATUS[rmStatus] ?? null;
 
-/** FIFO: what has to leave the cold rooms before this trolley — { list: [] } when it may leave (see FifoNotice) */
+/** FIFO: what entered the cold rooms before this trolley — { list: [] } when it is FIFO (see FifoNotice; a warning only) */
 export async function fetchFifoBlockers(tro_id) {
   const res = await axios.get(`${API_URL}/api/coldstorage/fifo-check`, { params: { tro_id } });
   return { list: res.data?.data ?? [], message: res.data?.message ?? "" };

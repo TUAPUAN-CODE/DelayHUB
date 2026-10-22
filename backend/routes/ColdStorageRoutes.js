@@ -2248,9 +2248,10 @@ ORDER BY
     });
 
     // ── FIFO of the cold rooms of /coldStorage (cs_id < 10) ───────────────────────────────────────────────────────────────
-    // A trolley may leave only when no other material with the same mat, Code (doc_no of the plan) and line has been in a cold room
+    // A trolley is sent out "FIFO" when no other material with the same mat, Code (doc_no of the plan) and line has been in a cold room
     // longer: entered earlier (the entry of its current stay: come_cold_date / _two / _three without its out date) and still in a slot.
-    // Mixed materials (no plan of a mat) are not checked. Returns [] when the trolley may leave.
+    // Mixed materials (no plan of a mat) are not checked. Returns [] when it is FIFO. Only a warning: the check-out is never refused
+    // (the Sheet warns before the check-out and prints "จ่ายไม่ FIFO" on the slip).
     const histDate = (c) => `TRY_CONVERT(DATETIME2(0), NULLIF(LTRIM(CONVERT(NVARCHAR(50), h.${c}, 120)), N''))`;
     const FIFO_SQL = `
         WITH cur AS (
@@ -2288,11 +2289,11 @@ ORDER BY
     const findFifoBlockers = async (request, troId) => (await request.input("tro_id", sql.NVarChar(20), String(troId)).query(FIFO_SQL)).recordset;
     const fifoMessage = (list) => {
         const first = list[0];
-        return `ส่งออกไม่ได้ (FIFO): มี ${first.mat_name || first.mat} Code ${first.doc_no || "-"} ไลน์ ${first.line_name || "-"} ที่เข้าห้องเย็นก่อน`
-            + ` — ต้องส่งออกรถเข็น ${[...new Set(list.map((x) => x.first_tro_id))].join(", ")} ก่อน`;
+        return `จ่ายไม่ FIFO: มี ${first.mat_name || first.mat} Code ${first.doc_no || "-"} ไลน์ ${first.line_name || "-"} ที่เข้าห้องเย็นก่อน`
+            + ` (รถเข็น ${[...new Set(list.map((x) => x.first_tro_id))].join(", ")})`;
     };
 
-    /** GET /api/coldstorage/fifo-check?tro_id= : what must leave the cold room before this trolley (FIFO); data = [] when it may leave */
+    /** GET /api/coldstorage/fifo-check?tro_id= : what entered the cold room before this trolley (FIFO); data = [] when it is FIFO */
     router.get("/coldstorage/fifo-check", async (req, res) => {
         try {
             const troId = String(req.query.tro_id || "").trim();
@@ -2314,7 +2315,7 @@ ORDER BY
             const {
                 tro_id, slot_id, rm_cold_status, rm_status,
                 dest, operator, materials, storage_purpose,
-                deposit_days, cold_remark, fifo
+                deposit_days, cold_remark
             } = req.body;
 
             if (!tro_id || !slot_id || !rm_status || !dest || !materials) {
@@ -2324,12 +2325,6 @@ ORDER BY
 
             const pool = await connectToDatabase();
             if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-
-            // fifo (the Sheet of /coldStorage): refused while a material with the same mat / Code / line entered a cold room earlier
-            if (fifo) {
-                const blockers = await findFifoBlockers(pool.request(), tro_id);
-                if (blockers.length) return res.status(409).json({ success: false, code: "FIFO", error: fifoMessage(blockers), data: blockers });
-            }
 
             const transaction = new sql.Transaction(pool);
             await transaction.begin();
