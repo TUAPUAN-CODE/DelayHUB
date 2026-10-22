@@ -513,7 +513,9 @@ module.exports = (io) => {
   });
 
   router.put("/checkin/pack", async (req, res) => {
-    const transaction = new sql.Transaction();
+    // the transaction is made on the pool of connectToDatabase() below: "new sql.Transaction()" without it used the global mssql connection,
+    // which this app only has after an RFID route opened it — otherwise begin() failed and the check-in did nothing
+    let transaction = null;
 
 
     try {
@@ -526,7 +528,8 @@ module.exports = (io) => {
 
 
       const pool = await connectToDatabase();
-      transaction.connection = pool;
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      transaction = new sql.Transaction(pool);
       await transaction.begin();
 
 
@@ -3181,7 +3184,9 @@ module.exports = (io) => {
   });
 
   router.put("/checkin/prep", async (req, res) => {
-    const transaction = new sql.Transaction();
+    // the transaction is made on the pool of connectToDatabase() below: "new sql.Transaction()" without it used the global mssql connection,
+    // which this app only has after an RFID route opened it — otherwise begin() failed and the check-in did nothing
+    let transaction = null;
 
     try {
       const { tro_id, operator } = req.body;
@@ -3191,7 +3196,8 @@ module.exports = (io) => {
       }
 
       const pool = await connectToDatabase();
-      transaction.connection = pool;
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      transaction = new sql.Transaction(pool);
       await transaction.begin();
 
       // 🔍 ดึงข้อมูลจาก TrolleyRMMapping ก่อน UPDATE
