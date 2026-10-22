@@ -85,7 +85,8 @@ router.get("/fetchProduction", async (req, res) => {
     // 1. Fetch Production data
     //    all=1: every production plan, whether or not the material was linked to it in ProdRawMat (prod_rm_id is null when it is not):
     //    the scan page lets the material pick any plan; the link is created when the scan is saved.
-    //    The plans linked to the material come first (then newest first), so an old linked plan is never cut off by the TOP;
+    //    The plans linked to the material come first (then newest first); no TOP: since every new plan is linked to every material
+    //    (add-production / prod_rawmat_bind_all.sql) a cut-off list dropped old plans again (the page shows at most 300 and searches the rest);
     //    one row per plan (a duplicated ProdRawMat link does not repeat it); line_type_name tells apart the same code / doc_no of another line type
     const productionResult = await pool.request()
       .input("mat", mat)
@@ -96,7 +97,7 @@ router.get("/fetchProduction", async (req, res) => {
           WHERE r.mat = @mat
           GROUP BY r.prod_id
         )
-        SELECT TOP (3000) p.prod_id, p.doc_no, p.code, p.line_type_id, lt.line_type_name, l.prod_rm_id
+        SELECT p.prod_id, p.doc_no, p.code, p.line_type_id, lt.line_type_name, l.prod_rm_id
         FROM Production p
         LEFT JOIN linked l ON l.prod_id = p.prod_id
         LEFT JOIN LineType lt ON lt.line_type_id = p.line_type_id

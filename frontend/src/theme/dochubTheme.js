@@ -83,7 +83,13 @@ const theme = createTheme({
     MuiIconButton: { styleOverrides: { root: { borderRadius: 10, transition: "background-color .15s, transform .1s", "&:active": { transform: "scale(.94)" } } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: "none" }, rounded: { borderRadius: 16 }, outlined: { borderColor: TOKENS.border } } },
     MuiCard: { styleOverrides: { root: { borderRadius: 16, ...GLASS } } },
-    MuiDialog: { styleOverrides: { paper: { borderRadius: 20, ...GLASS_STRONG } } },
+    // every dialog closes only from its own buttons: a tap next to it (or Esc) does not close it — on the tablets a tap beside the dialog
+    // threw away what was typed. MUI counts a click as "outside" only when it also started (mousedown) on the area around the dialog:
+    // without that mousedown handler no click is ever a backdropClick.
+    MuiDialog: {
+      defaultProps: { disableEscapeKeyDown: true, slotProps: { container: { onMouseDown: () => {} } } },
+      styleOverrides: { paper: { borderRadius: 20, ...GLASS_STRONG } },
+    },
     MuiPopover: { styleOverrides: { paper: { ...GLASS_STRONG, boxShadow: "0 12px 32px rgba(16,24,60,.18)" } } },
     MuiDrawer: { styleOverrides: { paper: { ...GLASS_STRONG } } },
     MuiAccordion: { styleOverrides: { root: { ...GLASS, "&:before": { display: "none" } } } },

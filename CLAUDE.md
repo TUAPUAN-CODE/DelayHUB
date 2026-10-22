@@ -244,6 +244,7 @@ export default MyPage;
 6. **Socket.IO** — ประกาศ socket ใน component หรือ context ไม่ใช่ global variable
 7. **ห้าม inline function ใน JSX ที่ heavy** — แยกเป็น named function เพื่อ performance
 8. **MUI + Tailwind ใช้ร่วมกันได้** — ใช้ MUI สำหรับ component structure, Tailwind สำหรับ layout/spacing
+9. **Dialog ปิดได้จากปุ่มของมันเท่านั้น** — แตะนอกกรอบ / กด Esc ไม่ปิด (ตั้งกลางใน `theme/dochubTheme.js` → `MuiDialog.defaultProps`; `<Modal>` ของ MUI ที่ใช้ตรงๆ ให้ข้าม `reason === "backdropClick"` เอง) ห้ามเปิดกลับ
 
 ---
 

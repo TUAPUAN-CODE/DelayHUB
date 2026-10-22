@@ -21,48 +21,60 @@ const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("th-TH", { maximumFrac
  * The target can also be an EMPTY trolley of the system that is not in a cold room yet: it is put into the first free slot of the chosen room first
  * (PUT /api/coldstorage/gather/assignEmptyTrolley), so the gathered materials show up as "อยู่ในห้องเย็น".
  *
+ * Only one Code (doc_no of the plan) and one line go into a set: the ticked materials and what is already in the target trolley must match
+ * (the server checks it again: same_plan).
+ *
+ * Mounted once per opening (key): the rows are the ticked rows as they were when it opened, so the table reloading meanwhile
+ * (somebody else saved) does not reset the chosen trolley or the typed weights.
+ *
  * rows      the ticked mapping rows of the Sheet
- * trolleys  trolleys that are in a cold room: [{ tro_id, slot_id, cs_name }]
+ * trolleys  trolleys that are in a cold room: [{ tro_id, slot_id, cs_name, contents: [{ mapping_id, code, line }] }]
  * role      "cs1" (cold rooms) | "cs2" (large cold rooms): which rooms / slots the empty trolleys may go to
  */
 const GROUP_IN_ROOM = "อยู่ในห้องเย็น";
 const GROUP_EMPTY = "รถเข็นว่างที่ยังไม่อยู่ในห้องเย็น";
 
-const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
+const norm = (v) => String(v ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+const planOf = (r) => ({ code: String(r.doc_no ?? "").trim(), line: String(r.rmm_line_name ?? "").trim() });
+const planKey = (p) => `${norm(p.code)}|${norm(p.line)}`;
+const planText = (p) => `Code ${p.code || "-"} · ไลน์ ${p.line || "-"}`;
+const diffText = (a, b) => [norm(a.code) !== norm(b.code) && "คนละ Code", norm(a.line) !== norm(b.line) && "คนละไลน์"].filter(Boolean).join(" และ ");
+
+/** what is already in the trolley with another Code / line than the set (null when it fits) */
+const otherPlanIn = (trolley, plan, moving) => (trolley?.contents || []).find((c) => !moving.has(String(c.mapping_id)) && planKey(c) !== planKey(plan)) || null;
+
+const GatherSelected = ({ onClose, rows, trolleys, role, onDone }) => {
   const [target, setTarget] = useState(null);
   const [targets, setTargets] = useState({ inRoom: [], free: [], rooms: [] }); // from GET /coldstorage/gather/targets
-  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [loadingTargets, setLoadingTargets] = useState(true);
   const [roomId, setRoomId] = useState("");
-  const [weights, setWeights] = useState({});
+  const [weights, setWeights] = useState(() => Object.fromEntries(rows.map((r) => [r.mapping_id, String(r.weight_RM)])));
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [failed, setFailed] = useState([]);
 
-  useEffect(() => {
-    if (!open) return;
-    setTarget(null); setFailed([]); setProgress({ done: 0, total: 0 });
-    setWeights(Object.fromEntries(rows.map((r) => [r.mapping_id, String(r.weight_RM)])));
-  }, [open, rows]);
-
-  // empty trolleys of the system + the rooms that still have a free slot
-  useEffect(() => {
-    if (!open) return undefined;
-    let cancel = false;
-    setLoadingTargets(true);
-    axios.get(`${API_URL}/api/coldstorage/gather/targets`, { params: { v: role === "cs2" ? 2 : 1 } })
-      // /coldStorage does not offer 4C and ห้อง 10 - 46 (same rule as its slot layout)
-      .then((res) => { if (!cancel && res.data?.success) setTargets(role === "cs1" ? { ...res.data.data, rooms: (res.data.data.rooms || []).filter((x) => !isHiddenRoom(x.cs_id)) } : res.data.data); })
-      .catch((err) => console.error("[Sheet] จัดชุด targets error:", err))
-      .finally(() => { if (!cancel) setLoadingTargets(false); });
-    return () => { cancel = true; };
-  }, [open, role]);
-
+  // empty trolleys of the system + the rooms that still have a free slot;
   // the room of the ticked materials is the room that is offered first for an empty trolley
   useEffect(() => {
-    if (!open) return;
-    const own = rows.find((r) => targets.rooms.some((x) => x.cs_id === r.cs_id))?.cs_id;
-    setRoomId(own ?? targets.rooms[0]?.cs_id ?? "");
-  }, [open, rows, targets.rooms]);
+    let cancel = false;
+    const load = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/coldstorage/gather/targets`, { params: { v: role === "cs2" ? 2 : 1 } });
+        if (cancel || !res.data?.success) return;
+        // /coldStorage does not offer 4C and ห้อง 10 - 46 (same rule as its slot layout)
+        const data = role === "cs1" ? { ...res.data.data, rooms: (res.data.data.rooms || []).filter((x) => !isHiddenRoom(x.cs_id)) } : res.data.data;
+        setTargets(data);
+        const own = rows.find((r) => data.rooms.some((x) => x.cs_id === r.cs_id))?.cs_id;
+        setRoomId((cur) => (cur !== "" ? cur : own ?? data.rooms[0]?.cs_id ?? ""));
+      } catch (err) {
+        console.error("[Sheet] จัดชุด targets error:", err);
+      } finally {
+        if (!cancel) setLoadingTargets(false);
+      }
+    };
+    load();
+    return () => { cancel = true; };
+  }, [rows, role]);
 
   // trolleys in a cold room (with materials) · empty trolleys that are already in a slot · empty trolleys that are not in a cold room yet
   const options = useMemo(() => {
@@ -87,7 +99,39 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
   };
   const freeRoom = targets.rooms.find((x) => x.cs_id === roomId);
   const roomError = target?.isFree && !freeRoom ? "ไม่มีห้องเย็นที่มีช่องว่าง" : "";
-  const hasError = rows.some((r) => weightError(r)) || Boolean(roomError);
+
+  // one Code and one line per set: the ticked materials among themselves, then with what is already in the target trolley
+  const moving = useMemo(() => new Set(rows.map((r) => String(r.mapping_id))), [rows]);
+  const plans = useMemo(() => {
+    const m = new Map();
+    rows.forEach((r) => {
+      const p = planOf(r);
+      const g = m.get(planKey(p)) ?? { ...p, count: 0 };
+      g.count += 1;
+      m.set(planKey(p), g);
+    });
+    return [...m.values()];
+  }, [rows]);
+  const setPlan = plans.length === 1 ? plans[0] : null;
+  // the target as it is now in the table (its contents follow the reloads)
+  const liveTarget = target && !target.isFree ? options.find((o) => String(o.tro_id) === String(target.tro_id)) || target : target;
+  const targetOther = setPlan && liveTarget ? otherPlanIn(liveTarget, setPlan, moving) : null;
+  let planError = "";
+  if (plans.length > 1) {
+    planError = `วัตถุดิบที่เลือก${diffText(plans[0], plans.find((p) => planKey(p) !== planKey(plans[0])))} — จัดชุดได้เฉพาะวัตถุดิบ Code และไลน์เดียวกัน`;
+  } else if (targetOther) {
+    planError = `รถเข็น ${liveTarget.tro_id} มีวัตถุดิบ ${planText(targetOther)} อยู่แล้ว — ${diffText(targetOther, setPlan)} กับวัตถุดิบที่เลือก (${planText(setPlan)})`;
+  }
+  const hasError = rows.some((r) => weightError(r)) || Boolean(roomError) || Boolean(planError);
+
+  // tablet: the trolley number typed in the box (not picked from the list) is lost when the box loses focus — take it when it is one trolley
+  const pickTyped = (e) => {
+    const typed = String(e.target?.value ?? "").trim();
+    if (!typed || running) return;
+    const exact = options.filter((o) => String(o.tro_id) === typed);
+    const hits = exact.length ? exact : options.filter((o) => String(o.tro_id).includes(typed));
+    if (hits.length === 1 && String(hits[0].tro_id) !== String(target?.tro_id ?? "")) setTarget(hits[0]);
+  };
   const total = useMemo(() => rows.reduce((s, r) => s + (parseFloat(weights[r.mapping_id]) || 0), 0), [rows, weights]);
 
   const run = async (list) => {
@@ -112,7 +156,7 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
       try {
         const res = await axios.put(`${API_URL}/api/coldstorage/addRawMatToTrolley`, {
           source_tro_id: r.tro_id, target_tro_id: dest.tro_id, weight: parseFloat(weights[r.mapping_id]), slot_id: dest.slot_id,
-          rmfp_id: r.rmfp_id, mix_code: r.mix_code, mapping_id: r.mapping_id, isMixed: Boolean(r.mix_code),
+          rmfp_id: r.rmfp_id, mix_code: r.mix_code, mapping_id: r.mapping_id, isMixed: Boolean(r.mix_code), same_plan: true,
         });
         if (!res.data?.success) throw new Error(res.data?.error || "ไม่สำเร็จ");
         ok += 1;
@@ -128,7 +172,7 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
   };
 
   return (
-    <Dialog open={open} onClose={running ? undefined : onClose} fullWidth maxWidth="md">
+    <Dialog open onClose={running ? undefined : onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <AddShoppingCartIcon sx={{ color: "#1552F0" }} />
         <span>จัดชุดวัตถุดิบ</span>
@@ -139,9 +183,10 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
       <DialogContent dividers>
         <Autocomplete
           options={options} value={target} onChange={(_, v) => setTarget(v)} disabled={running} loading={loadingTargets}
+          autoHighlight onBlur={pickTyped}
           groupBy={(o) => o.group}
-          getOptionLabel={(o) => (o.isFree ? `รถเข็น ${o.tro_id} · ว่าง` : `รถเข็น ${o.tro_id} · ${o.cs_name || "ห้องเย็น"} · ช่อง ${o.slot_id ?? "-"}${o.empty ? " · ว่าง" : ""}`)}
-          isOptionEqualToValue={(a, b) => a.tro_id === b.tro_id}
+          getOptionLabel={(o) => (o.isFree ? `รถเข็น ${o.tro_id} · ว่าง` : `รถเข็น ${o.tro_id} · ${o.cs_name || "ห้องเย็น"} · ช่อง ${o.slot_id ?? "-"}${o.empty ? " · ว่าง" : ""}${setPlan && otherPlanIn(o, setPlan, moving) ? " · คนละ Code/ไลน์" : ""}`)}
+          isOptionEqualToValue={(a, b) => String(a.tro_id) === String(b.tro_id)}
           noOptionsText="ไม่พบรถเข็น"
           renderInput={(params) => (
             <TextField {...params} label="รถเข็นปลายทาง (อยู่ในห้องเย็น หรือรถเข็นว่างในระบบ)" size="small" autoFocus
@@ -155,6 +200,12 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
             </TextField>
           </Box>
         )}
+        {planError && (
+          <Alert severity="error" sx={{ mt: 1.5 }}>
+            {planError}
+            {plans.length > 1 && plans.map((p) => <div key={planKey(p)} style={{ fontSize: 12 }}>• {planText(p)}: {p.count} รายการ</div>)}
+          </Alert>
+        )}
         <Typography sx={{ fontWeight: 600, mt: 2, mb: 0.5 }}>น้ำหนักที่จะย้ายของแต่ละวัตถุดิบ</Typography>
         {rows.map((r) => {
           const err = weightError(r);
@@ -165,6 +216,7 @@ const GatherSelected = ({ open, onClose, rows, trolleys, role, onDone }) => {
                 <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>
                   รายการ {r.mapping_id} · จากรถเข็น {r.tro_id} · {r.cs_name || ""} ช่อง {r.slot_id ?? "-"} · Batch {r.batch_after || r.batch || "-"} · มี {fmt(parseFloat(r.weight_RM))} kg
                 </Typography>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: plans.length > 1 ? "#B42318" : "#344054" }} noWrap>{planText(planOf(r))}</Typography>
               </Box>
               <TextField
                 size="small" value={weights[r.mapping_id] ?? ""} error={Boolean(err)} helperText={err || " "} disabled={running}

@@ -69,9 +69,9 @@ const Result = ({ total, failed }) => (
 );
 
 /** shell shared by the 3 dialogs: progress while running, result at the end, the buttons */
-const BatchShell = ({ open, title, onClose, children, running, done, total, step, failed, canRun, onRun, runLabel, runColor }) => (
+const BatchShell = ({ open, title, count, onClose, children, running, done, total, step, failed, canRun, onRun, runLabel, runColor }) => (
   <Dialog open={open} onClose={(e, reason) => { if (reason !== "backdropClick" && !running) onClose(); }} fullWidth maxWidth="md">
-    <DialogTitle>{title} ({total} แถว)</DialogTitle>
+    <DialogTitle>{title} ({count ?? total} แถว)</DialogTitle>
     <DialogContent dividers>
       {children}
       {running && <Box sx={{ mt: 1.5 }}><LinearProgress variant="determinate" value={(step / total) * 100} /><Typography variant="caption">กำลังทำรายการ {step}/{total}</Typography></Box>}
@@ -172,7 +172,18 @@ export const BatchCartDialog = ({ rows, weights, onClose, onDone }) => {
   );
 };
 
-// ─── แก้ไขแผนการผลิต: ทุกแถวต้องเป็นวัตถุดิบ (mat) เดียวกัน เพราะรายการแผนขึ้นกับ mat ───
+// ─── แก้ไขแผนการผลิต / น้ำหนัก: ทุกแถวต้องเป็นวัตถุดิบ (mat) เดียวกัน เพราะรายการแผนขึ้นกับ mat ───
+//   แผน + ไลน์ (ไม่เลือก = ไม่เปลี่ยน) -> PUT /api/MatOnTrolley/updateProduction/pack (แก้แผนได้ไม่เกิน 3 ครั้ง)
+//   น้ำหนักของแต่ละแถว (แก้เฉพาะแถวที่เปลี่ยน) -> PATCH /api/sheet/pack-edit (เฉพาะที่ยังไม่บรรจุเสร็จ; มีคนแก้ไปก่อนแล้วจะไม่ทับ; SheetEditLog)
+const WEIGHT_RE = /^\d+(\.\d{1,2})?$/;
+const weightProblem = (v) => {
+  const t = String(v ?? "").trim();
+  if (!t) return "กรอกน้ำหนัก";
+  if (!WEIGHT_RE.test(t)) return "ตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง";
+  if (!(Number(t) > 0)) return "ต้องมากกว่า 0";
+  return "";
+};
+
 export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
   const mat = rows[0]?.mat_id || rows[0]?.mat;
   const [plans, setPlans] = useState([]);
@@ -180,9 +191,15 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
   const [plan, setPlan] = useState(null);
   const [line, setLine] = useState(null);
   const [editor, setEditor] = useState("");
-  const [limited, setLimited] = useState({}); // mapping_id -> แก้ครบ 3 ครั้งแล้ว
+  const [wt, setWt] = useState(() => Object.fromEntries(rows.map((r) => [r.mapping_id, r.weight_RM === null || r.weight_RM === undefined ? "" : String(r.weight_RM)])));
+  const [limited, setLimited] = useState({}); // mapping_id -> แก้แผนครบ 3 ครั้งแล้ว
   const [loading, setLoading] = useState(true);
-  const runner = useRunner(rows.filter((r) => !limited[r.mapping_id]), onDone);
+
+  const weightChanged = (r) => String(wt[r.mapping_id] ?? "").trim() !== "" && Number(wt[r.mapping_id]) !== Number(r.weight_RM);
+  const planFor = (r) => !!plan && !limited[r.mapping_id];
+  // the rows that have something to save: the new plan (not for a row edited 3 times) and / or a changed weight
+  const todo = rows.filter((r) => planFor(r) || weightChanged(r));
+  const runner = useRunner(todo, onDone);
 
   useEffect(() => {
     const load = async () => {
@@ -210,9 +227,10 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
   }, [mat, rows]);
 
   const blocked = rows.filter((r) => limited[r.mapping_id]);
-  const canRun = !loading && !!plan && !!line && !!editor.trim() && rows.length > blocked.length;
+  const badWeight = rows.some((r) => weightChanged(r) && weightProblem(wt[r.mapping_id]));
+  const canRun = !loading && !!editor.trim() && (!plan || !!line) && !badWeight && todo.length > 0;
 
-  const submit = () => runner.run((r) => {
+  const savePlan = (r) => {
     const [code, doc] = String(r.code || "").split(" (");
     const before = `${code || ""}${doc ? ` (${doc.replace(")", "")})` : ""}${(r.rmm_line_name || r.line_name) ? ` - ${r.rmm_line_name || r.line_name}` : ""}`;
     return axios.put(`${API_URL}/api/MatOnTrolley/updateProduction/pack`, {
@@ -227,30 +245,64 @@ export const BatchEditPlanDialog = ({ rows, onClose, onDone }) => {
       before_prod: before,
       after_prod: `${plan.code} (${plan.doc_no}) - ${line.line_name}`,
     });
+  };
+
+  const submit = () => runner.run(async (r) => {
+    let weightSaved = false;
+    if (weightChanged(r)) {
+      const res = await axios.patch(`${API_URL}/api/sheet/pack-edit`, {
+        mapping_id: r.mapping_id, changes: { weight_RM: String(wt[r.mapping_id]).trim() }, expected: { weight_RM: r.weight_RM ?? null }, reason: `ผู้อนุมัติ: ${editor.trim()}`,
+      });
+      if (!res.data?.success) throw new Error(res.data?.error || "แก้ไขน้ำหนักไม่สำเร็จ");
+      weightSaved = true;
+    }
+    if (planFor(r)) {
+      try {
+        const res = await savePlan(r);
+        if (res.data?.success === false) throw new Error(res.data?.message || res.data?.error || "แก้ไขแผนการผลิตไม่สำเร็จ");
+      } catch (err) {
+        if (weightSaved) throw new Error(`บันทึกน้ำหนักแล้ว แต่แก้แผนไม่สำเร็จ: ${errText(err)}`);
+        throw err;
+      }
+    }
   });
 
   const locked = runner.running || runner.done;
   return (
-    <BatchShell open title="แก้ไขแผนการผลิต" onClose={onClose} total={rows.length - blocked.length} {...runner} canRun={canRun} onRun={submit} runLabel="บันทึกแผนใหม่">
+    <BatchShell open title="แก้ไขแผนการผลิต / น้ำหนัก" count={rows.length} onClose={onClose} total={todo.length} {...runner} canRun={canRun} onRun={submit} runLabel="บันทึก">
       {loading ? <LinearProgress /> : (
         <>
-          {blocked.length > 0 && <Alert severity="warning" sx={{ mb: 1.5 }}>{blocked.length} แถวแก้ไขครบ 3 ครั้งแล้ว จะไม่ถูกแก้ไข</Alert>}
+          {blocked.length > 0 && <Alert severity="warning" sx={{ mb: 1.5 }}>{blocked.length} แถวแก้แผนการผลิตครบ 3 ครั้งแล้ว — แถวนั้นแก้ได้เฉพาะน้ำหนัก</Alert>}
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
             <Autocomplete
               sx={{ flex: 2, minWidth: 220 }} size="small" options={plans} value={plan} disabled={locked}
               {...PLAN_OPTION_PROPS} onChange={(e, v) => { setPlan(v); setLine(null); }}
-              renderInput={(params) => <TextField {...params} label="แผนการผลิตใหม่" required />}
+              renderInput={(params) => <TextField {...params} label="แผนการผลิตใหม่ (ไม่เปลี่ยน = เว้นว่าง)" />}
             />
             <Autocomplete
               sx={{ flex: 1, minWidth: 160 }} size="small" options={plan?.line_type_id ? (linesByType[plan.line_type_id] || []) : []} value={line} disabled={!plan || locked}
               getOptionLabel={(o) => o.line_name} onChange={(e, v) => setLine(v)}
-              renderInput={(params) => <TextField {...params} label="ไลน์ผลิต" required />}
+              renderInput={(params) => <TextField {...params} label="ไลน์ผลิต" required={!!plan} />}
             />
             <TextField size="small" label="ชื่อผู้อนุมัติ" required value={editor} disabled={locked} onChange={(e) => setEditor(e.target.value)} sx={{ flex: 1, minWidth: 160 }} />
           </Box>
           <RowList rows={rows} extra={{
-            head: <TableCell />,
-            cells: (r) => <TableCell sx={{ color: "#B26A00", whiteSpace: "nowrap" }}>{limited[r.mapping_id] ? "แก้ครบ 3 ครั้งแล้ว" : ""}</TableCell>,
+            head: <><TableCell align="right">น้ำหนัก (kg)</TableCell><TableCell /></>,
+            cells: (r) => {
+              const err = weightChanged(r) ? weightProblem(wt[r.mapping_id]) : "";
+              return (
+                <>
+                  <TableCell align="right" sx={{ py: 0.5 }}>
+                    <TextField
+                      size="small" value={wt[r.mapping_id] ?? ""} disabled={locked} error={!!err} helperText={err || (weightChanged(r) ? `เดิม ${r.weight_RM ?? "-"}` : " ")}
+                      onChange={(e) => setWt((w) => ({ ...w, [r.mapping_id]: e.target.value }))}
+                      inputProps={{ inputMode: "decimal" }} sx={{ width: 120, "& .MuiFormHelperText-root": { mx: 0, fontSize: 11 } }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ color: "#B26A00", whiteSpace: "nowrap" }}>{limited[r.mapping_id] ? "แก้แผนครบ 3 ครั้งแล้ว" : ""}</TableCell>
+                </>
+              );
+            },
           }} />
         </>
       )}

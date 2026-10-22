@@ -269,7 +269,7 @@ const RawMatSelectionModal = ({ open, onClose, onAdd, currentTroId, onSelectionC
     return (
         <Modal
             open={open}
-            onClose={onClose}
+            onClose={(e, reason) => { if (reason !== "backdropClick") onClose(); }}
             aria-labelledby="raw-mat-selection-modal"
             aria-describedby="select-raw-materials"
         >

@@ -16,6 +16,21 @@ const API_URL = import.meta.env.VITE_API_URL;
 const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("th-TH", { maximumFractionDigits: 2 }) : "-");
 const textOf = (m) => [m.mat_name, m.mat, m.batch, m.tro_id, m.production, m.slot_id, m.cs_name].filter(Boolean).join(" ").toLowerCase();
 
+// "จัดชุด": one Code (doc_no of the plan) and one line per set — production is "doc_no(line)"; the server checks the target trolley too (same_plan)
+const normPlan = (v) => String(v ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+const planOfProd = (m) => {
+  const t = String(m.production ?? "").trim();
+  const i = t.indexOf("(");
+  return i < 0 ? { code: t, line: "" } : { code: t.slice(0, i).trim(), line: t.slice(i + 1).replace(/\)\s*$/, "").trim() };
+};
+const planError = (list) => {
+  const plans = list.map(planOfProd);
+  const codes = new Set(plans.map((p) => normPlan(p.code)));
+  const lines = new Set(plans.map((p) => normPlan(p.line)));
+  const diff = [codes.size > 1 && "คนละ Code", lines.size > 1 && "คนละไลน์"].filter(Boolean).join(" และ ");
+  return diff ? `วัตถุดิบที่เลือก${diff} — จัดชุดได้เฉพาะวัตถุดิบ Code และไลน์เดียวกัน` : "";
+};
+
 /**
  * "จัดชุดวัตถุดิบ": put materials from other trolleys of the cold rooms into THIS trolley.
  * One dialog instead of the two old steps: the list is grouped by source trolley (tick a whole trolley at once), the right side keeps the
@@ -93,7 +108,8 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
     if (w > parseFloat(row.weight_RM)) return `เกิน (มี ${fmt(parseFloat(row.weight_RM))})`;
     return "";
   };
-  const hasError = selected.some((r) => weightError(r));
+  const mixError = planError(selected);
+  const hasError = selected.some((r) => weightError(r)) || Boolean(mixError);
   const totalWeight = selected.reduce((s, r) => s + (parseFloat(picked[r.mapping_id]) || 0), 0);
 
   const run = async (rows) => {
@@ -103,7 +119,7 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
       try {
         const res = await axios.put(`${API_URL}/api/coldstorage/addRawMatToTrolley`, {
           source_tro_id: row.tro_id, target_tro_id: currentTroId, weight: parseFloat(picked[row.mapping_id]), slot_id: currentSlotId,
-          rmfp_id: row.rmfp_id, mix_code: row.mix_code, mapping_id: row.mapping_id, isMixed: row.isMixed || false,
+          rmfp_id: row.rmfp_id, mix_code: row.mix_code, mapping_id: row.mapping_id, isMixed: row.isMixed || false, same_plan: true,
         });
         if (!res.data?.success) throw new Error(res.data?.error || "ไม่สำเร็จ");
         ok += 1;
@@ -172,6 +188,7 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
         {/* selection */}
         <Box sx={{ flex: 1, minWidth: 0, p: 2, bgcolor: "#FAFBFF", overflow: "auto" }}>
           <Typography sx={{ fontWeight: 600, mb: 1 }}>ที่เลือกไว้ ({selected.length} รายการ · {fmt(totalWeight)} kg)</Typography>
+          {mixError && <Alert severity="error" sx={{ mb: 1 }}>{mixError}</Alert>}
           {selected.length === 0 && <Typography sx={{ color: "#6B7489", fontSize: 13 }}>ติ๊กวัตถุดิบหรือทั้งรถเข็นทางซ้าย น้ำหนักที่ย้ายตั้งต้นเป็นน้ำหนักทั้งหมด แก้ได้ที่นี่</Typography>}
           {selected.map((r) => {
             const err = weightError(r);
@@ -179,7 +196,7 @@ const GatherMaterialsDialog = ({ open, onClose, currentTroId, currentSlotId, onS
               <Box key={r.mapping_id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.75, borderBottom: "1px solid #EEF2F9" }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 500 }} noWrap>{r.mat_name}</Typography>
-                  <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>จากรถเข็น {r.tro_id} · มี {fmt(parseFloat(r.weight_RM))} kg</Typography>
+                  <Typography sx={{ fontSize: 12, color: "#6B7489" }} noWrap>จากรถเข็น {r.tro_id} · {r.production || "-"} · มี {fmt(parseFloat(r.weight_RM))} kg</Typography>
                 </Box>
                 <TextField size="small" value={picked[r.mapping_id]} error={Boolean(err)} helperText={err || " "} onChange={(e) => setPicked((p) => ({ ...p, [r.mapping_id]: e.target.value }))}
                   sx={{ width: 110, "& .MuiFormHelperText-root": { mt: 0.25, fontSize: 11 } }} inputProps={{ inputMode: "decimal" }}

@@ -156,7 +156,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [plans, setPlans] = useState([]);
   const [mixed, setMixed] = useState([]); // mixed lots that are not in a trolley yet
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
-  const [gatherOpen, setGatherOpen] = useState(false); // cold room: "จัดชุด" dialog of the ticked rows
+  const [gather, setGather] = useState(null); // cold room: { rows, seq } of the "จัดชุด" dialog (the ticked rows as they were when it opened)
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
   const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
@@ -491,7 +491,12 @@ const ParentComponent = ({ role, view = "work" }) => {
   const coldTrolleys = useMemo(() => {
     if (role !== "cs1" && role !== "cs2") return [];
     const m = new Map();
-    data.mappings.forEach((r) => { if (r.cs_id && r.tro_id && (role === "cs1" ? r.cs_id < 10 : r.cs_id >= 10) && !m.has(r.tro_id)) m.set(r.tro_id, { tro_id: r.tro_id, slot_id: r.slot_id, cs_name: r.cs_name }); });
+    // contents: Code / line of what is in the trolley ("จัดชุด" only puts the same Code and line together)
+    data.mappings.forEach((r) => {
+      if (!r.cs_id || !r.tro_id || !(role === "cs1" ? r.cs_id < 10 : r.cs_id >= 10)) return;
+      if (!m.has(r.tro_id)) m.set(r.tro_id, { tro_id: r.tro_id, slot_id: r.slot_id, cs_name: r.cs_name, contents: [] });
+      if (Number(r.weight_RM ?? r.weight) > 0) m.get(r.tro_id).contents.push({ mapping_id: r.mapping_id, code: r.doc_no, line: r.rmm_line_name });
+    });
     return [...m.values()].sort((a, b) => String(a.tro_id).localeCompare(String(b.tro_id)));
   }, [data.mappings, role]);
   const gatherBar = (role === "cs1" || role === "cs2") && (
@@ -499,7 +504,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>จัดชุด (ติ๊กหลายแถวที่อยู่ในห้องเย็นก่อน):</Typography>
       <Tooltip title={gatherRows.length ? "" : "ติ๊กวัตถุดิบที่สถานะ \"อยู่ในห้องเย็น\" ในตารางก่อน"} arrow>
         <span>
-          <Button size="small" variant="contained" color="secondary" startIcon={<Inventory2OutlinedIcon />} disabled={!gatherRows.length} onClick={() => setGatherOpen(true)} sx={{ textTransform: "none", whiteSpace: "nowrap" }}><span>จัดชุด</span>&nbsp;({gatherRows.length})</Button>
+          <Button size="small" variant="contained" color="secondary" startIcon={<Inventory2OutlinedIcon />} disabled={!gatherRows.length} onClick={() => setGather({ rows: gatherRows, seq: Date.now() })} sx={{ textTransform: "none", whiteSpace: "nowrap" }}><span>จัดชุด</span>&nbsp;({gatherRows.length})</Button>
         </span>
       </Tooltip>
     </>
@@ -731,7 +736,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
-      <GatherSelected open={gatherOpen} onClose={() => setGatherOpen(false)} rows={gatherRows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />
+      {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
       <CheckoutFlow ref={checkoutRef} onDone={reload} />
       <LargeFlows ref={largeRef} onDone={reload} />

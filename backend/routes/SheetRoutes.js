@@ -810,6 +810,7 @@ const isDateType = (dt) => ["datetime", "datetime2", "smalldatetime", "date"].in
 
 /** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason }
  *  opts.only = the columns this route may change (default: every column of EDIT_MAP) · opts.coldOnly = only a mapping whose trolley is in a cold room slot
+ *  opts.packOnly = only a mapping that is not packed yet (status "รอบรรจุเสร็จ" of the Pack Sheet)
  *  opts.defaultReason = the reason written to SheetEditLog when none is typed */
 const sheetEditHandler = (opts = {}) => async (req, res) => {
   try {
@@ -907,6 +908,15 @@ const sheetEditHandler = (opts = {}) => async (req, res) => {
         const inSlot = mapRow.tro_id && (await new sql.Request(tx).input("t", sql.VarChar(4), String(mapRow.tro_id))
           .query("SELECT TOP 1 1 AS ok FROM Slot WITH (NOLOCK) WHERE tro_id = @t")).recordset.length > 0;
         if (!inSlot) { await safeRollback(tx); return res.status(400).json({ success: false, error: "แก้ได้เฉพาะรายการที่อยู่ในห้องเย็น (รถเข็นอยู่ในช่องของห้องเย็น)" }); }
+      }
+      if (opts.packOnly) {
+        const packed = (await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
+          SELECT TOP 1 1 AS packed
+          FROM TrolleyRMMapping rmm WITH (NOLOCK)
+          LEFT JOIN History h WITH (NOLOCK) ON h.mapping_id = rmm.mapping_id
+          WHERE rmm.mapping_id = @id
+            AND (rmm.dest LIKE N'บรรจุเสร็จ%' OR rmm.rm_status = N'สำเร็จ' OR NULLIF(LTRIM(CONVERT(NVARCHAR(50), h.sc_pack_date)), N'') IS NOT NULL)`)).recordset.length > 0;
+        if (packed) { await safeRollback(tx); return res.status(400).json({ success: false, error: "รายการนี้บรรจุเสร็จแล้ว แก้น้ำหนักไม่ได้" }); }
       }
 
       let histId = null;
@@ -1101,6 +1111,8 @@ const sheetEditHandler = (opts = {}) => async (req, res) => {
 router.patch("/sheet/edit", sheetEditHandler());
 // a material in a cold room: Code (production plan), line and weight only — the "แก้ไข Code / Line / น้ำหนัก" button of the Sheet (any Role that sees the row)
 router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_name", "weight_RM"], coldOnly: true, defaultReason: "แก้ไขในห้องเย็น" }));
+// Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
+router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
 
 // master data for the dropdowns of the edit dialog (values that come from the database can only be picked, not typed)
 const OPTION_SQL = {
