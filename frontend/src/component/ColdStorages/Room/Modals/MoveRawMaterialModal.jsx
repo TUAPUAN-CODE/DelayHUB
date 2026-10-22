@@ -25,6 +25,21 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// "จัดชุด": one Code (doc_no of the plan) and one line per set — production is "doc_no(line)"; the server checks the target trolley too (same_plan)
+const normPlan = (v) => String(v ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+const planOfProd = (m) => {
+  const t = String(m.production ?? "").trim();
+  const i = t.indexOf("(");
+  return i < 0 ? { code: t, line: "" } : { code: t.slice(0, i).trim(), line: t.slice(i + 1).replace(/\)\s*$/, "").trim() };
+};
+const planError = (list) => {
+  const plans = list.map(planOfProd);
+  const codes = new Set(plans.map((p) => normPlan(p.code)));
+  const lines = new Set(plans.map((p) => normPlan(p.line)));
+  const diff = [codes.size > 1 && "คนละ Code", lines.size > 1 && "คนละไลน์"].filter(Boolean).join(" และ ");
+  return diff ? `วัตถุดิบที่เลือก${diff} — จัดชุดได้เฉพาะวัตถุดิบ Code และไลน์เดียวกัน` : "";
+};
+
 const MoveRawMaterialModal = ({
     open,
     onClose,
@@ -82,7 +97,13 @@ const MoveRawMaterialModal = ({
     };
 
     // ฟังก์ชันสำหรับย้ายวัตถุดิบ
+    const mixError = planError(materialsWithWeight);
+
     const handleMoveRawMaterials = async () => {
+  if (mixError) {
+    showSnackbar(mixError, 'error');
+    return;
+  }
   if (hasErrors()) {
     showSnackbar('กรุณาตรวจสอบน้ำหนักที่กรอกให้ถูกต้อง', 'error');
     return;
@@ -102,7 +123,8 @@ const MoveRawMaterialModal = ({
         rmfp_id: material.rmfp_id,
         mix_code: material.mix_code,
         mapping_id: material.mapping_id,
-        isMixed: material.isMixed || false
+        isMixed: material.isMixed || false,
+        same_plan: true
       };
 
       const response = await axios.put(
@@ -167,6 +189,7 @@ const MoveRawMaterialModal = ({
                     <Typography variant="body1" sx={{ mb: 2 }}>
                         กรุณากำหนดน้ำหนักที่ต้องการย้ายสำหรับแต่ละรายการ:
                     </Typography>
+                    {mixError && <Alert severity="error" sx={{ mb: 2 }}>{mixError}</Alert>}
 
                     <TableContainer component={Paper} sx={{ maxHeight: 500, overflowY: 'auto' }}>
                         <Table stickyHeader size="small">
@@ -209,7 +232,7 @@ const MoveRawMaterialModal = ({
                                                         {material.mat_name}
                                                     </Typography>
                                                     <Typography variant="caption" color="textSecondary">
-                                                        {material.mat} | Batch: {material.batch || '-'}
+                                                        {material.mat} | Batch: {material.batch || '-'} | Prod: {material.production || '-'}
                                                     </Typography>
                                                 </Box>
                                             )}
@@ -273,7 +296,7 @@ const MoveRawMaterialModal = ({
                         onClick={handleMoveRawMaterials}
                         color="primary"
                         variant="contained"
-                        disabled={isLoading || hasErrors()}
+                        disabled={isLoading || hasErrors() || Boolean(mixError)}
                         startIcon={isLoading ? <CircularProgress size={20} /> : null}
                     >
                         {isLoading ? 'กำลังดำเนินการ...' : 'ย้ายวัตถุดิบทั้งหมด.'}

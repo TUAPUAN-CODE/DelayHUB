@@ -1172,7 +1172,8 @@ WHERE
                 rmfp_id,
                 mix_code,
                 mapping_id,
-                isMixed
+                isMixed,
+                same_plan
             } = req.body;
 
             if (!source_tro_id || !target_tro_id || !weight || !slot_id) {
@@ -1244,6 +1245,43 @@ WHERE
                 const existingTrayCount = sourceRecord.tray_count;
 
                 if (currentTotalWeight < weightNum) throw new Error(`Not enough weight available (Available: ${currentTotalWeight}, Requested: ${weightNum})`);
+
+                // same_plan ("จัดชุด"): the material must have the same Code (doc_no of the plan) and line as what is already in the target trolley
+                if (same_plan) {
+                    const planResult = await new sql.Request(transaction)
+                        .input('target_tro_id', target_tro_id)
+                        .input('src_mapping_id', sql.Int, sourceRecord.mapping_id)
+                        .query(`
+                        SELECT rmm.mapping_id, p.doc_no, rmm.rmm_line_name
+                        FROM TrolleyRMMapping rmm
+                        LEFT JOIN ProdRawMat pr ON pr.prod_rm_id = rmm.tro_production_id
+                        LEFT JOIN Production p ON p.prod_id = pr.prod_id
+                        WHERE rmm.mapping_id = @src_mapping_id
+                        UNION ALL
+                        SELECT rmm.mapping_id, p.doc_no, rmm.rmm_line_name
+                        FROM TrolleyRMMapping rmm
+                        LEFT JOIN ProdRawMat pr ON pr.prod_rm_id = rmm.tro_production_id
+                        LEFT JOIN Production p ON p.prod_id = pr.prod_id
+                        WHERE rmm.tro_id = @target_tro_id AND rmm.mapping_id <> @src_mapping_id
+                          AND rmm.weight_RM > 0 AND rmm.dest LIKE N'%ห้องเย็น%'
+                    `);
+                    const norm = (v) => String(v ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+                    const src = planResult.recordset.find((r) => r.mapping_id === sourceRecord.mapping_id);
+                    const other = planResult.recordset.find((r) => r.mapping_id !== sourceRecord.mapping_id
+                        && (norm(r.doc_no) !== norm(src?.doc_no) || norm(r.rmm_line_name) !== norm(src?.rmm_line_name)));
+                    if (src && other) {
+                        const diff = [
+                            norm(other.doc_no) !== norm(src.doc_no) ? "คนละ Code" : "",
+                            norm(other.rmm_line_name) !== norm(src.rmm_line_name) ? "คนละไลน์" : "",
+                        ].filter(Boolean).join(" และ ");
+                        await safeRollback(transaction);
+                        return res.status(400).json({
+                            success: false,
+                            code: "PLAN_MISMATCH",
+                            error: `วัตถุดิบ${diff} กับที่อยู่ในรถเข็น ${target_tro_id} (รถเข็นมี Code ${other.doc_no || "-"} ไลน์ ${other.rmm_line_name || "-"} · วัตถุดิบนี้ Code ${src.doc_no || "-"} ไลน์ ${src.rmm_line_name || "-"}) — จัดชุดได้เฉพาะ Code และไลน์เดียวกัน`,
+                        });
+                    }
+                }
 
                 const weightRatio = weightNum / currentTotalWeight;
                 const traysToMove = Math.ceil(existingTrayCount * weightRatio);
