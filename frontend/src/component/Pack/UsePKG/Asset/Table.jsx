@@ -1937,7 +1937,8 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty }) => 
 const INLINE_INT_FIELDS = ['qty_received', 'qty_used', 'qty_damaged', 'qty_remaining'];
 const inlineInputSx = { '& .MuiInputBase-root': { fontSize: '12px', backgroundColor: '#FFF8E1' }, '& input': { py: 0.5, px: 0.75 } };
 
-const DocumentDetailView = ({ report, onBack, isDone, editMode = false }) => {
+// onToggleEdit: button "แก้ไขข้อมูล" of the document (the same edit mode / password as the button "แก้ไขข้อมูล" in the top bar)
+const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggleEdit }) => {
   const { t } = useLang();
   const [drafts,      setDrafts]      = useState({}); // { detail_id: { field: value } }
   const [savingEdits, setSavingEdits] = useState(false);
@@ -2173,6 +2174,15 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false }) => {
           )}
           {isDone && <Chip label={t('detail.done')} size="small" color="success" sx={{ ml: 1, fontSize: '11px' }} />}
         </Typography>
+        {onToggleEdit && (
+          <Button variant={editMode ? 'contained' : 'outlined'} color="warning" size="small" startIcon={<Edit />}
+            onClick={() => {
+              if (editMode && changedCount && !window.confirm('มีการแก้ไขที่ยังไม่บันทึก ต้องการปิดโหมดแก้ไขหรือไม่?')) return;
+              onToggleEdit();
+            }}>
+            {editMode ? 'ปิดโหมดแก้ไข' : 'แก้ไขข้อมูล'}
+          </Button>
+        )}
         <Button variant="outlined" size="small" startIcon={<PictureAsPdf />}
           onClick={() => exportPDF(report, details)}
           sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { backgroundColor: '#ffebee' } }}>
@@ -2331,13 +2341,12 @@ const TableMainPrep = () => {
   // ปุ่ม "แก้ไขข้อมูล" บนแถบด้านบน (เหมือนหน้า /prep): ใส่รหัสผ่านครั้งเดียว แล้วแก้ข้อมูลในตารางของเอกสารได้เลย
   const [editMode,       setEditMode]       = useState(false);
   const [unlockAsk,      setUnlockAsk]      = useState(false);
-  useEffect(() => registerEditor({
-    on: editMode,
-    toggle: () => {
-      if (editMode) { setEditMode(false); return; }
-      if (hasUnlock()) setEditMode(true); else setUnlockAsk(true);
-    },
-  }), [editMode]);
+  // the password is asked when this tab has no permit yet (UnlockDialog: same password as the other "แก้ไขข้อมูล" buttons)
+  const toggleEdit = useCallback(() => {
+    if (editMode) { setEditMode(false); return; }
+    if (hasUnlock()) setEditMode(true); else setUnlockAsk(true);
+  }, [editMode]);
+  useEffect(() => registerEditor({ on: editMode, toggle: toggleEdit }), [editMode, toggleEdit]);
 
   const [activeFilters,            setActiveFilters]            = useState(EMPTY_FILTERS);
   const [doneFilters,              setDoneFilters]              = useState(EMPTY_FILTERS);
@@ -2524,7 +2533,7 @@ const TableMainPrep = () => {
   let content;
   if (view === 'detail' && selectedReport) {
     content = (
-      <DocumentDetailView report={selectedReport} onBack={handleBack} isDone={selectedReport.status === 'done'} editMode={editMode} />
+      <DocumentDetailView report={selectedReport} onBack={handleBack} isDone={selectedReport.status === 'done'} editMode={editMode} onToggleEdit={toggleEdit} />
     );
   } else {
     content = (
