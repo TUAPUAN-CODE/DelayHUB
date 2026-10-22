@@ -60,7 +60,7 @@ import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
-import { KNOWN_STATUSES, defaultStatuses } from "./statusVisibility";
+import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
 import LinePicker from "./pack/LinePicker";
 import ReworkFlows from "./prep/ReworkFlows";
@@ -160,7 +160,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
   const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
-  const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role) });
+  const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role), ensure: ENSURE_STATUSES[role] });
   const [statusDlg, setStatusDlg] = useState(false);
   const [activeKey, setActiveKey] = useState(null); // the row chosen by a click: the action bar above the table works on it
   const [scan, setScan] = useState({ camera: false, review: false, mat: "", batch: "", hu: "" });
@@ -738,7 +738,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />
-      <CheckoutFlow ref={checkoutRef} onDone={reload} />
+      <CheckoutFlow ref={checkoutRef} onDone={reload} fifo />
       <LargeFlows ref={largeRef} onDone={reload} />
       {batch?.kind === "cart" && <BatchCartDialog rows={batch.rows} weights={weights} onClose={closeBatch} onDone={reload} />}
       {batch?.kind === "edit" && <BatchEditPlanDialog rows={batch.rows} onClose={closeBatch} onDone={reload} />}

@@ -2247,6 +2247,66 @@ ORDER BY
         }
     });
 
+    // ── FIFO of the cold rooms of /coldStorage (cs_id < 10) ───────────────────────────────────────────────────────────────
+    // A trolley may leave only when no other material with the same mat, Code (doc_no of the plan) and line has been in a cold room
+    // longer: entered earlier (the entry of its current stay: come_cold_date / _two / _three without its out date) and still in a slot.
+    // Mixed materials (no plan of a mat) are not checked. Returns [] when the trolley may leave.
+    const histDate = (c) => `TRY_CONVERT(DATETIME2(0), NULLIF(LTRIM(CONVERT(NVARCHAR(50), h.${c}, 120)), N''))`;
+    const FIFO_SQL = `
+        WITH cur AS (
+            SELECT rmm.mapping_id, CAST(rmm.tro_id AS NVARCHAR(20)) AS tro_id, pr.mat, rm.mat_name,
+                   LTRIM(RTRIM(ISNULL(p.doc_no, N''))) AS doc_no, LTRIM(RTRIM(ISNULL(rmm.rmm_line_name, N''))) AS line_name,
+                   s.cs_id, s.slot_id, cs.cs_name,
+                   COALESCE(
+                       CASE WHEN ${histDate("out_cold_date_three")} IS NULL THEN ${histDate("come_cold_date_three")} END,
+                       CASE WHEN ${histDate("out_cold_date_two")} IS NULL THEN ${histDate("come_cold_date_two")} END,
+                       CASE WHEN ${histDate("out_cold_date")} IS NULL THEN ${histDate("come_cold_date")} END,
+                       ${histDate("come_cold_date_three")}, ${histDate("come_cold_date_two")}, ${histDate("come_cold_date")}
+                   ) AS in_at
+            FROM Slot s WITH (NOLOCK)
+            JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.tro_id = s.tro_id
+            JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = rmm.tro_production_id
+            LEFT JOIN Production p WITH (NOLOCK) ON p.prod_id = pr.prod_id
+            LEFT JOIN RawMat rm WITH (NOLOCK) ON rm.mat = pr.mat
+            LEFT JOIN ColdStorage cs WITH (NOLOCK) ON cs.cs_id = s.cs_id
+            OUTER APPLY (
+                SELECT TOP (1) hh.come_cold_date, hh.out_cold_date, hh.come_cold_date_two, hh.out_cold_date_two, hh.come_cold_date_three, hh.out_cold_date_three
+                FROM History hh WITH (NOLOCK)
+                WHERE hh.mapping_id = rmm.mapping_id
+                ORDER BY hh.hist_id DESC
+            ) h
+            WHERE s.cs_id < 10 AND s.tro_id IS NOT NULL AND rmm.weight_RM > 0 AND rmm.dest LIKE N'%ห้องเย็น%'
+        )
+        SELECT o.mapping_id, o.mat, o.mat_name, o.doc_no, o.line_name, CONVERT(NVARCHAR(16), o.in_at, 120) AS in_at,
+               e.mapping_id AS first_mapping_id, e.tro_id AS first_tro_id, e.cs_name AS first_cs_name, e.slot_id AS first_slot_id,
+               CONVERT(NVARCHAR(16), e.in_at, 120) AS first_in_at
+        FROM cur o
+        JOIN cur e ON e.mat = o.mat AND e.doc_no = o.doc_no AND e.line_name = o.line_name AND e.tro_id <> o.tro_id AND e.in_at < o.in_at
+        WHERE o.tro_id = @tro_id
+        ORDER BY o.mapping_id, e.in_at
+        OPTION (RECOMPILE)`;
+    const findFifoBlockers = async (request, troId) => (await request.input("tro_id", sql.NVarChar(20), String(troId)).query(FIFO_SQL)).recordset;
+    const fifoMessage = (list) => {
+        const first = list[0];
+        return `ส่งออกไม่ได้ (FIFO): มี ${first.mat_name || first.mat} Code ${first.doc_no || "-"} ไลน์ ${first.line_name || "-"} ที่เข้าห้องเย็นก่อน`
+            + ` — ต้องส่งออกรถเข็น ${[...new Set(list.map((x) => x.first_tro_id))].join(", ")} ก่อน`;
+    };
+
+    /** GET /api/coldstorage/fifo-check?tro_id= : what must leave the cold room before this trolley (FIFO); data = [] when it may leave */
+    router.get("/coldstorage/fifo-check", async (req, res) => {
+        try {
+            const troId = String(req.query.tro_id || "").trim();
+            if (!troId) return res.status(400).json({ success: false, error: "กรุณาระบุ tro_id" });
+            const pool = await connectToDatabase();
+            if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+            const list = await findFifoBlockers(pool.request(), troId);
+            res.json({ success: true, data: list, message: list.length ? fifoMessage(list) : "" });
+        } catch (err) {
+            console.error("❌ [Route GET /coldstorage/fifo-check] Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
     router.put("/coldstorage/outcoldstorage", async (req, res) => {
         try {
             debugLog("Raw Request Body:", req.body);
@@ -2254,7 +2314,7 @@ ORDER BY
             const {
                 tro_id, slot_id, rm_cold_status, rm_status,
                 dest, operator, materials, storage_purpose,
-                deposit_days, cold_remark
+                deposit_days, cold_remark, fifo
             } = req.body;
 
             if (!tro_id || !slot_id || !rm_status || !dest || !materials) {
@@ -2263,6 +2323,14 @@ ORDER BY
             }
 
             const pool = await connectToDatabase();
+            if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+            // fifo (the Sheet of /coldStorage): refused while a material with the same mat / Code / line entered a cold room earlier
+            if (fifo) {
+                const blockers = await findFifoBlockers(pool.request(), tro_id);
+                if (blockers.length) return res.status(409).json({ success: false, code: "FIFO", error: fifoMessage(blockers), data: blockers });
+            }
+
             const transaction = new sql.Transaction(pool);
             await transaction.begin();
 

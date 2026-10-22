@@ -6,7 +6,12 @@ export const ROLE_STATUSES = {
   cs1: ["รอห้องเย็นรับเข้า", "รอรับเข้าห้องเย็น", "อยู่ในห้องเย็น"],
   cs2: ["กำลังละลาย", "ละลายเสร็จแล้ว", "จ่ายลงไลน์แล้ว", "รอห้องเย็นรับเข้า", "รอรับเข้าห้องเย็น", "อยู่ในห้องเย็นใหญ่"],
   qc: ["รอ QC Check"],
-  pack: ["รอ QC Check", "รอบรรจุเสร็จ", "รอบรรจุจัดส่ง", "รอห้องเย็นรับเข้า"],
+  pack: ["รอ QC Check", "รอCheckin", "รอบรรจุเสร็จ", "รอบรรจุจัดส่ง", "รอห้องเย็นรับเข้า"],
+};
+/** statuses added later that every account of the Role must see once, also an account that saved "สถานะที่ดู" before (it can hide them again) */
+export const ENSURE_STATUSES = {
+  pack: [{ key: "รอCheckin", after: "รอ QC Check" }],
+  sup: [{ key: "รอCheckin", after: "รอห้องเย็นรับเข้า" }],
 };
 /** every status the Sheet knows (the other labels a row can get are always shown, so no row is hidden by surprise) */
 export const KNOWN_STATUSES = STATUS_LIST.map(([label]) => label).filter((l) => l !== "Done");

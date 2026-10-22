@@ -62,6 +62,8 @@ const baseStatusOf = (r) => {
   // packed = Done, whatever rm_status says (e.g. "รอแก้ไข | บรรจุเสร็จ | บรรจุเสร็จ" is Done, not "รอแก้ไข")
   if (String(r.dest || "").startsWith("บรรจุเสร็จ") || st === "สำเร็จ") return { label: "Done", color: "#047857", bg: "#D1FAE5" };
   if (r.__stage === "ready") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  // a trolley that went into a cold room (stay_place "เข้าห้องเย็น", dest "ห้องเย็น") is in the cold room, whatever QC status it still carries (e.g. "QcCheck รอ MD")
+  if (r.stay_place === "เข้าห้องเย็น" && r.dest === "ห้องเย็น" && !noTro(r.tro_id) && st !== "รอแก้ไข") return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
   if (st.includes("รอQC") || st.includes("รอ MD")) return { label: "รอ QC Check", color: "#B45309", bg: "#FEF3C7" };
   if (st === "รอแก้ไข") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.cs_id) return { label: "อยู่ในห้องเย็น", color: "#6A1B9A", bg: "#F3E5F5" };
@@ -105,13 +107,17 @@ const NEEDS_TROLLEY = new Set(["รอ QC Check", "อยู่ในห้อ�
 let statusRole = null;
 export const setStatusRole = (role) => { statusRole = role || null; };
 
+// QC is done for these rm_status: a trolley of them going to "รอCheckin" can be checked in by packing
+const CHECKIN_READY = new Set(["QcCheck", "QcCheck รอ MD", "QcCheck รอกลับมาเตรียม", "รอกลับมาเตรียม", "เหลือจากไลน์ผลิต"]);
+
 const FIXED_STATUS = (r) => {
   const st = r.rm_status;
-  // out of the cold room, waiting on a trolley ("ออกห้องเย็น" -> "รอCheckin"): packing works on it = "รอบรรจุเสร็จ" (cutting its weight clears the trolley,
-  // PackageRoutes /pack/mixed/delay-time/test). The cold-room pages keep "รอห้องเย็นรับเข้า", it can still be checked in there.
-  if (statusRole !== "cs1" && statusRole !== "cs2" && (st === "QcCheck" || st === "รอกลับมาเตรียม") && !r.cs_id
-    && r.stay_place === "ออกห้องเย็น" && r.dest === "รอCheckin" && !noTro(r.tro_id)) {
-    return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
+  // "รอCheckin" on a trolley, not in a cold room slot: packing presses "Check In" (PUT /api/checkin/pack: dest บรรจุ, off the trolley = "รอบรรจุเสร็จ").
+  // Packing sees every such trolley; the other Roles (not the cold rooms) the ones out of a cold room ("ออกห้องเย็น").
+  // The cold-room pages keep "รอห้องเย็นรับเข้า", it can still be checked in there.
+  if (statusRole !== "cs1" && statusRole !== "cs2" && CHECKIN_READY.has(st) && !r.cs_id && r.dest === "รอCheckin" && !noTro(r.tro_id)
+    && (statusRole === "pack" || ((st === "QcCheck" || st === "รอกลับมาเตรียม") && r.stay_place === "ออกห้องเย็น"))) {
+    return { label: "รอCheckin", color: "#0F766E", bg: "#CCFBF1" };
   }
   // "QcCheck รอ MD": to the packing line = รอบรรจุเสร็จ · to a cold room (รอCheckin) = รอห้องเย็นรับเข้า when it is on a trolley, otherwise it can only wait for packing
   if (st === "QcCheck รอ MD" && r.dest === "บรรจุ") return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };

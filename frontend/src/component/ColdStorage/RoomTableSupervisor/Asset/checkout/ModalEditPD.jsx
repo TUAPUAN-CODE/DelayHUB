@@ -10,6 +10,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlined";
 import axios from "axios";
 axios.defaults.withCredentials = true;
 import ModalAlert from "../../../../../Popup/AlertSuccess";
+import FifoNotice from "../flow/FifoNotice";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -28,6 +29,8 @@ const QcCheck = ({
 }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [saveError, setSaveError] = useState(null); // { message, list }: the server refused the check-out (e.g. FIFO)
+  const [saving, setSaving] = useState(false);
 
   const formatThaiDateTime = (v) => {
     if (!v) return "-";
@@ -117,10 +120,13 @@ const QcCheck = ({
       deposit_days: depositDays || null,
       cold_remark: coldRemark || null,
       materials: processedMaterials.length > 0 ? processedMaterials : materials,
+      fifo: true, // the server refuses it while a material with the same mat / Code / line entered a cold room earlier
     };
 
     console.log("📤 Payload:", JSON.stringify(payload, null, 2));
 
+    setSaving(true);
+    setSaveError(null);
     try {
       const response = await axios.put(`${API_URL}/api/coldstorage/outcoldstorage`, payload);
       if (response.status === 200) {
@@ -131,6 +137,10 @@ const QcCheck = ({
       }
     } catch (error) {
       console.error("❌ API Error:", error);
+      const body = error.response?.data || {};
+      setSaveError({ message: body.error || error.message || "ส่งออกไม่สำเร็จ", list: body.code === "FIFO" ? body.data : null });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -209,14 +219,19 @@ const QcCheck = ({
           </Stack>
 
           <Divider sx={{ my: 2 }} />
+          {saveError && (
+            <Box sx={{ mb: 2 }}>
+              {saveError.list ? <FifoNotice message={saveError.message} list={saveError.list} /> : <Alert severity="error">{saveError.message}</Alert>}
+            </Box>
+          )}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Button variant="contained" onClick={onClose}
+            <Button variant="contained" onClick={onClose} disabled={saving}
               sx={{ width: "45%", height: "50px", backgroundColor: "#ff4444" }}>
               ยกเลิก
             </Button>
-            <Button variant="contained" onClick={handleConfirm}
+            <Button variant="contained" onClick={handleConfirm} disabled={saving || Boolean(saveError?.list)}
               sx={{ width: "45%", height: "50px", backgroundColor: "#1552F0" }}>
-              ยืนยัน
+              {saving ? "กำลังบันทึก..." : "ยืนยัน"}
             </Button>
           </Box>
         </DialogContent>
