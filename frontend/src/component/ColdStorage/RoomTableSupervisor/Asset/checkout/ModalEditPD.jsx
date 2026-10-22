@@ -25,11 +25,11 @@ const QcCheck = ({
   name_edit_prod_two, name_edit_prod_three, first_prod, two_prod, three_prod,
   qccheck_cold, receiver_qc_cold, approver, production, remark_rework,
   remark_rework_cold, edit_rework, prepare_mor_night,
-  storage_purpose, depositDays, coldRemark, histamineMap,
+  storage_purpose, depositDays, coldRemark, histamineMap, fifoWarning,
 }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [saveError, setSaveError] = useState(null); // { message, list }: the server refused the check-out (e.g. FIFO)
+  const [saveError, setSaveError] = useState(""); // the server refused the check-out
   const [saving, setSaving] = useState(false);
 
   const formatThaiDateTime = (v) => {
@@ -120,13 +120,12 @@ const QcCheck = ({
       deposit_days: depositDays || null,
       cold_remark: coldRemark || null,
       materials: processedMaterials.length > 0 ? processedMaterials : materials,
-      fifo: true, // the server refuses it while a material with the same mat / Code / line entered a cold room earlier
     };
 
     console.log("📤 Payload:", JSON.stringify(payload, null, 2));
 
     setSaving(true);
-    setSaveError(null);
+    setSaveError("");
     try {
       const response = await axios.put(`${API_URL}/api/coldstorage/outcoldstorage`, payload);
       if (response.status === 200) {
@@ -137,8 +136,7 @@ const QcCheck = ({
       }
     } catch (error) {
       console.error("❌ API Error:", error);
-      const body = error.response?.data || {};
-      setSaveError({ message: body.error || error.message || "ส่งออกไม่สำเร็จ", list: body.code === "FIFO" ? body.data : null });
+      setSaveError(error.response?.data?.error || error.message || "ส่งออกไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -219,17 +217,15 @@ const QcCheck = ({
           </Stack>
 
           <Divider sx={{ my: 2 }} />
-          {saveError && (
-            <Box sx={{ mb: 2 }}>
-              {saveError.list ? <FifoNotice message={saveError.message} list={saveError.list} /> : <Alert severity="error">{saveError.message}</Alert>}
-            </Box>
-          )}
+          {/* not FIFO (CheckoutFlow warned and the user went on): a warning only, the slip says "จ่ายไม่ FIFO" */}
+          {fifoWarning && <Box sx={{ mb: 2 }}><FifoNotice message={fifoWarning.message} list={fifoWarning.list} /></Box>}
+          {saveError && <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Button variant="contained" onClick={onClose} disabled={saving}
               sx={{ width: "45%", height: "50px", backgroundColor: "#ff4444" }}>
               ยกเลิก
             </Button>
-            <Button variant="contained" onClick={handleConfirm} disabled={saving || Boolean(saveError?.list)}
+            <Button variant="contained" onClick={handleConfirm} disabled={saving}
               sx={{ width: "45%", height: "50px", backgroundColor: "#1552F0" }}>
               {saving ? "กำลังบันทึก..." : "ยืนยัน"}
             </Button>
@@ -240,7 +236,7 @@ const QcCheck = ({
       {showPrintModal && (
         <PrintModal open={showPrintModal} onClose={() => setShowPrintModal(false)}
           data={{ material_code, materialName, batch, Location, operator, tro_id, slot_id,
-            rm_status, rm_cold_status, level_eu, rmm_line_name, materials }} />
+            rm_status, rm_cold_status, level_eu, rmm_line_name, materials, not_fifo_ids: fifoWarning?.ids }} />
       )}
       <ModalAlert open={showAlert} onClose={() => setShowAlert(false)} />
     </>
@@ -272,7 +268,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     weight_RM, name_edit_prod_two, name_edit_prod_three, first_prod, two_prod,
     three_prod, remark_rework, remark_rework_cold, edit_rework, receiver_qc_cold,
     approver, production, qccheck_cold, prepare_mor_night, mapping_id,
-    materials = []
+    materials = [], fifo_warning
   } = data || {};
 
   useEffect(() => {
@@ -355,6 +351,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             กรุณาระบุข้อมูลในการส่งออก
           </Typography>
 
+          {fifo_warning && <Alert severity="warning" sx={{ mb: 2 }}>{fifo_warning.message}</Alert>}
           {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
           <Stack spacing={2}>
@@ -605,6 +602,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         depositDays={depositDays || null}
         coldRemark={coldRemark || null}
         histamineMap={histamineMap}       // ✅ ส่ง map ทั้งก้อน
+        fifoWarning={fifo_warning}
         materials={processedMaterials.length > 0 ? processedMaterials : materials}
       />
     </>

@@ -298,8 +298,11 @@ const PrintModal = ({ open, onClose, data, headless = false, onReady, hideExit =
     const {
         material_code, materialName, rm_cold_status, rm_status,
         ComeColdDateTime, slot_id, tro_id, batch, mat, rmfp_id, batch_before,
-        Location, operator, level_eu, cooked_date, rmit_date, remark, rmm_line_name, name_prod_edit_two, name_prod_edit_three, first_prod, two_prod, three_prod, materials, prepare_mor_night, production
+        Location, operator, level_eu, cooked_date, rmit_date, remark, rmm_line_name, name_prod_edit_two, name_prod_edit_three, first_prod, two_prod, three_prod, materials, prepare_mor_night, production,
+        not_fifo_ids
     } = data || {};
+    // mapping_id of the materials sent out although another trolley of the same mat / Code / line entered the cold room first (CheckoutFlow)
+    const notFifo = new Set((not_fifo_ids || []).map(String));
 
     // Define grid gap for consistent use throughout the component
     const gridGapScreen = "4px 24px";
@@ -604,6 +607,7 @@ const PrintModal = ({ open, onClose, data, headless = false, onReady, hideExit =
                                     fontSizes={fontSizes}
                                     Location={Location}
                                     hideExit={hideExit}
+                                    notFifo={notFifo.has(String(item.mapping_id))}
                                 />
                             );
                         })
@@ -695,7 +699,8 @@ const MaterialItem = ({
     fontSizes,
     Location,
     calculateDBSFromDate,
-    hideExit
+    hideExit,
+    notFifo
 }) => {
     const generateQRValue = () => {
         return [
@@ -1524,6 +1529,14 @@ const MaterialItem = ({
                     },
                 }}
             >
+                {notFifo && (
+                    <Box sx={{
+                        border: "2px solid #000", borderRadius: "4px", px: 1.5, py: 0.25, mb: 1, fontWeight: 700, fontSize: "20px", color: "#000",
+                        '@media print': { fontSize: '16px', marginBottom: '4px' },
+                    }}>
+                        จ่ายไม่ FIFO
+                    </Box>
+                )}
                 <QRCodeCanvas
                     value={generateQRValue()}
                     size={200}
