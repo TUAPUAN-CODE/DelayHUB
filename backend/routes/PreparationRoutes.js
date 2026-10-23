@@ -1,6 +1,7 @@
 const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
 const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs } = require("../lib/remarkCs");
+const { recordLineage } = require("../lib/mappingLineage");
 // ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
 const dateRangeFromQuery = (q) => {
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
@@ -6907,9 +6908,16 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
             ORDER BY hh.hist_id DESC
           ) h
           WHERE rmm.rmfp_id = @rmfp_id AND rmm.weight_RM > 0
-            AND LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) IN (N'ออกห้องเย็น', N'หม้ออบ', N'จุดเตรียม', N'ออกห้องเย็นใหญ่')
-            AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'จุดเตรียม', N'ส่งกลับจากห้องเย็นใหญ่')
-            AND LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'QcCheck รอกลับมาเตรียม', N'QcCheck รอ MD', N'รอกลับมาเตรียม', N'รอ Qc', N'QcCheck')
+            AND ((
+              LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) IN (N'ออกห้องเย็น', N'หม้ออบ', N'จุดเตรียม', N'ออกห้องเย็นใหญ่')
+              AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) IN (N'จุดเตรียม', N'ส่งกลับจากห้องเย็นใหญ่')
+              AND LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'QcCheck รอกลับมาเตรียม', N'QcCheck รอ MD', N'รอกลับมาเตรียม', N'รอ Qc', N'QcCheck')
+            ) OR (
+              -- out of a cold room to be checked in, but its trolley was taken for a new load (tro_id cleared): it can only come back to prep (same rule as Sheet prep/kinds.js)
+              LTRIM(RTRIM(ISNULL(rmm.stay_place, N''))) = N'ออกห้องเย็น' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) = N'รอCheckin'
+              AND LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) IN (N'รอกลับมาเตรียม', N'QcCheck รอกลับมาเตรียม')
+              AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(20)))) IN (N'', N'0'))
+            ))
           ORDER BY rmm.mapping_id
         `);
       res.json({ success: true, data: result.recordset });
@@ -9036,6 +9044,9 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
 
       // ✅ Commit
       await transaction.commit();
+
+      // the old mapping is deleted above: keep "old -> new" so the page "ค้นหา mapping_id" can still say what it became (best effort, never fails the save)
+      await recordLineage(pool, { from: mapping_id, to: new_mapping_id, kind: "reprep" }, operator);
 
       // ✅ แจ้ง event
       io.to("QcCheckRoom").emit("dataUpdated", "gotUpdated");
