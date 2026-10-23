@@ -456,7 +456,8 @@ const ParentComponent = ({ role, view = "work" }) => {
       if (confirmable || canPack(r)) {
         out.push({ col: "t_kg", key: "kg", passive: true, node: <WeightInput value={weights[r.mapping_id]} disabled={!selected.has(r.__key)} onChange={(v) => setWeights((w) => ({ ...w, [r.mapping_id]: v }))} /> });
       }
-      if (r.tro_id && CHECKIN_DEST.includes(r.dest)) out.push({ col: "t_checkin", key: "checkin", label: "Check In", color: "#6A1B9A", run: () => moreRef.current?.checkin(r, allRowsRef.current) });
+      // also a trolley back from the big cold room, which the packing page shows as "รอCheckin" (buildRows)
+      if (r.tro_id && (CHECKIN_DEST.includes(r.dest) || stLabel === "รอCheckin")) out.push({ col: "t_checkin", key: "checkin", label: "Check In", color: "#6A1B9A", run: () => moreRef.current?.checkin(r, allRowsRef.current) });
     }
     return out;
   }, [role, hu, weights, selected, openPlanCart]);

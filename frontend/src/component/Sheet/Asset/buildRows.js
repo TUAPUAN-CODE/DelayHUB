@@ -40,7 +40,7 @@ export const packStage = (r) => {
   if (["จุดเตรียม", "หม้ออบ"].includes(r.stay_place) && QC_DESTS.includes(r.dest) && ["รอQCตรวจสอบ", "รอ MD"].includes(st)) return "qc";
   if (r.tro_id && ["บรรจุ", "รถเข็นรอจัดส่ง"].includes(r.dest)) return "trolley";
   if (
-    !r.tro_id && ["จุดเตรียม", "ออกห้องเย็น", "create_manual"].includes(r.stay_place) && ["ไปบรรจุ", "บรรจุ", "create_manual", "รอCheckin"].includes(r.dest)
+    !r.tro_id && ["จุดเตรียม", "ออกห้องเย็น", "ออกห้องเย็นใหญ่", "create_manual"].includes(r.stay_place) && ["ไปบรรจุ", "บรรจุ", "create_manual", "รอCheckin"].includes(r.dest)
     && ["QcCheck", "เหลือจากไลน์ผลิต", "QcCheck รอ MD", "รอแก้ไข"].includes(st) && Number(r.weight_RM) !== 0
   ) return "ready";
   return null;
@@ -54,6 +54,7 @@ const baseStatusOf = (r) => {
   if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
   // waiting to be mixed: still at the line (the "รอเตรียมผสมวัตถุดิบ" status was removed; the mixing tools stay on the row)
   if (r.__kind === "mix") return { label: "อยู่ที่ไลน์", color: "#6A1B9A", bg: "#F3E5F5" };
+  if (bigColdReturnToPack(r)) return { label: "รอCheckin", color: "#0F766E", bg: "#CCFBF1" };
   if (r.__rework === "A" || r.__rework === "B") return { label: "รอเตรียมวัตถุดิบใหม่", color: "#B91C1C", bg: "#FEE2E2" };
   if (r.__kind === "hu") {
     const a = analyzeRow(r);
@@ -113,6 +114,11 @@ export const setStatusRole = (role) => { statusRole = role || null; };
 // QC is done for these rm_status: a trolley of them going to "รอCheckin" can be checked in by packing
 const CHECKIN_READY = new Set(["QcCheck", "QcCheck รอ MD", "QcCheck รอกลับมาเตรียม", "รอกลับมาเตรียม", "เหลือจากไลน์ผลิต"]);
 
+// a trolley sent back from the big cold room ("ออกห้องเย็นใหญ่" / "ส่งกลับจากห้องเย็นใหญ่"), QC done: the packing page shows it as "รอCheckin",
+// so packing can check it in (PUT /api/checkin/pack: dest บรรจุ, off the trolley → "รอบรรจุเสร็จ"). The other pages keep "รอเตรียมวัตถุดิบใหม่" (back to prep).
+const bigColdReturnToPack = (r) => statusRole === "pack" && r.__kind === "map" && r.stay_place === "ออกห้องเย็นใหญ่" && r.dest === "ส่งกลับจากห้องเย็นใหญ่"
+  && !noTro(r.tro_id) && !r.cs_id && CHECKIN_READY.has(String(r.rm_status || ""));
+
 const FIXED_STATUS = (r) => {
   const st = r.rm_status;
   // "รอCheckin" on a trolley, not in a cold room slot: packing presses "Check In" (PUT /api/checkin/pack: dest บรรจุ, off the trolley = "รอบรรจุเสร็จ").
@@ -127,7 +133,7 @@ const FIXED_STATUS = (r) => {
   if (st === "QcCheck รอ MD" && r.dest === "รอCheckin") {
     return noTro(r.tro_id) ? { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" } : { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
   }
-  if ((st === "QcCheck" || st === "รอกลับมาเตรียม") && (r.stay_place === "จุดเตรียม" || r.stay_place === "ออกห้องเย็น") && r.dest === "บรรจุ") {
+  if ((st === "QcCheck" || st === "รอกลับมาเตรียม") && ["จุดเตรียม", "ออกห้องเย็น", "ออกห้องเย็นใหญ่"].includes(r.stay_place) && r.dest === "บรรจุ") {
     return { label: "รอบรรจุเสร็จ", color: "#1552F0", bg: "#EAF0FF" };
   }
   if (isBigColdCombo(r)) {
