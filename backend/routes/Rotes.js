@@ -122,12 +122,10 @@ module.exports = (io) => {
         });
       }
 
-      // ตรวจสอบว่ามีข้อมูลใน three_prod หรือไม่
-      const editLimitReached = result.recordset[0].three_prod !== null;
-
+      // no limit any more: the plan can be changed again and again, the latest change is kept in three_prod (see /updateProduction)
       return res.status(200).json({
         success: true,
-        editLimitReached: editLimitReached
+        editLimitReached: false
       });
 
     } catch (error) {
@@ -1303,24 +1301,12 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         });
       }
 
-      // แบ่งวัตถุดิบตามสถานะการแก้ไข
-      const materialsAtLimit = result.recordset
-        .filter(record => record.three_prod !== null)
-        .map(record => ({
-          mapping_id: record.mapping_id,
-          mat: record.mat,
-          mat_name: record.mat_name || 'ไม่พบชื่อวัตถุดิบ',
-          three_prod: record.three_prod
-        }));
-
-      // เช็คว่ามีวัตถุดิบใดๆ ที่ถึงขีดจำกัดการแก้ไขหรือไม่
-      const editLimitReached = materialsAtLimit.length > 0;
-
+      // no limit any more: every material of the trolley can change its plan again (the latest change is kept in three_prod)
       return res.status(200).json({
         success: true,
-        editLimitReached: editLimitReached,
-        materialsAtLimit: materialsAtLimit,
-        hasMateriaisAtLimit: editLimitReached
+        editLimitReached: false,
+        materialsAtLimit: [],
+        hasMateriaisAtLimit: false
       });
 
     } catch (error) {
@@ -1358,12 +1344,10 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         });
       }
 
-      // ตรวจสอบว่ามีข้อมูลใน three_prod หรือไม่
-      const editLimitReached = result.recordset[0].three_prod !== null;
-
+      // no limit any more: the plan can be changed again and again, the latest change is kept in three_prod (see /updateProduction)
       return res.status(200).json({
         success: true,
-        editLimitReached: editLimitReached
+        editLimitReached: false
       });
 
     } catch (error) {
@@ -1445,34 +1429,23 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
 
       let updateField = "";
-      let canUpdate = true;
 
 
       if (checkHistory.recordset.length > 0) {
-        const { two_prod, three_prod } = checkHistory.recordset[0];
+        const { two_prod } = checkHistory.recordset[0];
 
 
         // กรณีที่ 1: ถ้า two_prod เป็น NULL ให้อัปเดตที่ two_prod
         if (two_prod === null) {
           updateField = "two_prod";
         }
-        // กรณีที่ 3: ถ้า two_prod ไม่เป็น NULL แต่ three_prod เป็น NULL ให้อัปเดตที่ three_prod
-        else if (three_prod === null) {
+        // กรณีที่ 3: three_prod ว่าง = ครั้งที่ 3 · มีค่าแล้ว = บันทึกทับคอลัมน์สุดท้าย (three_prod) แก้แผนได้ไม่จำกัดครั้ง
+        else {
           updateField = "three_prod";
         }
-        // กรณีที่ 4: ถ้าทั้ง first_prod, two_prod และ three_prod ไม่เป็น NULL แล้ว ไม่อนุญาตให้แก้ไข
-        else {
-          canUpdate = false;
-        }
       }
 
 
-      if (!canUpdate) {
-        return res.status(400).json({
-          success: false,
-          message: "ไม่สามารถแก้ไขแผนการผลิตได้ เนื่องจากมีการแก้ไขครบ 3 ครั้งแล้ว"
-        });
-      }
 
 
       // สร้าง query string ตามฟิลด์ที่ต้องการอัปเดต
@@ -1591,12 +1564,11 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         });
       }
 
-      const { two_prod, three_prod, rm_status } = result.recordset[0];
-      const editLimitReached = two_prod !== null && three_prod !== null;
+      const { rm_status } = result.recordset[0];
 
       res.json({
         success: true,
-        editLimitReached,
+        editLimitReached: false, // no limit any more: the latest change is kept in three_prod
         rm_status: rm_status || "" // ✅ ส่ง rm_status กลับไป
       });
 
@@ -1831,14 +1803,10 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
       if (two_prod == null) {
         updateField = "two_prod";
         nameField = "name_edit_prod_two";
-      } else if (three_prod == null) {
+      } else {
+        // three_prod ว่าง = ครั้งที่ 3 · มีค่าแล้ว = บันทึกทับคอลัมน์สุดท้าย (แก้แผนได้ไม่จำกัดครั้ง)
         updateField = "three_prod";
         nameField = "name_edit_prod_three";
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: "แก้ไขแผนการผลิตครบ 3 ครั้งแล้ว"
-        });
       }
 
       // 8) อัปเดต History
@@ -1957,15 +1925,6 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
     try {
       const pool = await connectToDatabase();
 
-      // edited 3 times already = change nothing (the check below used to run AFTER the new plan was saved, so a 4th edit went through
-      // although the answer said it could not)
-      const limitCheck = await pool.request()
-        .input("mapping_id", sql.Int, parseInt(mapping_id, 10))
-        .query("SELECT TOP 1 two_prod, three_prod FROM History WHERE mapping_id = @mapping_id");
-      if (limitCheck.recordset.length && limitCheck.recordset[0].two_prod !== null && limitCheck.recordset[0].three_prod !== null) {
-        return res.status(400).json({ success: false, message: "ไม่สามารถแก้ไขแผนการผลิตได้ เนื่องจากมีการแก้ไขครบ 3 ครั้งแล้ว" });
-      }
-
 
       // ตรวจสอบว่ามีแผนการผลิตสำหรับวัตถุดิบที่เลือกหรือไม่
       // any plan can be picked for any material: the material-plan link (ProdRawMat) is created here when it does not exist yet
@@ -2034,34 +1993,23 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
 
 
       let updateField = "";
-      let canUpdate = true;
 
 
       if (checkHistory.recordset.length > 0) {
-        const { two_prod, three_prod } = checkHistory.recordset[0];
+        const { two_prod } = checkHistory.recordset[0];
 
 
         // กรณีที่ 2: ถ้า first_prod ไม่เป็น NULL แต่ two_prod เป็น NULL ให้อัปเดตที่ two_prod
         if (two_prod === null) {
           updateField = "two_prod";
         }
-        // กรณีที่ 3: ถ้า two_prod ไม่เป็น NULL แต่ three_prod เป็น NULL ให้อัปเดตที่ three_prod
-        else if (three_prod === null) {
+        // กรณีที่ 3: three_prod ว่าง = ครั้งที่ 3 · มีค่าแล้ว = บันทึกทับคอลัมน์สุดท้าย (three_prod) แก้แผนได้ไม่จำกัดครั้ง
+        else {
           updateField = "three_prod";
         }
-        // กรณีที่ 4: ถ้าทั้ง first_prod, two_prod และ three_prod ไม่เป็น NULL แล้ว ไม่อนุญาตให้แก้ไข
-        else {
-          canUpdate = false;
-        }
       }
 
 
-      if (!canUpdate) {
-        return res.status(400).json({
-          success: false,
-          message: "ไม่สามารถแก้ไขแผนการผลิตได้ เนื่องจากมีการแก้ไขครบ 3 ครั้งแล้ว"
-        });
-      }
 
 
       // สร้าง query string ตามฟิลด์ที่ต้องการอัปเดต
@@ -2499,7 +2447,8 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
             WHERE mapping_id = @mapping_id
           `;
           }
-          else if (three_prod === null) {
+          else {
+            // three_prod ว่าง = ครั้งที่ 3 · มีค่าแล้ว = บันทึกทับคอลัมน์สุดท้าย (แก้แผนได้ไม่จำกัดครั้ง)
             updateField = "three_prod";
             updateQuery = `
             UPDATE History
