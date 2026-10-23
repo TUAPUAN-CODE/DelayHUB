@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, Box, Button, Chip, CircularProgress, Divider, Paper, Snackbar, Tab, Tabs, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import EditIcon from "@mui/icons-material/Edit";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useSearchParams } from "react-router-dom";
 import { buildRows } from "./buildRows";
 import { COLUMNS } from "./columns";
@@ -12,6 +13,7 @@ import RowDetail from "../../Layout/DataGrid/RowDetail";
 import EditCellDialog from "./EditCellDialog";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
 import StatusFixDialog from "./StatusFixDialog";
+import { LineagePanel, ParentLinks } from "./MappingLineage";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -24,6 +26,7 @@ const TIME_COLUMNS = COLUMNS.filter((c) => c.kind === "data" && c.type === "time
  * Page "ค้นหา mapping_id" (every Role): type a mapping_id, see everything about that raw material, fix a wrong entry.
  *   รายละเอียด = the columns of the Master Sheet · เวลา = every time column (edit one with the same dialog as the Sheet's "แก้ไขข้อมูล")
  *   สถานะ = change rm_status / stay_place / dest / trolley · ประวัติการแก้ไข = SheetEditLog of this mapping
+ *   ถูกนำไปเป็นรายการใหม่ = the mappings made from this one (and "มาจากรายการ" at the top): open one with its button, "กลับไปรายการ …" walks back
  * Editing needs the Setting password (same permit as the "แก้ไขข้อมูล" button); the server writes every change to SheetEditLog with the reason.
  */
 const MappingTool = () => {
@@ -37,6 +40,23 @@ const MappingTool = () => {
   const [timeTarget, setTimeTarget] = useState(null);
   const [statusOpen, setStatusOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [lin, setLin] = useState({ id: null, loading: false, data: null, error: "" });
+  const [trail, setTrail] = useState([]); // the mappings opened before this one through a link (button "กลับไปรายการ …")
+  const linReq = useRef(0);
+
+  // what this mapping became / came from; also asked for a mapping that is gone ("กลับมาเตรียม" deletes the old one)
+  const loadLineage = useCallback(async (id) => {
+    const req = ++linReq.current;
+    setLin({ id, loading: true, data: null, error: "" });
+    try {
+      const res = await axios.get(`${API_URL}/api/sheet/lineage`, { params: { mapping_id: id } });
+      if (req !== linReq.current) return; // another mapping was opened meanwhile
+      setLin({ id, loading: false, data: res.data?.data ?? null, error: "" });
+    } catch (err) {
+      console.error("[MappingTool] lineage error:", err);
+      if (req === linReq.current) setLin({ id, loading: false, data: null, error: "โหลดรายการที่เกี่ยวข้องไม่สำเร็จ" });
+    }
+  }, []);
 
   const loadLog = useCallback(async (id) => {
     setLog((l) => ({ ...l, loading: true, error: "" }));
@@ -61,11 +81,31 @@ const MappingTool = () => {
       setState({ loading: false, error: "", mapping: res.data.mapping, hu: res.data.hu, editable: res.data.editable_dates || [] });
       setParams({ id: String(id) }, { replace: true });
       loadLog(id);
+      loadLineage(id);
     } catch (err) {
       console.error("[MappingTool] search error:", err);
       setState({ loading: false, error: err.response?.data?.error || err.message || "ค้นหาไม่สำเร็จ", mapping: null, hu: null, editable: [] });
+      // not found: it may have become another mapping (กลับมาเตรียม deletes the old one) — the page says which
+      if (err.response?.status === 404) loadLineage(id);
+      else setLin({ id: null, loading: false, data: null, error: "" });
     }
-  }, [loadLog, setParams]);
+  }, [loadLog, loadLineage, setParams]);
+
+  // typed search starts a new walk; a link keeps the way back
+  const searchTyped = () => { setTrail([]); search(input); };
+  const openLinked = (id) => {
+    const from = state.mapping?.mapping_id ?? lin.id;
+    if (from && from !== id) setTrail((t) => [...t, from]);
+    setInput(String(id));
+    search(id);
+  };
+  const goBack = () => {
+    const prev = trail[trail.length - 1];
+    if (!prev) return;
+    setTrail((t) => t.slice(0, -1));
+    setInput(String(prev));
+    search(prev);
+  };
 
   useEffect(() => { if (params.get("id")) search(params.get("id")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -94,8 +134,9 @@ const MappingTool = () => {
       <Typography sx={{ fontSize: 20, fontWeight: 700, mb: 1.5 }}>ค้นหาด้วย mapping_id</Typography>
       <Paper variant="outlined" sx={{ p: 1.5, mb: 2, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
         <TextField size="small" label="mapping_id" value={input} autoFocus onChange={(e) => setInput(e.target.value.replace(/\D/g, ""))}
-          onKeyDown={(e) => { if (e.key === "Enter") search(input); }} inputProps={{ inputMode: "numeric" }} sx={{ width: 200 }} />
-        <Button variant="contained" startIcon={state.loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />} disabled={state.loading || !input} onClick={() => search(input)}>ค้นหา</Button>
+          onKeyDown={(e) => { if (e.key === "Enter") searchTyped(); }} inputProps={{ inputMode: "numeric" }} sx={{ width: 200 }} />
+        <Button variant="contained" startIcon={state.loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />} disabled={state.loading || !input} onClick={searchTyped}>ค้นหา</Button>
+        {trail.length > 0 && <Button size="small" startIcon={<ArrowBackIcon />} onClick={goBack}>{`กลับไปรายการ ${trail[trail.length - 1]}`}</Button>}
         <Box sx={{ flex: 1 }} />
         {unlocked && hasUnlock()
           ? <Chip color="success" variant="outlined" icon={<LockOpenIcon />} label="ปลดล็อกแล้ว · แก้ไขได้" />
@@ -103,6 +144,15 @@ const MappingTool = () => {
       </Paper>
 
       {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
+
+      {!state.mapping && lin.id && (lin.loading || lin.data?.children?.length > 0 || lin.data?.parents?.length > 0) && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{`รายการ ${lin.id} ไม่มีในระบบแล้ว`}</Typography>
+          <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 1 }}>เช่น กด &quot;กลับมาเตรียม&quot; แล้ว ระบบสร้างรายการใหม่และลบรายการเดิม — ดูรายการใหม่ได้ด้านล่าง</Typography>
+          <ParentLinks parents={lin.data?.parents} onOpen={openLinked} />
+          <Box sx={{ mt: 1 }}><LineagePanel state={lin} onOpen={openLinked} /></Box>
+        </Paper>
+      )}
 
       {row && (
         <>
@@ -119,15 +169,19 @@ const MappingTool = () => {
                 row.weight_RM !== null && row.weight_RM !== undefined && `${row.weight_RM} kg`, row.code && `แผน ${row.code}`].filter(Boolean).join(" · ")}
             </Typography>
             <Typography sx={{ fontSize: 12.5, color: "text.secondary", mt: 0.25 }}>rm_status: <b>{row.rm_status || "-"}</b> · stay_place: <b>{row.stay_place || "-"}</b> · dest: <b>{row.dest || "-"}</b></Typography>
+            {lin.id === row.mapping_id && <ParentLinks parents={lin.data?.parents} onOpen={openLinked} />}
           </Paper>
 
           <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
             <Tab value="detail" label="รายละเอียด" />
             <Tab value="times" label="เวลา (แก้ไขได้)" />
             <Tab value="log" label={`ประวัติการแก้ไข${log.rows.length ? ` (${log.rows.length})` : ""}`} />
+            <Tab value="lineage" label={`ถูกนำไปเป็นรายการใหม่${lin.id === row.mapping_id && lin.data?.children?.length ? ` (${lin.data.children.length})` : ""}`} />
           </Tabs>
 
           {tab === "detail" && <Paper variant="outlined"><RowDetail row={row} columns={DETAIL_COLUMNS} title={`ข้อมูลของรายการ ${row.mapping_id}`} /></Paper>}
+
+          {tab === "lineage" && <LineagePanel state={lin.id === row.mapping_id ? lin : { loading: true }} onOpen={openLinked} />}
 
           {tab === "times" && (
             <Paper variant="outlined" sx={{ p: 1 }}>

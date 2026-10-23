@@ -9,6 +9,7 @@ const { verifyToken } = require("../lib/auth");
 const { getAuthMode } = require("../lib/authMiddleware");
 const metrics = require("../lib/metrics");
 const logger = require("../lib/logger");
+const { lineageOf } = require("../lib/mappingLineage");
 
 const router = express.Router();
 
@@ -504,6 +505,23 @@ router.get("/sheet/mapping", async (req, res) => {
     res.json({ success: true, mapping, hu, editable_dates: HIST_DATES }); // the time columns that PATCH /sheet/edit accepts
   } catch (err) {
     console.error("❌ [Route GET /sheet/mapping] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/sheet/lineage?mapping_id= : which new mapping_ids this one became / came from (page "ค้นหา mapping_id"); works for a mapping that is gone too
+// (กลับมาเตรียม deletes the old mapping: its link to the new one is kept in MappingLineage)
+router.get("/sheet/lineage", async (req, res) => {
+  try {
+    const id = parseInt(req.query.mapping_id, 10);
+    if (!Number.isInteger(id) || id <= 0 || id > 2147483647) return res.status(400).json({ success: false, error: "กรุณาระบุ mapping_id เป็นตัวเลข" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const data = await lineageOf(pool, id);
+    const { errors, ...rest } = data;
+    res.json({ success: true, data: rest, errors });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/lineage] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

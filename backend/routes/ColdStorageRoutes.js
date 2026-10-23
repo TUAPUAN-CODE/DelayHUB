@@ -1,4 +1,5 @@
 const { safeRollback } = require("../lib/safeRollback");
+const { recordLineage } = require("../lib/mappingLineage");
 module.exports = (io) => {
     const express = require("express");
     const { connectToDatabase } = require("../database/db");
@@ -1583,6 +1584,9 @@ WHERE
                 }
 
                 await transaction.commit();
+
+                // material of the source mapping went into this one (a new mapping or one already on the trolley): kept for the page "ค้นหา mapping_id" (best effort)
+                await recordLineage(pool, { from: sourceRecord.mapping_id, to: destMappingId, kind: "move" }, currentUser);
 
                 res.json({
                     success: true,
@@ -7391,6 +7395,9 @@ ORDER BY rmm.mapping_id DESC
                 const destTotalWeight = destWeightRes.recordset[0]?.total_weight || 0;
 
                 await tx.commit();
+
+                // material of the source mapping went into this one (a new mapping or one already on the trolley): kept for the page "ค้นหา mapping_id" (best effort)
+                await recordLineage(pool, { from: sourceMappingId, to: destMappingId, kind: "move" }, currentUser);
 
                 return res.status(200).json({
                     message: "Raw material moved successfully",

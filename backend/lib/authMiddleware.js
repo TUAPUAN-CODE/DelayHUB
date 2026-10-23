@@ -231,7 +231,7 @@ const RULES = [
   { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock, final: true },
   { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock, final: true },
   // what the page "ค้นหา mapping_id" reads (it is on the menu of every Role): any logged-in user, not narrowed by rolePolicy.json
-  { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
+  { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options|lineage)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
   { m: "GET", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "PUT", p: /^\/api\/sheet\/prefs$/, check: selfOrAdmin((req) => req.body && req.body.user_id) },
