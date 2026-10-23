@@ -8142,6 +8142,8 @@ ORDER BY rmm.mapping_id DESC
                 message: "Missing or invalid required fields",
             });
         }
+        // the weight of the tag (mat|batch|hu|weight): it was not saved here, so a HU whose first scan was "จ่ายลงไลน์" (no thawing) had no weight
+        const tagWeight = Number.isFinite(parseFloat(weight)) && parseFloat(weight) > 0 ? parseFloat(weight) : null;
 
         let transaction;
         try {
@@ -8154,6 +8156,7 @@ ORDER BY rmm.mapping_id DESC
             // ✅ ดึงข้อมูลครบทุก field ที่ต้องใช้
             const checkHU = await request
                 .input("hu", sql.Int, parseInt(hu, 10))
+                .input("weight", sql.Decimal(18, 2), tagWeight)
                 .query(`
                 SELECT TOP 1
                     withdraw_date,
@@ -8168,14 +8171,14 @@ ORDER BY rmm.mapping_id DESC
             `);
 
             if (checkHU.recordset.length === 0) {
-                // ─── ไม่มี HU → INSERT รอบที่ 1 ───────────────────────────
+                // ─── ไม่มี HU → INSERT รอบที่ 1 (พร้อมน้ำหนักของป้าย) ──────────
                 await request
                     .input("batch", batch)
                     .input("mat", mat)
                     .input("status", sql.Int, 1)
                     .query(`
-                    INSERT INTO SAP_Receive (batch, mat, hu, withdraw_date, status)
-                    VALUES (@batch, @mat, @hu, GETDATE(), @status)
+                    INSERT INTO SAP_Receive (batch, mat, hu, weight, withdraw_date, status)
+                    VALUES (@batch, @mat, @hu, @weight, GETDATE(), @status)
                 `);
 
                 await transaction.commit();
@@ -8184,19 +8187,21 @@ ORDER BY rmm.mapping_id DESC
                     round: 1,
                     action: "insert",
                     message: "บันทึกข้อมูลการสแกนเสร็จสิ้น (รอบที่ 1)",
-                    summary: { batch, mat, hu },
+                    summary: { batch, mat, hu, weight: tagWeight },
                 });
 
             } else {
                 const row = checkHU.recordset[0];
                 let updateQuery = "";
                 let round = 0;
+                // a HU without a weight yet gets the weight of the tag; a weight already saved (thawing) is kept
+                const fillWeight = "weight = CASE WHEN @weight IS NOT NULL AND (weight IS NULL OR TRY_CONVERT(DECIMAL(18, 3), weight) = 0) THEN @weight ELSE weight END";
 
                 if (!row.withdraw_date) {
                     // ─── รอบที่ 1: withdraw_date ยังว่าง ──────────────────
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET withdraw_date = GETDATE()
+                    SET withdraw_date = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 1;
@@ -8205,7 +8210,7 @@ ORDER BY rmm.mapping_id DESC
                     // ─── รอบที่ 2: ต้องมี input_cd_date ก่อน ──────────────
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET withdraw_date_two = GETDATE()
+                    SET withdraw_date_two = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 2;
@@ -8214,7 +8219,7 @@ ORDER BY rmm.mapping_id DESC
                     // ─── รอบที่ 3: ต้องมี input_cd_date_two ก่อน ──────────
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET withdraw_date_three = GETDATE()
+                    SET withdraw_date_three = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 3;
@@ -8223,7 +8228,7 @@ ORDER BY rmm.mapping_id DESC
                     // ─── รอบที่ 4: ต้องมี input_cd_date_three ก่อน ─────────
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET withdraw_date_four = GETDATE()
+                    SET withdraw_date_four = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 4;
@@ -8449,6 +8454,8 @@ ORDER BY rmm.mapping_id DESC
                 const row = checkHU.recordset[0];
                 let updateQuery = "";
                 let round = 0;
+                // a HU without a weight yet gets the weight of the tag; a weight already saved is kept
+                const fillWeight = "weight = CASE WHEN @weight IS NOT NULL AND (weight IS NULL OR TRY_CONVERT(DECIMAL(18, 3), weight) = 0) THEN @weight ELSE weight END";
 
                 if (!row.start_defrost_date_two) {
                     // ─── รอบที่ 2: start_defrost_date และ input_cd_date ต้องมีค่า ───
@@ -8471,7 +8478,7 @@ ORDER BY rmm.mapping_id DESC
                     }
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET start_defrost_date_two = GETDATE()
+                    SET start_defrost_date_two = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 2;
@@ -8487,7 +8494,7 @@ ORDER BY rmm.mapping_id DESC
                     }
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET start_defrost_date_three = GETDATE()
+                    SET start_defrost_date_three = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 3;
@@ -8503,7 +8510,7 @@ ORDER BY rmm.mapping_id DESC
                     }
                     updateQuery = `
                     UPDATE SAP_Receive
-                    SET start_defrost_date_four = GETDATE()
+                    SET start_defrost_date_four = GETDATE(), ${fillWeight}
                     WHERE hu = @hu AND status = 1
                 `;
                     round = 4;
@@ -8516,7 +8523,7 @@ ORDER BY rmm.mapping_id DESC
                     });
                 }
 
-                await request.query(updateQuery);
+                await request.input("weight", sql.Decimal(18, 2), parseFloat(weight) > 0 ? parseFloat(weight) : null).query(updateQuery);
                 await transaction.commit();
                 return res.json({
                     success: true,
