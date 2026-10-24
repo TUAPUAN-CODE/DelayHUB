@@ -89,13 +89,15 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
               AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 = hid.dest
         )
         -- weight 0 = nothing left of the material: not shown on any list (agreed with the users)
-        AND ISNULL(rmm.weight_RM, 1) <> 0
+        AND ISNULL(rmm.weight_RM, 1) <> 0${scope === "done" ? `
+        -- (Done table: no "waiting for QC without a trolley" rule. A packed row is Done whatever rm_status still says — e.g. "QcCheck รอ MD" when the
+        --  metal detector is run at the line — and the row made by "บรรจุเสร็จ" has no trolley, so that rule hid those rows. buildRows.js gives Done first too)` : `
         -- waiting for QC without a trolley: not shown. (QcCheck รอ MD going to บรรจุ / รอCheckin is "รอบรรจุเสร็จ" and stays.) Keep in sync with buildRows.js
         AND NOT (
             (ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอQC%' OR ISNULL(rmm.rm_status, N'') COLLATE Thai_100_BIN2 LIKE N'%รอ MD%')
             AND (rmm.tro_id IS NULL OR LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) COLLATE Thai_100_BIN2 IN (N'', N'0'))
             AND NOT (LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 = N'QcCheck รอ MD' AND LTRIM(RTRIM(ISNULL(rmm.dest, N''))) COLLATE Thai_100_BIN2 IN (N'บรรจุ', N'รอCheckin'))
-        )
+        )`}
         -- "in the big cold room" is only real when the material is on a trolley: no tro_id = not shown. Keep in sync with buildRows.js
         AND NOT (
             LTRIM(RTRIM(ISNULL(rmm.rm_status, N''))) COLLATE Thai_100_BIN2 IN (N'รอกลับมาเตรียม', N'QcCheck')
