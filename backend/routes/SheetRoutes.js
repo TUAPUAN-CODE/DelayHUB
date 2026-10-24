@@ -132,6 +132,12 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
             COALESCE(${DONE_DATE_SQL}, rmm.created_at) >= @open_from
             AND COALESCE(${DONE_DATE_SQL}, rmm.created_at) < DATEADD(DAY, 1, @open_to)
         ) OR (
+            -- made or changed inside the range (TrolleyRMMapping's own times, no History read): put in a trolley, or taken off it by the packing
+            -- "Check In" (it sets updated_at). Without it a night-shift trolley cooked before midnight was dated by its cooking day and left the
+            -- "today" table the moment packing checked it in, although it waits at the line ("รอบรรจุเสร็จ")
+            (rmm.created_at >= @open_from AND rmm.created_at < DATEADD(DAY, 1, @open_to))
+            OR (rmm.updated_at >= @open_from AND rmm.updated_at < DATEADD(DAY, 1, @open_to))
+        ) OR (
             -- a row that is on a trolley is always shown, whatever its date
             rmm.tro_id IS NOT NULL AND LTRIM(RTRIM(CAST(rmm.tro_id AS NVARCHAR(50)))) NOT IN (N'', N'0')
         ))`;
@@ -140,7 +146,7 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
   // (emulsion text, Batch, Slot, PackTrolley, RawMat/Production joins) then run only for the rows that are left, not for every mapping ever made
   const openBase = `
   -- step 1: the cheap filters on TrolleyRMMapping alone (no join: RMForProd is joined in the final select, a join here was a seek per mapping ever made), into a small temp table (the optimizer used to run the History lookup for every mapping ever made)
-  SELECT rmm.mapping_id, rmm.created_at, rmm.tro_id
+  SELECT rmm.mapping_id, rmm.created_at, TRY_CONVERT(DATETIME, rmm.updated_at) AS updated_at, rmm.tro_id
   INTO #sheet_cand
   FROM TrolleyRMMapping rmm WITH (NOLOCK)
   ${whereSql}
