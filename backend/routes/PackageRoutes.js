@@ -564,13 +564,15 @@ module.exports = (io) => {
 
 
       // ✅ 3. Update TrolleyRMMapping → dest = 'บรรจุ'
+      // updated_at = the check-in time: off its trolley, the row is dated by History only, and a trolley cooked yesterday left the Sheet's "today" table (SheetRoutes openDateSql)
       const updateMappingResult = await new sql.Request(transaction)
         .input("tro_id", sql.VarChar, tro_id)
         .query(`
         UPDATE TrolleyRMMapping
         SET
           dest = N'บรรจุ',
-          tro_id = NULL
+          tro_id = NULL,
+          updated_at = GETDATE()
         WHERE tro_id = @tro_id
       `);
 
