@@ -58,13 +58,15 @@ const fmt = (alias, col) => `CONVERT(VARCHAR(19), ${alias}.${col}, 120) AS ${col
 
 const DONE_SQL = "(ISNULL(rmm.dest, N'') LIKE N'บรรจุเสร็จ%' OR ISNULL(rmm.rm_status, N'') = N'สำเร็จ')";
 // the date a mapping counts for in the Done table (last thing that happened to it)
-const DONE_DATE_SQL = "COALESCE(h.sc_pack_date, h.out_cold_date, h.come_cold_date, h.rmit_date, h.cooked_date)";
+// DONE_DATE_COLS = the History times of one row, the latest event first (a later cold-room round is a later event: a row that came out of
+// the cold room for the 2nd time today is today's, not the day of its 1st round)
+const DONE_DATE_COLS = ["sc_pack_date", "out_cold_date_three", "come_cold_date_three", "out_cold_date_two", "come_cold_date_two", "out_cold_date", "come_cold_date", "rmit_date", "cooked_date"];
+const DONE_DATE_SQL = `COALESCE(${DONE_DATE_COLS.map((c) => `h.${c}`).join(", ")})`;
 
 /** scope "open" = the work table (everything not finished, however old) · scope "done" = finished rows, searched on demand (date range + text) */
 // Done table by dates: the mappings that have a History time inside the range, found first by the date columns themselves.
 // Without it SQL Server worked out the latest History row of EVERY finished mapping ever (they only grow) before it could compare the dates.
 // It never drops a row the full condition keeps: a row whose DONE_DATE_SQL is in the range has that same History column in the range.
-const DONE_DATE_COLS = ["sc_pack_date", "out_cold_date", "come_cold_date", "rmit_date", "cooked_date"];
 const DONE_RANGE_SQL = `rmm.mapping_id IN (
               SELECT hd.mapping_id FROM History hd WITH (NOLOCK)
               WHERE ${DONE_DATE_COLS.map((c) => `(hd.${c} >= @date_from AND hd.${c} < DATEADD(DAY, 1, @date_to))`).join("\n                 OR ")}
@@ -156,8 +158,8 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
     SELECT TOP (@mlimit) rmm.mapping_id, h.hist_id
     FROM #sheet_cand rmm
     OUTER APPLY (
-        -- only the 5 dates DONE_DATE_SQL needs, so the History index can answer alone (no read of the wide History row)
-        SELECT TOP 1 hh.hist_id, hh.sc_pack_date, hh.out_cold_date, hh.come_cold_date, hh.rmit_date, hh.cooked_date
+        -- only the dates DONE_DATE_SQL needs (migrations/auto/005_history_dates_index.sql covers them), so the History index can answer alone (no read of the wide History row)
+        SELECT TOP 1 hh.hist_id, ${DONE_DATE_COLS.map((c) => `hh.${c}`).join(", ")}
         FROM History hh WITH (NOLOCK)
         WHERE hh.mapping_id = rmm.mapping_id
         ORDER BY hh.hist_id DESC
