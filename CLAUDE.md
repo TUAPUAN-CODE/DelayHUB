@@ -930,6 +930,13 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 `cd frontend && npm run check:unused` — รายงาน (1) import ที่หาไฟล์ไม่เจอ (2) import ที่ตัวพิมพ์เล็ก/ใหญ่ไม่ตรง (ผ่านบน Windows แต่ build บน Linux ล้ม) (3) ไฟล์ใน `component/` ที่ไม่มีใครเรียกถึง
 ห้ามใช้ `--delete` จนกว่าข้อ (1) จะว่าง (ตอนนี้ `Pack/PrintMaster`, `Pack/PrintMasters`, `Pack/UsePKG` ยังไม่อยู่ในรีโป — ต้อง commit จากเครื่อง server ก่อน)
 
+### ตรวจคำแปล 4 ภาษา (ไทย / อังกฤษ / พม่า / เขมร)
+
+`cd frontend && npm run check:i18n` — รายงานต่อหน้า (route) ข้อความไทยที่ขึ้นบนจอแต่ยังไม่มีคำแปลใน `frontend/src/i18n/dict/part*.js` (ไทย → [อังกฤษ, พม่า, เขมร]; `{x}` = ค่าที่โค้ดใส่, `{n}` = ตัวเลข — กติกาอยู่ใน `src/i18n/lookup.js`, เทสต์ `npm test`) รวมข้อความ error / message ที่ backend ส่งกลับ และสถานะที่ SQL เขียนลงฐานข้อมูล
+- เพิ่ม/แก้ข้อความไทยที่ขึ้นบนจอ → เพิ่มคำแปลด้วยแล้วรันให้ผ่าน · ข้อความที่ไม่ต้องแปล (ชื่อไฟล์ ฯลฯ) ใส่ `frontend/scripts/i18n-ignore.json`
+- ห้ามทำปุ่มเปลี่ยนภาษาแยกในหน้า — หน้าที่มีข้อความ 2 ชุดเอง ให้อ่านภาษาจาก `getLang()` / `subscribe()` ของ `src/i18n/translator.js` (ตัวอย่าง `Pack/UsePKG`, `Pack/PrintMasters`)
+- พจนานุกรมโหลดเฉพาะตอนเลือกภาษาที่ไม่ใช่ไทย (ไม่อยู่ใน bundle แรกของหน้าเว็บ)
+
 ### ColdStorage vs ColdStorages
 
 ทั้งสองโมดูลนี้ **ยังคง active อยู่พร้อมกัน**:
