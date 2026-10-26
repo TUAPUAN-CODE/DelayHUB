@@ -1,4 +1,5 @@
-import dictionary from "./dict";
+import { loadDictionary } from "./dict";
+import { TH_RE, createLookup } from "./lookup";
 
 export const LANGS = [
   { code: "th", label: "ไทย", short: "TH" },
@@ -8,8 +9,6 @@ export const LANGS = [
 ];
 const IDX = { en: 0, my: 1, km: 2 };
 const STORAGE_KEY = "pfcm_lang";
-const TH_RE = /[ก-๙]/;
-const NUM_RE = /\d+(?:[.,]\d+)*/g;
 const ATTRS = ["placeholder", "title", "aria-label", "alt"];
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "CODE"]);
 
@@ -19,43 +18,40 @@ const listeners = new Set();
 const textRec = new WeakMap(); // Text node -> { orig, out }
 const attrRec = new WeakMap(); // Element -> { [attr]: { orig, out } }
 export const missing = new Set();
+const noteMissing = (t) => { if (missing.size < 5000) missing.add(t); };
+
+// The dictionary is downloaded the first time a language other than Thai is used: Thai — the language the screens are written in — needs none of it
+// (it was in the first bundle of every page, and it grows with every screen)
+let lookup = null;
+let dictPromise = null;
+const memo = new Map(); // "col|text" -> translation or null (the same texts come back in every row of a table)
+const ensureDictionary = () => {
+  if (!dictPromise) {
+    dictPromise = loadDictionary()
+      .then((d) => { lookup = createLookup(d, { onPieceMissing: noteMissing }); memo.clear(); })
+      .catch((err) => { console.error("[i18n] dictionary load error:", err); dictPromise = null; });
+  }
+  return dictPromise;
+};
 
 export const getLang = () => lang;
 export const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 
-const lookupCore = (core, col) => {
-  const hit = dictionary[core];
-  if (hit && hit[col] != null) return hit[col];
-  if (hit && hit[0] != null && col > 0) return hit[0]; // no Burmese / Khmer text yet: show the English one
-  const nums = core.match(NUM_RE);
-  if (nums) {
-    const t = dictionary[core.replace(NUM_RE, "{n}")];
-    const text = t ? (t[col] != null ? t[col] : (col > 0 ? t[0] : null)) : null;
-    if (text != null) {
-      let i = 0;
-      return text.replace(/\{n\}/g, () => nums[Math.min(i++, nums.length - 1)]);
-    }
-  }
-  return null;
-};
-
 export const translate = (text, to = lang) => {
-  if (to === "th" || !text || !TH_RE.test(text)) return text;
+  if (to === "th" || !text || !lookup || !TH_RE.test(text)) return text;
   const lead = text.match(/^\s*/)[0];
   const trail = text.match(/\s*$/)[0];
   const core = text.trim();
   if (!core) return text;
-  const col = IDX[to];
-  let out = lookupCore(core, col);
-  if (out !== null) return lead + out + trail;
-  // "label :" / "label:" variants
-  const m = core.match(/^(.*?)\s*([:：])$/);
-  if (m) {
-    out = lookupCore(m[1], col);
-    if (out !== null) return lead + out + m[2] + trail;
+  const key = `${IDX[to]}|${core}`;
+  let out = memo.get(key);
+  if (out === undefined) {
+    out = lookup(core, IDX[to]);
+    if (memo.size > 20000) memo.clear();
+    memo.set(key, out);
   }
-  if (missing.size < 5000) missing.add(core);
-  return text;
+  if (out === null) { noteMissing(core); return text; }
+  return lead + out + trail;
 };
 
 const skip = (el) => !el || SKIP_TAGS.has(el.tagName) || el.closest?.("[data-no-i18n],[contenteditable='true']");
@@ -142,8 +138,9 @@ export const setLang = (next) => {
   lang = next;
   try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
   document.documentElement.lang = next;
-  walk(document.body); // re-process everything (th restores originals)
   listeners.forEach((fn) => fn(next));
+  if (next === "th") { walk(document.body); return; } // restores the originals
+  ensureDictionary().then(() => { if (lang === next) walk(document.body); });
 };
 
 export const initI18n = () => {
@@ -153,6 +150,6 @@ export const initI18n = () => {
   lang = LANGS.some((l) => l.code === saved) ? saved : "th";
   document.documentElement.lang = lang;
   startObserver();
-  if (lang !== "th") walk(document.body);
+  if (lang !== "th") ensureDictionary().then(() => { if (lang !== "th") walk(document.body); });
   if (typeof window !== "undefined") window.__i18nMissing = missing;
 };

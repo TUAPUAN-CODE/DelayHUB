@@ -19,6 +19,7 @@ import {
 
 import { registerEditor } from '../../../Layout/DataGrid/settingsBus';
 import UnlockDialog, { hasUnlock } from '../../../Sheet/Asset/UnlockDialog';
+import { getLang, subscribe } from '../../../../i18n/translator';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -31,6 +32,8 @@ const PKG_TYPES = ['กระป๋อง', 'ฝา', 'ถ้วย', 'ถุง
 const SACHET_MACHINES = Array.from({ length: 16 }, (_, i) => `Sachet ${i + 1}`);
 
 // ─── i18n ───────────────────────────────────────────────────────────────────
+// follows the language of the system (switch in the top bar): English = TRANSLATIONS.en · Thai / Burmese / Khmer = TRANSLATIONS.th,
+// which the system translator (src/i18n) turns into the chosen language
 const TRANSLATIONS = {
   th: {
     'tab.active': 'กำลังดำเนินการ',
@@ -169,8 +172,6 @@ const TRANSLATIONS = {
     'detail.qtyUsed': 'จำนวนใช้',
     'detail.qtyDamaged': 'จำนวนเสีย',
     'detail.qtyRemaining': 'คงเหลือ',
-    'lang.thai': 'ไทย',
-    'lang.english': 'English',
     'pkgType.can': 'กระป๋อง',
     'pkgType.lid': 'ฝา',
     'pkgType.cup': 'ถ้วย',
@@ -313,8 +314,6 @@ const TRANSLATIONS = {
     'detail.qtyUsed': 'Qty Used',
     'detail.qtyDamaged': 'Qty Damaged',
     'detail.qtyRemaining': 'Qty Remaining',
-    'lang.thai': 'ไทย',
-    'lang.english': 'English',
     'pkgType.can': 'Can',
     'pkgType.lid': 'Lid',
     'pkgType.cup': 'Cup',
@@ -322,7 +321,7 @@ const TRANSLATIONS = {
   },
 };
 
-const LanguageContext = createContext({ lang: 'th', t: (k) => k, setLang: () => {} });
+const LanguageContext = createContext({ lang: 'th', t: (k) => k });
 const useLang = () => useContext(LanguageContext);
 
 const PKG_TYPE_KEYS = {
@@ -332,25 +331,6 @@ const PKG_TYPE_KEYS = {
   'ถุง': 'pkgType.pouch',
 };
 const pkgLabel = (value, t) => (value && PKG_TYPE_KEYS[value]) ? t(PKG_TYPE_KEYS[value]) : (value || '-');
-
-const LangSwitcher = () => {
-  const { lang, setLang, t } = useLang();
-  return (
-    <Box sx={{ display: 'flex', gap: 0.5 }}>
-      {['th', 'en'].map(l => (
-        <Box key={l} onClick={() => setLang(l)} sx={{
-          px: 1.4, py: 0.4, borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-          cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
-          border: lang === l ? '1.5px solid #1976D2' : '1.5px solid #e0e0e0',
-          backgroundColor: lang === l ? '#1976D2' : '#fff',
-          color: lang === l ? '#fff' : '#607d8b',
-        }}>
-          {l === 'th' ? t('lang.thai') : t('lang.english')}
-        </Box>
-      ))}
-    </Box>
-  );
-};
 
 // ─── Package type → line_type_id mapping ──────────────────────────────────────
 const PKG_LINE_TYPE_IDS = {
@@ -2319,7 +2299,9 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 const TableMainPrep = () => {
-  const [lang, setLang] = useState('th'); // ค่าเริ่มต้น: ภาษาไทย
+  const [appLang, setAppLang] = useState(getLang);
+  useEffect(() => subscribe(setAppLang), []);
+  const lang = appLang === 'en' ? 'en' : 'th';
   const t = useCallback((key, params) => {
     let str = TRANSLATIONS[lang][key] ?? key;
     if (params) {
@@ -2550,11 +2532,6 @@ const TableMainPrep = () => {
           onSaved={() => { handleReportEdited(); setEditReport(null); }}
           lines={lines} initialData={editReport} editMode={true} />
 
-        {/* ─── Language switcher ─────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-          <LangSwitcher />
-        </Box>
-
         {/* ─── Tabs ───────────────────────────────────────────────────────── */}
         <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', borderBottom: '2px solid #e0e0e0', mb: 2 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
@@ -2651,7 +2628,7 @@ const TableMainPrep = () => {
   }
 
   return (
-    <LanguageContext.Provider value={{ lang, t, setLang }}>
+    <LanguageContext.Provider value={{ lang, t }}>
       {editMode && view !== 'detail' && (
         <Box sx={{ mb: 1.5, p: 1, backgroundColor: '#FFF3E0', border: '1px solid #FFB74D', borderRadius: '8px', fontSize: '13px', color: '#E65100', fontWeight: 'bold' }}>
           โหมดแก้ไขเปิดอยู่ — กดเปิดเอกสารที่ต้องการ แล้วแก้ข้อมูลในตารางได้เลย (แก้หัวเอกสารใช้ปุ่มดินสอในรายการ)

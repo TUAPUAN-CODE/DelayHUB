@@ -6,8 +6,9 @@ import {
   TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress,
   Dialog, IconButton, InputAdornment,
 } from '@mui/material';
-import { Close, QrCodeScanner, Search, FilterList, Language } from '@mui/icons-material';
+import { Close, QrCodeScanner, Search, FilterList } from '@mui/icons-material';
 import ModalSlipPrint from './ModalSlipPrint';
+import { getLang, subscribe } from '../../../../i18n/translator';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -40,8 +41,8 @@ const EMPTY_FORM = {
 };
 
 // ─── i18n ───────────────────────────────────────────────────────────────────
-const LANG_STORAGE_KEY = 'tableMainPrep_lang';
-
+// follows the language of the system (switch in the top bar): English = TEXT.en · Thai / Burmese / Khmer = TEXT.th,
+// which the system translator (src/i18n) turns into the chosen language
 const TEXT = {
   th: {
     type: 'Type',
@@ -299,50 +300,11 @@ const dateInputStyle = {
   borderRadius: '4px', outline: 'none', backgroundColor: '#fff',
 };
 
-// ─── Language Switch ────────────────────────────────────────────────────────
-const LangSwitch = ({ lang, onChange }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, justifyContent: 'flex-end' }}>
-    <Language sx={{ fontSize: '16px', color: '#999' }} />
-    <Box sx={{ display: 'flex', border: '1.5px solid #ccc', borderRadius: '8px', overflow: 'hidden' }}>
-      {[
-        { code: 'th', label: 'ไทย' },
-        { code: 'en', label: 'EN' },
-      ].map(({ code, label }) => (
-        <Box
-          key={code}
-          onClick={() => onChange(code)}
-          sx={{
-            px: 1.5, py: 0.5, fontSize: '12px', cursor: 'pointer', userSelect: 'none',
-            fontWeight: lang === code ? 'bold' : 'normal',
-            backgroundColor: lang === code ? '#1976D2' : '#f5f5f5',
-            color: lang === code ? '#fff' : '#555',
-            transition: 'all 0.15s',
-            '&:hover': { backgroundColor: lang === code ? '#1565C0' : '#e3f2fd' },
-          }}
-        >
-          {label}
-        </Box>
-      ))}
-    </Box>
-  </Box>
-);
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 const TableMainPrep = () => {
-  const [lang, setLang] = useState(() => {
-    try {
-      const saved = window.localStorage?.getItem(LANG_STORAGE_KEY);
-      return saved === 'en' ? 'en' : 'th';
-    } catch {
-      return 'th';
-    }
-  });
-  const t = TEXT[lang];
-
-  const handleLangChange = (code) => {
-    setLang(code);
-    try { window.localStorage?.setItem(LANG_STORAGE_KEY, code); } catch { /* noop */ }
-  };
+  const [appLang, setAppLang] = useState(getLang);
+  useEffect(() => subscribe(setAppLang), []);
+  const t = TEXT[appLang === 'en' ? 'en' : 'th'];
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [lineInput, setLineInput] = useState(null);
@@ -550,9 +512,6 @@ const TableMainPrep = () => {
       {/* Dialogs */}
       <QrScanModal open={qrOpen} onClose={() => setQrOpen(false)} onScan={handleQrScan} t={t} />
       <ModalSlipPrint open={slipData !== null} onClose={() => setSlipData(null)} data={slipData} />
-
-      {/* ─── Language Switch ─── */}
-      <LangSwitch lang={lang} onChange={handleLangChange} />
 
       {/* ─── Form Card ─── */}
       <Paper sx={{ p: 2.5, borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
