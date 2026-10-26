@@ -2189,7 +2189,10 @@ module.exports = (io) => {
           END,
           rm_cold_status = NULL,
           stay_place = @stay_place,
-          cold_to_pack_time = @cold_to_pack_time
+          cold_to_pack_time = @cold_to_pack_time,
+          -- updated_at = the time it left the cold room: with dest = บรรจุ the row has no trolley and is dated by History only, so a row cooked on an
+          -- earlier day left the Sheet's "today" table although it waits for packing (SheetRoutes openDateSql reads updated_at)
+          updated_at = GETDATE()
         `;
 
           // กำหนด field เฉพาะประเภทวัตถุดิบ
