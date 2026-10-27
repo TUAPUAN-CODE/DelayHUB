@@ -109,9 +109,12 @@ module.exports = {
       max_memory_restart: '2048M',
       node_args: '--max-old-space-size=1024',
 
-      // 🚫 ปิด log
-      out_file: 'NUL',
-      error_file: 'NUL',
+      // log จริงที่ logs/ (รวมไฟล์เดียวต่อแอป เหมือนแอปอื่นด้านล่าง) — มี log JSON ของระบบ (http_5xx / http_slow / slow_query / sql_error) ใช้ไล่ปัญหาตอน DB ช้า
+      // เดิมตั้งเป็น 'NUL' (ตั้งใจปิด log) แต่ PM2 รู้จักแค่ 'NULL' กับ '/dev/null' → 'NUL' ถูกมองเป็นชื่อไฟล์ธรรมดา เกิดไฟล์ชื่อ NUL จริงในโฟลเดอร์ที่รัน
+      // (git add -A ล้ม และไฟล์โตไม่จำกัด) — ตั้ง pm2-logrotate กันไฟล์โต: pm2 install pm2-logrotate
+      out_file: './logs/backend-out.log',
+      error_file: './logs/backend-error.log',
+      merge_logs: true,
 
       env: {
         NODE_ENV: 'production',
@@ -131,8 +134,8 @@ module.exports = {
       restart_delay: 3000,
       max_memory_restart: '512M',
 
-      out_file: 'NUL',
-      error_file: 'NUL',
+      out_file: './logs/worker-out.log',
+      error_file: './logs/worker-error.log',
 
       env: {
         NODE_ENV: 'production',
@@ -152,8 +155,9 @@ module.exports = {
       watch: false,
       restart_delay: 3000,
 
-      out_file: 'NUL',
-      error_file: 'NUL',
+      // ปิด log จริง: serve พิมพ์ทุกคำขอไฟล์ (หลายร้อยบรรทัดต่อหน้า) ไม่มีประโยชน์ — ใช้ '/dev/null' (PM2 บน Windows แปลงเป็น \\.\NUL) ไม่ใช่ 'NUL'
+      out_file: '/dev/null',
+      error_file: '/dev/null',
 
       env: {
         NODE_ENV: 'production'

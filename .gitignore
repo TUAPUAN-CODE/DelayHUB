@@ -27,3 +27,6 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+# PM2 บน Windows เคยสร้างไฟล์ชื่อ NUL จริง (ตั้ง log เป็น 'NUL') — ชื่อสงวนของ Windows ทำให้ git add -A ล้ม
+NUL
+**/NUL
