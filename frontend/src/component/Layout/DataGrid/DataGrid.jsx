@@ -18,6 +18,7 @@ import DetailPanel from "./DetailPanel";
 import HamsterLoader from "./HamsterLoader";
 import { ColumnMenu } from "./ColumnFilterBar";
 import ColumnChooser from "./ColumnChooser";
+import { arrangeColumns } from "./columnOrder";
 import useGridPrefs from "./useGridPrefs";
 import { exportExcel, exportPdf } from "./exportGrid";
 import { cellFilterText, cellText, cellValue, matchesSearch, shortTime, sortRows } from "./gridUtils";
@@ -115,6 +116,9 @@ const DataGrid = ({
   onShownRowsChange,
   // ensureVisible: [{ key, after? }] columns added once to the saved columns of every account (see useGridPrefs)
   ensureVisible,
+  // columnOrder: 'saved' (default) = the order the account chose · 'registry' = the columns that are not frozen follow the column settings list
+  // (group by group in `groups` order, inside a group in the order of `columns`) whatever order was saved; the frozen columns stay on the left as before
+  columnOrder = "saved",
 }) => {
   const prefs = useGridPrefs(gridKey, { visible: defaultVisible, sorts: defaultSorts, ext: defaultExt, ensure: ensureVisible });
   // prepareRows(rows, ext): lets a page re-derive row fields from the account's own settings (ext) — it must return the same array when nothing changes
@@ -143,12 +147,13 @@ const DataGrid = ({
   const pinSet = useMemo(() => new Set(prefs.pins ?? columns.filter((c) => c.frozen).map((c) => c.key)), [prefs.pins, columns]);
   const pinnedKeys = useMemo(() => columns.filter((c) => pinSet.has(c.key)).map((c) => c.key), [columns, pinSet]);
 
-  // visible columns: frozen ones first, then the rest — both in the order the account chose (column settings "ลำดับคอลัมน์")
+  // visible columns: frozen ones first (the order the account chose, column settings "ลำดับคอลัมน์"), then the rest — in that order too,
+  // or (columnOrder 'registry') in the order of the column settings list (see arrangeColumns)
   const visibleCols = useMemo(() => {
     const byKey = new Map(columns.map((c) => [c.key, c]));
     const list = [...new Set(prefs.visible)].filter((k) => byKey.has(k)).map((k) => ({ ...byKey.get(k), frozen: pinSet.has(k) }));
-    return [...list.filter((c) => c.frozen), ...list.filter((c) => !c.frozen)];
-  }, [columns, prefs.visible, pinSet]);
+    return arrangeColumns(list, columnOrder, columns, groups);
+  }, [columns, groups, prefs.visible, pinSet, columnOrder]);
 
   const { frozenLeft, cols } = useMemo(() => {
     let left = selectable ? CHECK_W : 0;
@@ -538,7 +543,7 @@ const DataGrid = ({
 
       <ColumnChooser
         open={chooserOpen} onClose={() => setChooserOpen(false)} columns={columns} groups={groups} visible={prefs.visible} onChange={prefs.setVisible} onReset={prefs.reset}
-        storage={prefs.storage} warning={prefs.warning} pins={pinnedKeys} onPinsChange={prefs.setPins}
+        storage={prefs.storage} warning={prefs.warning} pins={pinnedKeys} onPinsChange={prefs.setPins} lockOrder={columnOrder === "registry"}
         extra={colorSettings ? colorSettings(prefs.ext, prefs.setExt) : null}
       />
     </div>

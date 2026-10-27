@@ -10,7 +10,8 @@ import SortableList from "./SortableList";
 /** Dialog "ตั้งค่าคอลัมน์ที่แสดง": tick the columns and tools to show. `extra` is page specific settings: a node (shown on top) or an array of pages [{ key, label, node }] that become tabs next to the column list. */
 const TYPE_NAME = { text: "ข้อความ", time: "วันเวลา", number: "ตัวเลข", dbs: "DBS" };
 
-const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange }) => {
+// lockOrder: the table itself puts the columns that are not frozen in the order of this list (DataGrid columnOrder 'registry'), so a hand-made order has no effect: its tab is not offered
+const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onReset, storage, warning, extra, pins = [], onPinsChange, lockOrder = false }) => {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(0);
   const [mode, setMode] = useState("pick"); // pick = which columns, order = in which order
@@ -71,11 +72,13 @@ const ColumnChooser = ({ open, onClose, columns, groups, visible, onChange, onRe
             {pinnedWidth > 900 ? " — กว้างมาก อาจเหลือที่ให้ดูคอลัมน์อื่นน้อย" : ""}
           </Alert>
         )}
-        <ToggleButtonGroup exclusive size="small" value={mode} onChange={(_, v) => v && setMode(v)} sx={{ mb: 1.5 }}>
-          <ToggleButton value="pick">เลือกคอลัมน์ที่แสดง</ToggleButton>
-          <ToggleButton value="order">ลำดับคอลัมน์ (ลากวาง)</ToggleButton>
-        </ToggleButtonGroup>
-        {mode === "order" ? (
+        {!lockOrder && (
+          <ToggleButtonGroup exclusive size="small" value={mode} onChange={(_, v) => v && setMode(v)} sx={{ mb: 1.5 }}>
+            <ToggleButton value="pick">เลือกคอลัมน์ที่แสดง</ToggleButton>
+            <ToggleButton value="order">ลำดับคอลัมน์ (ลากวาง)</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+        {mode === "order" && !lockOrder ? (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ลากที่ไอคอนด้านซ้าย หรือกดลูกศร เพื่อให้คอลัมน์ไหนแสดงก่อน/หลัง (คอลัมน์ที่ตรึงไว้จะอยู่ซ้ายสุดเสมอ)</Typography>
             <SortableList items={orderItems} onChange={onChange} />

@@ -690,7 +690,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     { key: "statusStyle", label: "ชื่อและสีสถานะ", node: <StatusStyleSettings settings={globalSettings} defaults={statusDefaults} onSaved={setGlobalSettings} /> },
     { key: "rowColors", label: "สีแถวเขียวเหลืองแดง", node: <RowColorSettings settings={globalSettings} onSaved={setGlobalSettings} /> },
   ], [lineNames, globalOrder, globalSettings, statusDefaults]);
-  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined, ensureVisible: ENSURE_VISIBLE[role] };
+  const sharedGrid = { detailTabs: MIX_TABS, rowPalette: globalSettings.rowColors, columns, groups: GROUPS, defaultVisible: defVisible, prepareRows: prepareSheetRows, colorSettings: settingPages, onCellEdit: editMode ? openCellEdit : undefined, ensureVisible: ENSURE_VISIBLE[role], columnOrder: "registry" };
 
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
