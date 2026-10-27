@@ -1,5 +1,6 @@
 const { placeholders, bindList } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
+const { cached } = require("../lib/sheetCache");
 module.exports = (io) => {
 	const express = require("express");
 	const { connectToDatabase } = require("../database/db");
@@ -109,6 +110,14 @@ module.exports = (io) => {
 				return res.status(400).json({ success: false, error: "RM Type IDs are required" });
 			}
 
+			// ?mapping_id=… (ไม่บังคับ): หน้าเว็บที่กด "ตรวจ QC" ต้องการแถวเดียว — อ่านเฉพาะแถวนั้นแทนทั้งคิว
+			// (query นี้ join 12 ตาราง + GROUP BY หนักมาก ช่วงคนใช้เยอะใช้ 25–30 วินาทีจนหมดเวลา) ไม่ส่ง = ทั้งคิวเหมือนเดิม
+			const mappingIdRaw = req.query.mapping_id;
+			const mappingId = mappingIdRaw === undefined || mappingIdRaw === "" ? null : Number(mappingIdRaw);
+			if (mappingId !== null && !Number.isInteger(mappingId)) {
+				return res.status(400).json({ success: false, error: "mapping_id ไม่ถูกต้อง" });
+			}
+
 			const rmTypeIdsArray = rm_type_ids.split(',');
 			const pool = await connectToDatabase();
 			if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
@@ -178,6 +187,7 @@ WHERE
     AND rmm.dest    IN ('รอCheckin', 'ห้องเย็นใหญ่', 'เข้าห้องเย็น', 'ไปบรรจุ')
     AND rmm.rm_status IN ('รอQCตรวจสอบ', 'รอ MD')
     AND rmg.rm_type_id IN (${placeholders("rm_type_", rmTypeIdsArray)})
+    ${mappingId !== null ? "AND rmm.mapping_id = @mapping_id" : ""}
 GROUP BY
     rmm.mapping_id,
     rmf.rmfp_id,
@@ -204,34 +214,43 @@ GROUP BY
 ORDER BY MAX(htr.cooked_date) DESC;
     `;
 
-			const result = await bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar).query(query);
+			const loadRows = async () => {
+				const request = bindList(pool.request(), "rm_type_", rmTypeIdsArray, sql.VarChar);
+				if (mappingId !== null) request.input("mapping_id", sql.Int, mappingId);
+				const result = await request.query(query);
 
-			const formattedData = result.recordset.map(item => {
-				// Format cooked_date
-				if (item.cooked_date) {
-					const cookedDate = new Date(item.cooked_date);
-					const year = cookedDate.getUTCFullYear();
-					const month = String(cookedDate.getUTCMonth() + 1).padStart(2, '0');
-					const day = String(cookedDate.getUTCDate()).padStart(2, '0');
-					const hours = String(cookedDate.getUTCHours()).padStart(2, '0');
-					const minutes = String(cookedDate.getUTCMinutes()).padStart(2, '0');
-					item.CookedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
-					delete item.cooked_date;
-				}
+				return result.recordset.map(item => {
+					// Format cooked_date
+					if (item.cooked_date) {
+						const cookedDate = new Date(item.cooked_date);
+						const year = cookedDate.getUTCFullYear();
+						const month = String(cookedDate.getUTCMonth() + 1).padStart(2, '0');
+						const day = String(cookedDate.getUTCDate()).padStart(2, '0');
+						const hours = String(cookedDate.getUTCHours()).padStart(2, '0');
+						const minutes = String(cookedDate.getUTCMinutes()).padStart(2, '0');
+						item.CookedDateTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+						delete item.cooked_date;
+					}
 
-				// Format rmit_date
-				if (item.rmit_date) {
-					const rmitDate = new Date(item.rmit_date);
-					const year = rmitDate.getUTCFullYear();
-					const month = String(rmitDate.getUTCMonth() + 1).padStart(2, '0');
-					const day = String(rmitDate.getUTCDate()).padStart(2, '0');
-					const hours = String(rmitDate.getUTCHours()).padStart(2, '0');
-					const minutes = String(rmitDate.getUTCMinutes()).padStart(2, '0');
-					item.rmit_date = `${year}-${month}-${day} ${hours}:${minutes}`;
-				}
+					// Format rmit_date
+					if (item.rmit_date) {
+						const rmitDate = new Date(item.rmit_date);
+						const year = rmitDate.getUTCFullYear();
+						const month = String(rmitDate.getUTCMonth() + 1).padStart(2, '0');
+						const day = String(rmitDate.getUTCDate()).padStart(2, '0');
+						const hours = String(rmitDate.getUTCHours()).padStart(2, '0');
+						const minutes = String(rmitDate.getUTCMinutes()).padStart(2, '0');
+						item.rmit_date = `${year}-${month}-${day} ${hours}:${minutes}`;
+					}
 
-				return item;
-			});
+					return item;
+				});
+			};
+
+			// คำขอเหมือนกัน (rm_type_ids + mapping_id) ที่มาพร้อมกัน/ซ้ำภายใน TTL ใช้ผลชุดเดียว ข้ามทุก worker (lib/sheetCache.js)
+			// กดซ้ำ/เปิดหลายจอจึงไม่คูณ query หนัก; ข้อมูลเก่าได้ไม่เกิน TTL (2 วินาที)
+			const cacheKey = `qc:fetchRMForProd:${[...rmTypeIdsArray].sort().join(",")}:${mappingId === null ? "all" : mappingId}`;
+			const formattedData = await cached(cacheKey, loadRows);
 
 			res.json({ success: true, data: formattedData });
 		} catch (err) {

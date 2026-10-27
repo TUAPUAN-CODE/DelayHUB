@@ -290,6 +290,20 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
         try {
             const pool = await connectToDatabase();
 
+            // ?picker=1: หน้าต่างเลือกช่องจอด (รับเข้า/ย้ายรถเข็น ในหน้า Sheet) ต้องการเฉพาะช่องที่เปิดใช้ของห้องที่เลือกได้เท่านั้น
+            //   - กรองใน SQL แทนส่งทั้งตารางไปให้เบราว์เซอร์ตัดทิ้ง (ต้องตรงกับ isHiddenRoom ใน frontend/.../flow/coldApi.js: ห้อง 4C = cs_id 6 และ cs_id 10–46)
+            //   - อ่านแบบไม่รอล็อก (NOLOCK): ใช้แสดงผลอย่างเดียว ช่องที่เลือกจะถูกตรวจ/จองซ้ำที่ update-rsrv-slot อยู่แล้ว
+            //     จึงไม่ต้องรอ transaction จอง/ย้ายของคนอื่นที่ล็อกตาราง Slot (ช่วงคนใช้เยอะทำให้ modal ค้าง)
+            // ไม่ส่ง picker = ทั้งตารางเหมือนเดิม (หน้าห้องเย็นอื่นใช้ endpoint นี้)
+            if (req.query.picker === "1") {
+                const picked = await pool.request().query(`
+        SELECT slot_id, cs_id, tro_id, slot_status
+        FROM Slot WITH (NOLOCK)
+        WHERE slot_status = 1 AND cs_id <> 6 AND cs_id NOT BETWEEN 10 AND 46
+      `);
+                return res.status(200).json({ message: "successfully", slot: picked.recordset });
+            }
+
             const result = await pool.request().query(`
         SELECT 
           slot_id,
