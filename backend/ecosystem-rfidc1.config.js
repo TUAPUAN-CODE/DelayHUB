@@ -21,7 +21,7 @@ module.exports = {
       READER_PORT: 49152,
       READER_NAME: "ฝั่งอุโมงค์",
       PRINT_AGENT_URL: "http://172.48.0.115:9100",
-      WEB_SERVER_URL: process.env.WEB_SERVER_URL || "http://172.48.0.115:3000",
+      WEB_SERVER_URL: process.env.WEB_SERVER_URL || "",
       DB_USER: process.env.DB_USER,
       DB_PASSWORD: process.env.DB_PASSWORD,
       DB_SERVER: process.env.DB_SERVER,
