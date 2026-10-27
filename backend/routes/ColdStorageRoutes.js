@@ -1897,6 +1897,8 @@ WHERE
 
 
 
+    // OPTION (RECOMPILE) ท้าย query ของ export ทั้ง 3 ตัว (export / coldstorages/export / mix/export): แผนต้องทำตามค่า @tro_id จริง
+    // — ส่ง tro_id = ค้นเฉพาะรถเข็นนั้น; ไม่งั้นแผนที่แคชไว้ตอนไม่ส่ง tro_id (อ่านทุกคัน) ถูกใช้ซ้ำและสแกนทั้งตารางแม้ขอแค่คันเดียว
     router.get("/coldstorage/export/fetchSlotRawMat", async (req, res) => {
         try {
             const pool = await connectToDatabase();
@@ -2041,6 +2043,7 @@ WHERE
 
 ORDER BY 
     rmm.mapping_id DESC
+    OPTION (RECOMPILE)
     `);
 
             const formattedData = result.recordset.map(item => {
@@ -2194,6 +2197,7 @@ WHERE
 
 ORDER BY 
     rmm.mapping_id DESC
+    OPTION (RECOMPILE)
     `);
 
             const formattedData = result.recordset.map(item => {
@@ -2249,7 +2253,8 @@ ORDER BY
                     AND rmm.stay_place = 'เข้าห้องเย็น'
                     AND rmm.tro_id IS NOT NULL
                     AND rmm.mix_code IS NOT NULL
-                    AND (@tro_id IS NULL OR rmm.tro_id = @tro_id);
+                    AND (@tro_id IS NULL OR rmm.tro_id = @tro_id)
+                OPTION (RECOMPILE);
           `);
 
             const formattedData = result.recordset.map(item => {

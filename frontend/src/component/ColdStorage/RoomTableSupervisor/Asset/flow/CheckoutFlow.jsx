@@ -295,10 +295,13 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
     if (loadingRef.current) return;
     loadingRef.current = true;
     try {
+      // tro_id: the server reads only the materials of this trolley. Without it the lists of EVERY trolley in the cold rooms were read (20–90 s
+      // when the database is busy) just to pick one trolley here
+      const params = { tro_id: row.tro_id };
       const [regular, mixed] = await Promise.all([
-        axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`),
+        axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`, { params }),
         // not every module has a mixed-material export list: treat a missing one as "no mixed materials"
-        axios.get(`${API_URL}${apiBase}/mix/export/fetchSlotRawMat`).catch(() => ({ data: { success: false } })),
+        axios.get(`${API_URL}${apiBase}/mix/export/fetchSlotRawMat`, { params }).catch(() => ({ data: { success: false } })),
       ]);
       const regularList = (regular.data?.success ? regular.data.data : []).map((x) => ({ ...x, rawMatType: "regular" }));
       const mixedList = (mixed.data?.success ? mixed.data.data : []).map((x) => ({ ...x, rawMatType: "mixed" }));
