@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import axios from "axios";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from "@mui/material";
+import { Alert, Backdrop, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from "@mui/material";
 import ModalEditPD from "../checkout/ModalEditPD";
 import { calculateMaterialDelayTime } from "../checkout/delayTime";
 import { fetchFifoBlockers } from "./coldApi";
@@ -287,13 +287,24 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
   const [message, setMessage] = useState("");
   const [fifoAsk, setFifoAsk] = useState(null); // { row, list, message }: other trolleys of the same mat / Code / line entered the cold room first
 
-  // the export lists are the heaviest queries of the cold rooms: a click while one load is still running is ignored (no second copy of the same query)
+  // the export lists are the heaviest queries of the cold rooms: a click while one load is still running is ignored (no second copy of the same query),
+  // and a spinner covers the page meanwhile (the FIFO check + the export list take 1–3 s: without it nothing seems to happen and people click again)
   const loadingRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const withBusy = useCallback(async (job) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setBusy(true);
+    try {
+      await job();
+    } finally {
+      loadingRef.current = false;
+      setBusy(false);
+    }
+  }, []);
 
   // fifoWarning: { message, list, ids } when the user goes on although it is not FIFO
   const openCheckout = useCallback(async (row, fifoWarning = null) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
     try {
       // tro_id: the server reads only the materials of this trolley. Without it the lists of EVERY trolley in the cold rooms were read (20–90 s
       // when the database is busy) just to pick one trolley here
@@ -317,12 +328,10 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
     } catch (err) {
       console.error("โหลดรายการส่งออกไม่สำเร็จ:", err);
       setMessage("โหลดข้อมูลส่งออกไม่สำเร็จ");
-    } finally {
-      loadingRef.current = false;
     }
   }, [apiBase, delayFn]);
 
-  const load = useCallback(async (row) => {
+  const load = useCallback((row) => withBusy(async () => {
     if (fifo) {
       try {
         const { list, message: text } = await fetchFifoBlockers(row.tro_id);
@@ -333,18 +342,19 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
       }
     }
     await openCheckout(row);
-  }, [fifo, openCheckout]);
+  }), [fifo, openCheckout, withBusy]);
 
   const goOnNotFifo = () => {
     const ask = fifoAsk;
     setFifoAsk(null);
-    openCheckout(ask.row, { message: ask.message, list: ask.list, ids: [...new Set(ask.list.map((x) => String(x.mapping_id)))] });
+    withBusy(() => openCheckout(ask.row, { message: ask.message, list: ask.list, ids: [...new Set(ask.list.map((x) => String(x.mapping_id)))] }));
   };
 
   useImperativeHandle(ref, () => ({ open: load }), [load]);
 
   return (
     <>
+      <Backdrop open={busy} sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.modal + 1 }}><CircularProgress color="inherit" /></Backdrop>
       {data && <Modal open={open} onClose={() => setOpen(false)} onNext={() => setOpen(false)} data={data} onSuccess={() => { setOpen(false); onDone?.(); }} />}
       {fifoAsk && (
         <Dialog open onClose={() => setFifoAsk(null)} fullWidth maxWidth="md">
