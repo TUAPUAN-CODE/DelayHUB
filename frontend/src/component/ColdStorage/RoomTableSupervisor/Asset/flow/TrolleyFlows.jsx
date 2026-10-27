@@ -1,9 +1,9 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import SlotPickerDialog from "./SlotPickerDialog";
 import StampTimeField, { stampProblem, stampText } from "./StampTimeField";
-import { announceSlot, checkinOptionOf, checkinTrolley, fetchSlots, moveTrolley, releaseSlot, reserveSlot, roomName } from "./coldApi";
+import { announceSlot, checkinOptionOf, checkinTrolley, fetchPickerSlots, fetchSlots, moveTrolley, releaseSlot, reserveSlot, roomName } from "./coldApi";
 
 /**
  * The two actions that used to be separate pages: check a trolley in to a cold room, and move it to another slot.
@@ -21,6 +21,9 @@ const TrolleyFlows = forwardRef(function TrolleyFlows({ rows, onDone }, ref) {
   const tro = flow?.row?.tro_id;
   const sameTrolley = useMemo(() => (tro ? rows.filter((r) => r.tro_id === tro) : []), [rows, tro]);
   const options = useMemo(() => [...new Set(sameTrolley.map((r) => checkinOptionOf(r.rm_status)).filter(Boolean))], [sameTrolley]);
+
+  // load the slot list while the page is idle so the picker opens with data (it refreshes itself when opened)
+  useEffect(() => { fetchPickerSlots().catch((err) => console.error("โหลดช่องจอดล่วงหน้าไม่สำเร็จ:", err)); }, []);
 
   const reset = useCallback(() => { setFlow(null); setTarget(null); setOption(null); setStampAt(null); setError(""); setBusy(false); }, []);
   useImperativeHandle(ref, () => ({

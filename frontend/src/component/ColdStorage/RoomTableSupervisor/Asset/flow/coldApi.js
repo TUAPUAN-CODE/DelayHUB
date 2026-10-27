@@ -26,14 +26,43 @@ const OPTION_BY_STATUS = {
 export const checkinOptionOf = (rmStatus) => OPTION_BY_STATUS[rmStatus] ?? null;
 
 /** FIFO: what entered the cold rooms before this trolley — { list: [] } when it is FIFO (see FifoNotice; a warning only) */
-export async function fetchFifoBlockers(tro_id) {
-  const res = await axios.get(`${API_URL}/api/coldstorage/fifo-check`, { params: { tro_id } });
-  return { list: res.data?.data ?? [], message: res.data?.message ?? "" };
+const fifoInFlight = new Map(); // tro_id -> promise: a double click / a second screen asking for the same trolley shares one (heavy) query
+export function fetchFifoBlockers(tro_id) {
+  if (fifoInFlight.has(tro_id)) return fifoInFlight.get(tro_id);
+  const promise = axios.get(`${API_URL}/api/coldstorage/fifo-check`, { params: { tro_id } })
+    .then((res) => ({ list: res.data?.data ?? [], message: res.data?.message ?? "" }))
+    .finally(() => fifoInFlight.delete(tro_id));
+  fifoInFlight.set(tro_id, promise);
+  return promise;
 }
 
+/** Every slot of every room (the move flow needs all of them to find a slot id that exists in more than one room) */
 export async function fetchSlots() {
   const res = await axios.get(`${API_URL}/api/coldstorage/room`);
   return res.data?.slot ?? [];
+}
+
+/**
+ * Slots for the slot picker: the server already leaves out the rooms the picker does not offer (?picker=1) and does not wait for locks.
+ * The last answer is kept so the picker opens with it at once and refreshes in the background (a slot taken meanwhile is refused by reserveSlot);
+ * the same request in flight is shared, so a prefetch and the picker opening together send one query.
+ */
+const PICKER_SHOW_MAX_AGE_MS = 120000; // an older answer is not shown: wait for the fresh one
+const pickerSlots = { at: 0, data: null, inflight: null };
+export function peekPickerSlots() {
+  return pickerSlots.data && Date.now() - pickerSlots.at < PICKER_SHOW_MAX_AGE_MS ? pickerSlots.data : null;
+}
+export function fetchPickerSlots({ maxAgeMs = 3000 } = {}) {
+  if (pickerSlots.inflight) return pickerSlots.inflight;
+  if (pickerSlots.data && Date.now() - pickerSlots.at < maxAgeMs) return Promise.resolve(pickerSlots.data);
+  pickerSlots.inflight = axios.get(`${API_URL}/api/coldstorage/room`, { params: { picker: 1 } })
+    .then((res) => {
+      pickerSlots.data = res.data?.slot ?? [];
+      pickerSlots.at = Date.now();
+      return pickerSlots.data;
+    })
+    .finally(() => { pickerSlots.inflight = null; });
+  return pickerSlots.inflight;
 }
 
 /** Tell the other open cold-room pages that a slot changed (they listen to "reserveSlot"). */

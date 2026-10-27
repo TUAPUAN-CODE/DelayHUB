@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from "@mui/material";
 import ModalEditPD from "../checkout/ModalEditPD";
@@ -287,8 +287,13 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
   const [message, setMessage] = useState("");
   const [fifoAsk, setFifoAsk] = useState(null); // { row, list, message }: other trolleys of the same mat / Code / line entered the cold room first
 
+  // the export lists are the heaviest queries of the cold rooms: a click while one load is still running is ignored (no second copy of the same query)
+  const loadingRef = useRef(false);
+
   // fifoWarning: { message, list, ids } when the user goes on although it is not FIFO
   const openCheckout = useCallback(async (row, fifoWarning = null) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     try {
       const [regular, mixed] = await Promise.all([
         axios.get(`${API_URL}${apiBase}/export/fetchSlotRawMat`),
@@ -309,6 +314,8 @@ const CheckoutFlow = forwardRef(function CheckoutFlow(
     } catch (err) {
       console.error("โหลดรายการส่งออกไม่สำเร็จ:", err);
       setMessage("โหลดข้อมูลส่งออกไม่สำเร็จ");
+    } finally {
+      loadingRef.current = false;
     }
   }, [apiBase, delayFn]);
 

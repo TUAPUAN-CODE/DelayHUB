@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import axios from "axios";
 import AddTrolleyDialog from "./AddTrolleyDialog";
 // QC check (ใช้ฟอร์มเดิมของ role QC)
@@ -82,9 +82,14 @@ const PackFlows = forwardRef(({ onDone, onNotify }, ref) => {
 
   const notify = useCallback((msg) => { onNotify?.(msg); }, [onNotify]);
 
+  // ขณะกำลังโหลดข้อมูล QC ของแถวหนึ่ง กดซ้ำ (ของแถวใดก็ตาม) ไม่ยิงคำขอซ้ำ — query นี้หนักและเคยซ้อนกันหลายสิบคำขอจน DB หมดเวลา
+  const qcLoading = useRef(false);
   const openQc = async (row) => {
+    if (qcLoading.current) return;
+    qcLoading.current = true;
     try {
-      const res = await axios.get(`${API_URL}/api/qc/fetchRMForProd`, { params: { rm_type_ids: row.rm_type_id } });
+      // mapping_id = ให้เซิร์ฟเวอร์อ่านเฉพาะแถวนี้ ไม่ต้องอ่านทั้งคิว QC แล้วมาหาเอง
+      const res = await axios.get(`${API_URL}/api/qc/fetchRMForProd`, { params: { rm_type_ids: row.rm_type_id, mapping_id: row.mapping_id } });
       const full = (res.data?.data || []).find((r) => r.mapping_id === row.mapping_id);
       if (!full) {
         notify("ไม่พบข้อมูลรายการนี้ในคิว QC (อาจมีผู้อื่นตรวจแล้ว)");
@@ -95,6 +100,8 @@ const PackFlows = forwardRef(({ onDone, onNotify }, ref) => {
     } catch (err) {
       console.error("[PackFlows] qc open error:", err);
       notify("โหลดข้อมูล QC ไม่สำเร็จ");
+    } finally {
+      qcLoading.current = false;
     }
   };
 
