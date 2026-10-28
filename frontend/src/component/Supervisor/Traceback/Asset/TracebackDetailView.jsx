@@ -8,6 +8,7 @@ import { exportDetailExcel } from './tracebackExport';
 import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
 import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
 import { Ring, RemarkCsText, RemarkCsGroupText } from './TraceAtoms';
+import useRemarkCsByBatch from './useRemarkCsByBatch';
 import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TraceTree from './TraceTree';
@@ -724,6 +725,9 @@ const SummaryTab = ({ data, onOpenTrace }) => {
     return [...map.values()];
   }, [shown]);
 
+  const remarkBatches = useMemo(() => [...new Set(rmRows.map(r => r.batch).filter(Boolean))], [rmRows]);
+  const remarkByHu = useRemarkCsByBatch(remarkBatches);
+
   const ingRows = useMemo(() => {
     const map = new Map();
     shown.forEach(m => (m.ingredient_summary || []).forEach(g => {
@@ -814,6 +818,30 @@ const SummaryTab = ({ data, onOpenTrace }) => {
               style={BTN_SM}>ดูเส้นทาง</button>
           ) },
         ]}
+      />
+
+      <SectionTitle no="1.1" title="Remark CS แยกตาม HU" count={remarkByHu.rows.length} hint="1 Batch มีได้หลาย HU — แต่ละ HU มี Remark CS ของตัวเอง กดแถวเพื่อดูประวัติว่าใครพิมพ์/แก้เมื่อไร" />
+      {remarkByHu.error && <div style={{ fontSize: 12.5, color: T.bad, marginBottom: 6 }}>{remarkByHu.error}</div>}
+      <DataTable
+        rows={remarkByHu.rows} getKey={r => `${r.batch}|${r.hu}`} empty={remarkByHu.loading ? 'กำลังโหลด...' : 'ไม่พบ HU ของ Batch นี้ในระบบรับเข้า'}
+        columns={[
+          { key: 'batch', label: 'Batch', render: r => <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600 }}>{r.batch}</span> },
+          { key: 'hu', label: 'HU', render: r => <b>{r.hu}</b> },
+          { key: 'remark_cs', label: 'Remark CS', render: r => (r.remark_cs ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.remark_cs}</span> : '—'), wrap: true, minWidth: 200 },
+          { key: 'lots', label: 'ล็อตที่ใช้ HU นี้', render: r => (r.mapping_ids.length ? r.mapping_ids.length : '—') },
+          { key: 'last', label: 'แก้ล่าสุด', render: r => (r.history[0] ? `${r.history[0].username || '-'} · ${r.history[0].created_at}` : '—'), wrap: true, minWidth: 170 },
+        ]}
+        renderExpanded={r => (
+          <div style={{ padding: '8px 12px', fontSize: 12.5, display: 'grid', gap: 4 }}>
+            <div><b>mapping_id ที่ใช้ HU นี้:</b> {r.mapping_ids.length ? r.mapping_ids.join(', ') : '—'}</div>
+            {r.history.length === 0 && <div style={{ color: T.text2 }}>ยังไม่มีประวัติการพิมพ์/แก้ Remark CS (เริ่มเก็บประวัติตั้งแต่วันที่เปิดใช้ฟีเจอร์นี้)</div>}
+            {r.history.map(h => (
+              <div key={h.log_id}>
+                {h.created_at} · {h.username || '-'} · {h.source || '-'}: {h.old_value ?? '(ว่าง)'} → <b>{h.new_value ?? '(ว่าง)'}</b>
+              </div>
+            ))}
+          </div>
+        )}
       />
 
       <SectionTitle no="2" title="ส่วนผสม (Ingredient)" count={ingRows.length} />

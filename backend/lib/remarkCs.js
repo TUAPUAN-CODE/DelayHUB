@@ -86,4 +86,120 @@ const remarkCsOf = async (pool, { mappingIds = "", hus = "", keys = "" }) => {
   return out;
 };
 
-module.exports = { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs: clean };
+// ── history of the notes: who typed / changed the Remark CS of which HU, when and from which page (table RemarkCsLog, made on first use) ──
+let logEnsured = null;
+const ensureRemarkCsLogTable = (pool) => {
+  if (!logEnsured) {
+    logEnsured = pool.request().query(`
+      IF OBJECT_ID(N'dbo.RemarkCsLog', N'U') IS NULL
+      BEGIN
+        CREATE TABLE dbo.RemarkCsLog (
+          log_id     BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RemarkCsLog PRIMARY KEY,
+          hu         INT           NOT NULL,
+          mat        NVARCHAR(50)  NULL,
+          batch      NVARCHAR(50)  NULL,
+          mapping_id INT           NULL,
+          old_value  NVARCHAR(500) NULL,
+          new_value  NVARCHAR(500) NULL,
+          source     NVARCHAR(40)  NULL,
+          user_id    INT           NULL,
+          username   NVARCHAR(100) NULL,
+          created_at DATETIME      NOT NULL CONSTRAINT DF_RemarkCsLog_at DEFAULT (GETDATE())
+        );
+        CREATE INDEX IX_RemarkCsLog_hu ON dbo.RemarkCsLog (hu, log_id DESC);
+      END`)
+      .catch((err) => {
+        if (err && (err.number === 2714 || err.number === 1913 || /already/i.test(err.message || ""))) return null; // made by another worker meanwhile
+        logEnsured = null;
+        throw err;
+      });
+  }
+  return logEnsured;
+};
+
+/** the note a HU has now (the active receive row first) with its mat / batch — read before it is changed */
+const currentRemarkCs = async (pool, hu) => {
+  await ensureRemarkCsColumn(pool);
+  const r = await pool.request().input("hu", sql.Int, hu)
+    .query("SELECT TOP (1) sr.remark_cs, sr.mat, sr.batch FROM SAP_Receive sr WITH (NOLOCK) WHERE sr.hu = @hu ORDER BY sr.status DESC, sr.sap_re_id DESC");
+  return r.recordset[0] || null;
+};
+
+/** writes one line to RemarkCsLog when the note really changed. Never throws: the history must not stop the work of the production floor. */
+const logRemarkCsChange = async (pool, { hu, before, after, source, user, mappingId }) => {
+  try {
+    const oldText = clean(before?.remark_cs);
+    const newText = clean(after);
+    if (oldText === newText) return;
+    await ensureRemarkCsLogTable(pool);
+    const mid = Number(mappingId);
+    await pool.request()
+      .input("hu", sql.Int, hu).input("mat", sql.NVarChar(50), before?.mat ? String(before.mat).slice(0, 50) : null)
+      .input("batch", sql.NVarChar(50), before?.batch ? String(before.batch).slice(0, 50) : null)
+      .input("mid", sql.Int, Number.isInteger(mid) && mid > 0 ? mid : null)
+      .input("ov", sql.NVarChar(500), oldText).input("nv", sql.NVarChar(500), newText)
+      .input("src", sql.NVarChar(40), source ? String(source).slice(0, 40) : null)
+      .input("uid", sql.Int, Number.isInteger(user?.user_id) ? user.user_id : null)
+      .input("un", sql.NVarChar(100), user?.username ? String(user.username).slice(0, 100) : null)
+      .query(`INSERT INTO RemarkCsLog (hu, mat, batch, mapping_id, old_value, new_value, source, user_id, username)
+              VALUES (@hu, @mat, @batch, @mid, @ov, @nv, @src, @uid, @un)`);
+  } catch (err) {
+    console.error("❌ [RemarkCs] บันทึกประวัติ Remark CS ไม่สำเร็จ:", err.message);
+  }
+};
+
+/**
+ * every HU of these batches with its note now, the mappings that use the HU and the history of the note:
+ * [{ batch, hu, mat, status, remark_cs, mapping_ids: [], history: [{ log_id, old_value, new_value, source, username, mapping_id, created_at }] }]
+ */
+const remarkCsByBatch = async (pool, batchesRaw) => {
+  await ensureRemarkCsColumn(pool);
+  const batches = [...new Set(String(batchesRaw || "").split(",").map((b) => b.trim()).filter(Boolean))].slice(0, MAX_KEYS);
+  if (!batches.length) return [];
+  const req = pool.request();
+  const ph = batches.map((b, i) => { req.input(`b${i}`, sql.NVarChar(50), b); return `@b${i}`; }).join(",");
+  const hus = (await req.query(`
+    SELECT sr.batch, sr.hu, MAX(sr.mat) AS mat, MAX(sr.status) AS status, MAX(sr.remark_cs) AS remark_cs
+    FROM SAP_Receive sr WITH (NOLOCK)
+    WHERE sr.batch IN (${ph}) AND sr.hu IS NOT NULL
+    GROUP BY sr.batch, sr.hu ORDER BY sr.batch, sr.hu`)).recordset;
+  if (!hus.length) return [];
+  const huIds = [...new Set(hus.map((h) => h.hu))].slice(0, 300);
+
+  const mapReq = pool.request();
+  const hph = huIds.map((h, i) => { mapReq.input(`h${i}`, sql.NVarChar(50), String(h)); return `@h${i}`; }).join(",");
+  const mapRows = (await mapReq.query(`
+    SELECT x.hu, x.mapping_id FROM (
+      SELECT CAST(rmf.hu AS NVARCHAR(50)) AS hu, rmm.mapping_id
+      FROM RMForProd rmf WITH (NOLOCK) JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.rmfp_id = rmf.rmfp_id
+      WHERE CAST(rmf.hu AS NVARCHAR(50)) IN (${hph})
+      UNION
+      SELECT CAST(hh.hu AS NVARCHAR(50)), hh.mapping_id
+      FROM History hh WITH (NOLOCK) WHERE CAST(hh.hu AS NVARCHAR(50)) IN (${hph})
+    ) x`)).recordset;
+  const mapsOf = new Map();
+  mapRows.forEach((m) => { const k = String(m.hu).trim(); if (!mapsOf.has(k)) mapsOf.set(k, []); mapsOf.get(k).push(m.mapping_id); });
+
+  let logs = [];
+  try {
+    await ensureRemarkCsLogTable(pool);
+    const lr = pool.request();
+    const lph = huIds.map((h, i) => { lr.input(`l${i}`, sql.Int, h); return `@l${i}`; }).join(",");
+    logs = (await lr.query(`
+      SELECT TOP (500) l.log_id, l.hu, l.mapping_id, l.old_value, l.new_value, l.source, l.username,
+             CONVERT(VARCHAR(19), l.created_at, 120) AS created_at
+      FROM RemarkCsLog l WITH (NOLOCK) WHERE l.hu IN (${lph}) ORDER BY l.log_id DESC`)).recordset;
+  } catch (err) {
+    console.error("❌ [RemarkCs] อ่านประวัติ Remark CS ไม่สำเร็จ:", err.message);
+  }
+  const logsOf = new Map();
+  logs.forEach((l) => { if (!logsOf.has(l.hu)) logsOf.set(l.hu, []); logsOf.get(l.hu).push(l); });
+
+  return hus.map((h) => ({
+    batch: h.batch, hu: h.hu, mat: h.mat, status: h.status, remark_cs: h.remark_cs || "",
+    mapping_ids: (mapsOf.get(String(h.hu)) || []).sort((a, b) => a - b).slice(0, 100),
+    history: logsOf.get(h.hu) || [],
+  }));
+};
+
+module.exports = { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs: clean, currentRemarkCs, logRemarkCsChange, remarkCsByBatch };

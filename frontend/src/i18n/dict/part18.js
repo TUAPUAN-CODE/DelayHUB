@@ -611,4 +611,12 @@ export default {
   "แก้ไลน์": ["Edit line", "လိုင်း ပြင်ရန်", "កែខ្សែ"],
   "แก้ Code (แผนผลิต)": ["Edit Code (production plan)", "Code (ထုတ်လုပ်မှုအစီအစဉ်) ပြင်ရန်", "កែ Code (ផែនការផលិត)"],
   "แก้น้ำหนัก": ["Edit weight", "အလေးချိန် ပြင်ရန်", "កែទម្ងន់"],
+  "Remark CS แยกตาม HU": ["Remark CS by HU", "HU အလိုက် Remark CS", "Remark CS ដោយ HU"],
+  "1 Batch มีได้หลาย HU — แต่ละ HU มี Remark CS ของตัวเอง กดแถวเพื่อดูประวัติว่าใครพิมพ์/แก้เมื่อไร": ["One batch can have several HUs — each HU has its own Remark CS. Click a row to see who typed / changed it and when", "Batch တစ်ခုတွင် HU အများအပြား ရှိနိုင်သည် — HU တစ်ခုစီတွင် ကိုယ်ပိုင် Remark CS ရှိသည်။ ဘယ်သူ ဘယ်အချိန် ရိုက်ထည့်/ပြင်ခဲ့သည်ကို ကြည့်ရန် အတန်းကို နှိပ်ပါ", "Batch មួយអាចមាន HU ច្រើន — HU នីមួយៗមាន Remark CS ផ្ទាល់ខ្លួន។ ចុចជួរដេកដើម្បីមើលថាអ្នកណាវាយ/កែនៅពេលណា"],
+  "ไม่พบ HU ของ Batch นี้ในระบบรับเข้า": ["No HU of this batch found in the receiving system", "ဤ Batch ၏ HU ကို လက်ခံစနစ်တွင် မတွေ့ပါ", "រកមិនឃើញ HU របស់ Batch នេះក្នុងប្រព័ន្ធទទួលចូល"],
+  "ล็อตที่ใช้ HU นี้": ["Lots using this HU", "ဤ HU ကို အသုံးပြုသော လော့များ", "ឡូតដែលប្រើ HU នេះ"],
+  "แก้ล่าสุด": ["Last edited", "နောက်ဆုံး ပြင်ဆင်ခဲ့သည်", "កែចុងក្រោយ"],
+  "mapping_id ที่ใช้ HU นี้:": ["mapping_id using this HU:", "ဤ HU ကို အသုံးပြုသော mapping_id:", "mapping_id ដែលប្រើ HU នេះ:"],
+  "ยังไม่มีประวัติการพิมพ์/แก้ Remark CS (เริ่มเก็บประวัติตั้งแต่วันที่เปิดใช้ฟีเจอร์นี้)": ["No history of typing / changing the Remark CS yet (history is kept from the day this feature was enabled)", "Remark CS ရိုက်ထည့်/ပြင်ဆင်မှု မှတ်တမ်း မရှိသေးပါ (ဤအင်္ဂါရပ်ဖွင့်သည့်နေ့မှ စတင်မှတ်တမ်းတင်သည်)", "មិនទាន់មានប្រវត្តិវាយ/កែ Remark CS (ប្រវត្តិចាប់ផ្តើមរក្សាទុកតាំងពីថ្ងៃបើកមុខងារនេះ)"],
+  "โหลด Remark CS แยกตาม HU ไม่สำเร็จ": ["Could not load Remark CS by HU", "HU အလိုက် Remark CS ကို မဖတ်နိုင်ပါ", "មិនអាចផ្ទុក Remark CS ដោយ HU បានទេ"],
 };

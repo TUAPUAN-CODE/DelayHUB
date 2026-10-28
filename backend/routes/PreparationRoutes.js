@@ -1,6 +1,6 @@
 const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
-const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs } = require("../lib/remarkCs");
+const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs, currentRemarkCs, logRemarkCsChange, remarkCsByBatch } = require("../lib/remarkCs");
 const { recordLineage } = require("../lib/mappingLineage");
 // ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
 const dateRangeFromQuery = (q) => {
@@ -9331,9 +9331,11 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
         .input("hu", sql.Int, hu)
         .input("remark_cs", sql.NVarChar(500), text)
         .query(`UPDATE SAP_Receive SET remark_cs = @remark_cs WHERE hu = @hu${where}`);
+      const before = await currentRemarkCs(pool, hu);
       let r = await update(" AND status = 1");
       if (!r.rowsAffected[0]) r = await update("");
       if (!r.rowsAffected[0]) return res.status(404).json({ success: false, error: "ไม่พบ HU นี้ในระบบ" });
+      await logRemarkCsChange(pool, { hu, before, after: text, source: "ใส่รถเข็น", user: req.user, mappingId: req.body?.mapping_id });
       res.json({ success: true, data: { hu, remark_cs: text || "" } });
     } catch (err) {
       console.error("❌ [Route PUT /prep/sap/remark-cs] Error:", err);
@@ -9342,6 +9344,18 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
   });
 
   // GET /api/prep/remark-cs?mapping_ids=1,2&hus=…&keys=MAT|BATCH,… : the Remark CS printed on the slips (frontend Layout/RemarkCs.jsx)
+  // GET /api/prep/remark-cs/by-batch?batches=B1,B2 : every HU of these batches with its Remark CS, the mappings of the HU and who typed / changed it (Traceback)
+  router.get("/prep/remark-cs/by-batch", async (req, res) => {
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      res.json({ success: true, data: await remarkCsByBatch(pool, req.query.batches) });
+    } catch (err) {
+      console.error("❌ [Route GET /prep/remark-cs/by-batch] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   router.get("/prep/remark-cs", async (req, res) => {
     try {
       const pool = await connectToDatabase();
@@ -9419,10 +9433,13 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
       // Remark CS: one note per HU, the one typed now replaces the earlier one (the dialog shows the current one first)
       if (remark_cs !== undefined) {
         await ensureRemarkCsColumn(pool);
-        await pool.request()
-          .input("hu", sql.Int, parseInt(hu, 10))
+        const huId = parseInt(hu, 10);
+        const before = await currentRemarkCs(pool, huId);
+        const rr = await pool.request()
+          .input("hu", sql.Int, huId)
           .input("remark_cs", sql.NVarChar(500), cleanRemarkCs(remark_cs))
           .query("UPDATE SAP_Receive SET remark_cs = @remark_cs WHERE hu = @hu AND status = 1");
+        if (rr.rowsAffected[0]) await logRemarkCsChange(pool, { hu: huId, before, after: remark_cs, source: "รับ HU", user: req.user });
       }
 
       // บอกว่ารับเข้ารอบที่เท่าไร
