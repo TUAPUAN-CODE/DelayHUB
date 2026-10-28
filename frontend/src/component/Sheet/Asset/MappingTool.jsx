@@ -20,6 +20,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const fmtTime = (v) => (v === null || v === undefined || v === "" ? "-" : String(v).replace("T", " ").slice(0, 16));
 const DETAIL_COLUMNS = COLUMNS.filter((c) => c.kind === "data" && c.type !== "time");
+const COL_BY_KEY = Object.fromEntries(COLUMNS.map((c) => [c.key, c]));
+const MAIN_EDITS = [["rmm_line_name", "แก้ไลน์"], ["code", "แก้ Code (แผนผลิต)"], ["weight_RM", "แก้น้ำหนัก"]];
 const TIME_COLUMNS = COLUMNS.filter((c) => c.kind === "data" && c.type === "time");
 
 /**
@@ -168,6 +170,12 @@ const MappingTool = () => {
               {[row.mat && `Mat ${row.mat}`, (row.batch_after || row.batch) && `Batch ${row.batch_after || row.batch}`, row.tro_id && `รถเข็น ${row.tro_id}`, row.cs_name && `${row.cs_name} ช่อง ${row.slot_id ?? "-"}`,
                 row.weight_RM !== null && row.weight_RM !== undefined && `${row.weight_RM} kg`, row.code && `แผน ${row.code}`].filter(Boolean).join(" · ")}
             </Typography>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
+              {MAIN_EDITS.map(([k, label]) => (
+                <Button key={k} size="small" variant="outlined" startIcon={<EditIcon fontSize="small" />}
+                  onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: COL_BY_KEY[k] }))}>{label}</Button>
+              ))}
+            </Box>
             <Typography sx={{ fontSize: 12.5, color: "text.secondary", mt: 0.25 }}>rm_status: <b>{row.rm_status || "-"}</b> · stay_place: <b>{row.stay_place || "-"}</b> · dest: <b>{row.dest || "-"}</b></Typography>
             {lin.id === row.mapping_id && <ParentLinks parents={lin.data?.parents} onOpen={openLinked} />}
           </Paper>
@@ -192,7 +200,10 @@ const MappingTool = () => {
                     <Typography sx={{ flex: 1, fontSize: 13.5, color: "#5B6B8C", fontWeight: 600 }}>{c.label}</Typography>
                     <Typography sx={{ width: 150, fontSize: 14, fontFamily: "ui-monospace,monospace", color: row[c.key] ? "inherit" : "#B0B8C9" }}>{fmtTime(row[c.key])}</Typography>
                     {editableDates.has(c.key)
-                      ? <Button size="small" startIcon={<EditIcon fontSize="small" />} onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: c }))}>แก้ไข</Button>
+                      ? (<>
+                        <Button size="small" startIcon={<EditIcon fontSize="small" />} onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: c }))}>แก้ไข</Button>
+                        <Button size="small" color="warning" disabled={!row[c.key]} onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: c, startCleared: true }))}>ล้างเป็น NULL</Button>
+                      </>)
                       : <Typography sx={{ fontSize: 11.5, color: "#B0B8C9", width: 64, textAlign: "center" }}>แก้ไม่ได้</Typography>}
                   </Box>
                 </Box>

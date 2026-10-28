@@ -59,7 +59,7 @@ const EditCellDialog = ({ target, onClose, onSaved }) => {
   useEffect(() => {
     if (!target) return;
     setReason(""); setError(""); setPicked(null);
-    if (isTime) setTime(splitTime(oldRaw));
+    if (isTime) setTime(target.startCleared ? { date: "", hh: "00", mm: "00" } : splitTime(oldRaw));
     else setValue(col.key === "batch" ? String(shownOld ?? "") : oldRaw === null || oldRaw === undefined || oldRaw === "-" ? "" : String(oldRaw));
   }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -153,9 +153,10 @@ const EditCellDialog = ({ target, onClose, onSaved }) => {
                 <TextField select size="small" label="นาที" value={time.mm} onChange={(e) => setTime((t) => ({ ...t, mm: e.target.value }))} sx={{ width: 84 }} SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 320 } } } }}>
                   {MINUTES.map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
                 </TextField>
-                <Button size="small" color="inherit" onClick={() => setTime({ date: "", hh: "00", mm: "00" })}>ล้างค่า</Button>
+                <Button size="small" variant="outlined" color="inherit" onClick={() => setTime({ date: "", hh: "00", mm: "00" })}>ล้างค่า</Button>
               </Box>
             )}
+            {isTime && nextValue === null && <Alert severity="warning" sx={{ py: 0 }}>เวลานี้จะถูกบันทึกเป็นค่าว่าง (NULL)</Alert>}
 
             {!pick && !isTime && (
               <TextField

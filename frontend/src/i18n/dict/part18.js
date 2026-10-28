@@ -606,4 +606,9 @@ export default {
   "กรุณากรอก user_id และ rm_type_ids (array)": ["Please enter user_id and rm_type_ids (array)", "user_id နှင့် rm_type_ids (array) ဖြည့်ပါ", "សូមបញ្ចូល user_id និង rm_type_ids (array)"],
   "รถเข็น {x} ผูกกับ EPC อื่นอยู่แล้ว ({x})": ["Trolley {x} is already linked to another EPC ({x})", "လက်တွန်းလှည်း {x} ကို အခြား EPC နှင့် ချိတ်ပြီးဖြစ်သည် ({x})", "រទេះរុញ {x} បានភ្ជាប់ជាមួយ EPC ផ្សេងរួចហើយ ({x})"],
   "รถเข็น {x} ผูกกับ EPC อื่นอยู่แล้ว": ["Trolley {x} is already linked to another EPC", "လက်တွန်းလှည်း {x} ကို အခြား EPC နှင့် ချိတ်ပြီးဖြစ်သည်", "រទេះរុញ {x} បានភ្ជាប់ជាមួយ EPC ផ្សេងរួចហើយ"],
+  "ล้างเป็น NULL": ["Clear to NULL", "NULL သို့ ရှင်းလင်းရန်", "សម្អាតទៅ NULL"],
+  "เวลานี้จะถูกบันทึกเป็นค่าว่าง (NULL)": ["This time will be saved as empty (NULL)", "ဤအချိန်ကို အလွတ် (NULL) အဖြစ် သိမ်းမည်", "ម៉ោងនេះនឹងត្រូវរក្សាទុកជាទទេ (NULL)"],
+  "แก้ไลน์": ["Edit line", "လိုင်း ပြင်ရန်", "កែខ្សែ"],
+  "แก้ Code (แผนผลิต)": ["Edit Code (production plan)", "Code (ထုတ်လုပ်မှုအစီအစဉ်) ပြင်ရန်", "កែ Code (ផែនការផលិត)"],
+  "แก้น้ำหนัก": ["Edit weight", "အလေးချိန် ပြင်ရန်", "កែទម្ងន់"],
 };
