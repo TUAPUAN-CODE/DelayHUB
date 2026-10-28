@@ -9317,6 +9317,30 @@ router.post("/prep/timestamp-ck/start", async (req, res) => {
     }
   });
 
+  // PUT /api/prep/sap/remark-cs { hu, remark_cs } : change the Remark CS of a HU without receiving it (the form "ใส่รถเข็น" of a plan shows the note and can change it).
+  // The same note the receive dialog writes (SAP_Receive.remark_cs, one per HU): the active receive row first, else every row of the HU. Empty text clears it.
+  router.put("/prep/sap/remark-cs", async (req, res) => {
+    try {
+      const hu = parseInt(req.body?.hu, 10);
+      if (!Number.isInteger(hu)) return res.status(400).json({ success: false, error: "HU ไม่ถูกต้อง" });
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+      await ensureRemarkCsColumn(pool);
+      const text = cleanRemarkCs(req.body?.remark_cs);
+      const update = (where) => pool.request()
+        .input("hu", sql.Int, hu)
+        .input("remark_cs", sql.NVarChar(500), text)
+        .query(`UPDATE SAP_Receive SET remark_cs = @remark_cs WHERE hu = @hu${where}`);
+      let r = await update(" AND status = 1");
+      if (!r.rowsAffected[0]) r = await update("");
+      if (!r.rowsAffected[0]) return res.status(404).json({ success: false, error: "ไม่พบ HU นี้ในระบบ" });
+      res.json({ success: true, data: { hu, remark_cs: text || "" } });
+    } catch (err) {
+      console.error("❌ [Route PUT /prep/sap/remark-cs] Error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // GET /api/prep/remark-cs?mapping_ids=1,2&hus=…&keys=MAT|BATCH,… : the Remark CS printed on the slips (frontend Layout/RemarkCs.jsx)
   router.get("/prep/remark-cs", async (req, res) => {
     try {
