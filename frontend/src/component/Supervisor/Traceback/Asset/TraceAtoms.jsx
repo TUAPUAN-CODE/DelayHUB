@@ -1,6 +1,6 @@
 // ชิ้นส่วน UI ที่ใช้ร่วมกันในหน้า Traceback (Forward / Mock Recall / ผังต้นไม้ / ไทม์ไลน์)
 import { T } from './tracebackUI';
-import { useRemarkCs } from '../../../Layout/RemarkCs';
+import { useRemarkCs, remarkCsText } from '../../../Layout/RemarkCs';
 
 const TONES = {
   blue: [T.blueSoft, T.blueDeep, T.blueLine],
@@ -147,12 +147,27 @@ export const Field = ({ label, children, width }) => (
  * or puts the plan in a trolley, the same text that is printed on the slips. "—" when there is none. Read in one request for the cells shown together.
  */
 export const RemarkCsText = ({ m }) => {
-  const text = useRemarkCs([{ mappingId: m.mapping_id, mat: m.mat, batch: m.batch_before }]);
+  const text = useRemarkCs([{ mappingId: m.mapping_id }]); // by the lot's own HU only: a batch can have several HUs, each with its own note
   return text ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span> : '—';
 };
 
-/** Remark CS of a Mat + Batch group of the summary table: the notes of all its lots, read in one request */
+/** Remark CS of a Mat + Batch group of the summary table: a batch can have several HUs, each with its own note — lots with the same note share a line, marked by mapping_id */
 export const RemarkCsGroupText = ({ lots }) => {
-  const text = useRemarkCs((lots || []).map(m => ({ mappingId: m.mapping_id, mat: m.mat, batch: m.batch_before })));
-  return text ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span> : '—';
+  const sources = (lots || []).map(m => ({ mappingId: m.mapping_id }));
+  useRemarkCs(sources); // loads the notes and renders again when they arrive
+  const byText = new Map();
+  sources.forEach(src => {
+    const t = remarkCsText([src]);
+    if (t) byText.set(t, [...(byText.get(t) || []), src.mappingId]);
+  });
+  if (!byText.size) return '—';
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      {[...byText].map(([t, ids]) => (
+        <div key={t} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {(lots || []).length > 1 && <b style={{ marginRight: 4 }}>{ids.map(id => `#${id}`).join(', ')}</b>}{t}
+        </div>
+      ))}
+    </div>
+  );
 };

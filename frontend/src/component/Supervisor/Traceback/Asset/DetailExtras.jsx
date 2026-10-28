@@ -154,7 +154,7 @@ export const QrLabelsDialog = ({ open, onClose, data, linkBase }) => {
                 <div style={{ fontFamily: 'ui-monospace,monospace' }}>Batch {m.batch_before || '-'}</div>
                 <div>{fmtNum(m.weight_RM, 1)} kg · {m.rmm_line_name || '-'}</div>
                 <div>{s.doc_no}</div>
-                <RemarkCsLine mappingId={m.mapping_id} mat={m.mat} batch={m.batch_before} style={{ margin: 0 }} />
+                <RemarkCsLine mappingId={m.mapping_id} style={{ margin: 0 }} />
               </div>
             </div>
           ))}
