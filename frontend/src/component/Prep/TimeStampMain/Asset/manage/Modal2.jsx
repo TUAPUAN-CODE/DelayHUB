@@ -101,6 +101,13 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   const [mat2xList, setMat2xList] = useState([]);           // ⬅️ เพิ่มบรรทัดนี้
   const [mat2x, setMat2x] = useState(null);                 // ⬅️ เพิ่มบรรทัดนี้ (object { mat_2X, mat_name_2x } หรือ null)
   const [loadingMat2x, setLoadingMat2x] = useState(false);  // ⬅️ เพิ่มบรรทัดนี้
+  // Remark CS: one note per HU of the plan (SAP_Receive.remark_cs), printed on every slip after the QC check. The current note of the HU is shown first
+  // and can be changed / cleared; it is saved when the trolley is saved (Modal3). A plan without a HU has no Remark CS.
+  const [remarkCs, setRemarkCs] = useState("");
+  const [remarkCsOrig, setRemarkCsOrig] = useState(""); // the note the HU has now: only a changed note is saved
+  const [remarkLoading, setRemarkLoading] = useState(false);
+  const planHu = Number.parseInt(data?.hu, 10);
+  const hasHu = Number.isInteger(planHu) && planHu > 0;
 
   // ✅ ถ้า rm_type_id เป็น 2 หรือ 3 ให้ทั้งสอง DateTimePicker เป็น read-only
   const isReadOnlyTime = [999, 888].includes(rmTypeId);
@@ -123,6 +130,22 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   useEffect(() => {
     setRmTypeId(rm_type_id ?? 3);
   }, [rm_type_id]);
+
+  useEffect(() => {
+    if (!open || !hasHu) { setRemarkCs(""); setRemarkCsOrig(""); return undefined; }
+    let alive = true;
+    setRemarkLoading(true);
+    axios.get(`${API_URL}/api/prep/sap/remark-cs`, { params: { hu: planHu } })
+      .then((res) => {
+        if (!alive) return;
+        const current = res.data?.data?.remark_cs || "";
+        setRemarkCsOrig(current);
+        setRemarkCs(typeof data?.input2?.remarkCs === "string" ? data.input2.remarkCs : current); // back from the confirm step: keep what was typed
+      })
+      .catch((err) => console.error("❌ Remark CS load error:", err))
+      .finally(() => { if (alive) setRemarkLoading(false); });
+    return () => { alive = false; };
+  }, [open, planHu]); // eslint-disable-line react-hooks/exhaustive-deps -- the typed text of `data` is read once when the modal opens
 
   const fetchMat2xList = async (matValue) => {
     if (!matValue) { setMat2xList([]); return; }
@@ -314,6 +337,8 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     setDepositDate(null);
     setSummaryWithdrawDate(null);
     setMat2x(null);
+    setRemarkCs("");
+    setRemarkCsOrig("");
   };
 
   const isFutureTime = (selectedTime) => {
@@ -395,6 +420,10 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
         summaryWithdrawDate: summaryWithdrawDate || null,
         mat2x: mat2x ? mat2x.mat_2X : null,           
         mat2xName: mat2x ? mat2x.mat_name_2x : null,
+        // Remark CS of the plan's HU: saved with the trolley when it was changed (Modal3)
+        remarkCs: remarkCs.trim(),
+        remarkCsHu: hasHu ? planHu : null,
+        remarkCsChanged: hasHu && remarkCs.trim() !== remarkCsOrig.trim(),
       },
       batch: data?.batch || "",
       newBatch: data?.newBatch || "",
@@ -653,6 +682,16 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
             placeholder="กรอกข้อมูล History (ถ้ามี)" inputProps={{ maxLength: 500 }}
           />
 
+          {/* Remark CS (ไม่บังคับ) — ของ HU ในแผนนี้ แสดงในทุกสลีปหลัง QC Check */}
+          {hasHu && (
+            <TextField
+              label="Remark CS" placeholder="หมายเหตุ (แสดงในทุกสลีป)" value={remarkCs} onChange={(e) => setRemarkCs(e.target.value.slice(0, 500))}
+              fullWidth size="small" multiline minRows={2} disabled={remarkLoading}
+              helperText={remarkLoading ? "กำลังโหลด Remark CS เดิม..." : `${remarkCs.length}/500 · ไม่บังคับ`}
+              sx={{ marginBottom: "16px" }}
+            />
+          )}
+
           {/* สถานที่จัดส่ง (QC) */}
           <Box sx={{ border: "1px solid #E3E8F2", borderRadius: "4px", padding: "12px", backgroundColor: "#f8f9fa", marginTop: "8px", marginBottom: deliveryType === "ส่งห้องเย็นใหญ่" ? "8px" : "16px" }}>
             <Typography style={{ color: "#333", fontWeight: 500, fontSize: "15px", marginBottom: "4px" }}>
@@ -737,7 +776,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
           <Button
             style={{ backgroundColor: !timeValid || preparedTimeError ? "#A0A0A0" : "#1552F0", color: "#fff" }}
             variant="contained" startIcon={<CheckCircleIcon />} onClick={handleNext}
-            disabled={!timeValid || preparedTimeError}
+            disabled={!timeValid || preparedTimeError || remarkLoading}
           >
             ยืนยัน
           </Button>

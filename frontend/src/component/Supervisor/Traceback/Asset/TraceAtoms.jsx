@@ -1,5 +1,6 @@
 // ชิ้นส่วน UI ที่ใช้ร่วมกันในหน้า Traceback (Forward / Mock Recall / ผังต้นไม้ / ไทม์ไลน์)
 import { T } from './tracebackUI';
+import { useRemarkCs } from '../../../Layout/RemarkCs';
 
 const TONES = {
   blue: [T.blueSoft, T.blueDeep, T.blueLine],
@@ -140,3 +141,12 @@ export const Field = ({ label, children, width }) => (
     {children}
   </label>
 );
+
+/**
+ * Remark CS of a lot (m = a material row of the traceback: mapping_id, mat, batch_before): the note of its HU, typed when the preparation receives the HU
+ * or puts the plan in a trolley, the same text that is printed on the slips. "—" when there is none. Read in one request for the cells shown together.
+ */
+export const RemarkCsText = ({ m }) => {
+  const text = useRemarkCs([{ mappingId: m.mapping_id, mat: m.mat, batch: m.batch_before }]);
+  return text ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span> : '—';
+};

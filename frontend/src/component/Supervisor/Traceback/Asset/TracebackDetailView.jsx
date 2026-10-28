@@ -7,7 +7,7 @@ import {
 import { exportDetailExcel } from './tracebackExport';
 import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
 import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
-import { Ring } from './TraceAtoms';
+import { Ring, RemarkCsText } from './TraceAtoms';
 import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TraceTree from './TraceTree';
@@ -402,6 +402,7 @@ const LotFlow = ({ m, summary }) => {
         <Node title="② รับเข้าโรงงาน" ev={it ? 'doc' : 'none'} lines={[
           { k: 'Batch', v: m.batch_before },
           { k: 'Batch 2x', v: m.batch_after && m.batch_after !== m.batch_before ? m.batch_after : null },
+          { k: 'Remark CS', v: <RemarkCsText m={m} /> },
           { k: 'วันที่ล็อต', v: m.batch_date && fmtD(m.batch_date) },
           { k: 'ผลิต(Supp)', v: m.produce_date },
           { k: 'ปริมาณ', v: m.receive_qty != null ? `${fmtNum(m.receive_qty, 0)} ${m.receive_unit || ''}` : null },
@@ -1050,6 +1051,7 @@ const FlowTab = ({ data, focus, setFocus }) => {
                   { key: 'mat', label: 'วัตถุดิบ', render: m => `${m.mat} · ${m.mat_name}`, wrap: true, minWidth: 200 },
                   { key: 'mat_2x', label: 'Mat 2x', render: m => (m.mat_2x || '—') },
                   { key: 'batch_after', label: 'Batch 2x', render: m => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{m.batch_after || '—'}</span> },
+                  { key: 'remark_cs', label: 'Remark CS', render: m => <RemarkCsText m={m} />, wrap: true, minWidth: 150 },
                   { key: 'doc', label: 'เอกสารผลิต', render: m => m.raw?.Production?.doc_no || s.doc_no },
                   { key: 'code', label: 'Code สินค้า', render: m => m.raw?.Production?.code || s.code, wrap: true, minWidth: 160 },
                   { key: 'rmm_line_name', label: 'ไลน์' },
@@ -1140,6 +1142,7 @@ const DetailTab = ({ data, onOpenTrace }) => {
           { key: 'batch_after', label: 'Batch 2x', render: m => (m.batch_after
               ? <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600, color: m.batch_after === m.batch_before ? T.text2 : T.orange }}>{m.batch_after}</span>
               : '—') },
+          { key: 'remark_cs', label: 'Remark CS', render: m => <RemarkCsText m={m} />, wrap: true, minWidth: 150 },
           { key: 'supplier_name', label: 'ผู้ขาย', wrap: true, minWidth: 160 },
           { key: 'batch_date', label: 'วันที่ล็อต (รับเข้า)', render: m => (m.batch_date ? fmtD(m.batch_date) : '—') },
           { key: 'intake_decision', label: 'ผลตรวจรับเข้า',

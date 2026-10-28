@@ -89,6 +89,7 @@ const ManageModals = forwardRef(function ManageModals({ onRefresh }, ref) {
     withdraw_date: dataForModal1.withdraw_date,
     production: dataForModal1.production,
     level_eu: dataForModal1.level_eu,
+    hu: dataForModal1.hu, // HU ของแผน — Modal2 ใช้แสดง/แก้ Remark CS ของ HU นี้
 
     // ✅ เพิ่มบรรทัดนี้
     batchAfterArray: data.batchAfterArray || [], 

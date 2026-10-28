@@ -216,6 +216,12 @@ const Modal3 = ({
 
       console.log("Payload before sending:", payload);
 
+      // Remark CS of the plan's HU, changed in the form (Modal2): saved first, so when it fails nothing else is saved and the user can try again
+      // (one note per HU, saving it twice is harmless; the slips after the QC check read it from the HU)
+      if (input2?.remarkCsChanged && input2?.remarkCsHu) {
+        await axios.put(`${API_URL}/api/prep/sap/remark-cs`, { hu: input2.remarkCsHu, remark_cs: input2.remarkCs });
+      }
+
       const apiResponse = await axios.post(
         `${API_URL}/api/prep/manage/saveTrolleyV2`,
         payload,
