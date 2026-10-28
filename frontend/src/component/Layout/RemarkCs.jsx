@@ -46,7 +46,7 @@ const fetchChunk = async (keys) => {
     const res = await axios.get(`${API_URL}/api/prep/remark-cs`, { params: { mapping_ids: mapping.join(","), hus: hus.join(","), keys: pairs.join(",") } });
     const d = res.data?.data || {};
     const at = Date.now();
-    mapping.forEach((id) => cache.set(`m:${id}`, { text: d.mapping?.[id] || "", at }));
+    mapping.forEach((id) => cache.set(`m:${id}`, { text: d.mapping?.[id] || "", hu: d.mappingHu?.[id] ?? null, at }));
     hus.forEach((h) => cache.set(`h:${h}`, { text: d.hu?.[h] || "", at }));
     pairs.forEach((p) => cache.set(`b:${p}`, { text: d.matBatch?.[p] || "", at }));
   } catch (err) {
@@ -73,6 +73,9 @@ export const loadRemarkCs = (sources) => {
   }
   return Promise.all(waits).then(() => undefined);
 };
+
+/** the HU whose note a mapping shows (null when it has none / is not loaded) */
+export const remarkCsHu = (mappingId) => cache.get(`m:${intId(mappingId)}`)?.hu ?? null;
 
 /** the text for these sources from what is loaded ("" when none) */
 export const remarkCsText = (sources) => {

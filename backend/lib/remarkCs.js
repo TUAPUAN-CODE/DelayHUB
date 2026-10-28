@@ -32,29 +32,29 @@ const toPairs = (raw) => [...new Set(String(raw || "").split(",").map((x) => x.t
   .filter((p) => p.mat && p.batch);
 
 /**
- * remark of each key: { mapping: { [mapping_id]: text }, hu: { [hu]: text }, matBatch: { ["MAT|BATCH"]: text } } — keys without a remark are left out.
+ * remark of each key: { mapping: { [mapping_id]: text }, mappingHu: { [mapping_id]: the HU that note belongs to }, hu: { [hu]: text }, matBatch: { ["MAT|BATCH"]: text } } — keys without a remark are left out.
  * mapping -> its HU (History.hu, else RMForProd.hu) · mat + batch -> the SAP_Receive row of that mat and batch
  */
 const remarkCsOf = async (pool, { mappingIds = "", hus = "", keys = "" }) => {
   await ensureRemarkCsColumn(pool);
-  const out = { mapping: {}, hu: {}, matBatch: {} };
+  const out = { mapping: {}, mappingHu: {}, hu: {}, matBatch: {} };
   const ids = toIds(mappingIds);
   if (ids.length) {
     const req = pool.request();
     const ph = ids.map((id, i) => { req.input(`m${i}`, sql.Int, id); return `@m${i}`; }).join(",");
     const r = await req.query(`
-      SELECT rmm.mapping_id, s.remark_cs
+      SELECT rmm.mapping_id, s.remark_cs, s.hu
       FROM TrolleyRMMapping rmm WITH (NOLOCK)
       LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
       OUTER APPLY (SELECT TOP (1) hh.hu FROM History hh WITH (NOLOCK) WHERE hh.mapping_id = rmm.mapping_id ORDER BY hh.hist_id DESC) h
       CROSS APPLY (
-        SELECT TOP (1) sr.remark_cs FROM SAP_Receive sr WITH (NOLOCK)
+        SELECT TOP (1) sr.remark_cs, sr.hu FROM SAP_Receive sr WITH (NOLOCK)
         WHERE sr.hu = TRY_CONVERT(INT, COALESCE(NULLIF(CAST(h.hu AS NVARCHAR(50)), N''), NULLIF(CAST(rmf.hu AS NVARCHAR(50)), N'')))
           AND sr.remark_cs IS NOT NULL
         ORDER BY sr.status DESC
       ) s
       WHERE rmm.mapping_id IN (${ph})`);
-    r.recordset.forEach((x) => { if (x.remark_cs) out.mapping[x.mapping_id] = x.remark_cs; });
+    r.recordset.forEach((x) => { if (x.remark_cs) { out.mapping[x.mapping_id] = x.remark_cs; out.mappingHu[x.mapping_id] = x.hu; } });
   }
   const huList = toIds(hus);
   if (huList.length) {

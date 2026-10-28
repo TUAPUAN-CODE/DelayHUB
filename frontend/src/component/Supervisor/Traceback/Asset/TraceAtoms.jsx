@@ -1,6 +1,6 @@
 // ชิ้นส่วน UI ที่ใช้ร่วมกันในหน้า Traceback (Forward / Mock Recall / ผังต้นไม้ / ไทม์ไลน์)
 import { T } from './tracebackUI';
-import { useRemarkCs, remarkCsText } from '../../../Layout/RemarkCs';
+import { useRemarkCs, remarkCsText, remarkCsHu } from '../../../Layout/RemarkCs';
 
 const TONES = {
   blue: [T.blueSoft, T.blueDeep, T.blueLine],
@@ -155,17 +155,22 @@ export const RemarkCsText = ({ m }) => {
 export const RemarkCsGroupText = ({ lots }) => {
   const sources = (lots || []).map(m => ({ mappingId: m.mapping_id }));
   useRemarkCs(sources); // loads the notes and renders again when they arrive
-  const byText = new Map();
+  const byKey = new Map(); // HU + note -> mapping_ids (lots of the same HU share a line)
   sources.forEach(src => {
     const t = remarkCsText([src]);
-    if (t) byText.set(t, [...(byText.get(t) || []), src.mappingId]);
+    if (!t) return;
+    const hu = remarkCsHu(src.mappingId);
+    const k = `${hu ?? ''}|${t}`;
+    const e = byKey.get(k) || { hu, t, ids: [] };
+    e.ids.push(src.mappingId);
+    byKey.set(k, e);
   });
-  if (!byText.size) return '—';
+  if (!byKey.size) return '—';
   return (
     <div style={{ display: 'grid', gap: 4 }}>
-      {[...byText].map(([t, ids]) => (
-        <div key={t} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {(lots || []).length > 1 && <b style={{ marginRight: 4 }}>{ids.map(id => `#${id}`).join(', ')}</b>}{t}
+      {[...byKey.values()].map(e => (
+        <div key={`${e.hu}|${e.t}`} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <b style={{ marginRight: 4 }}>{e.hu ? `HU ${e.hu}` : e.ids.map(id => `#${id}`).join(', ')}:</b>{e.t}
         </div>
       ))}
     </div>
