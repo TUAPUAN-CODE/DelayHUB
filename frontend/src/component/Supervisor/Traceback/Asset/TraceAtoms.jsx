@@ -150,3 +150,9 @@ export const RemarkCsText = ({ m }) => {
   const text = useRemarkCs([{ mappingId: m.mapping_id, mat: m.mat, batch: m.batch_before }]);
   return text ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span> : '—';
 };
+
+/** Remark CS of a Mat + Batch group of the summary table: the notes of all its lots, read in one request */
+export const RemarkCsGroupText = ({ lots }) => {
+  const text = useRemarkCs((lots || []).map(m => ({ mappingId: m.mapping_id, mat: m.mat, batch: m.batch_before })));
+  return text ? <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span> : '—';
+};

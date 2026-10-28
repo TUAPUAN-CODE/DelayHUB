@@ -7,7 +7,7 @@ import {
 import { exportDetailExcel } from './tracebackExport';
 import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
 import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
-import { Ring, RemarkCsText } from './TraceAtoms';
+import { Ring, RemarkCsText, RemarkCsGroupText } from './TraceAtoms';
 import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TraceTree from './TraceTree';
@@ -797,6 +797,7 @@ const SummaryTab = ({ data, onOpenTrace }) => {
           { key: 'batch_2x', label: 'Batch 2x', render: r => (r.batch_2x
               ? <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600, color: r.batch_2x === r.batch ? T.text2 : T.orange }}>{r.batch_2x}</span>
               : '—') },
+          { key: 'remark_cs', label: 'Remark CS', render: r => <RemarkCsGroupText lots={r.lots} />, wrap: true, minWidth: 150 },
           { key: 'batch_date', label: 'วันที่ล็อต (รับเข้า)', render: r => (r.batch_date ? fmtD(r.batch_date) : '—') },
           { key: 'decision', label: 'ผลตรวจรับเข้า',
             render: r => (r.has_intake
