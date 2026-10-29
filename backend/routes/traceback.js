@@ -253,6 +253,8 @@ const BASE_WHERE = PACKED_COND;
 
 // which raw materials the traceback shows: packed (default, the record of what was produced) · all (every status) · unpacked (still in process)
 const packModeOf = (q) => (['all', 'unpacked'].includes(String(q?.pack_status)) ? String(q.pack_status) : 'packed');
+// the pack date range: a lot that is not packed yet has no pack date, so in the other modes it is kept (never hidden by a date it cannot have)
+const packDateCond = (mode, cond) => (mode === 'packed' ? cond : mode === 'unpacked' ? '1 = 1' : `(htr.sc_pack_date IS NULL OR ${cond})`);
 const baseWhere = (mode) => (mode === 'all' ? '1 = 1' : mode === 'unpacked' ? `NOT (${PACKED_COND})` : PACKED_COND);
 
 // ═══ 1) GET /filters ═══════════════════════════════════════════════════════
@@ -322,8 +324,8 @@ router.get('/search', async (req, res) => {
     if (S(mat)) { filters.push("rm.mat LIKE '%' + @mat + '%'"); request.input('mat', sql.NVarChar, S(mat)); }
     if (S(mat_name)) { filters.push("rm.mat_name LIKE '%' + @mat_name + '%'"); request.input('mat_name', sql.NVarChar, S(mat_name)); }
     if (S(rmm_line_name)) { filters.push("htr.rmm_line_name LIKE '%' + @rmm_line_name + '%'"); request.input('rmm_line_name', sql.NVarChar, S(rmm_line_name)); }
-    if (S(sc_pack_date_from)) { filters.push('htr.sc_pack_date >= @sc_pack_date_from'); request.input('sc_pack_date_from', sql.DateTime, new Date(S(sc_pack_date_from))); }
-    if (S(sc_pack_date_to)) { filters.push('htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)'); request.input('sc_pack_date_to', sql.DateTime, new Date(S(sc_pack_date_to))); }
+    if (S(sc_pack_date_from)) { filters.push(packDateCond(packMode, 'htr.sc_pack_date >= @sc_pack_date_from')); request.input('sc_pack_date_from', sql.DateTime, new Date(S(sc_pack_date_from))); }
+    if (S(sc_pack_date_to)) { filters.push(packDateCond(packMode, 'htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)')); request.input('sc_pack_date_to', sql.DateTime, new Date(S(sc_pack_date_to))); }
 
     if (S(batch) && tBatchS) {
       // the mappings of this batch are found in the Batch table first (one scan), so the query starts from a few rows instead of every mapping
@@ -484,8 +486,8 @@ router.get('/detail', async (req, res) => {
       if (fMat) { scopeWhere.push("rm.mat LIKE '%' + @f_mat + '%'"); detailReq.input('f_mat', sql.NVarChar(100), fMat); }
       if (fMatName) { scopeWhere.push("rm.mat_name LIKE '%' + @f_mat_name + '%'"); detailReq.input('f_mat_name', sql.NVarChar(200), fMatName); }
       if (fSupplier && suppCol) { scopeWhere.push(`${suppCol.alias}.[${suppCol.col}] LIKE '%' + @f_supplier + '%'`); detailReq.input('f_supplier', sql.NVarChar(200), fSupplier); }
-      if (okYmd(fPackFrom)) { scopeWhere.push('htr.sc_pack_date >= @f_pack_from'); detailReq.input('f_pack_from', sql.DateTime, new Date(fPackFrom)); }
-      if (okYmd(fPackTo)) { scopeWhere.push('htr.sc_pack_date < DATEADD(day, 1, @f_pack_to)'); detailReq.input('f_pack_to', sql.DateTime, new Date(fPackTo)); }
+      if (okYmd(fPackFrom)) { scopeWhere.push(packDateCond(packModeOf(req.query), 'htr.sc_pack_date >= @f_pack_from')); detailReq.input('f_pack_from', sql.DateTime, new Date(fPackFrom)); }
+      if (okYmd(fPackTo)) { scopeWhere.push(packDateCond(packModeOf(req.query), 'htr.sc_pack_date < DATEADD(day, 1, @f_pack_to)')); detailReq.input('f_pack_to', sql.DateTime, new Date(fPackTo)); }
     }
     if (scoped && batch && tBatch) {
       scopeWhere.push(`rmm.mapping_id IN (SELECT bx.mapping_id FROM [${tBatch}] bx WITH (NOLOCK) WHERE bx.batch_before LIKE '%' + @batch + '%' OR bx.batch_after LIKE '%' + @batch + '%')`);
