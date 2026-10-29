@@ -1,36 +1,18 @@
 // สอบกลับไปข้างหน้า (Trace Forward / Impact Analysis)
 //   สแกนหรือพิมพ์รหัสรุ่นวัตถุดิบ / ส่วนผสม / Lot บรรจุภัณฑ์ → สินค้าทุกเอกสารที่ได้รับผลกระทบ
 //   แยก "บรรจุแล้ว" กับ "ยังอยู่ในกระบวนการ (กักได้ทันที)" เพื่อใช้ตัดสินใจเรียกคืน/กักสินค้า
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { forwardRef, useState, useEffect, useMemo, useCallback, useImperativeHandle } from 'react';
 import axios from 'axios';
-import { T, TYPE_LABEL, inputCss } from './tracebackUI';
+import { T, TYPE_LABEL } from './tracebackUI';
 import { Tag, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
-import { fmtDT, fmtNum, readRecent, pushRecent, readVariants, saveVariants, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
+import { fmtDT, fmtNum, pushRecent, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
 import ForwardLotsGrid from './ForwardLotsGrid';
-import SearchableSelect from './SearchableSelect';
 import { HoldDialog } from './HoldList';
 import { exportForwardExcel, exportForwardPDF } from './tracebackExport';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const TYPE_OPTIONS = ['auto', 'rm', 'ing', 'pkg'].map(v => ({ value: v, label: TYPE_LABEL[v] }));
-const LOT_FILTERS = [
-  { value: 'all', label: 'ทั้งหมด' },
-  { value: 'packed', label: 'บรรจุแล้ว' },
-  { value: 'wip', label: 'ยังอยู่ในกระบวนการ' },
-];
-
-// the order of the "by day" table (a click on a column header sorts it further)
-const SORT_OPTIONS = [
-  { value: 'day_desc', label: 'วันผลิต ล่าสุด → เก่าสุด' },
-  { value: 'day_asc', label: 'วันผลิต เก่าสุด → ล่าสุด' },
-  { value: 'weight_desc', label: 'น้ำหนักรวม มาก → น้อย' },
-  { value: 'lots_desc', label: 'จำนวนล็อต มาก → น้อย' },
-  { value: 'wip_desc', label: 'ยังไม่บรรจุ มาก → น้อย' },
-  { value: 'doc_no_asc', label: 'เลขเอกสาร ก → ฮ' },
-  { value: 'doc_no_desc', label: 'เลขเอกสาร ฮ → ก' },
-  { value: 'code_asc', label: 'Code ก → ฮ' },
-];
+// the order of the "by day" table (options: traceForm.js FWD_SORT_OPTIONS; a click on a column header sorts it further)
 const SORTERS = {
   day_desc: (a, b) => String(b.day).localeCompare(String(a.day)) || String(a.doc_no).localeCompare(String(b.doc_no)),
   day_asc: (a, b) => String(a.day).localeCompare(String(b.day)) || String(a.doc_no).localeCompare(String(b.doc_no)),
@@ -93,33 +75,30 @@ const impactText = (d) => {
   ].filter(x => x !== undefined).join('\n');
 };
 
-const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, onStartRecall, onQueryChange, modeSwitch = null, onHoldsChanged }) => {
-  const [multi, setMulti] = useState(false);
-  const [multiText, setMultiText] = useState('');
-  const [variants, setVariants] = useState(readVariants);
+// form = the shared search form (SearchPanel): code · kind · one/many + the filters; search() / run() are called through the ref
+const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpenRecord, onStartRecall, onQueryChange, form, onRan }, ref) => {
   const [holdOpen, setHoldOpen] = useState(false);
   const [notice, setNotice] = useState('');
-  const [code, setCode] = useState(initialCode);
-  const [type, setType] = useState(initialType);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lotFilter, setLotFilter] = useState('all');
-  const [flt, setFlt] = useState({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); // narrows the result already found (the day starts at 05:30)
-  const setF = (k, v) => setFlt(p => ({ ...p, [k]: v }));
-  const [sortBy, setSortBy] = useState('day_desc');
   const [view, setView] = useState('day'); // which table: the affected products by day, or every lot
-  const [recent, setRecent] = useState(() => readRecent().filter(r => r.kind === 'fwd'));
-  const inputRef = useRef(null);
+  const code = form.trace;
+  const type = form.type;
+  const sortBy = form.sort;
+  // pack_status of the form: packed / all / unpacked  ->  the lots shown
+  const lotFilter = form.pack_status === 'all' ? 'all' : form.pack_status === 'packed' ? 'packed' : 'wip';
+  const flt = { doc: form.doc_no, code: form.code, mat: form.mat, matName: form.mat_name, line: form.rmm_line_name, from: form.from, to: form.single ? form.from : form.to };
 
   const run = useCallback(async (c = code, t = type) => {
     const q = String(c || '').trim();
-    if (!q) { setError('กรุณาสแกนหรือพิมพ์รหัสรุ่น / Lot'); inputRef.current?.focus(); return; }
+    if (!q) { setError('กรุณาสแกนหรือพิมพ์รหัสรุ่น / Lot'); return; }
     try {
       setLoading(true); setError(''); setData(null); setNotice('');
       const res = await axios.get(`${API_URL}/api/traceback/forward`, { params: { code: q, type: t } });
       setData(res.data?.data || null);
-      setRecent(pushRecent({ kind: 'fwd', code: q, type: t }).filter(r => r.kind === 'fwd'));
+      pushRecent({ kind: 'fwd', code: q, type: t });
+      onRan?.();
       onQueryChange?.({ code: q, type: t });
     } catch (e) {
       console.error('Trace forward error:', e);
@@ -127,11 +106,11 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     } finally {
       setLoading(false);
     }
-  }, [code, type, onQueryChange]);
+  }, [code, type, onQueryChange, onRan]);
 
   // หลายรหัสพร้อมกัน (Where-used list ของหลาย batch): วางรหัสคั่นด้วยบรรทัดใหม่ / , / ช่องว่าง
   const runMulti = async () => {
-    const codes = uniq(multiText.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)).slice(0, 50);
+    const codes = uniq(form.multiText.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)).slice(0, 50);
     if (!codes.length) { setError('วางรหัสอย่างน้อย 1 รหัส'); return; }
     try {
       setLoading(true); setError(''); setData(null); setNotice('');
@@ -146,17 +125,8 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     } finally { setLoading(false); }
   };
 
-  const saveVariant = () => {
-    const q = multi ? multiText.trim() : code.trim();
-    if (!q) return;
-    const name = window.prompt('ตั้งชื่อการค้นหานี้ (บันทึกไว้ในเครื่องนี้)', q.slice(0, 30));
-    if (!name) return;
-    setVariants(saveVariants([{ name, code: q, type, multi }, ...variants.filter(v => v.name !== name)]));
-  };
-  const applyVariant = (v) => {
-    setType(v.type); setMulti(!!v.multi);
-    if (v.multi) { setMultiText(v.code); } else { setCode(v.code); run(v.code, v.type); }
-  };
+  // the search button of the shared form
+  useImperativeHandle(ref, () => ({ search: () => (form.multi ? runMulti() : run()), run: (c, t) => run(c, t), reset: () => { setData(null); setError(''); setNotice(''); } }));
 
   const exportCsv = () => {
     if (!data) return;
@@ -180,7 +150,6 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
   // เปิดจากลิงก์ (?mode=forward&code=...) → ค้นหาทันที
   useEffect(() => {
     if (initialCode) run(initialCode, initialType);
-    else inputRef.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -191,14 +160,14 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     return (data?.lots || []).filter(l => {
       if (lotFilter !== 'all' && (lotFilter === 'packed') !== !!l.sc_pack_date) return false;
       if (!has(l.doc_no, flt.doc) || !has(l.code, flt.code) || !has(l.rmm_line_name, flt.line)) return false;
-      if (flt.mat && !has(l.mat, flt.mat) && !has(l.mat_name, flt.mat)) return false;
+      if (!has(l.mat, flt.mat) || !has(l.mat_name, flt.matName)) return false;
       if (flt.from || flt.to) {
         const d = factoryDay(l.sc_pack_date || l.rmit_date);
         if (!d || (flt.from && d < flt.from) || (flt.to && d > flt.to)) return false;
       }
       return true;
     });
-  }, [data, lotFilter, flt]);
+  }, [data, lotFilter, form.doc_no, form.code, form.mat, form.mat_name, form.rmm_line_name, form.from, form.to, form.single]); // eslint-disable-line react-hooks/exhaustive-deps
   const shownIds = useMemo(() => new Set(lots.map(l => l.mapping_id)), [lots]);
 
   // one row per factory day + document + Code
@@ -220,106 +189,11 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
       .sort(SORTERS[sortBy] || SORTERS.day_desc);
   }, [lots, sortBy]);
 
-  // the values of the result, for the drop-down filters
-  const opts = useMemo(() => {
-    const u = (f) => [...new Set((data?.lots || []).map(f).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'th', { numeric: true }));
-    return {
-      doc: u(l => l.doc_no), code: u(l => l.code), line: u(l => l.rmm_line_name),
-      mat: u(l => l.mat_name ? `${l.mat} · ${l.mat_name}` : l.mat).map(v => ({ value: String(v).split(' · ')[0], label: v })),
-    };
-  }, [data]);
-
   const s = data?.summary || {};
   const errs = Object.entries(data?.errors || {});
 
   return (
     <div>
-      {/* ── ช่องสแกน ── */}
-      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '16px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep }}>ค้นหาการผลิตเพื่อสอบกลับ</div>
-          {modeSwitch}
-        </div>
-        {multi ? (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            <textarea value={multiText} onChange={e => setMultiText(e.target.value.toUpperCase())} rows={4}
-              placeholder="วางหลายรหัส (คั่นด้วยบรรทัดใหม่ , หรือช่องว่าง) สูงสุด 50 รหัส"
-              style={{ ...inputCss, flex: '1 1 260px', height: 'auto', padding: 10, fontFamily: 'ui-monospace,monospace', resize: 'vertical' }} />
-            <Btn onClick={runMulti} disabled={loading} style={{ height: 44 }}>{loading ? <Spinner size={16} /> : null} สอบกลับทุกรหัส</Btn>
-          </div>
-        ) : (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            ref={inputRef}
-            value={code}
-            onChange={e => setCode(e.target.value.toUpperCase())}
-            onKeyDown={e => { if (e.key === 'Enter') run(); }}
-            placeholder="รหัสรุ่น (Batch) / Lot บรรจุภัณฑ์"
-            aria-label="รหัสรุ่นหรือ Lot ที่ต้องการสอบกลับ"
-            style={{ ...inputCss, flex: '1 1 260px', height: 44, fontSize: 16, fontFamily: 'ui-monospace,monospace', letterSpacing: 1.5, fontWeight: 600 }}
-          />
-          <Btn onClick={() => run()} disabled={loading} style={{ height: 44 }}>
-            {loading ? <Spinner size={16} /> : null} สอบกลับ
-          </Btn>
-        </div>
-        )}
-        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Segmented value={type} onChange={v => setType(v)} options={TYPE_OPTIONS} />
-          <Segmented value={multi ? 'm' : 's'} onChange={v => setMulti(v === 'm')} options={[{ value: 's', label: 'รหัสเดียว' }, { value: 'm', label: 'หลายรหัส' }]} />
-          <Btn variant="ghost" onClick={saveVariant} style={{ height: 34 }}>☆ บันทึกการค้นหา</Btn>
-          {variants.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: T.text2 }}>ที่บันทึกไว้:</span>
-              {variants.slice(0, 8).map(v => (
-                <span key={v.name} style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${T.orangeLine}`, background: T.orangeSoft, borderRadius: 20 }}>
-                  <button type="button" onClick={() => applyVariant(v)} style={{ border: 'none', background: 'none', color: T.orange, padding: '3px 4px 3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>★ {v.name}</button>
-                  <button type="button" aria-label="ลบ" onClick={() => setVariants(saveVariants(variants.filter(x => x.name !== v.name)))} style={{ border: 'none', background: 'none', color: T.orange, padding: '3px 8px 3px 2px', cursor: 'pointer' }}>×</button>
-                </span>
-              ))}
-            </div>
-          )}
-          {recent.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: T.text2 }}>ล่าสุด:</span>
-              {recent.slice(0, 6).map(r => (
-                <button key={r.key} type="button" onClick={() => { setCode(r.code); setType(r.type); run(r.code, r.type); }}
-                  style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {r.code} · {TYPE_LABEL[r.type]}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        {data && !loading && (
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.line}` }}>
-            {/* ── ตัวกรองผลที่ค้นพบ: เลือกจากรายการ (พิมพ์ค้นหาได้) แล้วตารางทุกตารางในหน้านี้ปรับตาม ── */}
-          <div style={{ marginTop: 0, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ width: 170 }}><SearchableSelect label="เลขเอกสาร" value={flt.doc} onChange={v => setF('doc', v)} options={opts.doc} placeholder="ทุกเอกสาร" /></div>
-            <div style={{ width: 200 }}><SearchableSelect label="Code สินค้า" value={flt.code} onChange={v => setF('code', v)} options={opts.code} placeholder="ทุก Code" /></div>
-            <div style={{ width: 240 }}><SearchableSelect label="วัตถุดิบ (รหัส/ชื่อ)" value={flt.mat} onChange={v => setF('mat', v)} options={opts.mat} placeholder="ทุกรายการ" /></div>
-            <div style={{ width: 130 }}><SearchableSelect label="ไลน์" value={flt.line} onChange={v => setF('line', v)} options={opts.line} placeholder="ทุกไลน์" /></div>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>วันผลิต จาก (วันเริ่ม 05:30)
-              <input type="date" value={flt.from} onChange={e => setF('from', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
-            </label>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>ถึง
-              <input type="date" value={flt.to} onChange={e => setF('to', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
-            </label>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>เรียงลำดับผลลัพธ์
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputCss, width: 210, height: 38 }}>
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />
-            <Btn variant="ghost" style={{ height: 32 }} onClick={() => { setLotFilter('all'); setFlt({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); setSortBy('day_desc'); }}>ล้างเงื่อนไข</Btn>
-            <span style={{ fontSize: 12, color: T.text2 }}>แสดง {lots.length.toLocaleString()} จาก {(data.lots || []).length.toLocaleString()} ล็อต</span>
-          </div>
-
-          </div>
-        )}
-      </div>
-
       {error && (
         <div style={{ marginTop: 14, background: T.badSoft, border: `1.5px solid ${T.badLine}`, color: T.bad, borderRadius: 11, padding: 14, fontSize: 13.5 }}>
           {error}
@@ -423,6 +297,8 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
         products={data?.products || []} onDone={(m) => { setNotice(m); onHoldsChanged?.(); }} />
     </div>
   );
-};
+});
+
+ForwardTrace.displayName = 'ForwardTrace';
 
 export default ForwardTrace;
