@@ -673,4 +673,5 @@ export default {
   "บันทึกการค้นหานี้ไว้ในเครื่องนี้": ["Save this search on this device", "ဤရှာဖွေမှုကို ဤစက်တွင် သိမ်းရန်", "រក្សាទុកការស្វែងរកនេះក្នុងឧបករណ៍នេះ"],
   "วันผลิต (จาก)": ["Production day (from)", "ထုတ်လုပ်သည့်နေ့ (မှ)", "ថ្ងៃផលិត (ចាប់ពី)"],
   "วันผลิต (ถึง)": ["Production day (to)", "ထုတ်လုပ်သည့်နေ့ (အထိ)", "ថ្ងៃផលិត (ដល់)"],
+  "เฉพาะ Supervisor / Master": ["Supervisor / Master only", "Supervisor / Master သာ", "សម្រាប់តែ Supervisor / Master"],
 };

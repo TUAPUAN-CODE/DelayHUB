@@ -32,7 +32,7 @@ const { connectToDatabase, connectToDatabaseWC } = require('../database/db');
 const { getRefs, clearCache: clearDecoderCache, decodePair, refsStats } = require('./tracebackcode');
 const tracebackBatchRouter = require('./Tracebackbatch');
 const { decodeBatches } = require('./Tracebackbatch');
-const { fetchIntakeByBatch, fetchSupplierNames, fetchBatchesOfSupplier, fetchSupplierByBatch } = require('./Tracebackwiseup');
+const { connectToWiseup, fetchIntakeByBatch, fetchSupplierNames, fetchBatchesOfSupplier, fetchSupplierByBatch } = require('./Tracebackwiseup');
 const { safeRollback } = require('../lib/safeRollback');
 
 const WARN_MIN = 120;            // 2 ชม.
@@ -981,6 +981,36 @@ router.get('/detail', async (req, res) => {
       materials.forEach(m => { m.intake = null; });
     }
 
+    // ── 3.5b ข้อมูลรับเข้าของส่วนผสมและบรรจุภัณฑ์ ──────────────────────────
+    //   ค้นจาก batch เหมือนวัตถุดิบ (WISEUP.PRD_Batch): ถ้าระบบรับเข้ารู้จักรหัสนั้น จะได้ผู้ขาย / วันที่รับเข้า / วันหมดอายุ / ผลตรวจ
+    //   ไม่พบหรือเชื่อมต่อไม่ได้ = ไม่มีข้อมูลส่วนนี้ (ใบสอบกลับยังทำงานตามปกติ)
+    try {
+      const key = v => String(v == null ? '' : v).trim();
+      const codes = new Set();
+      materials.forEach(m => {
+        (m.ingredient_summary || []).forEach(g => { if (key(g.batch_no)) codes.add(key(g.batch_no)); });
+        (m.packaging || []).forEach(p => { if (key(p.batch_no)) codes.add(key(p.batch_no)); if (key(p.lot_no)) codes.add(key(p.lot_no)); });
+      });
+      if (codes.size) {
+        const known = await fetchIntakeByBatch([...codes], { withFeatures: false, withReceipts: false });
+        const brief = it => (it ? {
+          supplier_code: it.supplier_code || null, supplier_name: it.supplier_name || null,
+          batch_date: it.batch_date || null, expiration_date: it.expiration_date || null,
+          receive_first: it.receive_first || null, receive_last: it.receive_last || null,
+          receive_qty: it.receive_qty ?? null, receive_unit: it.receive_unit || null, guide_numbers: it.guide_numbers || null,
+          inspection_lot: it.inspection_lot || null, decision_code: it.decision_code || null,
+        } : null);
+        materials.forEach(m => {
+          (m.ingredient_summary || []).forEach(g => { g.intake = brief(known.get(key(g.batch_no))); });
+          (m.packaging || []).forEach(p => { p.intake = brief(known.get(key(p.batch_no))) || brief(known.get(key(p.lot_no))); });
+        });
+        meta.other_intake_found = [...codes].filter(c => known.has(c)).length;
+        meta.other_intake_asked = codes.size;
+      }
+    } catch (e) {
+      console.warn('⚠️ [traceback/detail] ข้อมูลรับเข้าของส่วนผสม/บรรจุภัณฑ์ดึงไม่ได้:', e.message);
+    }
+
     // ── 3.5.3 กรองด้วยรหัสรุ่นบรรจุภัณฑ์ / ส่วนผสม ────────────────────────
     //   ทำหลังประกอบข้อมูลครบ เพราะสองอย่างนี้มาจากคนละแหล่ง
     //   เมื่อกรองแล้ว จะตัดรายการที่ไม่ตรงออกจากล็อตด้วย ไม่ใช่แค่กรองล็อต
@@ -1671,6 +1701,59 @@ router.get('/ingredients', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ═══ 4.9) GET /probe — ดูว่าฐานข้อมูลไหนมีข้อมูลรับเข้า/ผู้ขายของ วัตถุดิบ · ส่วนผสม · บรรจุภัณฑ์ (เฉพาะ Supervisor / Master) ═══════════
+//   ?batch=รหัส  → รหัสนี้อยู่ใน WISEUP.PRD_Batch ไหม · มีใบรับ (RMM_ReceivedMaterialLine) ไหม · ผู้ขายคือใคร
+//   ไม่ส่ง batch → คืนรายชื่อตาราง/คอลัมน์ที่เกี่ยวกับ batch · lot · supplier · vendor · รับเข้า ของ WISEUP, WC และตารางบรรจุภัณฑ์ของ PFCMv2
+//   อ่านอย่างเดียว (INFORMATION_SCHEMA + SELECT ด้วย parameter) ไม่แก้ข้อมูล
+router.get('/probe', async (req, res) => {
+  try {
+    const roles = (req.user?.roles || []).map(Number);
+    if (!roles.some(r => [6, 8].includes(r))) return res.status(403).json({ success: false, error: 'เฉพาะ Supervisor / Master' });
+    const out = { wiseup: {}, wc: {}, pfcm: {} };
+    const pat = "(c.COLUMN_NAME LIKE '%batch%' OR c.COLUMN_NAME LIKE '%lot%' OR c.COLUMN_NAME LIKE '%supplier%' OR c.COLUMN_NAME LIKE '%vendor%' OR c.COLUMN_NAME LIKE '%receiv%' OR c.COLUMN_NAME LIKE '%guide%')";
+    const group = rows => {
+      const m = {};
+      rows.forEach(r => { (m[r.TABLE_NAME] = m[r.TABLE_NAME] || []).push(`${r.COLUMN_NAME} (${r.DATA_TYPE})`); });
+      return m;
+    };
+    const batch = S(req.query.batch);
+
+    try {
+      const w = await connectToWiseup();
+      out.wiseup.tables = group((await w.request().query(`SELECT TOP 600 c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS c WHERE ${pat} ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION`)).recordset);
+      if (batch) {
+        const b = w.request().input('b', sql.VarChar(50), batch);
+        out.wiseup.PRD_Batch = (await b.query('SELECT TOP 5 Batch, ExternalCode, SupplierID, CONVERT(VARCHAR, BatchDate, 120) AS BatchDate, CONVERT(VARCHAR, ExpirationDate, 120) AS ExpirationDate FROM PRD_Batch WITH (NOLOCK) WHERE Batch = @b')).recordset;
+        out.wiseup.RMM_GuideLine = (await w.request().input('b', sql.VarChar(50), batch).query('SELECT TOP 5 Batch, GuideYear, GuideNumber, SupplierID, SupplierName FROM RMM_GuideLine WITH (NOLOCK) WHERE Batch = @b')).recordset;
+        out.wiseup.RMM_ReceivedMaterialLine = (await w.request().input('b', sql.VarChar(50), batch).query('SELECT COUNT(*) AS n, CONVERT(VARCHAR, MIN(CreatedDate), 120) AS first_receive FROM RMM_ReceivedMaterialLine WITH (NOLOCK) WHERE Batch = @b')).recordset;
+      }
+    } catch (e) { out.wiseup.error = e.message; }
+
+    try {
+      const wc = await connectToDatabaseWC();
+      out.wc.tables = group((await wc.request().query(`SELECT TOP 400 c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS c WHERE ${pat} OR c.TABLE_NAME = 'vw_ngdnt_listNgdnt' ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION`)).recordset);
+      if (batch) out.wc.vw_ngdnt_listNgdnt = (await wc.request().input('b', sql.NVarChar(60), batch).query('SELECT TOP 3 WONo, ngdntCode, ngdntName, BatchNo, BasketNumber FROM [dbo].[vw_ngdnt_listNgdnt] WHERE BatchNo = @b')).recordset;
+    } catch (e) { out.wc.error = e.message; }
+
+    try {
+      out.pfcm.tables = group((await pool0(req)).recordset);
+      if (batch) {
+        const p = await connectToDatabase();
+        out.pfcm.PrintMasterSlip = (await p.request().input('b', sql.NVarChar(100), batch).query('SELECT TOP 3 s.* FROM [PFCMv2].[dbo].[PrintMasterSlip] s WHERE s.batch_no = @b OR s.lot = @b')).recordset;
+      }
+    } catch (e) { out.pfcm.error = e.message; }
+
+    res.json({ success: true, batch: batch || null, data: out });
+  } catch (err) {
+    console.error('❌ [traceback/probe]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+const pool0 = async () => {
+  const p = await connectToDatabase();
+  return p.request().query("SELECT c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME IN ('PrintMasterSlip', 'PackagingUsageDetail', 'PackagingUsageReport') ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION");
+};
 
 // ═══ 5) ล้าง cache ═════════════════════════════════════════════════════════
 router.post('/refs/reload', (req, res) => {
