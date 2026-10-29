@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Buttom from "../../Layout/Buttom";
 import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
@@ -6,9 +6,10 @@ import ForwardTrace from "./Asset/ForwardTrace";
 import MockRecall from "./Asset/MockRecall";
 import HoldList from "./Asset/HoldList";
 import SearchPanel from "./Asset/SearchPanel";
+import TracebackDetailView from "./Asset/TracebackDetailView";
 import { makeForm, defaultSort, defaultStatus } from "./Asset/traceForm";
 import { T } from "./Asset/tracebackUI";
-import { scopeFromParams, scopeToParams, readRecent } from "./Asset/tracebackCore";
+import { scopeFromParams, readRecent } from "./Asset/tracebackCore";
 
 // /sup/Traceback — ศูนย์สอบกลับการผลิต
 //   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง · ?scope=1&code=&batch=&line=… ใบสอบกลับตามตัวกรอง
@@ -32,8 +33,13 @@ const TracebackPage = () => {
   // ?scope=1&code=&batch=&line=... = ใบสอบกลับตามตัวกรองของหน้าค้นหา (ไม่ผูกกับเอกสารเดียว)
   const scope = scopeFromParams(params);
   const requested = params.get("mode") || "backward";
-  const mode = (scope || docNo || HIDDEN_KEYS.has(requested)) ? "backward" : requested;
-  const selected = scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null);
+  const mode = HIDDEN_KEYS.has(requested) ? "backward" : requested;
+  // ใบสอบกลับแสดงใต้ตารางผลในหน้านี้เลย (ลิงก์ ?doc_no= / ?scope=1 เปิดมาพร้อมใบนั้น)
+  const [record, setRecord] = useState(() => scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null));
+  const recordRef = useRef(null);
+  useEffect(() => {
+    if (record) recordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [record]);
 
   // the one search form of the page (SearchPanel) — both directions read it; the buttons of each direction are called through a ref
   const [form, setForm] = useState(() => makeForm(mode, mode === "forward" ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
@@ -43,12 +49,13 @@ const TracebackPage = () => {
   const recent = useMemo(() => readRecent().filter((r) => r.kind === "fwd"), [recentTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setMode = (m) => {
+    setRecord(null);
     setParams(m === "backward" ? {} : { mode: m });
     setForm((f) => ({ ...f, sort: defaultSort(m), pack_status: defaultStatus(m) })); // each direction starts from its own order / status
   };
   const activeRef = () => (mode === "forward" ? fwdRef : dashRef);
-  const onSearch = () => activeRef().current?.search();
-  const onReset = () => { setForm(makeForm(mode)); activeRef().current?.reset(); };
+  const onSearch = () => { setRecord(null); activeRef().current?.search(); };
+  const onReset = () => { setRecord(null); setForm(makeForm(mode)); activeRef().current?.reset(); };
 
   // a recent search: the code(s) go back into the box and the search runs at once
   const pickRecent = (r) => {
@@ -56,16 +63,8 @@ const TracebackPage = () => {
     activeRef().current?.run(r.code);
   };
 
-  const onSelect = useCallback((v) => {
-    if (v?.scope) setParams(scopeToParams(v));
-    else if (v) setParams({ doc_no: v.doc_no, ...(v.code ? { code: v.code } : {}) });
-    else setParams({});
-  }, [setParams]);
-
-  const openRecord = useCallback((doc_no, code) => {
-    onSelect({ doc_no, code });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [onSelect]);
+  const openRecord = useCallback((doc_no, code) => setRecord({ doc_no, code }), []);
+  const onSelect = useCallback((v) => setRecord(v || null), []);
 
   const onForwardQuery = useCallback(({ code, type }) => {
     setParams((prev) => {
@@ -82,15 +81,13 @@ const TracebackPage = () => {
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
-        {!selected && (
-          <SearchPanel
+        <SearchPanel
             mode={mode} onModeChange={setMode} form={form} setForm={setForm} onSearch={onSearch} onReset={onReset}
             recent={recent} onPickRecent={pickRecent}
-          />
-        )}
+        />
 
         <div style={{ padding: "4px 0 12px" }}>
-          {mode === "backward" && <ProductionLineDelayDashboard ref={dashRef} selected={selected} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />}
+          {mode === "backward" && <ProductionLineDelayDashboard ref={dashRef} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />}
           {mode === "forward" && (
             <div style={{ paddingTop: 8 }}>
               <ForwardTrace
@@ -115,6 +112,15 @@ const TracebackPage = () => {
             </div>
           )}
         </div>
+
+        {record && (
+          <div ref={recordRef} style={{ paddingBottom: 12 }}>
+            <TracebackDetailView
+              docNo={record.doc_no} code={record.code} scope={record.scope ? record : null}
+              onClose={() => setRecord(null)}
+            />
+          </div>
+        )}
       </main>
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <Buttom title="Copyright © 2025 i-Tail Corporation Public Company Limited. All right reserved" />

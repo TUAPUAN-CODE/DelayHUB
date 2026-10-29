@@ -105,7 +105,7 @@ const ForwardLotsGrid = ({ lots, show = null }) => {
         <DataGrid
           fill gridKey={GRID_KEY} title="ล็อตการผลิตทั้งหมด" defaultExt={DEFAULT_EXT} columns={ALL_COLUMNS} groups={GROUPS} defaultVisible={ALL_KEYS}
           prepareRows={prepareSheetRows} rows={rows} rowKey={rowKey} loading={state.loading} hideReload ctx={NO_TOOLS}
-          searchPlaceholder="ค้นหาในล็อตทั้งหมด (Mat / Batch / เอกสาร / สถานะ / หมายเหตุ ...)"
+          hideSearch hideExport
         />
       </div>
     </div>

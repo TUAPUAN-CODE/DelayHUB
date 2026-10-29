@@ -93,6 +93,7 @@ export default {
   "ไม่พบประวัติ mapping_id: {x}": ["No history for mapping_id: {x}", "mapping_id: {x} ၏ မှတ်တမ်း မတွေ့ပါ", "រកមិនឃើញប្រវត្តិ mapping_id: {x}"],
   "TIMEOUT: ไม่พบการ์ด RFID ภายในเวลาที่กำหนด": ["TIMEOUT: no RFID card found in time", "TIMEOUT: သတ်မှတ်ချိန်အတွင်း RFID ကတ် မတွေ့ပါ", "TIMEOUT: រកមិនឃើញកាត RFID ក្នុងពេលកំណត់"],
   "เชื่อมต่อเครื่องอ่านไม่ได้ ({x}:{x}): {x}": ["Could not connect to the reader ({x}:{x}): {x}", "ဖတ်စက်နှင့် ချိတ်ဆက်၍ မရပါ ({x}:{x}): {x}", "មិនអាចភ្ជាប់ឧបករណ៍អានបាន ({x}:{x}): {x}"],
+  "✕ ปิด": ["✕ Close", "✕ ပိတ်ရန်", "✕ បិទ"],
   "การเชื่อมต่อเครื่องอ่านถูกปิดก่อนจะได้ค่า EPC": ["The connection to the reader closed before an EPC was read", "EPC တန်ဖိုး မရမီ ဖတ်စက်နှင့် ချိတ်ဆက်မှု ပိတ်သွားသည်", "ការភ្ជាប់ឧបករណ៍អានត្រូវបានបិទមុនពេលទទួល EPC"],
   "ไม่มี connection pool": ["No connection pool", "connection pool မရှိပါ", "គ្មាន connection pool"],
   "ยังอยู่ในโหมด warn จนกว่าจะตั้ง AUTH_MODE=enforce เอง": ["Stays in warn mode until AUTH_MODE=enforce is set", "AUTH_MODE=enforce ကို ကိုယ်တိုင် သတ်မှတ်သည်အထိ warn မုဒ်တွင် ရှိနေမည်", "នៅតែក្នុងរបៀប warn រហូតដល់កំណត់ AUTH_MODE=enforce ដោយខ្លួនឯង"],

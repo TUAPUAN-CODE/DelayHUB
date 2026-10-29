@@ -101,7 +101,7 @@ const DataGrid = ({
   gridKey, title, columns, groups, defaultVisible, defaultSorts, defaultExt, rows: rawRows, rowKey, prepareRows,
   loading = false, error = "", onReload, searchPlaceholder = "ค้นหาทุกคอลัมน์...", pageSize = 100,
   rowColor, colorSettings, toolbarExtra, selectable = false, selected, onSelectedChange, isSelectable, ctx,
-  hideExport = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
+  hideExport = false, hideSearch = false, caption, emptyText = "ไม่มีรายการ", maxHeight = "68vh",
   // fill: the grid takes the height of its parent and only the table body scrolls (no page scroll) · activeKey/onRowClick: a clicked row is the "chosen" row · actionBar: shown above the table
   fill = false, activeKey = null, onRowClick, actionBar, hideReload = false, rowSig,
   // detail: ปุ่ม Detail ขวาสุดของแถวค้นหา เปิดกล่องรายละเอียดทางขวาของตาราง (แสดงค่าทั้งหมดของแถวที่เลือก)
@@ -381,10 +381,12 @@ const DataGrid = ({
             </span>
           </Tooltip>
         )}
-        <TextField
-          size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 200 : 240 }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-        />
+        {!hideSearch && (
+          <TextField
+            size="small" placeholder={searchPlaceholder} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ flex: 1, minWidth: fill ? 200 : 240 }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+          />
+        )}
         {fill && colorChips}
         {toolbarExtra}
         {!topbar && <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setChooserOpen(true)}>ตั้งค่าคอลัมน์</Button>}

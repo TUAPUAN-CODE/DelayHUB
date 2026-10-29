@@ -1,6 +1,5 @@
 import { forwardRef, useState, useCallback, useImperativeHandle, useMemo } from 'react';
 import axios from 'axios';
-import TracebackDetailView from './TracebackDetailView';
 import { C, fmtDisplay, fmtNum, DELAY_STYLE } from './tracebackUI';
 import { backwardFilters, traceCodes } from './traceForm';
 import { readRecent, pushRecent } from './tracebackCore';
@@ -27,9 +26,8 @@ const Spinner = ({ size = 20, border = 2 }) => (
   <div style={{ width: size, height: size, border: `${border}px solid ${C.line}`, borderTop: `${border}px solid ${C.blue}`, borderRadius: '50%', animation: 'tbSpin 0.7s linear infinite', flexShrink: 0 }} />
 );
 
-// selected / onSelect มาจาก TracebackPage เพื่อให้ URL (?doc_no=&code=) เปิดใบสอบกลับตรงได้
-// selected / onSelect / form มาจาก TracebackPage: ฟอร์มค้นหาอยู่ที่ SearchPanel ใช้ร่วมกับสอบไปข้างหน้า; ปุ่มค้นหาเรียก search() ผ่าน ref
-const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, form, onRan }, ref) => {
+// onSelect / form มาจาก TracebackPage (ใบสอบกลับแสดงใต้ตารางในหน้าหลัก ไม่เปิดอีกหน้า): ฟอร์มค้นหาอยู่ที่ SearchPanel ใช้ร่วมกับสอบไปข้างหน้า; ปุ่มค้นหาเรียก search() ผ่าน ref
+const ProductionLineDelayDashboard = forwardRef(({ onSelect, form, onRan }, ref) => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -91,7 +89,6 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
   const openRecord = r => {
     setRecent(pushRecent({ kind: 'doc', doc_no: r.doc_no, code: r.code }).filter(x => x.kind === 'doc'));
     setSelected(r.scope ? r : buildScope(r));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const sorted = useMemo(() => {
@@ -120,21 +117,6 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
     }[sortBy];
     return cmp ? arr.sort(cmp) : arr;
   }, [results, sortBy]);
-
-  // ── โหมดเต็มหน้า: เปิดใบสอบกลับแล้วซ่อนหน้าค้นหาไว้ทั้งหมด ───────────────
-  if (selected) {
-    return (
-      <div style={{ padding: '1rem 0', fontFamily: 'inherit' }}>
-        <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
-        <TracebackDetailView
-          docNo={selected.doc_no}
-          code={selected.code}
-          scope={selected.scope ? selected : null}
-          onBack={() => setSelected(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div style={{ padding: '0.5rem 0 1rem', fontFamily: 'inherit' }}>

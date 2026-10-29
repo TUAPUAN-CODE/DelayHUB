@@ -8,7 +8,6 @@ import { Tag, Card, Btn, Segmented, SimpleTable, Spinner, EmptyHint } from './Tr
 import { fmtDT, fmtNum, pushRecent, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
 import ForwardLotsGrid from './ForwardLotsGrid';
 import { splitCodes, traceCodes } from './traceForm';
-import { HoldDialog } from './HoldList';
 import { exportForwardExcel, exportForwardPDF } from './tracebackExport';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -77,8 +76,7 @@ const impactText = (d) => {
 };
 
 // form = the shared search form (SearchPanel): code · kind · one/many + the filters; search() / run() are called through the ref
-const ForwardTrace = forwardRef(({ initialCode = '', onOpenRecord, onStartRecall, onQueryChange, onHoldsChanged, form, onRan }, ref) => {
-  const [holdOpen, setHoldOpen] = useState(false);
+const ForwardTrace = forwardRef(({ initialCode = '', onOpenRecord, onQueryChange, form, onRan }, ref) => {
   const [notice, setNotice] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -205,30 +203,13 @@ const ForwardTrace = forwardRef(({ initialCode = '', onOpenRecord, onStartRecall
 
       {data && !loading && (
         <>
-          {/* ── สรุปผลกระทบ ── */}
-          <div style={{
-            marginTop: 14, background: s.product_count ? T.orange : T.ok, color: T.white, borderRadius: 12,
-            padding: '14px 18px', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center',
-          }}>
-            <div>
-              <div style={{ fontSize: 12, opacity: 0.92 }}>ผลการสอบกลับ {TYPE_LABEL[data.type]} · รหัส</div>
-              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'ui-monospace,monospace', letterSpacing: 2 }}>{data.code}</div>
-              <div style={{ fontSize: 12.5, marginTop: 2 }}>
-                {s.product_count
-                  ? `พบใน ${(data.matched_types || []).map(t => TYPE_LABEL[t]).join(', ')} · กระทบ ${s.product_count} เอกสารผลิต`
-                  : 'ไม่พบการใช้งานรหัสนี้ในสินค้าใด'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Btn variant="outline" onClick={() => exportForwardExcel(data)} disabled={!s.product_count}>Excel</Btn>
-              <Btn variant="outline" onClick={() => exportForwardPDF(data)} disabled={!s.product_count}>PDF</Btn>
-              <Btn variant="outline" onClick={exportCsv} disabled={!s.lot_count} title="ไฟล์ CSV หัวคอลัมน์แบบ SAP สำหรับนำเข้าระบบอื่น">CSV (ERP)</Btn>
-              <Btn variant="outline" onClick={() => setHoldOpen(true)} disabled={!s.product_count}>กักสินค้า</Btn>
-              <Btn variant="outline" onClick={notifyLine} disabled={!s.product_count}>แจ้ง LINE</Btn>
-              {onStartRecall && (
-                <Btn variant="outline" onClick={() => onStartRecall(data)} disabled={!s.product_count}>เริ่ม Mock Recall</Btn>
-              )}
-            </div>
+          {/* ── ส่งออก / แจ้ง (ไม่มีกล่องสรุป) ── */}
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {!s.product_count && <span style={{ marginRight: 'auto', fontSize: 13, color: T.text2 }}>ไม่พบการใช้งานรหัสนี้ในสินค้าใด</span>}
+            <Btn variant="outline" onClick={() => exportForwardExcel(data)} disabled={!s.product_count}>Excel</Btn>
+            <Btn variant="outline" onClick={() => exportForwardPDF(data)} disabled={!s.product_count}>PDF</Btn>
+            <Btn variant="outline" onClick={exportCsv} disabled={!s.lot_count} title="ไฟล์ CSV หัวคอลัมน์แบบ SAP สำหรับนำเข้าระบบอื่น">CSV (ERP)</Btn>
+            <Btn variant="outline" onClick={notifyLine} disabled={!s.product_count}>แจ้ง LINE</Btn>
           </div>
 
           {notice && <div style={{ marginTop: 10 }}><Tag tone={notice.startsWith('ส่ง LINE ไม่') ? 'bad' : 'ok'}>{notice}</Tag></div>}
@@ -290,8 +271,6 @@ const ForwardTrace = forwardRef(({ initialCode = '', onOpenRecord, onStartRecall
           </Card>
         </>
       )}
-      <HoldDialog open={holdOpen} onClose={() => setHoldOpen(false)} source={data ? { type: data.type, code: data.code } : null}
-        products={data?.products || []} onDone={(m) => { setNotice(m); onHoldsChanged?.(); }} />
     </div>
   );
 });

@@ -57,19 +57,6 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
         </div>
       </div>
 
-      {/* ล่าสุด: */}
-      {recent.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-          <span style={{ fontSize: 12, color: T.text2 }}>ล่าสุด:</span>
-          {recent.slice(0, 6).map(r => (
-            <button key={r.key} type="button" onClick={() => onPickRecent(r)}
-              style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {r.code}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* แถว 3-4: ตัวกรอง (ใช้ร่วมกันทั้งสองทิศทาง) */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12 }}>
         <div style={cell(120)}><SearchableSelect label="เลขเอกสาร (doc_no)" value={form.doc_no} onChange={v => set('doc_no', v)} options={opts.doc_no} loading={optsLoading} placeholder="ทุกเอกสาร" /></div>
@@ -105,6 +92,20 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
           <SearchableSelect label="เรียงลำดับผลลัพธ์" value={form.sort} onChange={v => set('sort', v || sortOptions[0].value)} options={sortOptions} allowFree={false} placeholder={sortOptions[0].label} />
         </div>
       </div>
+
+      {/* ล่าสุด: อยู่ล่างสุดของกล่อง */}
+      {recent.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+          <span style={{ fontSize: 12, color: T.text2 }}>ล่าสุด:</span>
+          {recent.slice(0, 6).map(r => (
+            <button key={r.key} type="button" onClick={() => onPickRecent(r)}
+              style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {r.code}
+            </button>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 };

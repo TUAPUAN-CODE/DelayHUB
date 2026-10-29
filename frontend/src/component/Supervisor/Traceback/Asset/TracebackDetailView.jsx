@@ -1,42 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 
-import {
-  WARN_MIN, SEVERE_MIN, diffMin, fmtDT, fmtD, fmtRange, fmtNum, fmtDur, uniq, buildDelay, STAGE_LABEL, DBS_LABEL,
-} from './tracebackCore';
-import { exportDetailExcel } from './tracebackExport';
-import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
-import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
-import { Ring, RemarkCsText, RemarkCsGroupText, SortableTh } from './TraceAtoms';
+import { fmtD, fmtRange, fmtNum, uniq, buildDelay, scopeToParams, scopeTitle } from './tracebackCore';
+import { RemarkCsGroupText, SortableTh } from './TraceAtoms';
 import useTableSort from './tableSort';
 import useRemarkCsByBatch from './useRemarkCsByBatch';
-import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
-import { useNavigate, useLocation } from 'react-router-dom';
-import TraceTree from './TraceTree';
-import TraceTimeline from './TraceTimeline';
-import { QRCodeCanvas } from 'qrcode.react';
-import logoUrl from '../../../../assets/brand/itail-logo.png';
+import { T } from './tracebackUI';
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ใบสอบกลับการผลิต — ฟ้า / ส้ม / ขาว  ไม่มีตัวอักษรสีเทา
-   · ค้นหาแบบ dropdown มีช่องค้นหาในตัว ทุกแท็บ
-   · สอบกลับได้ทั้งย้อนกลับ (Backward) และไปข้างหน้า (Forward)
-     ครอบคลุม วัตถุดิบ / ส่วนผสม / บรรจุภัณฑ์
-   · ดีเลย์คำนวณตามสูตร DBS1-4 เดียวกับรายงานควบคุมเวลา F3PFPF67
-   · Export PDF เป็นฟอร์มทางการ
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const T = {
-  blue: '#0B5FA5', blueDeep: '#083E6B', blueSoft: '#E7F1FA', blueLine: '#B7D5EE',
-  orange: '#D9580D', orangeSoft: '#FFF0E3', orangeLine: '#FFCFA6',
-  white: '#FFFFFF', bg: '#F5F9FD',
-  text: '#0F2740', text2: '#274866', line: '#CBDFEF',
-  ok: '#0A6B3D', okSoft: '#E2F5EA', okLine: '#A9DCC0',
-  bad: '#A81E14', badSoft: '#FDEBE9', badLine: '#F3B7B1',
-};
+// ใบสอบกลับ (แสดงในหน้าหลักใต้ผลการค้นหา): ตัวกรอง + ตารางข้อมูล วัตถุดิบ/Remark CS ตาม HU/ส่วนผสม/บรรจุภัณฑ์ — สีชุดเดียวกับทั้งหน้า (tracebackUI)
 
 /* ═══ อะตอม UI ════════════════════════════════════════════════════════════ */
 const Txt = ({ children, c = T.text, size = 12.5, weight = 400, style }) => (
@@ -60,65 +34,6 @@ const Tag = ({ children, tone = 'blue', title }) => {
   );
 };
 
-const DelayTag = ({ minutes, over }) => {
-  const tone = over ? 'bad' : minutes > SEVERE_MIN ? 'bad' : minutes > WARN_MIN ? 'orange' : 'ok';
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-      {over && (
-        <span style={{
-          width: 16, height: 16, borderRadius: 8, background: T.bad, color: T.white,
-          fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>!</span>
-      )}
-      <Tag tone={tone}>{fmtDur(minutes)}</Tag>
-    </span>
-  );
-};
-
-const Field = ({ label, value, wide }) => (
-  <div style={{ gridColumn: wide ? 'span 2' : undefined }}>
-    <div style={{ fontSize: 11, color: T.blueDeep, fontWeight: 500, marginBottom: 3 }}>{label}</div>
-    <div style={{ fontSize: 13, color: T.text, fontWeight: 400, wordBreak: 'break-word' }}>
-      {value === 0 || value ? value : '—'}
-    </div>
-  </div>
-);
-
-const Grid = ({ children, min = 170, style }) => (
-  <div style={{
-    display: 'grid', gridTemplateColumns: `repeat(auto-fill,minmax(${min}px,1fr))`, gap: 14,
-    background: T.bg, border: `1px solid ${T.line}`, borderRadius: 10, padding: '14px 16px', ...style,
-  }}>{children}</div>
-);
-
-const Panel = ({ title, hint, tone = 'blue', children, right }) => {
-  const head = tone === 'orange' ? T.orange : T.blue;
-  return (
-    <div style={{ marginTop: 18, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', background: T.white }}>
-      <div style={{
-        background: head, color: T.white, padding: '9px 14px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{title}</span>
-        <span style={{ fontSize: 11.5, fontWeight: 400 }}>{right || hint}</span>
-      </div>
-      <div style={{ padding: '14px 16px' }}>{children}</div>
-    </div>
-  );
-};
-
-const Kpi = ({ label, value, sub, tone = 'blue' }) => {
-  const c = tone === 'bad' ? T.bad : tone === 'orange' ? T.orange : tone === 'ok' ? T.ok : T.blue;
-  return (
-    <div style={{ background: T.white, border: `1px solid ${T.line}`, borderLeft: `4px solid ${c}`, borderRadius: 10, padding: '12px 14px' }}>
-      <div style={{ fontSize: 11.5, color: T.text2, fontWeight: 500, marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: c, lineHeight: 1.15 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: T.text2, marginTop: 4, fontWeight: 400 }}>{sub}</div>}
-    </div>
-  );
-};
-
-/* ═══ Dropdown ที่ค้นหาได้ในตัว ═══════════════════════════════════════════ */
 const SearchSelect = ({ label, value, onChange, options = [], placeholder = 'ทั้งหมด', width = 190 }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -300,390 +215,8 @@ const SectionTitle = ({ no, title, hint, count }) => (
   </div>
 );
 
-/* ═══ ดัชนีสำหรับสอบกลับสองทิศทาง ═════════════════════════════════════════
-   สร้างครั้งเดียวจาก data แล้วใช้ค้นทั้ง forward และ backward
-   · rm       วัตถุดิบ  (mat + batch)
-   · ing      ส่วนผสม   (ngdntCode + batch)
-   · pkg      บรรจุภัณฑ์ (code + lot + batch)
-   ═══════════════════════════════════════════════════════════════════════ */
-const buildIndex = (materials) => {
-  const rm = new Map(), ing = new Map(), pkg = new Map();
-
-  materials.forEach(m => {
-    const rk = `${m.mat || ''}|${m.batch_before || ''}`;
-    if (!rm.has(rk)) rm.set(rk, {
-      key: rk, type: 'rm', code: m.mat, name: m.mat_name, batch: m.batch_before,
-      code2: m.mat_2x, batch2: m.batch_after, lots: [],
-    });
-    rm.get(rk).lots.push(m);
-
-    (m.ingredient_summary || []).forEach(g => {
-      const ik = `${g.material_code || ''}|${g.batch_no || ''}`;
-      if (!ing.has(ik)) ing.set(ik, { key: ik, type: 'ing', code: g.material_code, name: g.material_name, batch: g.batch_no, lots: [], rows: [] });
-      const e = ing.get(ik);
-      if (!e.lots.includes(m)) e.lots.push(m);
-      e.rows.push({ ...g, _m: m });
-    });
-
-    (m.packaging || []).forEach(p => {
-      const pk = `${p.code || ''}|${p.lot_no || ''}|${p.batch_no || ''}`;
-      if (!pkg.has(pk)) pkg.set(pk, { key: pk, type: 'pkg', code: p.code, name: p.material_no, batch: p.batch_no, lot: p.lot_no, lots: [], rows: [] });
-      const e = pkg.get(pk);
-      if (!e.lots.includes(m)) e.lots.push(m);
-      e.rows.push({ ...p, _m: m });
-    });
-  });
-
-  return { rm: [...rm.values()], ing: [...ing.values()], pkg: [...pkg.values()] };
-};
-
-const ENTITY_LABEL = { rm: 'วัตถุดิบ', ing: 'ส่วนผสม', pkg: 'บรรจุภัณฑ์' };
-
-/* ── กล่องในแผนผัง ───────────────────────────────────────────────────────── */
-const EV = {
-  doc: { label: 'ยืนยันด้วยเอกสาร', bd: T.blue, bg: T.blueSoft, fg: T.blueDeep, dash: false },
-  decoded: { label: 'ถอดจากรหัสรุ่น', bd: T.orange, bg: T.orangeSoft, fg: T.orange, dash: false },
-  inferred: { label: 'อนุมานจากข้อมูล', bd: T.orange, bg: T.white, fg: T.orange, dash: true },
-  none: { label: 'ไม่มีข้อมูล', bd: T.line, bg: T.white, fg: T.text2, dash: true },
-};
-
-const Legend = () => (
-  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 12, alignItems: 'center' }}>
-    <span style={{ fontSize: 12, fontWeight: 600, color: T.blueDeep }}>ระดับหลักฐาน</span>
-    {Object.values(EV).map((e, i) => (
-      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.text, fontWeight: 400 }}>
-        <span style={{ width: 24, borderTop: `2.5px ${e.dash ? 'dashed' : 'solid'} ${e.bd}` }} />
-        {e.label}
-      </span>
-    ))}
-  </div>
-);
-
-const Node = ({ title, lines, ev = 'doc', w = 208, onClick }) => {
-  const e = EV[ev] || EV.none;
-  return (
-    <div onClick={onClick} style={{
-      minWidth: w, maxWidth: w, background: e.bg, borderRadius: 10, padding: '10px 12px',
-      border: `2px ${e.dash ? 'dashed' : 'solid'} ${e.bd}`, flexShrink: 0,
-      cursor: onClick ? 'pointer' : 'default',
-    }}>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: e.fg, marginBottom: 6 }}>{title}</div>
-      {lines.filter(l => l && l.v != null && l.v !== '' && l.v !== '—').map((l, i) => (
-        <div key={i} style={{ display: 'flex', gap: 7, lineHeight: 1.55, fontSize: 11.5 }}>
-          <span style={{ color: T.text2, fontWeight: 500, minWidth: 56 }}>{l.k}</span>
-          <span style={{ color: T.text, fontWeight: 500, wordBreak: 'break-word' }}>{l.v}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const Arrow = ({ dir = 'f' }) => (
-  <div style={{ display: 'flex', alignItems: 'center', color: T.orange, fontSize: 20, fontWeight: 700, padding: '0 3px', flexShrink: 0 }}>
-    {dir === 'f' ? '→' : '←'}
-  </div>
-);
-
-/* ── แผนผังของ 1 ล็อต ────────────────────────────────────────────────────── */
-const LotFlow = ({ m, summary }) => {
-  const it = m.intake;
-  const dly = buildDelay(m);
-
-  return (
-    <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
-      <div style={{ display: 'flex', gap: 5, minWidth: 'min-content', alignItems: 'stretch' }}>
-        <Node title="① ผู้ส่งมอบ" ev={it ? 'doc' : 'none'} lines={[
-          { k: 'ผู้ขาย', v: m.supplier_name || m.supplier_code },
-          { k: 'ชนิด', v: m.fish_specie },
-          { k: 'ขนาด', v: m.fish_size },
-          { k: 'ผลตรวจ', v: m.intake_decision },
-          { k: 'พบ', v: m.intake_defect },
-        ]} />
-        <Arrow />
-        <Node title="② รับเข้าโรงงาน" ev={it ? 'doc' : 'none'} lines={[
-          { k: 'Batch', v: m.batch_before },
-          { k: 'Batch 2x', v: m.batch_after && m.batch_after !== m.batch_before ? m.batch_after : null },
-          { k: 'Remark CS', v: <RemarkCsText m={m} /> },
-          { k: 'วันที่ล็อต', v: m.batch_date && fmtD(m.batch_date) },
-          { k: 'ผลิต(Supp)', v: m.produce_date },
-          { k: 'ปริมาณ', v: m.receive_qty != null ? `${fmtNum(m.receive_qty, 0)} ${m.receive_unit || ''}` : null },
-          { k: 'อุณหภูมิ', v: m.intake_temp_avg != null ? `${m.intake_temp_avg} °C` : null },
-        ]} />
-        <Arrow />
-        <Node title="③ ล็อตในโรงงาน" lines={[
-          { k: 'mapping', v: m.mapping_id },
-          { k: 'Mat', v: m.mat },
-          { k: 'Mat 2x', v: m.mat_2x && m.mat_2x !== m.mat ? m.mat_2x : null },
-          { k: 'ชื่อ', v: m.mat_name },
-          { k: 'น้ำหนัก', v: m.weight_RM != null ? `${fmtNum(m.weight_RM, 1)} kg` : null },
-          { k: 'กลุ่ม', v: m.rm_group_name },
-        ]} />
-        <Arrow />
-        <Node title="④ ส่วนผสม" ev={m.ingredient_row_count ? 'doc' : 'none'} lines={[
-          { k: 'WO', v: m.wo_list?.join(', ') },
-          { k: 'ตะกร้า', v: m.ingredient_basket_count || null },
-          { k: 'ชนิด', v: m.ingredient_summary?.length || null },
-          { k: 'หลุดพิกัด', v: m.ingredient_out_of_spec || null },
-        ]} />
-        <Arrow />
-        <Node title="⑤ บรรจุ" ev={m.packaging_count ? 'doc' : 'none'} lines={[
-          { k: 'ไลน์', v: m.rmm_line_name },
-          { k: 'เสร็จ(โรงงาน)', v: fmtDT(m.sc_pack_date) },
-          { k: 'วัสดุ', v: m.packaging_count ? `${m.packaging_count} รายการ` : null },
-          { k: 'QC', v: [m.qccheck, m.mdcheck, m.defectcheck].filter(Boolean).join(' · ') },
-        ]} />
-        <Arrow />
-        <Node title="⑥ สินค้าที่ผลิต" lines={[
-          { k: 'เอกสาร', v: summary?.doc_no },
-          { k: 'Code', v: m.raw?.Production?.code || summary?.code },
-          { k: 'DBS4', v: fmtDur(dly.value.dbs4) },
-        ]} />
-      </div>
-    </div>
-  );
-};
-
-/* ═══ ตารางดีเลย์ DBS ของ 1 ล็อต ══════════════════════════════════════════ */
-const DelayPanel = ({ m }) => {
-  const d = buildDelay(m);
-  const stages = ['_A', '_B', '_C', '_D', '_E', '_D3', '_E3', '_F']
-    .map(k => ({ k, label: STAGE_LABEL[k], v: d.mapped[k] }))
-    .filter(s => s.v);
-
-  return (
-    <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        <Tag tone="plain">กลุ่ม {m.rm_group_id ?? '—'} {m.rm_group_name || ''}</Tag>
-        {d.special && <Tag tone="orange">กลุ่มพิเศษ — ใช้สูตรเฉพาะ</Tag>}
-        {d.anyOver ? <Tag tone="bad">เกินมาตรฐาน</Tag> : <Tag tone="ok">อยู่ในมาตรฐาน</Tag>}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginBottom: 14 }}>
-        {['dbs1', 'dbs2', 'dbs3', 'dbs4'].map(k => (
-          <div key={k} style={{
-            border: `1.5px solid ${d.over[k] ? T.bad : T.line}`,
-            background: d.over[k] ? T.badSoft : T.white,
-            borderRadius: 10, padding: '11px 13px',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: d.over[k] ? T.bad : T.blueDeep, marginBottom: 5 }}>
-              {DBS_LABEL[k]}
-            </div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: d.over[k] ? T.bad : T.text }}>
-              {d.value[k] == null ? '—' : fmtDur(d.value[k])}
-            </div>
-            <div style={{ fontSize: 11.5, color: T.text2, fontWeight: 500, marginTop: 4 }}>
-              มาตรฐาน {d.std[k] == null ? '—' : fmtDur(d.std[k])}
-              {d.over[k] && d.std[k] != null && (
-                <span style={{ color: T.bad, marginLeft: 6 }}>เกิน {fmtDur(d.value[k] - d.std[k])}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <DataTable
-        columns={[
-          { key: 'label', label: 'จุดบันทึกเวลา', minWidth: 170 },
-          { key: 'v', label: 'เวลา', render: r => fmtDT(r.v) },
-          { key: 'gap', label: 'ห่างจากจุดก่อนหน้า', align: 'right', render: (r, i) => (i === 0 ? '—' : <DelayTag minutes={diffMin(stages[i - 1].v, r.v)} />) },
-        ]}
-        rows={stages}
-        getKey={r => r.k}
-        empty="ไม่มีการบันทึกเวลาในล็อตนี้"
-      />
-    </div>
-  );
-};
-
-/* ═══ แผงข้อมูลรับเข้าจาก WISEUP ══════════════════════════════════════════
-   แทนการถอดรหัสจากหลักของ batch — ใช้ข้อมูลจริงจากระบบรับเข้า แม่นกว่า
-   ═══════════════════════════════════════════════════════════════════════ */
-const IntakePanel = ({ m }) => {
-  const it = m.intake;
-  const code = m.batch_before;
-
-  if (!code) return <Txt c={T.text2}>ล็อตนี้ไม่มีเลขรหัสรุ่นบันทึกไว้</Txt>;
-
-  if (!it) {
-    return (
-      <div>
-        <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 22, letterSpacing: 4,
-                      fontWeight: 700, color: T.text, marginBottom: 10 }}>{code}</div>
-        <Tag tone="orange">
-          ไม่พบรหัสรุ่นนี้ในระบบรับเข้า (WISEUP) — น่าจะเป็นของกึ่งสำเร็จรูปที่ผลิตเอง
-        </Tag>
-      </div>
-    );
-  }
-
-  const q = it.qc || {};
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-        <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 22, letterSpacing: 4,
-                      fontWeight: 700, color: T.blueDeep }}>{code}</div>
-        {m.batch_after && m.batch_after !== code && (
-          <Tag tone="orange">Batch 2x {m.batch_after}</Tag>
-        )}
-        {it.decision_code && (
-          <Tag tone={it.decision_code === 'A01' ? 'ok' : 'orange'}>ผลตัดสิน {it.decision_code}</Tag>
-        )}
-        {q.defect && <Tag tone="bad">พบข้อบกพร่อง</Tag>}
-        {it.inspection_lot && <Tag tone="plain">ล็อตตรวจ {it.inspection_lot}</Tag>}
-      </div>
-
-      <Grid min={185}>
-        <Field label="ผู้ขาย / ผู้ส่งมอบ" value={it.supplier_name} wide />
-        <Field label="รหัสผู้ขาย" value={it.supplier_code} />
-        <Field label="รหัสวัสดุในระบบรับเข้า" value={it.mat_external} />
-        <Field label="วันที่ล็อต (รับเข้าโรงงาน)" value={it.batch_date && fmtDT(it.batch_date)} />
-        <Field label="วันที่ผลิต (แจ้งโดยผู้ขาย/Supplier)" value={q.produce_date} />
-        <Field label="วันหมดอายุ" value={it.expiration_date && fmtD(it.expiration_date)} />
-        <Field label="อายุการเก็บ" value={it.shelf_life_days != null ? `${it.shelf_life_days} วัน` : null} />
-        <Field label="ถือครองก่อนเบิกใช้"
-               value={m.hold_days_before_use != null ? `${m.hold_days_before_use} วัน` : null} />
-        <Field label="ชนิดปลา" value={it.fish_specie} />
-        <Field label="ขนาดปลา" value={it.fish_size} />
-        <Field label="ปริมาณรับรวม"
-               value={it.receive_qty != null ? `${fmtNum(it.receive_qty, 0)} ${it.receive_unit || ''}` : null} />
-        <Field label="จำนวนใบรับ" value={it.receive_lines} />
-        <Field label="ช่วงเวลารับของ" value={fmtRange(it.receive_first, it.receive_last)} wide />
-        <Field label="เลขใบกำกับที่รับ" value={it.guide_numbers} wide />
-        <Field label="เลขล็อตตรวจ (Inspection Lot)" value={it.inspection_lot} />
-        <Field label="วันที่ตรวจ (WISEUP)" value={it.inspection_date && fmtDT(it.inspection_date)} />
-        <Field label="ผลตัดสินการใช้งาน" value={it.decision_code} />
-        <Field label="จำนวนครั้งที่เบิกใช้แล้ว" value={it.consumption_cnt} />
-      </Grid>
-
-      {(q.temp_avg != null || q.defect || q.inspector) && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.orange, marginBottom: 8 }}>
-            ผลตรวจตอนรับเข้า
-          </div>
-          <Grid min={175}>
-            <Field label="อุณหภูมิเฉลี่ย" value={q.temp_avg != null ? `${q.temp_avg} °C` : null} />
-            <Field label="ช่วงอุณหภูมิ"
-                   value={q.temp_min != null ? `${q.temp_min} ถึง ${q.temp_max} °C (${q.temp_samples} ตัวอย่าง)` : null} />
-            <Field label="ทะเบียนรถขนส่ง" value={q.truck_plate} />
-            <Field label="ผู้ตรวจ" value={q.inspector} />
-            <Field label="ผู้ทวนสอบ" value={q.reviewer} />
-            <Field label="สิ่งที่พบ" value={q.defect} wide />
-          </Grid>
-        </div>
-      )}
-
-      {it.receipts?.length > 0 && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.blueDeep, marginBottom: 8 }}>
-            ใบรับของ ({it.receipts.length} ใบ)
-          </div>
-          <DataTable
-            rows={it.receipts} getKey={(r, i) => `${r.guide_number}-${r.guide_line}-${i}`}
-            columns={[
-              { key: 'guide_number', label: 'เลขใบรับ', render: r => <b>{r.guide_number}</b> },
-              { key: 'guide_line', label: 'รายการ', align: 'right' },
-              { key: 'quantity', label: 'ปริมาณ', align: 'right', render: r => fmtNum(r.quantity, 0) },
-              { key: 'unit', label: 'หน่วย' },
-              { key: 'supplier_id', label: 'รหัสผู้ขาย' },
-              { key: 'received_at', label: 'วันที่รับของ', render: r => fmtDT(r.received_at) },
-            ]}
-          />
-        </div>
-      )}
-
-      {it.qc_features?.length > 0 && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.blueDeep, marginBottom: 8 }}>
-            ผลตรวจรายคุณลักษณะ ({it.qc_features.length} รายการ)
-          </div>
-          <DataTable
-            rows={it.qc_features} getKey={(f, i) => f.feature_code + i}
-            rowTone={f => (f.status === 'ยังไม่บันทึก' ? 'orange' : null)}
-            columns={[
-              { key: 'group_label', label: 'กลุ่ม' },
-              { key: 'label', label: 'คุณลักษณะ', wrap: true, minWidth: 180,
-                render: f => (
-                  <span>
-                    {f.label}
-                    {!f.confirmed_label && (
-                      <span style={{ marginLeft: 6 }}><Tag tone="orange">ยังไม่ยืนยันชื่อ</Tag></span>
-                    )}
-                  </span>
-                ) },
-              { key: 'value', label: 'ค่าที่วัดได้', wrap: true, minWidth: 190 },
-              { key: 'unit', label: 'หน่วย' },
-              { key: 'avg', label: 'เฉลี่ย', align: 'right', render: f => (f.avg != null ? f.avg : '—') },
-              { key: 'range', label: 'ช่วง', align: 'right',
-                render: f => (f.min != null ? `${f.min} – ${f.max}` : '—') },
-              { key: 'recorded', label: 'บันทึกแล้ว', align: 'right',
-                render: f => `${f.recorded}/${f.sample_size ?? '?'}` },
-              { key: 'status', label: 'สถานะ',
-                render: f => <Tag tone={f.status === 'ครบ' ? 'ok' : 'orange'}>{f.status}</Tag> },
-            ]}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ── กล่องกรอกลายเซ็นก่อน export ─────────────────────────────────────────── */
-const SignDialog = ({ open, onClose, onExport }) => {
-  const [v, setV] = useState({ recordedBy: currentUserName(), reviewedBy: '', qcManager: '', watermark: 'สำเนาควบคุม' });
-  if (!open) return null;
-  // เรียกเป็นฟังก์ชัน (ไม่ใช่ <F/>) — ถ้าเป็น component ที่สร้างใหม่ทุก render ช่องกรอกจะหลุดโฟกัสทุกตัวอักษร
-  const F = ({ k, label, sub }) => (
-    <div style={{ flex: 1, minWidth: 190 }}>
-      <div style={{ fontSize: 12, color: T.blueDeep, fontWeight: 600, marginBottom: 5 }}>{label}</div>
-      <input value={v[k]} onChange={e => setV(p => ({ ...p, [k]: e.target.value }))}
-        style={{
-          width: '100%', height: 38, padding: '0 12px', borderRadius: 9, fontSize: 13,
-          border: `1.5px solid ${T.line}`, color: T.text, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-        }} />
-      <div style={{ fontSize: 11, color: T.text2, marginTop: 4, fontWeight: 400 }}>{sub}</div>
-    </div>
-  );
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,39,64,0.45)', zIndex: 200,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }}>
-      <div style={{ background: T.white, borderRadius: 14, width: 'min(680px,94vw)', overflow: 'hidden' }}>
-        <div style={{ background: T.blue, color: T.white, padding: '13px 18px', fontSize: 15, fontWeight: 600 }}>
-          ระบุผู้ลงนามก่อนออกเอกสาร
-        </div>
-        <div style={{ padding: 18, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {F({ k: 'recordedBy', label: 'ผู้จัดทำ', sub: 'Recorded by (Production Staff)' })}
-          {F({ k: 'reviewedBy', label: 'ผู้ตรวจสอบ', sub: 'Reviewed by (Section Manager)' })}
-          {F({ k: 'qcManager', label: 'ผู้อนุมัติ', sub: 'QC Section Manager' })}
-        </div>
-        <div style={{ padding: '0 18px 14px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: T.blueDeep, fontWeight: 600 }}>สถานะเอกสาร (ลายน้ำ):</span>
-          {['สำเนาควบคุม', 'สำเนาไม่ควบคุม', 'ใช้ภายในเท่านั้น', ''].map(w => (
-            <button key={w || 'none'} type="button" onClick={() => setV(p => ({ ...p, watermark: w }))} style={{
-              border: `1.5px solid ${v.watermark === w ? T.orange : T.line}`, background: v.watermark === w ? T.orangeSoft : T.white,
-              color: v.watermark === w ? T.orange : T.text2, borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
-            }}>{w || 'ไม่ใส่ลายน้ำ'}</button>
-          ))}
-        </div>
-        <div style={{ padding: '0 18px 18px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{
-            height: 40, padding: '0 18px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-            background: T.white, border: `1.5px solid ${T.line}`, color: T.text2, fontSize: 13, fontWeight: 500,
-          }}>ยกเลิก</button>
-          <button onClick={() => { onExport(v); onClose(); }} style={{
-            height: 40, padding: '0 22px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-            background: T.orange, border: 'none', color: T.white, fontSize: 13, fontWeight: 600,
-          }}>ออกเอกสาร PDF</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 /* ═══ แท็บ 1 — ชั้นสรุป ═══════════════════════════════════════════════════ */
-const SummaryTab = ({ data, onOpenTrace }) => {
+const SummaryTab = ({ data }) => {
   const materials = useMemo(() => data.materials || [], [data]);
   const [f, setF] = useState({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', status: '' });
   const clear = () => setF({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', status: '' });
@@ -752,7 +285,6 @@ const SummaryTab = ({ data, onOpenTrace }) => {
     return [...map.values()];
   }, [shown]);
 
-  const overCount = shown.filter(m => m._d.anyOver).length;
 
   return (
     <div>
@@ -778,21 +310,10 @@ const SummaryTab = ({ data, onOpenTrace }) => {
           ]} />
       </FilterBar>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 11, marginBottom: 6 }}>
-        <Kpi label="ล็อตวัตถุดิบ" value={shown.length} sub={`${rmRows.length} ชุด Mat + Batch`} />
-        <Kpi label="น้ำหนักรวม (kg)" value={fmtNum(shown.reduce((a, m) => a + (Number(m.weight_RM) || 0), 0), 1)} tone="ok" />
-        <Kpi label="เกินมาตรฐาน DBS" value={overCount} tone={overCount ? 'bad' : 'ok'} sub="เทียบเกณฑ์ตามกลุ่มวัตถุดิบ" />
-        <Kpi label="พบในระบบรับเข้า" value={`${shown.filter(m => m.intake).length}/${shown.length}`} tone="orange"
-          sub={`ผู้ขาย ${uniq(shown.map(m => m.supplier_name)).length} ราย`} />
-        <Kpi label="ชนิดส่วนผสม" value={ingRows.length} sub={`หลุดพิกัด ${ingRows.reduce((a, g) => a + g.oos, 0)} ครั้ง`} />
-        <Kpi label="ชนิดบรรจุภัณฑ์" value={pkgRows.length} />
-      </div>
-
       {/* แถวในตารางชั้นสรุปไม่ขยายรายละเอียดเมื่อคลิก — ต้องกดปุ่ม "ดูเส้นทาง" เท่านั้น */}
-      <SectionTitle no="1" title="วัตถุดิบและรหัสรุ่น" count={rmRows.length} hint="กดปุ่มดูเส้นทางเพื่อดูรายละเอียดการสอบกลับ" />
+      <SectionTitle no="1" title="วัตถุดิบและรหัสรุ่น" count={rmRows.length} />
       <DataTable
         rows={rmRows} getKey={r => r.key}
-        rowTone={r => (r.over ? 'bad' : null)}
         columns={[
           { key: 'mat', label: 'Mat', render: r => <b>{r.mat}</b> },
           { key: 'mat_2x', label: 'Mat 2x', render: r => (r.mat_2x ? <Tag tone={r.mat_2x === r.mat ? 'plain' : 'orange'}>{r.mat_2x}</Tag> : '—') },
@@ -813,10 +334,6 @@ const SummaryTab = ({ data, onOpenTrace }) => {
             render: r => (r.defect ? <Tag tone="bad">{r.defect}</Tag> : '—') },
           { key: 'supplier', label: 'ผู้ขาย', wrap: true, minWidth: 130 },
           { key: 'weight', label: 'น้ำหนัก (kg)', align: 'right', render: r => fmtNum(r.weight, 1) },
-          { key: 'trace', label: 'สอบกลับ', render: r => (
-            <button onClick={() => onOpenTrace('rm', `${r.mat}|${r.batch || ''}`)}
-              style={BTN_SM}>ดูเส้นทาง</button>
-          ) },
         ]}
       />
 
@@ -847,7 +364,6 @@ const SummaryTab = ({ data, onOpenTrace }) => {
       <SectionTitle no="2" title="ส่วนผสม (Ingredient)" count={ingRows.length} />
       <DataTable
         rows={ingRows} getKey={r => r.key}
-        rowTone={r => (r.oos ? 'orange' : null)}
         columns={[
           { key: 'material_code', label: 'รหัส', render: r => <b>{r.material_code}</b> },
           { key: 'material_name', label: 'ชื่อส่วนผสม', wrap: true, minWidth: 190 },
@@ -859,9 +375,6 @@ const SummaryTab = ({ data, onOpenTrace }) => {
           { key: 'std_weight', label: 'มาตรฐาน/ตะกร้า', align: 'right', render: r => fmtNum(r.std_weight, 3) },
           { key: 'baskets', label: 'ตะกร้า', align: 'right' },
           { key: 'oos', label: 'หลุดพิกัด', align: 'right', render: r => (r.oos ? <Tag tone="bad">{r.oos}</Tag> : <Tag tone="ok">ครบ</Tag>) },
-          { key: 'trace', label: 'สอบกลับ', render: r => (
-            <button onClick={() => onOpenTrace('ing', r.key)} style={BTN_SM}>ดูเส้นทาง</button>
-          ) },
         ]}
       />
 
@@ -880,506 +393,27 @@ const SummaryTab = ({ data, onOpenTrace }) => {
           { key: 'produce_date', label: 'วันที่ผลิต (โรงงานบรรจุภัณฑ์)', render: r => (r.produce_date ? fmtD(r.produce_date) : '—') },
           { key: 'use', label: 'ช่วงใช้บนไลน์', render: r => fmtRange(r.start_time, r.stop_time) },
           { key: 'lots', label: 'ล็อตที่ใช้', align: 'right', render: r => r.lots.length },
-          { key: 'trace', label: 'สอบกลับ', render: r => (
-            <button onClick={() => onOpenTrace('pkg', r.key)} style={BTN_SM}>ดูเส้นทาง</button>
-          ) },
         ]}
       />
     </div>
   );
 };
 
-const BTN_SM = {
-  height: 28, padding: '0 12px', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit',
-  background: T.orangeSoft, border: `1.5px solid ${T.orangeLine}`, color: T.orange, fontSize: 12, fontWeight: 600,
-};
 
-/* ═══ แท็บ 2 — แผนผังสอบกลับ (Forward / Backward) ═════════════════════════
-   สอบกลับข้ามเอกสารได้ทั้ง 3 ประเภท (วัตถุดิบ/ส่วนผสม/บรรจุภัณฑ์)
-   ผ่าน /api/traceback/forward?type=rm|ing|pkg&code=...
-   ═══════════════════════════════════════════════════════════════════════ */
-const FlowTab = ({ data, focus, setFocus }) => {
-  const s = data.summary || {};
-  const materials = useMemo(() => data.materials || [], [data]);
-  const idx = useMemo(() => buildIndex(materials), [materials]);
-
-  const [type, setType] = useState(focus?.type || 'rm');
-  const [key, setKey] = useState(focus?.key || '');
-  const [dir, setDir] = useState('both');
-  const [ext, setExt] = useState(null);
-  const [extLoading, setExtLoading] = useState(false);
-
-  useEffect(() => {
-    if (focus?.type) { setType(focus.type); setKey(focus.key); }
-  }, [focus]);
-
-  const list = idx[type] || [];
-  const entity = list.find(e => e.key === key) || null;
-
-  // รหัสที่ใช้เรียก endpoint ข้ามเอกสาร ตามประเภทที่กำลังดู
-  const traceCode = entity ? (type === 'rm' ? entity.batch : type === 'ing' ? entity.batch : entity.lot || entity.batch) : null;
-
-  // สอบกลับข้ามเอกสารสำหรับทั้ง 3 ประเภท
-  useEffect(() => {
-    setExt(null);
-    if (!traceCode) return;
-    let cancel = false;
-    (async () => {
-      try {
-        setExtLoading(true);
-        const res = await axios.get(`${API_URL}/api/traceback/forward`, {
-          params: { type, code: traceCode },
-        });
-        if (!cancel) setExt(res.data?.data || null);
-      } catch (err) {
-        console.error('Traceback trace error:', err);
-        if (!cancel) setExt(null);
-      } finally { if (!cancel) setExtLoading(false); }
-    })();
-    return () => { cancel = true; };
-  }, [type, traceCode]);
-
-  // ค้นหาได้จากทั้ง mat, mat 2x, batch, batch 2x  (ฝังไว้ใน label ให้ตัวกรองจับได้)
-  const options = list.map(e => {
-    const extra = [
-      e.code2 && e.code2 !== e.code ? `2x ${e.code2}` : '',
-      e.batch ? e.batch : '',
-      e.batch2 && e.batch2 !== e.batch ? e.batch2 : '',
-    ].filter(Boolean).join(' ');
-    return {
-      value: e.key,
-      label: `${e.code || '—'} · ${e.name || ''}`.trim() + (extra ? `  ⟨${extra}⟩` : ''),
-      meta: e.batch ? `Batch ${e.batch}` : '',
-    };
-  });
-
-  return (
-    <div>
-      <FilterBar onClear={() => { setKey(''); setFocus(null); }}>
-        <SearchSelect label="ประเภทข้อมูล" value={type} width={150}
-          onChange={v => { setType(v || 'rm'); setKey(''); }}
-          options={[
-            { value: 'rm', label: 'วัตถุดิบ' },
-            { value: 'ing', label: 'ส่วนผสม' },
-            { value: 'pkg', label: 'บรรจุภัณฑ์' },
-          ]} />
-        <SearchSelect label={`เลือก${ENTITY_LABEL[type]}ที่ต้องการสอบกลับ`} value={key} onChange={setKey}
-          options={options} width={330} placeholder="พิมพ์รหัสหรือชื่อเพื่อค้นหา" />
-        <SearchSelect label="ทิศทาง" value={dir} width={190} onChange={v => setDir(v || 'both')}
-          options={[
-            { value: 'both', label: 'ทั้งสองทิศทาง' },
-            { value: 'back', label: 'ย้อนกลับ (Backward)' },
-            { value: 'fwd', label: 'ไปข้างหน้า (Forward)' },
-          ]} />
-      </FilterBar>
-
-      {!entity && (
-        <div style={{ border: `2px dashed ${T.blueLine}`, borderRadius: 12, padding: '46px 24px', textAlign: 'center', background: T.white }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: T.blueDeep, marginBottom: 7 }}>
-            เลือก{ENTITY_LABEL[type]}ที่ต้องการสอบกลับ
-          </div>
-          <div style={{ fontSize: 13, color: T.text2, fontWeight: 400 }}>
-            ระบบจะแสดงเส้นทางย้อนกลับไปหาต้นทาง และเส้นทางไปข้างหน้าถึงสินค้าที่ผลิตออกมา
-          </div>
-        </div>
-      )}
-
-      {entity && (
-        <>
-          <div style={{
-            background: T.blue, color: T.white, borderRadius: 12, padding: '14px 18px',
-            display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center',
-          }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.9 }}>{ENTITY_LABEL[type]}ที่กำลังสอบกลับ</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 3 }}>
-                {entity.code} {entity.name ? `· ${entity.name}` : ''}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {entity.code2 && entity.code2 !== entity.code && <Tag tone="plain">Mat 2x {entity.code2}</Tag>}
-              {entity.batch && <Tag tone="plain">Batch {entity.batch}</Tag>}
-              {entity.batch2 && entity.batch2 !== entity.batch && <Tag tone="plain">Batch 2x {entity.batch2}</Tag>}
-              {entity.lot && <Tag tone="plain">Lot {entity.lot}</Tag>}
-              <Tag tone="plain">{entity.lots.length} ล็อตการผลิต</Tag>
-            </div>
-          </div>
-
-          <Legend />
-
-          {/* ── ย้อนกลับ ── */}
-          {dir !== 'fwd' && (
-            <Panel title="◀ สอบกลับย้อนทาง (Backward) — ที่มาของรายการนี้" tone="orange">
-              {type === 'rm' && (
-                <div style={{ overflowX: 'auto' }}>
-                  <div style={{ display: 'flex', gap: 5, minWidth: 'min-content' }}>
-                    <Node title="ผู้ส่งมอบ" ev={entity.lots[0]?.intake ? 'doc' : 'none'} lines={[
-                      { k: 'ผู้ขาย', v: entity.lots[0]?.supplier_name || entity.lots[0]?.supplier_code },
-                      { k: 'ชนิด', v: entity.lots[0]?.fish_specie },
-                      { k: 'ผลตรวจ', v: entity.lots[0]?.intake_decision },
-                    ]} />
-                    <Arrow dir="f" />
-                    <Node title="รับเข้าโรงงาน" ev={entity.lots[0]?.intake ? 'doc' : 'none'} lines={[
-                      { k: 'Batch', v: entity.batch },
-                      { k: 'Batch 2x', v: entity.batch2 && entity.batch2 !== entity.batch ? entity.batch2 : null },
-                      { k: 'วันที่ล็อต', v: entity.lots[0]?.batch_date && fmtD(entity.lots[0].batch_date) },
-                      { k: 'ผลิต(Supp)', v: entity.lots[0]?.produce_date },
-                      { k: 'ปริมาณ', v: entity.lots[0]?.receive_qty != null
-                          ? `${fmtNum(entity.lots[0].receive_qty, 0)} ${entity.lots[0].receive_unit || ''}` : null },
-                    ]} />
-                    <Arrow dir="f" />
-                    <Node title="ล็อตในโรงงาน" lines={[
-                      { k: 'Mat', v: entity.code },
-                      { k: 'Mat 2x', v: entity.code2 && entity.code2 !== entity.code ? entity.code2 : null },
-                      { k: 'จำนวน', v: `${entity.lots.length} ล็อต` },
-                      { k: 'น้ำหนัก', v: `${fmtNum(entity.lots.reduce((a, m) => a + (Number(m.weight_RM) || 0), 0), 1)} kg` },
-                    ]} />
-                  </div>
-                </div>
-              )}
-
-              {type === 'ing' && (
-                <div>
-                  <Txt c={T.text2} size={12.5}>ส่วนผสมนี้ถูกชั่งและผสมในใบสั่งผลิตด้านล่าง ก่อนนำเข้าสู่ล็อตวัตถุดิบ</Txt>
-                  <DataTable
-                    rows={entity.rows} getKey={(r, i) => i}
-                    rowTone={r => (r.out_of_spec_count ? 'orange' : null)}
-                    columns={[
-                      { key: 'wo', label: 'WO', render: r => (r._m.wo_list || []).join(', ') || '—' },
-                      { key: 'mat', label: 'ใช้ในล็อตวัตถุดิบ', render: r => `${r._m.mat} · ${r._m.mat_name}`, wrap: true, minWidth: 200 },
-                      { key: 'basket_count', label: 'ตะกร้า', align: 'right' },
-                      { key: 'net_weight', label: 'น้ำหนักรวม (kg)', align: 'right', render: r => fmtNum(r.net_weight, 3) },
-                      { key: 'spec', label: 'พิกัด', render: r => `${fmtNum(r.min_weight, 3)} – ${fmtNum(r.max_weight, 3)}` },
-                      { key: 'oos', label: 'หลุดพิกัด', align: 'right', render: r => (r.out_of_spec_count ? <Tag tone="bad">{r.out_of_spec_count}</Tag> : <Tag tone="ok">ครบ</Tag>) },
-                      { key: 'mix', label: 'ช่วงเวลาผสม', render: r => fmtRange(r.used_from, r.used_to) },
-                    ]}
-                  />
-                </div>
-              )}
-
-              {type === 'pkg' && (
-                <DataTable
-                  rows={entity.rows} getKey={(r, i) => r.detail_id ?? i}
-                  columns={[
-                    { key: 'slip_id', label: 'ใบเบิก (Slip)' },
-                    { key: 'slip_line_name', label: 'ไลน์ที่ออกใบเบิก' },
-                    { key: 'produce_date', label: 'วันที่ผลิตวัสดุ (โรงงานบรรจุภัณฑ์)', render: r => (r.produce_date ? fmtD(r.produce_date) : '—') },
-                    { key: 'receive_date', label: 'วันที่รับเข้า', render: r => (r.receive_date ? fmtD(r.receive_date) : '—') },
-                    { key: 'hu_no', label: 'HU' },
-                    { key: 'box_no', label: 'กล่อง', align: 'right' },
-                    { key: 'slip_size', label: 'ขนาด' },
-                    { key: 'slip_qty', label: 'จำนวนในใบเบิก', align: 'right', render: r => fmtNum(r.slip_qty, 0) },
-                  ]}
-                />
-              )}
-            </Panel>
-          )}
-
-          {/* ── ไปข้างหน้า ── */}
-          {dir !== 'back' && (
-            <Panel title="▶ สอบกลับไปข้างหน้า (Forward) — รายการนี้ไปอยู่ในสินค้าใดบ้าง">
-              <DataTable
-                rows={entity.lots} getKey={m => m.mapping_id}
-                rowTone={m => (buildDelay(m).anyOver ? 'bad' : null)}
-                columns={[
-                  { key: 'mapping_id', label: 'mapping_id' },
-                  { key: 'mat', label: 'วัตถุดิบ', render: m => `${m.mat} · ${m.mat_name}`, wrap: true, minWidth: 200 },
-                  { key: 'mat_2x', label: 'Mat 2x', render: m => (m.mat_2x || '—') },
-                  { key: 'batch_after', label: 'Batch 2x', render: m => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{m.batch_after || '—'}</span> },
-                  { key: 'remark_cs', label: 'Remark CS', render: m => <RemarkCsText m={m} />, wrap: true, minWidth: 150 },
-                  { key: 'doc', label: 'เอกสารผลิต', render: m => m.raw?.Production?.doc_no || s.doc_no },
-                  { key: 'code', label: 'Code สินค้า', render: m => m.raw?.Production?.code || s.code, wrap: true, minWidth: 160 },
-                  { key: 'rmm_line_name', label: 'ไลน์' },
-                  { key: 'sc_pack_date', label: 'บรรจุเสร็จ (โรงงาน)', render: m => fmtDT(m.sc_pack_date) },
-                  { key: 'dbs4', label: 'DBS4', align: 'right', render: m => { const d = buildDelay(m); return <DelayTag minutes={d.value.dbs4} over={d.over.dbs4} />; } },
-                ]}
-                renderExpanded={m => <LotFlow m={m} summary={s} />}
-              />
-
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.blueDeep, marginBottom: 8 }}>
-                  การใช้งานข้ามเอกสาร (ทั้งระบบ)
-                </div>
-                {extLoading && <Txt c={T.text2}>กำลังค้นหาการใช้งานในเอกสารอื่น...</Txt>}
-                {!extLoading && ext?.products?.length > 0 && (
-                  <DataTable
-                    rows={ext.products} getKey={(p, i) => `${p.doc_no}-${p.code}-${i}`}
-                    columns={[
-                      { key: 'doc_no', label: 'เอกสารผลิต', render: p => <b>{p.doc_no}</b> },
-                      { key: 'code', label: 'Code สินค้า', wrap: true, minWidth: 180 },
-                      { key: 'lots', label: 'ล็อต', align: 'right' },
-                      { key: 'total_weight', label: 'น้ำหนักรวม (kg)', align: 'right', render: p => fmtNum(p.total_weight, 1) },
-                      { key: 'lines', label: 'ไลน์', render: p => (p.lines || []).join(', ') },
-                      { key: 'pack_first', label: 'ช่วงบรรจุ', render: p => fmtRange(p.pack_first, p.pack_last) },
-                    ]}
-                  />
-                )}
-                {!extLoading && (!ext || !ext.products?.length) && (
-                  <Txt c={T.text2}>
-                    {traceCode ? `ไม่พบการใช้งาน${ENTITY_LABEL[type]}รหัส ${traceCode} ในเอกสารอื่น` : `${ENTITY_LABEL[type]}นี้ไม่มีรหัสรุ่น/Lot ให้สอบกลับข้ามเอกสาร`}
-                  </Txt>
-                )}
-              </div>
-            </Panel>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
-/* ═══ แท็บ 3 — ชั้นรายละเอียดรายล็อต ══════════════════════════════════════ */
-const DetailTab = ({ data, onOpenTrace }) => {
-  const s = data.summary || {};
-  const materials = useMemo(() => data.materials || [], [data]);
-  const [f, setF] = useState({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', qc: '', delay: '' });
-  const clear = () => setF({ mat: '', mat2x: '', batch: '', batch2x: '', line: '', supplier: '', qc: '', delay: '' });
-
-  const rows = useMemo(() => materials.map(m => ({ ...m, _d: buildDelay(m) })), [materials]);
-
-  const shown = useMemo(() => rows.filter(m => {
-    const qcFail = [m.qccheck, m.mdcheck, m.defectcheck].some(v => v && String(v).trim() !== 'ผ่าน');
-    return (!f.mat || m.mat === f.mat)
-      && (!f.mat2x || m.mat_2x === f.mat2x)
-      && (!f.batch || m.batch_before === f.batch)
-      && (!f.batch2x || m.batch_after === f.batch2x)
-      && (!f.line || m.rmm_line_name === f.line)
-      && (!f.supplier || m.supplier_name === f.supplier)
-      && (!f.qc || (f.qc === 'fail' ? qcFail : !qcFail))
-      && (!f.delay || (f.delay === 'over' ? m._d.anyOver : !m._d.anyOver));
-  }), [rows, f]);
-
-  return (
-    <div>
-      <FilterBar onClear={clear} count={shown.length}>
-        <SearchSelect label="รหัสวัตถุดิบ (Mat)" value={f.mat} onChange={v => setF(p => ({ ...p, mat: v }))} options={uniq(materials.map(m => m.mat))} width={165} />
-        <SearchSelect label="รหัสวัตถุดิบ 2x" value={f.mat2x} onChange={v => setF(p => ({ ...p, mat2x: v }))} options={uniq(materials.map(m => m.mat_2x))} width={170} />
-        <SearchSelect label="รหัสรุ่น (Batch)" value={f.batch} onChange={v => setF(p => ({ ...p, batch: v }))} options={uniq(materials.map(m => m.batch_before))} width={175} />
-        <SearchSelect label="รหัสรุ่น 2x" value={f.batch2x} onChange={v => setF(p => ({ ...p, batch2x: v }))} options={uniq(materials.map(m => m.batch_after))} width={175} />
-        <SearchSelect label="ไลน์ผลิต" value={f.line} onChange={v => setF(p => ({ ...p, line: v }))} options={uniq(materials.map(m => m.rmm_line_name))} width={140} />
-        <SearchSelect label="ผู้ขาย" value={f.supplier} onChange={v => setF(p => ({ ...p, supplier: v }))} width={210}
-          options={uniq(materials.map(m => m.supplier_name))} />
-        <SearchSelect label="ผล QC" value={f.qc} onChange={v => setF(p => ({ ...p, qc: v }))} width={130}
-          options={[{ value: 'pass', label: 'ผ่าน' }, { value: 'fail', label: 'ไม่ผ่าน' }]} />
-        <SearchSelect label="ดีเลย์" value={f.delay} onChange={v => setF(p => ({ ...p, delay: v }))} width={160}
-          options={[{ value: 'over', label: 'เกินมาตรฐาน' }, { value: 'ok', label: 'อยู่ในมาตรฐาน' }]} />
-      </FilterBar>
-
-      <DataTable
-        rows={shown} getKey={m => m.mapping_id}
-        rowTone={m => (m._d.anyOver ? 'bad' : null)}
-        empty="ไม่มีล็อตที่ตรงเงื่อนไข"
-        columns={[
-          { key: 'mat', label: 'Mat', render: m => <b>{m.mat}</b> },
-          { key: 'mat_2x', label: 'Mat 2x', render: m => (m.mat_2x ? <Tag tone={m.mat_2x === m.mat ? 'plain' : 'orange'}>{m.mat_2x}</Tag> : '—') },
-          { key: 'mat_name', label: 'ชื่อวัตถุดิบ', wrap: true, minWidth: 170 },
-          { key: 'batch_before', label: 'Batch', render: m => <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600 }}>{m.batch_before || '—'}</span> },
-          { key: 'batch_after', label: 'Batch 2x', render: m => (m.batch_after
-              ? <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600, color: m.batch_after === m.batch_before ? T.text2 : T.orange }}>{m.batch_after}</span>
-              : '—') },
-          { key: 'remark_cs', label: 'Remark CS', render: m => <RemarkCsText m={m} />, wrap: true, minWidth: 150 },
-          { key: 'supplier_name', label: 'ผู้ขาย', wrap: true, minWidth: 160 },
-          { key: 'batch_date', label: 'วันที่ล็อต (รับเข้า)', render: m => (m.batch_date ? fmtD(m.batch_date) : '—') },
-          { key: 'intake_decision', label: 'ผลตรวจรับเข้า',
-            render: m => (m.intake
-              ? <Tag tone={m.intake_decision === 'A01' ? 'ok' : 'orange'}>{m.intake_decision || '—'}</Tag>
-              : <Tag tone="orange">ไม่พบ</Tag>) },
-          { key: 'rm_group_name', label: 'กลุ่ม', wrap: true, minWidth: 110 },
-          { key: 'rmm_line_name', label: 'ไลน์' },
-          { key: 'weight_RM', label: 'น้ำหนัก', align: 'right', render: m => fmtNum(m.weight_RM, 1) },
-          { key: 'sc_pack_date', label: 'บรรจุเสร็จ (โรงงาน)', render: m => fmtDT(m.sc_pack_date) },
-          { key: 'd1', label: 'DBS1', align: 'right', render: m => <DelayTag minutes={m._d.value.dbs1} over={m._d.over.dbs1} /> },
-          { key: 'd2', label: 'DBS2', align: 'right', render: m => <DelayTag minutes={m._d.value.dbs2} over={m._d.over.dbs2} /> },
-          { key: 'd3', label: 'DBS3', align: 'right', render: m => <DelayTag minutes={m._d.value.dbs3} over={m._d.over.dbs3} /> },
-          { key: 'd4', label: 'DBS4', align: 'right', render: m => <DelayTag minutes={m._d.value.dbs4} over={m._d.over.dbs4} /> },
-          { key: 'qc', label: 'QC', render: m => {
-            const fail = [m.qccheck, m.mdcheck, m.defectcheck].some(v => v && String(v).trim() !== 'ผ่าน');
-            return <Tag tone={fail ? 'bad' : 'ok'}>{fail ? 'ไม่ผ่าน' : 'ผ่าน'}</Tag>;
-          } },
-          { key: 'trace', label: 'สอบกลับ', render: m => (
-            <button onClick={() => onOpenTrace('rm', `${m.mat}|${m.batch_before || ''}`)} style={BTN_SM}>ดูเส้นทาง</button>
-          ) },
-        ]}
-        renderExpanded={m => (
-          <div>
-            <Panel title="แผนผังการสอบกลับของล็อตนี้">
-              <Legend />
-              <LotFlow m={m} summary={s} />
-            </Panel>
-            <Panel title="ดีเลย์ตามมาตรฐานกลุ่มวัตถุดิบ (DBS)" tone="orange">
-              <DelayPanel m={m} />
-            </Panel>
-            <Panel title="ข้อมูลรับเข้าจากระบบ WISEUP" hint={m.intake?.supplier_name}>
-              <IntakePanel m={m} />
-            </Panel>
-            <Panel title="ส่วนผสมที่ใช้ในล็อตนี้">
-              <DataTable
-                rows={m.ingredient_summary || []} getKey={(g, i) => i}
-                rowTone={g => (g.out_of_spec_count ? 'orange' : null)}
-                empty="ล็อตนี้ยังไม่ได้ผูก WO ส่วนผสม"
-                columns={[
-                  { key: 'material_code', label: 'รหัส', render: g => <b>{g.material_code}</b> },
-                  { key: 'material_name', label: 'ชื่อ', wrap: true, minWidth: 170 },
-                  { key: 'batch_no', label: 'Batch' },
-                  { key: 'basket_count', label: 'ตะกร้า', align: 'right' },
-                  { key: 'net_weight', label: 'รวม (kg)', align: 'right', render: g => fmtNum(g.net_weight, 3) },
-                  { key: 'avg_net_weight', label: 'เฉลี่ย/ตะกร้า', align: 'right', render: g => fmtNum(g.avg_net_weight, 3) },
-                  { key: 'spec', label: 'พิกัด', render: g => `${fmtNum(g.min_weight, 3)} – ${fmtNum(g.max_weight, 3)}` },
-                  { key: 'oos', label: 'หลุดพิกัด', align: 'right', render: g => (g.out_of_spec_count ? <Tag tone="bad" title={`ตะกร้า ${g.out_of_spec_baskets?.join(', ')}`}>{g.out_of_spec_count}</Tag> : <Tag tone="ok">ครบ</Tag>) },
-                ]}
-              />
-            </Panel>
-            <Panel title="ประวัติการแก้ไขข้อมูลของล็อตนี้ (Audit trail)" tone="orange">
-              <LotAudit mappingId={m.mapping_id} />
-            </Panel>
-            <Panel title="บรรจุภัณฑ์ที่ใช้ตอนบรรจุ">
-              <DataTable
-                rows={m.packaging || []} getKey={(p, i) => p.detail_id ?? i}
-                empty={`ไม่พบบรรจุภัณฑ์ที่ครอบคลุมเวลาบรรจุ ${fmtDT(m.sc_pack_date)} บนไลน์ ${m.rmm_line_name || '—'}`}
-                columns={[
-                  { key: 'code', label: 'Code', render: p => <b>{p.code}</b> },
-                  { key: 'material_no', label: 'Material No' },
-                  { key: 'batch_no', label: 'Batch' },
-                  { key: 'lot_no', label: 'Lot' },
-                  { key: 'hu_no', label: 'HU' },
-                  { key: 'use', label: 'ช่วงใช้บนไลน์', render: p => fmtRange(p.start_time, p.stop_time) },
-                  { key: 'use_minutes', label: 'ใช้นาน', align: 'right', render: p => fmtDur(p.use_minutes) },
-                  { key: 'slip_id', label: 'Slip', align: 'right' },
-                ]}
-              />
-            </Panel>
-          </div>
-        )}
-      />
-    </div>
-  );
-};
-
-/* ═══ หัวเอกสาร ═══════════════════════════════════════════════════════════ */
-const RecordHeader = ({ s, docNo, code, scope }) => (
-  <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16, background: T.white }}>
-    <div style={{
-      background: T.blueDeep, color: T.white, padding: '11px 16px',
-      display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
-    }}>
-      <span style={{ fontSize: 14, fontWeight: 700 }}>ใบสอบกลับการผลิต · TRACEABILITY RECORD</span>
-      <span style={{ fontSize: 12, fontWeight: 500 }}>พิมพ์เมื่อ {fmtDT(s.printed_at || new Date().toISOString())}</span>
-    </div>
-    <Grid min={165} style={{ border: 'none', borderRadius: 0, background: T.white }}>
-      {scope && <Field label="เงื่อนไขที่สอบกลับ" value={scopeText(scope, s)} wide />}
-      <Field label="เลขเอกสารผลิต" value={s.doc_nos?.length > 1 ? `${s.doc_nos.length} เอกสาร: ${s.doc_nos.slice(0, 6).join(', ')}${s.doc_nos.length > 6 ? ' …' : ''}` : (s.doc_no || docNo)} wide={s.doc_nos?.length > 1} />
-      <Field label="Code สินค้า" value={s.codes?.length > 1 ? s.codes.slice(0, 8).join(', ') : (s.code || code)} wide />
-      <Field label="ไลน์ผลิต" value={(s.lines || []).join(', ')} />
-      <Field label="ช่วงเวลาที่สอบกลับ" value={`${fmtD(s.rm_date_first || s.pack_date_first)} – ${fmtD(s.pack_date_last)}`} wide />
-      <Field label="จำนวนล็อตวัตถุดิบ" value={s.material_count} />
-      <Field label="ชนิดส่วนผสม" value={s.ingredient_kind_count} />
-      <Field label="ชนิดบรรจุภัณฑ์" value={s.packaging_kind_count} />
-      <Field label="พบในระบบรับเข้า" value={s.intake_found_count != null ? `${s.intake_found_count} / ${s.material_count}` : null} />
-      <Field label="ผู้ขาย" value={(s.supplier_list || []).join(', ')} wide />
-    </Grid>
-  </div>
-);
-
-const DataGaps = ({ s, meta, materials }) => {
-  const g = [];
-  const over = materials.filter(m => buildDelay(m).anyOver).length;
-  if (over) g.push(`ดีเลย์เกินมาตรฐาน ${over} ล็อต`);
-  if (s.batch_missing_count > 0) g.push(`ไม่มีเลขรหัสรุ่น ${s.batch_missing_count} ล็อต`);
-  if (s.intake_missing_count > 0) g.push(`ไม่พบในระบบรับเข้า ${s.intake_missing_count} ล็อต`);
-  if (s.intake_defect_count > 0) g.push(`มีข้อบกพร่องตอนตรวจรับ ${s.intake_defect_count} ล็อต`);
-  if (meta?.intake_error) g.push(`ดึงข้อมูลรับเข้าไม่สำเร็จ: ${meta.intake_error}`);
-  if (s.supplier_missing_count > 0) g.push(`ไม่มีข้อมูลผู้ขาย ${s.supplier_missing_count} ล็อต`);
-  if (s.materials_without_ingredient?.length) g.push(`ยังไม่ผูก WO ส่วนผสม ${s.materials_without_ingredient.length} ล็อต`);
-  if (s.materials_without_packaging?.length) g.push(`ไม่พบบรรจุภัณฑ์ ${s.materials_without_packaging.length} ล็อต`);
-  if (s.ingredient_out_of_spec > 0) g.push(`ส่วนผสมชั่งหลุดพิกัด ${s.ingredient_out_of_spec} ครั้ง`);
-  if (s.qc_fail_count > 0) g.push(`QC ไม่ผ่าน ${s.qc_fail_count} ล็อต`);
-  if (meta?.wo_rows_deduped > 0) g.push(`ตัดแถว WO ที่คีย์ซ้ำออก ${meta.wo_rows_deduped} แถว`);
-  if (meta?.dbs_standard_error) g.push(`ดึงมาตรฐาน DBS ไม่สำเร็จ: ${meta.dbs_standard_error}`);
-  if (!g.length) return null;
-  return (
-    <div style={{ background: T.orangeSoft, border: `1.5px solid ${T.orangeLine}`, borderRadius: 12, padding: '13px 15px', marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: T.orange, marginBottom: 8 }}>
-        ข้อสังเกตจากบันทึก (Inconsistent or Incomplete Records)
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        {g.map((x, i) => <Tag key={i} tone="orange">{x}</Tag>)}
-      </div>
-    </div>
-  );
-};
-
-/* ═══ แถบคะแนน: ความครบถ้วนของห่วงโซ่ + ระดับความเสี่ยง ═══════════════════ */
-const ScoreStrip = ({ materials }) => {
-  const cc = useMemo(() => chainCompleteness(materials), [materials]);
-  const rk = useMemo(() => riskAssessment(materials), [materials]);
-  const tone = { high: T.bad, medium: T.orange, low: T.ok }[rk.level];
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, marginBottom: 16 }}>
-      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Ring pct={cc.score} label="ความครบถ้วนของห่วงโซ่" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 170 }}>
-          {cc.items.map(i => (
-            <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <span style={{ flex: 1, color: T.text }}>{i.label}</span>
-              <span style={{ width: 70, height: 6, background: T.blueSoft, borderRadius: 3, overflow: 'hidden' }}>
-                <span style={{ display: 'block', height: '100%', width: `${i.pct}%`, background: i.pct >= 85 ? T.ok : i.pct >= 60 ? T.orange : T.bad }} />
-              </span>
-              <span style={{ width: 52, textAlign: 'right', color: T.text2 }}>{i.ok}/{i.total}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderLeft: `5px solid ${tone}`, borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 12, color: T.text2, fontWeight: 600 }}>ระดับความเสี่ยงของเอกสารผลิตนี้</div>
-        <div style={{ fontSize: 24, fontWeight: 700, color: tone, margin: '2px 0 6px' }}>{rk.label}</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {rk.reasons.length ? rk.reasons.map(r => <Tag key={r} tone={rk.level === 'high' ? 'bad' : 'orange'}>{r}</Tag>) : <Tag tone="ok">ไม่พบประเด็นเสี่ยงจากข้อมูลที่บันทึก</Tag>}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ═══ ตัวหลัก ═════════════════════════════════════════════════════════════ */
-const TracebackDetailView = ({ docNo, code, scope = null, onBack, onClose }) => {
+/* ═══ ตัวหลัก — แสดงเฉพาะข้อมูล: ตัวกรอง + ตาราง (ไม่มีหัวเอกสาร/แท็บ/การ์ดวิเคราะห์/ปุ่มส่งออก) ═══ */
+const TracebackDetailView = ({ docNo, code, scope = null, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState('summary');
-  const [focus, setFocus] = useState(null);
-  const [signOpen, setSignOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [loadMs, setLoadMs] = useState(null);
-  const qrWrap = useRef(null);
   const scopeKey = useMemo(() => (scope ? JSON.stringify(scope) : ''), [scope]); // ใช้เป็น dependency (scope เป็น object ใหม่ทุกครั้งที่ render)
-  const goBack = onBack || onClose;
-  const navigate = useNavigate();
-  const location = useLocation();
-  // เจาะลึก (drill-down): จากรหัสรุ่นในใบนี้ ไปสอบไปข้างหน้าข้ามเอกสาร
-  const goForward = (code, type) => navigate(`${location.pathname}?mode=forward&code=${encodeURIComponent(code)}&type=${type}`);
-
-  // ลิงก์ตรงมาที่ใบสอบกลับนี้ (แชร์ให้ QA / ใส่ใน QR ของ PDF)
-  const shareLink = useMemo(() => {
-    const u = new URL(window.location.href);
-    u.search = '';
-    if (scope) {
-      Object.entries(scopeToParams(scope)).forEach(([k, v]) => u.searchParams.set(k, v));
-    } else {
-      u.searchParams.set('doc_no', docNo || '');
-      if (code) u.searchParams.set('code', code);
-    }
-    return u.toString();
-  }, [docNo, code, scope]);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       try {
         setLoading(true); setError(null); setData(null);
-        const t0 = performance.now();
         const res = await axios.get(`${API_URL}/api/traceback/detail`, { params: scopeKey ? scopeToParams(JSON.parse(scopeKey)) : { doc_no: docNo, code } });
-        if (!cancel) { setData(res.data?.data || null); setLoadMs(Math.round(performance.now() - t0)); }
+        if (!cancel) setData(res.data?.data || null);
       } catch (e) {
         console.error('Traceback detail error:', e);
         if (!cancel) setError(e.response?.data?.error || e.message);
@@ -1388,152 +422,27 @@ const TracebackDetailView = ({ docNo, code, scope = null, onBack, onClose }) => 
     return () => { cancel = true; };
   }, [docNo, code, scopeKey]);
 
-  useEffect(() => {
-    const h = e => { if (e.key === 'Escape' && goBack) goBack(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [goBack]);
-
-  const openTrace = (type, key) => { setFocus({ type, key }); setTab('flow'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch (e) {
-      console.error('Copy link error:', e);
-      window.prompt('คัดลอกลิงก์นี้', shareLink);
-    }
-  };
-
-  const exportPdf = (sign) => {
-    const canvas = qrWrap.current?.querySelector('canvas');
-    let qr = null;
-    try { qr = canvas ? canvas.toDataURL('image/png') : null; } catch (e) { console.error('QR export error:', e); }
-    exportSummaryPDF(data, scope, sign, { qr, link: shareLink }).catch(e => console.error('Export PDF error:', e));
-  };
-
   const s = data?.summary || {};
-  const materials = data?.materials;
-  const TABS = [
-    { key: 'summary', label: 'ชั้นสรุป' },
-    { key: 'flow', label: 'แผนผังสอบกลับ' },
-    { key: 'tree', label: 'ผังต้นไม้' },
-    { key: 'timeline', label: 'ไทม์ไลน์' },
-    { key: 'docflow', label: 'Document flow' },
-    { key: 'exceptions', label: `ข้อยกเว้น${materials?.length ? ` (${exceptionList(materials).filter(x => x.severity >= 2).length})` : ''}` },
-    { key: 'detail', label: `ชั้นรายละเอียด${materials?.length ? ` (${materials.length})` : ''}` },
-  ];
-
-  const btn = (bg, bd, fg) => ({
-    height: 38, padding: '0 16px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-    background: bg, border: `1.5px solid ${bd}`, color: fg, fontSize: 13, fontWeight: 600,
-  });
+  const title = scope && !docNo ? scopeTitle(scope) : [docNo, code || s.code].filter(Boolean).join(' · ');
 
   return (
-    <div id="tb-detail" style={{ background: T.bg, border: `1px solid ${T.line}`, borderRadius: 14, overflow: 'hidden' }}>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #tb-detail, #tb-detail * { visibility: visible; }
-          #tb-detail { position: absolute; left: 0; top: 0; width: 100%; border: none; }
-          .tb-noprint { display: none !important; }
-          .tb-sticky { position: static !important; }
-        }
-        @keyframes tbSpin { to { transform: rotate(360deg); } }
-        @media (max-width: 760px) { .tb-sticky { position: static !important; } }
-        #tb-detail ::-webkit-scrollbar { height: 9px; width: 9px; }
-        #tb-detail ::-webkit-scrollbar-thumb { background: ${T.blueLine}; border-radius: 6px; }
-      `}</style>
-
-      {/* QR สำหรับใส่ใน PDF (ซ่อนไว้) */}
-      <div ref={qrWrap} style={{ position: 'absolute', left: -9999, top: 0 }} aria-hidden="true">
-        <QRCodeCanvas value={shareLink} size={256} level="M" includeMargin />
+    <div id="tb-detail" style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: '12px 14px 18px', marginTop: 12 }}>
+      <style>{`@keyframes tbSpin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.blueDeep }}>{title}{data ? ` · ${s.material_count} ล็อต` : ''}</div>
+        {onClose && <button onClick={onClose} aria-label="ปิด" style={{ border: `1px solid ${T.line}`, background: T.white, color: T.text2, borderRadius: 8, height: 30, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5 }}>✕ ปิด</button>}
       </div>
 
-      {/* หัว + แท็บ (ติดด้านบน) */}
-      <div className="tb-sticky" style={{ position: 'sticky', top: 0, zIndex: 20, background: T.white, borderBottom: `2px solid ${T.line}` }}>
-        <div style={{ padding: '12px 20px 8px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <img src={logoUrl} alt="i-Tail" style={{ height: 38, width: 'auto' }} />
-          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-            <div style={{ fontSize: 11.5, color: T.orange, fontWeight: 700, letterSpacing: 0.5 }}>ใบสอบกลับการผลิต · TRACEABILITY RECORD</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>{scope && !docNo ? scopeTitle(scope) : docNo}</div>
-            <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>
-              {scope && (s.doc_nos?.length > 1 || s.codes?.length > 1)
-                ? `ครอบคลุม ${s.doc_nos?.length || 0} เอกสารผลิต · ${s.codes?.length || 0} Code · ${(s.lines || []).length} ไลน์`
-                : (code || s.code)}
-            </div>
-          </div>
-          {data && (
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-              <Tag tone="plain">{s.material_count} ล็อต</Tag>
-              <Tag tone="plain">{fmtNum(s.total_weight_rm, 1)} kg</Tag>
-              {(s.lines || []).map(l => <Tag key={l}>{l}</Tag>)}
-            </div>
-          )}
+      {loading && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 160, gap: 12 }}>
+          <div style={{ width: 24, height: 24, border: `3px solid ${T.blueLine}`, borderTop: `3px solid ${T.blue}`, borderRadius: '50%', animation: 'tbSpin 0.7s linear infinite' }} />
+          <Txt c={T.blueDeep} size={14} weight={600}>กำลังรวบรวมข้อมูลจากทุกระบบ...</Txt>
         </div>
-        <div className="tb-noprint" style={{ display: 'flex', gap: 8, padding: '0 20px 10px', flexWrap: 'wrap' }}>
-          <button onClick={goBack} style={btn(T.white, T.blue, T.blue)}>← กลับ</button>
-          <button onClick={() => setSignOpen(true)} disabled={!data} style={btn(T.orange, T.orange, T.white)}>ออกเอกสาร PDF</button>
-          <button onClick={() => exportDetailExcel(data, docNo || (scope ? scopeTitle(scope) : ''), code)} disabled={!data} style={btn(T.white, T.ok, T.ok)}>Excel</button>
-          <button onClick={copyLink} style={btn(T.white, T.blue, T.blue)}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}</button>
-          <button onClick={() => setQrOpen(true)} disabled={!data} style={btn(T.white, T.blue, T.blue)}>ป้าย QR รายล็อต</button>
-          {loadMs != null && <span style={{ alignSelf: 'center', fontSize: 12, color: T.text2 }}>รวบรวมข้อมูล {(loadMs / 1000).toFixed(2)} วินาที</span>}
-          <button onClick={() => window.print()} style={btn(T.white, T.line, T.text2)}>พิมพ์หน้าจอ</button>
-        </div>
-        <div className="tb-noprint" style={{ display: 'flex', gap: 4, padding: '0 14px', overflowX: 'auto' }} role="tablist">
-          {TABS.map(t => {
-            const on = tab === t.key;
-            return (
-              <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)} style={{
-                padding: '10px 16px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                border: 'none', background: 'none', color: on ? T.orange : T.text2,
-                borderBottom: on ? `3px solid ${T.orange}` : '3px solid transparent', marginBottom: -2,
-              }}>{t.label}</button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ padding: '18px 20px 44px' }}>
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 220, gap: 12 }}>
-            <div style={{ width: 26, height: 26, border: `3px solid ${T.blueLine}`, borderTop: `3px solid ${T.blue}`, borderRadius: '50%', animation: 'tbSpin 0.7s linear infinite' }} />
-            <Txt c={T.blueDeep} size={14} weight={600}>กำลังรวบรวมข้อมูลจากทุกระบบ...</Txt>
-          </div>
-        )}
-
-        {error && !loading && (
-          <div style={{ background: T.badSoft, border: `1.5px solid ${T.badLine}`, borderRadius: 11, padding: 16, color: T.bad, fontSize: 14, fontWeight: 500 }}>
-            โหลดข้อมูลไม่สำเร็จ: {error}
-          </div>
-        )}
-
-        {!loading && !error && data && (
-          <>
-            {!(s.doc_nos?.length > 1) && <HoldBanner docNo={s.doc_no || docNo} />}
-            <RecordHeader s={s} docNo={docNo} code={code} scope={scope} />
-            <ScoreStrip materials={materials || []} />
-            <DataGaps s={s} meta={data.meta} materials={materials || []} />
-            {tab === 'summary' && <SummaryTab data={data} onOpenTrace={openTrace} />}
-            {tab === 'flow' && <FlowTab data={data} focus={focus} setFocus={setFocus} />}
-            {tab === 'tree' && <TraceTree data={data} onForward={goForward} />}
-            {tab === 'docflow' && <DocumentFlow data={data} onForward={goForward} />}
-            {tab === 'exceptions' && <ExceptionsPanel materials={materials || []} />}
-            {tab === 'timeline' && <TraceTimeline materials={materials || []} />}
-            {tab === 'detail' && <DetailTab data={data} onOpenTrace={openTrace} />}
-
-            <div style={{ marginTop: 28, paddingTop: 14, borderTop: `1px dashed ${T.line}`, textAlign: 'center', fontSize: 11.5, color: T.text2, fontWeight: 400, lineHeight: 1.8 }}>
-              เอกสารนี้สร้างจากระบบ PFCM โดยอัตโนมัติ มีข้อมูลเชิงพาณิชย์ที่เป็นความลับ<br />
-              ใช้ภายในองค์กรเพื่อการสอบกลับและตรวจสอบคุณภาพเท่านั้น ห้ามเผยแพร่ต่อโดยไม่ได้รับอนุญาต
-            </div>
-          </>
-        )}
-      </div>
-
-      <SignDialog open={signOpen} onClose={() => setSignOpen(false)} onExport={exportPdf} />
-      {data && <QrLabelsDialog open={qrOpen} onClose={() => setQrOpen(false)} data={data} linkBase={`${window.location.origin}${location.pathname}?doc_no=`} />}
+      )}
+      {error && !loading && (
+        <div style={{ background: T.badSoft, border: `1.5px solid ${T.badLine}`, borderRadius: 11, padding: 14, color: T.bad, fontSize: 14, fontWeight: 500 }}>โหลดข้อมูลไม่สำเร็จ: {error}</div>
+      )}
+      {!loading && !error && data && <SummaryTab data={data} />}
     </div>
   );
 };
