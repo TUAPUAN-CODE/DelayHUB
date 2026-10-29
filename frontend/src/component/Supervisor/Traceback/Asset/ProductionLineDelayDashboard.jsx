@@ -4,7 +4,7 @@ import TracebackDetailView from './TracebackDetailView';
 import { C, fmtDisplay, fmtNum, DELAY_STYLE } from './tracebackUI';
 import { backwardFilters, traceCodes } from './traceForm';
 import { readRecent, pushRecent } from './tracebackCore';
-import { SimpleTable } from './TraceAtoms';
+import { SimpleTable, EmptyHint } from './TraceAtoms';
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -58,10 +58,10 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
     search: () => {
       // the codes searched are remembered like in the forward trace ("ล่าสุด:" of the form)
       const codes = traceCodes(form);
-      if (codes.length) { pushRecent({ kind: 'fwd', code: codes.join(', '), type: form.type }); onRan?.(); }
+      if (codes.length) { pushRecent({ kind: 'fwd', code: codes.join(', '), type: 'auto' }); onRan?.(); }
       return fetchData(backwardFilters(form));
     },
-    run: (c, t) => fetchData(backwardFilters({ ...form, trace: c, multi: false, multiText: '', type: t })),
+    run: (c) => fetchData(backwardFilters({ ...form, trace: c })),
     reset: () => { setResults([]); setSearched(false); setError(null); },
   }), [fetchData, form, onRan]);
 
@@ -75,7 +75,7 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
     // one raw-material Batch: the record covers every document that used it (as before); any other code / several codes / "any kind":
     // the record of the production that was clicked (the code may be an ingredient batch or a packaging lot, which the record cannot filter by)
     const codes = traceCodes(form);
-    const rmBatch = codes.length === 1 && form.type === 'rm' ? codes[0] : '';
+    const rmBatch = '';
     const byRow = codes.length > 0 && !rmBatch;
     const all = {
       doc_no: t(filters.doc_no) || (byRow ? t(r.doc_no) : ''), code: t(filters.code) || (byRow ? t(r.code) : ''), batch: rmBatch, line: t(filters.rmm_line_name),
@@ -151,12 +151,7 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
         </div>
       )}
 
-      {!searched && !loading && (
-        <div style={{ textAlign: 'center', padding: '4rem 2rem', color: C.faint, border: `0.5px dashed ${C.line}`, borderRadius: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: C.text2, marginBottom: 6 }}>เลือกเงื่อนไขแล้วกดค้นหา</div>
-          <div style={{ fontSize: 13, fontWeight: 400 }}>ผลลัพธ์ 1 แถว = 1 การผลิต กดที่แถวเพื่อเปิดใบสอบกลับเต็มหน้า</div>
-        </div>
-      )}
+      {!searched && !loading && !error && <EmptyHint />}
 
       {loading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 180, gap: 12 }}>

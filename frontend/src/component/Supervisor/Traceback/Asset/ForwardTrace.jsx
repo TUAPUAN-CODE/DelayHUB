@@ -4,9 +4,10 @@
 import { forwardRef, useState, useEffect, useMemo, useCallback, useImperativeHandle } from 'react';
 import axios from 'axios';
 import { T, TYPE_LABEL } from './tracebackUI';
-import { Tag, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
+import { Tag, Card, Btn, Segmented, SimpleTable, Spinner, EmptyHint } from './TraceAtoms';
 import { fmtDT, fmtNum, pushRecent, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
 import ForwardLotsGrid from './ForwardLotsGrid';
+import { splitCodes, traceCodes } from './traceForm';
 import { HoldDialog } from './HoldList';
 import { exportForwardExcel, exportForwardPDF } from './tracebackExport';
 
@@ -76,57 +77,51 @@ const impactText = (d) => {
 };
 
 // form = the shared search form (SearchPanel): code · kind · one/many + the filters; search() / run() are called through the ref
-const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpenRecord, onStartRecall, onQueryChange, form, onRan }, ref) => {
+const ForwardTrace = forwardRef(({ initialCode = '', onOpenRecord, onStartRecall, onQueryChange, onHoldsChanged, form, onRan }, ref) => {
   const [holdOpen, setHoldOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [view, setView] = useState('day'); // which table: the affected products by day, or every lot
-  const code = form.trace;
-  const type = form.type;
+  const type = 'auto'; // every kind of code (raw material / ingredient / packaging), every time
   const sortBy = form.sort;
   // pack_status of the form: packed / all / unpacked  ->  the lots shown
   const lotFilter = form.pack_status === 'all' ? 'all' : form.pack_status === 'packed' ? 'packed' : 'wip';
   const flt = { doc: form.doc_no, code: form.code, mat: form.mat, matName: form.mat_name, line: form.rmm_line_name, supplier: form.supplier, from: form.from, to: form.single ? form.from : form.to };
 
-  const run = useCallback(async (c = code, t = type) => {
-    const q = String(c || '').trim();
-    if (!q) { setError('กรุณาสแกนหรือพิมพ์รหัสรุ่น / Lot'); return; }
+  // one code -> its trace · several codes (separated by , or space) -> every trace merged into one result (where-used list of many batches)
+  const runCodes = useCallback(async (codes) => {
+    const list = splitCodes(codes.join(' '));
+    if (!list.length) { setError('กรุณาสแกนหรือพิมพ์รหัสรุ่น / Lot'); return; }
     try {
       setLoading(true); setError(''); setData(null); setNotice('');
-      const res = await axios.get(`${API_URL}/api/traceback/forward`, { params: { code: q, type: t } });
-      setData(res.data?.data || null);
-      pushRecent({ kind: 'fwd', code: q, type: t });
+      if (list.length === 1) {
+        const res = await axios.get(`${API_URL}/api/traceback/forward`, { params: { code: list[0], type } });
+        setData(res.data?.data || null);
+      } else {
+        const out = [];
+        for (const c of list) {
+          try {
+            const r = await axios.get(`${API_URL}/api/traceback/forward`, { params: { code: c, type } });
+            if (r.data?.data) out.push(r.data.data);
+          } catch (e) { console.error('Trace forward (multi) error:', c, e.message); }
+        }
+        setData(mergeForward(out, type));
+      }
+      pushRecent({ kind: 'fwd', code: list.join(', '), type });
       onRan?.();
-      onQueryChange?.({ code: q, type: t });
+      onQueryChange?.({ code: list.join(','), type });
     } catch (e) {
       console.error('Trace forward error:', e);
       setError(e.response?.data?.error || e.message);
     } finally {
       setLoading(false);
     }
-  }, [code, type, onQueryChange, onRan]);
-
-  // หลายรหัสพร้อมกัน (Where-used list ของหลาย batch): วางรหัสคั่นด้วยบรรทัดใหม่ / , / ช่องว่าง
-  const runMulti = async () => {
-    const codes = uniq(form.multiText.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)).slice(0, 50);
-    if (!codes.length) { setError('วางรหัสอย่างน้อย 1 รหัส'); return; }
-    try {
-      setLoading(true); setError(''); setData(null); setNotice('');
-      const out = [];
-      for (const c of codes) {
-        try {
-          const r = await axios.get(`${API_URL}/api/traceback/forward`, { params: { code: c, type } });
-          if (r.data?.data) out.push(r.data.data);
-        } catch (e) { console.error('Trace forward (multi) error:', c, e.message); }
-      }
-      setData(mergeForward(out, type));
-    } finally { setLoading(false); }
-  };
+  }, [onQueryChange, onRan]);
 
   // the search button of the shared form
-  useImperativeHandle(ref, () => ({ search: () => (form.multi ? runMulti() : run()), run: (c, t) => run(c, t), reset: () => { setData(null); setError(''); setNotice(''); } }));
+  useImperativeHandle(ref, () => ({ search: () => runCodes(traceCodes(form)), run: (c) => runCodes(splitCodes(c)), reset: () => { setData(null); setError(''); setNotice(''); } }));
 
   const exportCsv = () => {
     if (!data) return;
@@ -149,7 +144,7 @@ const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpe
 
   // เปิดจากลิงก์ (?mode=forward&code=...) → ค้นหาทันที
   useEffect(() => {
-    if (initialCode) run(initialCode, initialType);
+    if (initialCode) runCodes(splitCodes(initialCode));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -205,6 +200,8 @@ const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpe
           <Spinner size={30} /> <span style={{ color: T.blueDeep, fontWeight: 600 }}>กำลังค้นหาในทุกเอกสาร...</span>
         </div>
       )}
+
+      {!data && !loading && !error && <EmptyHint />}
 
       {data && !loading && (
         <>

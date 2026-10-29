@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import SearchableSelect from './SearchableSelect';
-import { Btn, Segmented, ModeSwitch, Spinner } from './TraceAtoms';
-import { T, TYPE_LABEL, inputCss } from './tracebackUI';
+import { Btn, ModeSwitch, Spinner } from './TraceAtoms';
+import { T, inputCss } from './tracebackUI';
 import { PACK_STATUS_OPTIONS, BACK_SORT_OPTIONS, FWD_SORT_OPTIONS } from './traceForm';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const TYPE_OPTIONS = ['auto', 'rm', 'ing', 'pkg'].map(v => ({ value: v, label: TYPE_LABEL[v] }));
 const lbl = { fontSize: 11.5, fontWeight: 600, color: T.blueDeep, display: 'block', marginBottom: 4 };
 const cell = (min = 130) => ({ flex: `1 1 ${min}px`, minWidth: min, maxWidth: 260 });
 
@@ -15,7 +14,7 @@ const cell = (min = 130) => ({ flex: `1 1 ${min}px`, minWidth: min, maxWidth: 26
  *   backward: Batch + filters -> the list of productions · forward: Batch / Lot (+ kind, one / many) -> where it went, the filters narrow the result
  * Kept to few rows on purpose, so the data below starts as high as possible.
  */
-const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loading, variants = [], onSaveVariant, onApplyVariant, onRemoveVariant, recent = [], onPickRecent }) => {
+const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loading, recent = [], onPickRecent }) => {
   const [opts, setOpts] = useState({ code: [], doc_no: [], mat: [], mat_name: [], rmm_line_name: [], supplier: [], batch: [] });
   const [optsLoading, setOptsLoading] = useState(false);
   const fwd = mode === 'forward';
@@ -38,52 +37,34 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
   }, []);
 
   const sortOptions = fwd ? FWD_SORT_OPTIONS : BACK_SORT_OPTIONS;
-  const enter = e => { if (e.key === 'Enter' && !form.multi) onSearch(); };
+  const enter = e => { if (e.key === 'Enter') onSearch(); };
 
   return (
     <div className="tb-noprint" style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '14px 18px', marginTop: 12 }}>
-      {/* แถว 1: ชื่อ + ปุ่มทิศทาง */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep }}>ค้นหาการผลิตเพื่อสอบกลับ</div>
-        <ModeSwitch mode={mode} onChange={onModeChange} />
-      </div>
-
-      {/* แถว 2: รหัสรุ่น / Lot + (สอบไปข้างหน้า) ประเภท · รหัสเดียว/หลายรหัส · บันทึก + ปุ่มค้นหา */}
+      {/* แถว 1: ปุ่มทิศทาง · รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค ค้นทุกประเภทเสมอ) · ค้นหา + ล้างเงื่อนไข ติดกัน */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ flex: '1 1 300px', minWidth: 240 }}>
+        <ModeSwitch mode={mode} onChange={onModeChange} />
+        <div style={{ flex: '1 1 320px', minWidth: 240 }}>
           <label style={lbl}>รหัสรุ่น (Batch) / Lot บรรจุภัณฑ์</label>
-          {form.multi ? (
-            <textarea value={form.multiText} onChange={e => set('multiText', e.target.value.toUpperCase())} rows={2}
-              placeholder="วางหลายรหัส (คั่นด้วยบรรทัดใหม่ , หรือช่องว่าง) สูงสุด 50 รหัส"
-              style={{ ...inputCss, height: 'auto', padding: 8, fontFamily: 'ui-monospace,monospace', resize: 'vertical' }} />
-          ) : (
-            <input value={form.trace} onChange={e => set('trace', e.target.value.toUpperCase())} onKeyDown={enter}
-              placeholder="สแกนหรือพิมพ์รหัสรุ่น / Lot แล้วกด Enter"
-              aria-label="รหัสรุ่นหรือ Lot"
-              style={{ ...inputCss, fontFamily: 'ui-monospace,monospace', letterSpacing: 1, fontWeight: 600 }} />
-          )}
+          <input value={form.trace} onChange={e => set('trace', e.target.value.toUpperCase())} onKeyDown={enter}
+            placeholder="สแกนหรือพิมพ์รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค) แล้วกด Enter"
+            aria-label="รหัสรุ่นหรือ Lot"
+            style={{ ...inputCss, fontFamily: 'ui-monospace,monospace', letterSpacing: 1, fontWeight: 600 }} />
         </div>
-        <Segmented value={form.type} onChange={v => set('type', v)} options={TYPE_OPTIONS} />
-        <Segmented value={form.multi ? 'm' : 's'} onChange={v => set('multi', v === 'm')} options={[{ value: 's', label: 'รหัสเดียว' }, { value: 'm', label: 'หลายรหัส' }]} />
-        <Btn variant="ghost" onClick={onSaveVariant} title="บันทึกการค้นหานี้ไว้ในเครื่องนี้">☆ บันทึกการค้นหา</Btn>
-        <Btn onClick={onSearch} disabled={loading}>{loading ? <Spinner size={14} /> : null}ค้นหา</Btn>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Btn onClick={onSearch} disabled={loading}>{loading ? <Spinner size={14} /> : null}ค้นหา</Btn>
+          <Btn variant="ghost" onClick={onReset} disabled={loading}>ล้างเงื่อนไข</Btn>
+        </div>
       </div>
 
-      {/* ที่บันทึกไว้ / ล่าสุด (เฉพาะสอบไปข้างหน้า, แถวเดียว) */}
-      {(variants.length > 0 || recent.length > 0) && (
+      {/* ล่าสุด: */}
+      {recent.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-          {variants.length > 0 && <span style={{ fontSize: 12, color: T.text2 }}>ที่บันทึกไว้:</span>}
-          {variants.slice(0, 8).map(v => (
-            <span key={v.name} style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${T.orangeLine}`, background: T.orangeSoft, borderRadius: 20 }}>
-              <button type="button" onClick={() => onApplyVariant(v)} style={{ border: 'none', background: 'none', color: T.orange, padding: '3px 4px 3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{v.name}</button>
-              <button type="button" aria-label="ลบ" onClick={() => onRemoveVariant(v)} style={{ border: 'none', background: 'none', color: T.orange, padding: '3px 8px 3px 2px', fontSize: 12, cursor: 'pointer' }}>✕</button>
-            </span>
-          ))}
-          {recent.length > 0 && <span style={{ fontSize: 12, color: T.text2 }}>ล่าสุด:</span>}
+          <span style={{ fontSize: 12, color: T.text2 }}>ล่าสุด:</span>
           {recent.slice(0, 6).map(r => (
             <button key={r.key} type="button" onClick={() => onPickRecent(r)}
               style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '3px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {r.code} · {TYPE_LABEL[r.type]}
+              {r.code}
             </button>
           ))}
         </div>
@@ -123,7 +104,6 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
         <div style={cell(190)}>
           <SearchableSelect label="เรียงลำดับผลลัพธ์" value={form.sort} onChange={v => set('sort', v || sortOptions[0].value)} options={sortOptions} allowFree={false} placeholder={sortOptions[0].label} />
         </div>
-        <Btn variant="ghost" onClick={onReset} disabled={loading}>ล้างเงื่อนไข</Btn>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import HoldList from "./Asset/HoldList";
 import SearchPanel from "./Asset/SearchPanel";
 import { makeForm, defaultSort, defaultStatus } from "./Asset/traceForm";
 import { T } from "./Asset/tracebackUI";
-import { scopeFromParams, scopeToParams, readRecent, readVariants, saveVariants } from "./Asset/tracebackCore";
+import { scopeFromParams, scopeToParams, readRecent } from "./Asset/tracebackCore";
 
 // /sup/Traceback — ศูนย์สอบกลับการผลิต
 //   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง · ?scope=1&code=&batch=&line=… ใบสอบกลับตามตัวกรอง
@@ -36,10 +36,9 @@ const TracebackPage = () => {
   const selected = scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null);
 
   // the one search form of the page (SearchPanel) — both directions read it; the buttons of each direction are called through a ref
-  const [form, setForm] = useState(() => makeForm(mode, mode === "forward" ? { trace: params.get("code") || "", type: params.get("type") || "auto" } : {}));
+  const [form, setForm] = useState(() => makeForm(mode, mode === "forward" ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
   const dashRef = useRef(null);
   const fwdRef = useRef(null);
-  const [variants, setVariants] = useState(readVariants);
   const [recentTick, setRecentTick] = useState(0);
   const recent = useMemo(() => readRecent().filter((r) => r.kind === "fwd"), [recentTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -51,22 +50,11 @@ const TracebackPage = () => {
   const onSearch = () => activeRef().current?.search();
   const onReset = () => { setForm(makeForm(mode)); activeRef().current?.reset(); };
 
-  const saveVariant = () => {
-    const q = form.multi ? form.multiText.trim() : form.trace.trim();
-    if (!q) return;
-    const name = window.prompt("ตั้งชื่อการค้นหานี้ (บันทึกไว้ในเครื่องนี้)", q.slice(0, 30));
-    if (!name) return;
-    setVariants(saveVariants([{ name, code: q, type: form.type, multi: form.multi }, ...variants.filter((v) => v.name !== name)]));
+  // a recent search: the code(s) go back into the box and the search runs at once
+  const pickRecent = (r) => {
+    setForm((f) => ({ ...f, trace: r.code.split(",").join(" ") }));
+    activeRef().current?.run(r.code);
   };
-  // a saved / recent search: one code runs at once, several codes fill the list and wait for the button
-  const runSaved = (code, type, multi) => {
-    const many = multi || /[\s,;]/.test(code.trim());
-    setForm((f) => ({ ...f, type, multi: many, ...(many ? { multiText: code } : { trace: code }) }));
-    if (!many) activeRef().current?.run(code, type);
-  };
-  const applyVariant = (v) => runSaved(v.code, v.type, !!v.multi);
-  const removeVariant = (v) => setVariants(saveVariants(variants.filter((x) => x.name !== v.name)));
-  const pickRecent = (r) => runSaved(r.code, r.type, false);
 
   const onSelect = useCallback((v) => {
     if (v?.scope) setParams(scopeToParams(v));
@@ -97,7 +85,6 @@ const TracebackPage = () => {
         {!selected && (
           <SearchPanel
             mode={mode} onModeChange={setMode} form={form} setForm={setForm} onSearch={onSearch} onReset={onReset}
-            variants={variants} onSaveVariant={saveVariant} onApplyVariant={applyVariant} onRemoveVariant={removeVariant}
             recent={recent} onPickRecent={pickRecent}
           />
         )}

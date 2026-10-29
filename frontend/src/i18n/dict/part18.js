@@ -674,4 +674,5 @@ export default {
   "วันผลิต (จาก)": ["Production day (from)", "ထုတ်လုပ်သည့်နေ့ (မှ)", "ថ្ងៃផលិត (ចាប់ពី)"],
   "วันผลิต (ถึง)": ["Production day (to)", "ထုတ်လုပ်သည့်နေ့ (အထိ)", "ថ្ងៃផលិត (ដល់)"],
   "เฉพาะ Supervisor / Master": ["Supervisor / Master only", "Supervisor / Master သာ", "សម្រាប់តែ Supervisor / Master"],
+  "สแกนหรือพิมพ์รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค) แล้วกด Enter": ["Scan or type the batch / lot (several codes separated by , or a space), then press Enter", "Batch / Lot ကို စကင်ဖတ်ပါ သို့မဟုတ် ရိုက်ပါ (ကုဒ်အများအပြားကို , သို့မဟုတ် နေရာလွတ်ဖြင့် ခြားပါ) ပြီး Enter နှိပ်ပါ", "ស្កេន ឬវាយ Batch / Lot (កូដច្រើនបំបែកដោយ , ឬដកឃ្លា) រួចចុច Enter"],
 };

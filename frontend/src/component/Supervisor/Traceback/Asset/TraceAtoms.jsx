@@ -199,3 +199,11 @@ export const RemarkCsGroupText = ({ lots }) => {
 export const ModeSwitch = ({ mode, onChange }) => (
   <Segmented value={mode} onChange={onChange} options={[{ value: 'backward', label: 'สอบย้อนกลับ' }, { value: 'forward', label: 'สอบไปข้างหน้า' }]} />
 );
+
+/** the same "nothing searched yet" box in both directions */
+export const EmptyHint = () => (
+  <div style={{ textAlign: 'center', padding: '4rem 2rem', color: T.text2, border: `1px dashed ${T.blueLine}`, borderRadius: 14 }}>
+    <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>เลือกเงื่อนไขแล้วกดค้นหา</div>
+    <div style={{ fontSize: 13, fontWeight: 400, opacity: 0.8 }}>ผลลัพธ์ 1 แถว = 1 การผลิต กดที่แถวเพื่อเปิดใบสอบกลับเต็มหน้า</div>
+  </div>
+);
