@@ -1,11 +1,11 @@
 // ค่าสี/สไตล์/ฟังก์ชันจัดรูปแบบที่ใช้ร่วมกันในหน้า Traceback
 export const C = {
-  blue: '#0B5FA5', blueDark: '#083E6B', blueSoft: '#E7F1FA',
-  orange: '#D9580D', orangeSoft: '#FFF0E3',
+  blue: '#1552F0', blueDark: '#0F3FC4', blueSoft: '#EAF1FF',
+  orange: '#F26B1D', orangeSoft: '#FFF1E8',
   violetSoft: '#EDE9FE',
   white: '#FFFFFF', bg: '#F5F9FD',
   text: '#0F2740', text2: '#274866', muted: '#4A6A88', faint: '#6B8AA6',
-  line: '#B7D5EE', line2: '#E3EEF8',
+  line: '#C5D6FB', line2: '#E6EEFC',
 };
 
 export const labelStyle = {
@@ -49,10 +49,10 @@ export const fmtNum = (v, d = 2) => (v == null || v === '' || isNaN(Number(v))
 
 // ชุดสีเดียวกับใบสอบกลับ (ฟ้า / ส้ม / ขาว)
 export const T = {
-  blue: '#0B5FA5', blueDeep: '#083E6B', blueSoft: '#E7F1FA', blueLine: '#B7D5EE',
-  orange: '#D9580D', orangeSoft: '#FFF0E3', orangeLine: '#FFCFA6',
+  blue: '#1552F0', blueDeep: '#0F3FC4', blueSoft: '#EAF1FF', blueLine: '#C5D6FB',
+  orange: '#F26B1D', orangeSoft: '#FFF1E8', orangeLine: '#FFD0B0',
   white: '#FFFFFF', bg: '#F5F9FD',
-  text: '#0F2740', text2: '#274866', line: '#CBDFEF',
+  text: '#0F2740', text2: '#274866', line: '#D5E0F5',
   ok: '#0A6B3D', okSoft: '#E2F5EA', okLine: '#A9DCC0',
   bad: '#A81E14', badSoft: '#FDEBE9', badLine: '#F3B7B1',
 };

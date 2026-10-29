@@ -101,7 +101,7 @@ export const SortableTh = ({ col, rows, sort, onToggle, style }) => {
 };
 
 /** ตารางอย่างง่าย: columns = [{ key, label, align, render, wrap, sortValue }] — กดหัวคอลัมน์เพื่อเรียง */
-export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight, flush = false }) => {
+export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight, flush = false, plain = false }) => {
   const { sorted, sort, toggle } = useTableSort(rows, columns);
   if (!rows?.length) {
     return <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: 18, fontSize: 13, color: T.text2, background: T.white }}>{empty}</div>;
@@ -113,7 +113,7 @@ export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข
         <tbody>
           {sorted.map((r, i) => {
             const tone = rowTone?.(r);
-            const bg = tone === 'bad' ? T.badSoft : tone === 'orange' ? T.orangeSoft : tone === 'ok' ? T.okSoft : (i % 2 ? T.bg : T.white);
+            const bg = plain ? T.white : tone === 'bad' ? T.badSoft : tone === 'orange' ? T.orangeSoft : tone === 'ok' ? T.okSoft : (i % 2 ? T.bg : T.white);
             return (
               <tr key={getKey ? getKey(r, i) : i} style={{ background: bg }}>
                 {columns.map(c => (
