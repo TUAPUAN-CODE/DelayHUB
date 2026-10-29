@@ -282,4 +282,60 @@ ORDER BY i.Batch, TRY_CAST(f.FeatureOrder AS int), TRY_CAST(f.FeatureSampleNumbe
     return out;
 }
 
-module.exports = { connectToWiseup, fetchIntakeByBatch, FEATURE, CATALOG };
+// ── supplier of the lots (light queries: the filter / the column "ผู้ขาย" of the traceback; fetchIntakeByBatch above is the heavy full intake) ──
+const SUPPLIER_TTL_MS = 10 * 60 * 1000;
+const supplierCache = new Map(); // key -> { at, value }
+const cachedSupplier = async (key, load) => {
+    const hit = supplierCache.get(key);
+    if (hit && Date.now() - hit.at < SUPPLIER_TTL_MS) return hit.value;
+    const value = await load();
+    supplierCache.set(key, { at: Date.now(), value });
+    return value;
+};
+
+/** every supplier name (drop-down of the search form) */
+async function fetchSupplierNames() {
+    return cachedSupplier('names', async () => {
+        const pool = await connectToWiseup();
+        const r = await pool.request().query('SELECT DISTINCT TOP (3000) Name AS value FROM SUP_Supplier WITH (NOLOCK) WHERE Name IS NOT NULL AND Name <> \'\' ORDER BY Name');
+        return r.recordset.map(x => S(x.value)).filter(Boolean);
+    });
+}
+
+/** the batch codes a supplier delivered (from its guide lines), at most 8000 — the supplier filter of the search */
+async function fetchBatchesOfSupplier(name) {
+    const n = S(name);
+    if (!n) return [];
+    return cachedSupplier(`batches:${n.toLowerCase()}`, async () => {
+        const pool = await connectToWiseup();
+        const r = await pool.request().input('n', sql.NVarChar(200), n).query(`
+SELECT DISTINCT TOP (8000) g.Batch AS batch_code
+FROM RMM_GuideLine g WITH (NOLOCK)
+LEFT JOIN SUP_Supplier su WITH (NOLOCK) ON su.SupplierID = NULLIF(g.SupplierID, '')
+WHERE COALESCE(NULLIF(g.SupplierName, ''), su.Name) = @n AND g.Batch IS NOT NULL`);
+        return r.recordset.map(x => S(x.batch_code)).filter(Boolean);
+    });
+}
+
+/** Map batch code -> supplier name for these batches (the lots of the forward trace) */
+async function fetchSupplierByBatch(batchCodes) {
+    const list = [...new Set((batchCodes || []).map(S).filter(Boolean))];
+    const out = new Map();
+    if (!list.length) return out;
+    const pool = await connectToWiseup();
+    for (const part of chunkOf(list, MAX_PARAMS)) {
+        const req = pool.request();
+        const ph = part.map((b, k) => { req.input(`b${k}`, sql.VarChar(50), b); return `@b${k}`; }).join(',');
+        const r = await req.query(`
+SELECT g.Batch AS batch_code, COALESCE(NULLIF(g.SupplierName, ''), su.Name) AS supplier_name, g.GuideYear, g.GuideNumber
+FROM RMM_GuideLine g WITH (NOLOCK)
+LEFT JOIN SUP_Supplier su WITH (NOLOCK) ON su.SupplierID = NULLIF(g.SupplierID, '')
+WHERE g.Batch IN (${ph})
+ORDER BY g.GuideYear ASC, g.GuideNumber ASC`);
+        // the latest guide line of a batch wins (same as fetchIntakeByBatch)
+        r.recordset.forEach(x => { const name = S(x.supplier_name); if (name) out.set(S(x.batch_code), name); });
+    }
+    return out;
+}
+
+module.exports = { connectToWiseup, fetchIntakeByBatch, fetchSupplierNames, fetchBatchesOfSupplier, fetchSupplierByBatch, FEATURE, CATALOG };

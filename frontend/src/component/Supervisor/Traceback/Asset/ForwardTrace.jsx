@@ -88,7 +88,7 @@ const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpe
   const sortBy = form.sort;
   // pack_status of the form: packed / all / unpacked  ->  the lots shown
   const lotFilter = form.pack_status === 'all' ? 'all' : form.pack_status === 'packed' ? 'packed' : 'wip';
-  const flt = { doc: form.doc_no, code: form.code, mat: form.mat, matName: form.mat_name, line: form.rmm_line_name, from: form.from, to: form.single ? form.from : form.to };
+  const flt = { doc: form.doc_no, code: form.code, mat: form.mat, matName: form.mat_name, line: form.rmm_line_name, supplier: form.supplier, from: form.from, to: form.single ? form.from : form.to };
 
   const run = useCallback(async (c = code, t = type) => {
     const q = String(c || '').trim();
@@ -160,14 +160,14 @@ const ForwardTrace = forwardRef(({ initialCode = '', initialType = 'auto', onOpe
     return (data?.lots || []).filter(l => {
       if (lotFilter !== 'all' && (lotFilter === 'packed') !== !!l.sc_pack_date) return false;
       if (!has(l.doc_no, flt.doc) || !has(l.code, flt.code) || !has(l.rmm_line_name, flt.line)) return false;
-      if (!has(l.mat, flt.mat) || !has(l.mat_name, flt.matName)) return false;
+      if (!has(l.mat, flt.mat) || !has(l.mat_name, flt.matName) || !has(l.supplier, flt.supplier)) return false;
       if (flt.from || flt.to) {
         const d = factoryDay(l.sc_pack_date || l.rmit_date);
         if (!d || (flt.from && d < flt.from) || (flt.to && d > flt.to)) return false;
       }
       return true;
     });
-  }, [data, lotFilter, form.doc_no, form.code, form.mat, form.mat_name, form.rmm_line_name, form.from, form.to, form.single]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, lotFilter, form.doc_no, form.code, form.mat, form.mat_name, form.rmm_line_name, form.supplier, form.from, form.to, form.single]); // eslint-disable-line react-hooks/exhaustive-deps
   const shownIds = useMemo(() => new Set(lots.map(l => l.mapping_id)), [lots]);
 
   // one row per factory day + document + Code

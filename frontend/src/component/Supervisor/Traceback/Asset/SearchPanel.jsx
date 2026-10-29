@@ -38,7 +38,7 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
   }, []);
 
   const sortOptions = fwd ? FWD_SORT_OPTIONS : BACK_SORT_OPTIONS;
-  const enter = e => { if (e.key === 'Enter' && !(form.multi && fwd)) onSearch(); };
+  const enter = e => { if (e.key === 'Enter' && !form.multi) onSearch(); };
 
   return (
     <div className="tb-noprint" style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '14px 18px', marginTop: 12 }}>
@@ -52,25 +52,25 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ flex: '1 1 300px', minWidth: 240 }}>
           <label style={lbl}>รหัสรุ่น (Batch) / Lot บรรจุภัณฑ์</label>
-          {fwd && form.multi ? (
+          {form.multi ? (
             <textarea value={form.multiText} onChange={e => set('multiText', e.target.value.toUpperCase())} rows={2}
               placeholder="วางหลายรหัส (คั่นด้วยบรรทัดใหม่ , หรือช่องว่าง) สูงสุด 50 รหัส"
               style={{ ...inputCss, height: 'auto', padding: 8, fontFamily: 'ui-monospace,monospace', resize: 'vertical' }} />
           ) : (
             <input value={form.trace} onChange={e => set('trace', e.target.value.toUpperCase())} onKeyDown={enter}
-              placeholder={fwd ? 'สแกนหรือพิมพ์รหัสรุ่น / Lot แล้วกด Enter' : 'รหัสรุ่น (Batch) ที่ต้องการค้นหา'}
+              placeholder="สแกนหรือพิมพ์รหัสรุ่น / Lot แล้วกด Enter"
               aria-label="รหัสรุ่นหรือ Lot"
               style={{ ...inputCss, fontFamily: 'ui-monospace,monospace', letterSpacing: 1, fontWeight: 600 }} />
           )}
         </div>
-        {fwd && <Segmented value={form.type} onChange={v => set('type', v)} options={TYPE_OPTIONS} />}
-        {fwd && <Segmented value={form.multi ? 'm' : 's'} onChange={v => set('multi', v === 'm')} options={[{ value: 's', label: 'รหัสเดียว' }, { value: 'm', label: 'หลายรหัส' }]} />}
-        {fwd && <Btn variant="ghost" onClick={onSaveVariant} title="บันทึกการค้นหานี้ไว้ในเครื่องนี้">☆ บันทึกการค้นหา</Btn>}
-        <Btn onClick={onSearch} disabled={loading}>{loading ? <Spinner size={14} /> : null}{fwd ? 'สอบกลับ' : 'ค้นหา'}</Btn>
+        <Segmented value={form.type} onChange={v => set('type', v)} options={TYPE_OPTIONS} />
+        <Segmented value={form.multi ? 'm' : 's'} onChange={v => set('multi', v === 'm')} options={[{ value: 's', label: 'รหัสเดียว' }, { value: 'm', label: 'หลายรหัส' }]} />
+        <Btn variant="ghost" onClick={onSaveVariant} title="บันทึกการค้นหานี้ไว้ในเครื่องนี้">☆ บันทึกการค้นหา</Btn>
+        <Btn onClick={onSearch} disabled={loading}>{loading ? <Spinner size={14} /> : null}ค้นหา</Btn>
       </div>
 
       {/* ที่บันทึกไว้ / ล่าสุด (เฉพาะสอบไปข้างหน้า, แถวเดียว) */}
-      {fwd && (variants.length > 0 || recent.length > 0) && (
+      {(variants.length > 0 || recent.length > 0) && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
           {variants.length > 0 && <span style={{ fontSize: 12, color: T.text2 }}>ที่บันทึกไว้:</span>}
           {variants.slice(0, 8).map(v => (
@@ -96,12 +96,10 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
         <div style={cell(120)}><SearchableSelect label="รหัสวัตถุดิบ (Mat)" value={form.mat} onChange={v => set('mat', v)} options={opts.mat} loading={optsLoading} placeholder="ทุกรหัส" /></div>
         <div style={cell(150)}><SearchableSelect label="ชื่อวัตถุดิบ" value={form.mat_name} onChange={v => set('mat_name', v)} options={opts.mat_name} loading={optsLoading} placeholder="ทุกชื่อ" /></div>
         <div style={cell(100)}><SearchableSelect label="ไลน์ผลิต" value={form.rmm_line_name} onChange={v => set('rmm_line_name', v)} options={opts.rmm_line_name} loading={optsLoading} placeholder="ทุกไลน์" /></div>
-        {!fwd && (
-          <div style={cell(130)}>
-            <SearchableSelect label="ผู้ขาย / ซัพพลายเออร์" value={form.supplier} onChange={v => set('supplier', v)} options={opts.supplier} loading={optsLoading}
-              placeholder={!optsLoading && opts.supplier.length === 0 ? 'ไม่มีข้อมูลผู้ขายในระบบ' : 'ทุกราย'} />
-          </div>
-        )}
+        <div style={cell(130)}>
+          <SearchableSelect label="ผู้ขาย / ซัพพลายเออร์" value={form.supplier} onChange={v => set('supplier', v)} options={opts.supplier} loading={optsLoading}
+            placeholder={!optsLoading && opts.supplier.length === 0 ? 'ไม่มีข้อมูลผู้ขายในระบบ' : 'ทุกราย'} />
+        </div>
         <div style={{ ...cell(175), maxWidth: 210 }}>
           <label style={lbl}>สถานะวัตถุดิบที่แสดง</label>
           <select value={form.pack_status} onChange={e => set('pack_status', e.target.value)} style={inputCss}>
@@ -113,12 +111,12 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
           ค้นหาแค่วันเดียว
         </label>
         <div style={{ width: 140 }}>
-          <label style={lbl}>{form.single ? (fwd ? 'วันผลิต' : 'วันที่บรรจุ') : (fwd ? 'วันผลิต (จาก)' : 'วันที่บรรจุ (จาก)')}</label>
+          <label style={lbl}>{form.single ? 'วันที่บรรจุ' : 'วันที่บรรจุ (จาก)'}</label>
           <input type="date" value={form.from} onChange={e => set('from', e.target.value)} style={inputCss} />
         </div>
         {!form.single && (
           <div style={{ width: 140 }}>
-            <label style={lbl}>{fwd ? 'วันผลิต (ถึง)' : 'วันที่บรรจุ (ถึง)'}</label>
+            <label style={lbl}>วันที่บรรจุ (ถึง)</label>
             <input type="date" value={form.to} onChange={e => set('to', e.target.value)} style={inputCss} />
           </div>
         )}

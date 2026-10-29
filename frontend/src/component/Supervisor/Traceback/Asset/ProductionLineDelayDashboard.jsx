@@ -2,7 +2,7 @@ import { forwardRef, useState, useCallback, useImperativeHandle, useMemo } from 
 import axios from 'axios';
 import TracebackDetailView from './TracebackDetailView';
 import { C, fmtDisplay, fmtNum, DELAY_STYLE } from './tracebackUI';
-import { backwardFilters } from './traceForm';
+import { backwardFilters, traceCodes } from './traceForm';
 import { readRecent, pushRecent } from './tracebackCore';
 import { SimpleTable } from './TraceAtoms';
 
@@ -29,7 +29,7 @@ const Spinner = ({ size = 20, border = 2 }) => (
 
 // selected / onSelect มาจาก TracebackPage เพื่อให้ URL (?doc_no=&code=) เปิดใบสอบกลับตรงได้
 // selected / onSelect / form มาจาก TracebackPage: ฟอร์มค้นหาอยู่ที่ SearchPanel ใช้ร่วมกับสอบไปข้างหน้า; ปุ่มค้นหาเรียก search() ผ่าน ref
-const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, form }, ref) => {
+const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, form, onRan }, ref) => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,9 +55,15 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
   }, []);
 
   useImperativeHandle(ref, () => ({
-    search: () => fetchData(backwardFilters(form)),
+    search: () => {
+      // the codes searched are remembered like in the forward trace ("ล่าสุด:" of the form)
+      const codes = traceCodes(form);
+      if (codes.length) { pushRecent({ kind: 'fwd', code: codes.join(', '), type: form.type }); onRan?.(); }
+      return fetchData(backwardFilters(form));
+    },
+    run: (c, t) => fetchData(backwardFilters({ ...form, trace: c, multi: false, multiText: '', type: t })),
     reset: () => { setResults([]); setSearched(false); setError(null); },
-  }), [fetchData, form]);
+  }), [fetchData, form, onRan]);
 
   // ขอบเขตของใบสอบกลับ = ตัวกรองทุกช่องที่ตั้งไว้ในหน้าค้นหา (ทุกตัวมีผลบังคับ ไม่ผูกกับการ์ดที่กด):
   //   ใบสอบกลับครอบคลุม "ข้อมูลทั้งหมดที่ตรงกับตัวกรองครบทุกช่อง" ข้ามเอกสาร/Code/Batch/ไลน์
@@ -66,8 +72,13 @@ const ProductionLineDelayDashboard = forwardRef(({ selected = null, onSelect, fo
   const buildScope = r => {
     const filters = backwardFilters(form);
     const t = v => String(v || '').trim();
+    // one raw-material Batch: the record covers every document that used it (as before); any other code / several codes / "any kind":
+    // the record of the production that was clicked (the code may be an ingredient batch or a packaging lot, which the record cannot filter by)
+    const codes = traceCodes(form);
+    const rmBatch = codes.length === 1 && form.type === 'rm' ? codes[0] : '';
+    const byRow = codes.length > 0 && !rmBatch;
     const all = {
-      doc_no: t(filters.doc_no), code: t(filters.code), batch: t(filters.batch), line: t(filters.rmm_line_name),
+      doc_no: t(filters.doc_no) || (byRow ? t(r.doc_no) : ''), code: t(filters.code) || (byRow ? t(r.code) : ''), batch: rmBatch, line: t(filters.rmm_line_name),
       mat: t(filters.mat), mat_name: t(filters.mat_name), supplier: t(filters.supplier),
       pack_from: t(filters.sc_pack_date_from), pack_to: t(filters.sc_pack_date_to),
     };

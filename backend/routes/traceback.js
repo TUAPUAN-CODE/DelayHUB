@@ -32,7 +32,7 @@ const { connectToDatabase, connectToDatabaseWC } = require('../database/db');
 const { getRefs, clearCache: clearDecoderCache, decodePair, refsStats } = require('./tracebackcode');
 const tracebackBatchRouter = require('./Tracebackbatch');
 const { decodeBatches } = require('./Tracebackbatch');
-const { fetchIntakeByBatch } = require('./Tracebackwiseup');
+const { fetchIntakeByBatch, fetchSupplierNames, fetchBatchesOfSupplier, fetchSupplierByBatch } = require('./Tracebackwiseup');
 const { safeRollback } = require('../lib/safeRollback');
 
 const WARN_MIN = 120;            // 2 ชม.
@@ -291,9 +291,11 @@ router.get('/filters', async (req, res) => {
       q('mat', `SELECT TOP 3000 rm.mat AS value, MAX(rm.mat_name) AS meta ${BASE_FROM} WHERE ${baseWhere(packMode)} AND rm.mat IS NOT NULL GROUP BY rm.mat ORDER BY rm.mat`),
       q('mat_name', `SELECT DISTINCT TOP 3000 rm.mat_name AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND rm.mat_name IS NOT NULL ORDER BY rm.mat_name`),
       q('line', `SELECT DISTINCT TOP 300 htr.rmm_line_name AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND htr.rmm_line_name IS NOT NULL ORDER BY htr.rmm_line_name`),
-      suppCol
-        ? q('supplier', `SELECT DISTINCT TOP 2000 ${suppCol.alias}.[${suppCol.col}] AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND ${suppCol.alias}.[${suppCol.col}] IS NOT NULL ORDER BY ${suppCol.alias}.[${suppCol.col}]`)
-        : Promise.resolve([]),
+      // suppliers come from the receiving system (WISEUP: SUP_Supplier); when it cannot be reached the old column of PFCM (if any) is used
+      fetchSupplierNames().then(names => names.map(n => ({ value: n, label: n, meta: '' }))).catch(async (e) => {
+        console.warn('⚠️ [traceback/filters] supplier จาก WISEUP ไม่ได้:', e.message);
+        return suppCol ? q('supplier', `SELECT DISTINCT TOP 2000 ${suppCol.alias}.[${suppCol.col}] AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND ${suppCol.alias}.[${suppCol.col}] IS NOT NULL ORDER BY value`) : [];
+      }),
       tBatchF
         ? q('batch', `SELECT DISTINCT TOP 3000 bt.batch_before AS value ${BASE_FROM} ${BATCH_APPLY(tBatchF)} WHERE ${baseWhere(packMode)} AND bt.batch_before IS NOT NULL ORDER BY bt.batch_before`)
         : Promise.resolve([]),
@@ -343,12 +345,36 @@ router.get('/search', async (req, res) => {
       request.input('batch', sql.NVarChar, S(batch));
     }
 
+    // supplier: the batches the supplier delivered (WISEUP guide lines) -> the mappings that used one of them
     if (S(supplier)) {
-      const sc = findSupplierColumn();
-      if (sc) {
-        filters.push(`${sc.alias}.[${sc.col}] LIKE '%' + @supplier + '%'`);
-        request.input('supplier', sql.NVarChar, S(supplier));
+      let supplied = null;
+      try { supplied = await fetchBatchesOfSupplier(S(supplier)); } catch (e) { console.warn('⚠️ [traceback/search] supplier จาก WISEUP ไม่ได้:', e.message); }
+      if (supplied && tBatchS) {
+        if (!supplied.length) return res.json({ success: true, data: [] });
+        filters.push(`EXISTS (SELECT 1 FROM [${tBatchS}] sb WHERE sb.mapping_id = rmm.mapping_id AND (sb.batch_before IN (SELECT value FROM STRING_SPLIT(@supp_batches, N',')) OR sb.batch_after IN (SELECT value FROM STRING_SPLIT(@supp_batches, N','))))`);
+        request.input('supp_batches', sql.NVarChar(sql.MAX), supplied.join(','));
+      } else {
+        const sc = findSupplierColumn();
+        if (sc) {
+          filters.push(`${sc.alias}.[${sc.col}] LIKE '%' + @supplier + '%'`);
+          request.input('supplier', sql.NVarChar, S(supplier));
+        }
       }
+    }
+
+    // trace: one or several codes (Batch / ingredient batch / packaging lot): the productions that used them (the same lookup as the forward trace)
+    const traceCodes = [...new Set(S(req.query.trace).split(/[\s,;]+/).map(x => x.trim()).filter(Boolean))].slice(0, 50);
+    if (traceCodes.length) {
+      const tt = S(req.query.trace_type);
+      const types = ['rm', 'ing', 'pkg'].includes(tt) ? [tt] : ['rm', 'ing', 'pkg'];
+      const runners = { rm: forwardRM, ing: forwardING, pkg: forwardPKG };
+      const found = new Set();
+      await Promise.all(traceCodes.flatMap(c => types.map(t => runners[t](pool, c)
+        .then(r => (r.ids || []).forEach(id => found.add(id)))
+        .catch(e => console.warn(`⚠️ [traceback/search] trace ${t} ${c}:`, e.message)))));
+      if (!found.size) return res.json({ success: true, data: [] });
+      filters.push("rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@trace_ids, N','))");
+      request.input('trace_ids', sql.NVarChar(sql.MAX), [...found].slice(0, 20000).join(','));
     }
 
     const extraWhere = filters.length ? filters.map(f => `        AND ${f}`).join('\n') : '';
@@ -1343,6 +1369,13 @@ router.get('/forward', async (req, res) => {
           WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, ','))
           ORDER BY htr.sc_pack_date DESC
         `)).recordset;
+      // the supplier of each lot (receiving system, one light query); the trace works without it
+      try {
+        const sup = await fetchSupplierByBatch(lots.map(l => l.batch_before));
+        lots.forEach(l => { l.supplier = sup.get(String(l.batch_before || '').trim()) || null; });
+      } catch (e) {
+        console.warn('⚠️ [traceback/forward] supplier ของล็อตดึงไม่ได้:', e.message);
+      }
     }
 
     // ถอดรหัส batch วัตถุดิบ (ข้อมูลหลักของ batch แบบ Batch Master) — เฉพาะเมื่อพบเป็นรหัสรุ่นวัตถุดิบ

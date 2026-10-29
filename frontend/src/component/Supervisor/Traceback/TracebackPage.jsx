@@ -58,12 +58,15 @@ const TracebackPage = () => {
     if (!name) return;
     setVariants(saveVariants([{ name, code: q, type: form.type, multi: form.multi }, ...variants.filter((v) => v.name !== name)]));
   };
-  const applyVariant = (v) => {
-    setForm((f) => ({ ...f, type: v.type, multi: !!v.multi, ...(v.multi ? { multiText: v.code } : { trace: v.code }) }));
-    if (!v.multi) fwdRef.current?.run(v.code, v.type);
+  // a saved / recent search: one code runs at once, several codes fill the list and wait for the button
+  const runSaved = (code, type, multi) => {
+    const many = multi || /[\s,;]/.test(code.trim());
+    setForm((f) => ({ ...f, type, multi: many, ...(many ? { multiText: code } : { trace: code }) }));
+    if (!many) activeRef().current?.run(code, type);
   };
+  const applyVariant = (v) => runSaved(v.code, v.type, !!v.multi);
   const removeVariant = (v) => setVariants(saveVariants(variants.filter((x) => x.name !== v.name)));
-  const pickRecent = (r) => { setForm((f) => ({ ...f, trace: r.code, type: r.type, multi: false })); fwdRef.current?.run(r.code, r.type); };
+  const pickRecent = (r) => runSaved(r.code, r.type, false);
 
   const onSelect = useCallback((v) => {
     if (v?.scope) setParams(scopeToParams(v));
@@ -100,7 +103,7 @@ const TracebackPage = () => {
         )}
 
         <div style={{ padding: "4px 0 12px" }}>
-          {mode === "backward" && <ProductionLineDelayDashboard ref={dashRef} selected={selected} onSelect={onSelect} form={form} />}
+          {mode === "backward" && <ProductionLineDelayDashboard ref={dashRef} selected={selected} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />}
           {mode === "forward" && (
             <div style={{ paddingTop: 8 }}>
               <ForwardTrace
