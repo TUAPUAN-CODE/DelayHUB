@@ -326,6 +326,9 @@ router.get('/search', async (req, res) => {
     if (S(sc_pack_date_to)) { filters.push('htr.sc_pack_date < DATEADD(day, 1, @sc_pack_date_to)'); request.input('sc_pack_date_to', sql.DateTime, new Date(S(sc_pack_date_to))); }
 
     if (S(batch) && tBatchS) {
+      // the mappings of this batch are found in the Batch table first (one scan), so the query starts from a few rows instead of every mapping
+      // (without it the "all statuses" search walked every mapping with an OUTER APPLY each and timed out at 30 s)
+      filters.push(`rmm.mapping_id IN (SELECT bx.mapping_id FROM [${tBatchS}] bx WITH (NOLOCK) WHERE bx.batch_before LIKE '%' + @batch + '%' OR bx.batch_after LIKE '%' + @batch + '%')`);
       filters.push("(bt.batch_before LIKE '%' + @batch + '%' OR bt.batch_after LIKE '%' + @batch + '%')");
       request.input('batch', sql.NVarChar, S(batch));
     }
@@ -483,6 +486,9 @@ router.get('/detail', async (req, res) => {
       if (fSupplier && suppCol) { scopeWhere.push(`${suppCol.alias}.[${suppCol.col}] LIKE '%' + @f_supplier + '%'`); detailReq.input('f_supplier', sql.NVarChar(200), fSupplier); }
       if (okYmd(fPackFrom)) { scopeWhere.push('htr.sc_pack_date >= @f_pack_from'); detailReq.input('f_pack_from', sql.DateTime, new Date(fPackFrom)); }
       if (okYmd(fPackTo)) { scopeWhere.push('htr.sc_pack_date < DATEADD(day, 1, @f_pack_to)'); detailReq.input('f_pack_to', sql.DateTime, new Date(fPackTo)); }
+    }
+    if (scoped && batch && tBatch) {
+      scopeWhere.push(`rmm.mapping_id IN (SELECT bx.mapping_id FROM [${tBatch}] bx WITH (NOLOCK) WHERE bx.batch_before LIKE '%' + @batch + '%' OR bx.batch_after LIKE '%' + @batch + '%')`);
     }
     const docCond = scoped ? "@doc_no = '' OR p.doc_no LIKE '%' + @doc_no + '%'" : "@doc_no = '' OR p.doc_no = @doc_no";
     const codeCond = scoped ? "@code = '' OR p.code LIKE '%' + @code + '%'" : "@code   = '' OR p.code   = @code";
