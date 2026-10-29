@@ -8,7 +8,6 @@ import {
 } from './tracebackUI';
 import { readRecent, pushRecent } from './tracebackCore';
 import { SimpleTable } from './TraceAtoms';
-import { exportResultsExcel } from './tracebackExport';
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -78,7 +77,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
-  const [recent, setRecent] = useState(() => readRecent().filter(r => r.kind === 'doc'));
+  const [, setRecent] = useState(() => readRecent().filter(r => r.kind === 'doc'));
   const setSelected = useCallback(v => onSelect?.(v), [onSelect]);
 
   const setF = (key, val) => setFilters(p => ({ ...p, [key]: val }));
@@ -219,28 +218,27 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
           />
         </div>
 
-        <div style={{ marginBottom: 10, maxWidth: 360 }}>
-          <label style={labelStyle}>สถานะวัตถุดิบที่แสดง</label>
-          <select style={inputStyle} value={filters.pack_status} onChange={e => setF('pack_status', e.target.value)}>
-            {PACK_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-
-        <label style={{ fontSize: 12, color: C.text2, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 10, fontWeight: 400 }}>
-          <input
-            type="checkbox"
-            checked={singleDayMode}
-            onChange={e => {
-              const checked = e.target.checked;
-              setSingleDayMode(checked);
-              if (checked) setF('sc_pack_date_to', filters.sc_pack_date_from);
-            }}
-          />
-          ค้นหาแค่วันเดียว
-        </label>
-
-        <div className="tb-grid" style={{ marginBottom: 14 }}>
-          <div>
+        {/* สถานะ · ค้นหาแค่วันเดียว · วันที่บรรจุ · เรียงลำดับ อยู่แถวเดียวกัน */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
+          <div style={{ width: 210 }}>
+            <label style={labelStyle}>สถานะวัตถุดิบที่แสดง</label>
+            <select style={inputStyle} value={filters.pack_status} onChange={e => setF('pack_status', e.target.value)}>
+              {PACK_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <label style={{ fontSize: 12, color: C.text2, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 400, height: 38 }}>
+            <input
+              type="checkbox"
+              checked={singleDayMode}
+              onChange={e => {
+                const checked = e.target.checked;
+                setSingleDayMode(checked);
+                if (checked) setF('sc_pack_date_to', filters.sc_pack_date_from);
+              }}
+            />
+            ค้นหาแค่วันเดียว
+          </label>
+          <div style={{ width: 170 }}>
             <label style={labelStyle}>{singleDayMode ? 'วันที่บรรจุ' : 'วันที่บรรจุ (จาก)'}</label>
             <input
               type="date"
@@ -250,12 +248,14 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
             />
           </div>
           {!singleDayMode && (
-            <div>
+            <div style={{ width: 170 }}>
               <label style={labelStyle}>วันที่บรรจุ (ถึง)</label>
               <input type="date" style={inputStyle} value={filters.sc_pack_date_to} onChange={e => setF('sc_pack_date_to', e.target.value)} />
             </div>
           )}
-          <SearchableSelect label="เรียงลำดับผลลัพธ์" value={sortBy} onChange={v => setSortBy(v || 'pack_date_desc')} options={SORT_OPTIONS} allowFree={false} placeholder="เลือกการเรียง" />
+          <div style={{ width: 250 }}>
+            <SearchableSelect label="เรียงลำดับผลลัพธ์" value={sortBy} onChange={v => setSortBy(v || 'pack_date_desc')} options={SORT_OPTIONS} allowFree={false} placeholder="เลือกการเรียง" />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -266,24 +266,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
           {searched && !loading && (
             <span style={{ fontSize: 12, color: C.muted, fontWeight: 400 }}>พบ {results.length} การผลิต</span>
           )}
-          {searched && !loading && results.length > 0 && (
-            <button type="button" onClick={() => exportResultsExcel(sorted)} style={{ ...btnSecondary, marginLeft: 'auto', fontWeight: 500 }}>
-              ส่งออกผลการค้นหา (Excel)
-            </button>
-          )}
         </div>
-
-        {recent.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${C.line}` }}>
-            <span style={{ fontSize: 12, color: C.text2, fontWeight: 500 }}>เปิดล่าสุด:</span>
-            {recent.slice(0, 6).map(r => (
-              <button key={r.key} type="button" onClick={() => openRecord(r)} title={r.code}
-                style={{ border: `1px solid ${C.line}`, background: C.white, color: C.blueDark, borderRadius: 20, padding: '3px 11px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {r.doc_no}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {error && (
@@ -295,7 +278,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
       {!searched && !loading && (
         <div style={{ textAlign: 'center', padding: '4rem 2rem', color: C.faint, border: `0.5px dashed ${C.line}`, borderRadius: 14 }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: C.text2, marginBottom: 6 }}>เลือกเงื่อนไขแล้วกดค้นหา</div>
-          <div style={{ fontSize: 13, fontWeight: 400 }}>ผลลัพธ์ 1 การ์ด = 1 การผลิต กดที่การ์ดเพื่อเปิดใบสอบกลับเต็มหน้า</div>
+          <div style={{ fontSize: 13, fontWeight: 400 }}>ผลลัพธ์ 1 แถว = 1 การผลิต กดที่แถวเพื่อเปิดใบสอบกลับเต็มหน้า</div>
         </div>
       )}
 
