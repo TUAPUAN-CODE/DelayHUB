@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
 import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
@@ -60,9 +59,6 @@ const TracebackPage = () => {
 
   return (
     <div style={{ backgroundColor: T.bg }} className="flex-1 overflow-auto relative z-10">
-      <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
-        <Header title="Traceback | สอบกลับการผลิต" />
-      </main>
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
