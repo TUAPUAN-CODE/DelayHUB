@@ -41,14 +41,6 @@ const SORTERS = {
   doc_no_desc: (a, b) => String(b.doc_no).localeCompare(String(a.doc_no), 'th'),
   code_asc: (a, b) => String(a.code).localeCompare(String(b.code), 'th'),
 };
-// quick ranges of the factory day (05:30 - 05:30)
-const ymdLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const factoryToday = () => factoryDay(`${ymdLocal(new Date())} ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`);
-const shiftDay = (ymd, n) => { const [y, m, d] = ymd.split('-').map(Number); return ymdLocal(new Date(y, m - 1, d - n)); };
-const DATE_PRESETS = [
-  { label: 'วันนี้', from: 0, to: 0 }, { label: 'เมื่อวาน', from: 1, to: 1 }, { label: '7 วัน', from: 6, to: 0 }, { label: '30 วัน', from: 29, to: 0 },
-];
-
 /** รวมผล forward หลายรหัสเป็นชุดเดียว (สินค้าที่ซ้ำกันรวมยอด) */
 const mergeForward = (list, type) => {
   const lots = new Map();
@@ -320,11 +312,6 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
           </div>
           <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />
-            <span style={{ fontSize: 12, color: T.text2 }}>ช่วงวันลัด:</span>
-            {DATE_PRESETS.map(pr => (
-              <button key={pr.label} type="button" onClick={() => { const t = factoryToday(); setFlt(p => ({ ...p, from: shiftDay(t, pr.from), to: shiftDay(t, pr.to) })); }}
-                style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{pr.label}</button>
-            ))}
             <Btn variant="ghost" style={{ height: 32 }} onClick={() => { setLotFilter('all'); setFlt({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); setSortBy('day_desc'); }}>ล้างเงื่อนไข</Btn>
             <span style={{ fontSize: 12, color: T.text2 }}>แสดง {lots.length.toLocaleString()} จาก {(data.lots || []).length.toLocaleString()} ล็อต</span>
           </div>
