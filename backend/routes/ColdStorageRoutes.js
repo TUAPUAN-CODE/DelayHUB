@@ -1,5 +1,6 @@
 const { safeRollback } = require("../lib/safeRollback");
 const { recordLineage } = require("../lib/mappingLineage");
+const { COLD_STD_SQL, COLD_TIME_SQL } = require("../lib/coldStandard");
 module.exports = (io) => {
     const express = require("express");
     const { connectToDatabase } = require("../database/db");
@@ -852,8 +853,8 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
                     rm.mat_name,
                     CONCAT(p.doc_no, '(', rmm.rmm_line_name, ')') AS production,
                     FORMAT(rmm.prep_to_cold_time, 'N2') AS ptc_time,
-                    FORMAT(COALESCE(rmm.cold_time, rmg.cold), 'N2') AS cold,
-                    FORMAT(rmg.cold, 'N2') AS standard_cold,
+                    FORMAT(${COLD_TIME_SQL}, 'N2') AS cold,
+                    FORMAT(${COLD_STD_SQL}, 'N2') AS standard_cold,
                     FORMAT(rmm.rework_time, 'N2') AS rework_time,
                     FORMAT(rmg.rework, 'N2') AS standard_rework,
                     rmp.rmfp_id,
@@ -894,7 +895,7 @@ AND DATEDIFF(MINUTE, reserved_at, GETDATE()) >= ${RESERVATION_TIMEOUT_MINUTES}
                 GROUP BY
                     s.slot_id, s.tro_id, rmm.mapping_id, rmm.tray_count, rmm.weight_RM, 
                     rmm.rm_status, rm.mat_name, p.doc_no, rmm.rmm_line_name,
-                    rmm.prep_to_cold_time, rmm.cold_time, rmg.cold, 
+                    rmm.prep_to_cold_time, rmm.cold_time, rmg.cold, rmg.rm_group_id, rmm.tro_id,
                     rmm.rework_time, rmg.rework, rmp.rmfp_id, prm.mat,
                     h.cooked_date, h.rmit_date, h.come_cold_date, 
                     h.come_cold_date_two, h.come_cold_date_three, s.cs_id
@@ -1059,7 +1060,7 @@ SELECT
     CONVERT(VARCHAR, h.come_cold_date_three, 120) AS come_cold_date_three,
     FORMAT(rmm.cold_time, 'N2') AS cold_time,
     FORMAT(rmm.rework_time, 'N2') AS rework_time,
-    FORMAT(rmg.cold, 'N2') AS standard_cold,
+    FORMAT(${COLD_STD_SQL}, 'N2') AS standard_cold,
     FORMAT(rmg.rework, 'N2') AS standard_rework,
     0 AS isMixed
 FROM 
@@ -1653,7 +1654,7 @@ WHERE
     //             h.come_cold_date,
     //             rmm.rm_status,
     //             CONCAT(p.doc_no, '(', rmm.rmm_line_name, ')') AS production,
-    //             FORMAT(COALESCE(rmm.cold_time, rmg.cold), 'N2') AS cold,
+    //             FORMAT(${COLD_TIME_SQL}, 'N2') AS cold,
     //             h.cooked_date,
     //             h.rmit_date,
     //             h.come_cold_date_two,
@@ -1778,7 +1779,7 @@ WHERE
                 h.come_cold_date,
                 rmm.rm_status,
                 CONCAT(p.doc_no, '(', rmm.rmm_line_name, ')') AS production,
-                FORMAT(COALESCE(rmm.cold_time, rmg.cold), 'N2') AS cold,
+                FORMAT(${COLD_TIME_SQL}, 'N2') AS cold,
                 h.cooked_date,
                 h.rmit_date,
                 h.come_cold_date_two,
@@ -1921,8 +1922,8 @@ WHERE
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS remaining_rework_time,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework_time,
 
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
 
     rmf.rm_group_id AS rmf_rm_group_id,
     rmg.rm_group_id AS rmg_rm_group_id,
@@ -2078,8 +2079,8 @@ ORDER BY
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS remaining_rework_time,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework_time,
 
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
 
     rmf.rm_group_id AS rmf_rm_group_id,
     rmg.rm_group_id AS rmg_rm_group_id,
@@ -3833,11 +3834,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -3971,11 +3972,11 @@ SELECT TOP (2000)
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -4244,11 +4245,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -4424,11 +4425,11 @@ SELECT TOP (2000)
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -4592,11 +4593,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -4863,11 +4864,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -5108,11 +5109,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,
@@ -5339,11 +5340,11 @@ SELECT
     CONCAT(p.doc_no, ' (', rmm.rmm_line_name, ')') AS production,
 
     CAST(rmm.prep_to_cold_time AS DECIMAL(10,2)) AS ptc_time,
-    CAST(COALESCE(rmm.cold_time, rmg.cold) AS DECIMAL(10,2)) AS cold,
+    CAST(${COLD_TIME_SQL} AS DECIMAL(10,2)) AS cold,
     CAST(rmm.rework_time AS DECIMAL(10,2)) AS rework_time,
     CAST(rmm.mix_time AS DECIMAL(10,2)) AS mix_time,
 
-    CAST(rmg.cold AS DECIMAL(10,2)) AS standard_cold,
+    CAST(${COLD_STD_SQL} AS DECIMAL(10,2)) AS standard_cold,
     CAST(rmg.rework AS DECIMAL(10,2)) AS standard_rework,
 
     rmf.rm_group_id AS rmf_rm_group_id,

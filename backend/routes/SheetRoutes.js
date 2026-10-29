@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 const { cached, invalidateSheetCache } = require("../lib/sheetCache");
+const { COLD_STD_SQL } = require("../lib/coldStandard");
 const { safeRollback } = require("../lib/safeRollback");
 const { verifyToken } = require("../lib/auth");
 const { getAuthMode } = require("../lib/authMiddleware");
@@ -206,7 +207,7 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       rmg.rm_group_name,
       rmg.rm_type_id,
       FORMAT(rmg.prep_to_cold, 'N2') AS DBS1,
-      FORMAT(rmg.cold, 'N2') AS DBS2,
+      FORMAT(${COLD_STD_SQL}, 'N2') AS DBS2, -- the room-specific standard (lib/coldStandard.js)
       FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
       FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
