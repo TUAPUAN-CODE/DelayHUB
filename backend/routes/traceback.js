@@ -244,11 +244,16 @@ const BATCH_APPLY = (tBatch) => (tBatch
   ? `OUTER APPLY (SELECT TOP 1 x.batch_before, x.batch_after FROM [${tBatch}] x WHERE x.mapping_id = rmm.mapping_id ORDER BY x.batch_id DESC) bt`
   : '');
 
-const BASE_WHERE = `
+const PACKED_COND = `
         rmm.dest = N'บรรจุเสร็จ'
         AND rmm.stay_place = N'บรรจุเสร็จ'
         AND rmm.tro_id IS NULL
         AND htr.sc_pack_date IS NOT NULL`;
+const BASE_WHERE = PACKED_COND;
+
+// which raw materials the traceback shows: packed (default, the record of what was produced) · all (every status) · unpacked (still in process)
+const packModeOf = (q) => (['all', 'unpacked'].includes(String(q?.pack_status)) ? String(q.pack_status) : 'packed');
+const baseWhere = (mode) => (mode === 'all' ? '1 = 1' : mode === 'unpacked' ? `NOT (${PACKED_COND})` : PACKED_COND);
 
 // ═══ 1) GET /filters ═══════════════════════════════════════════════════════
 router.get('/filters', async (req, res) => {
@@ -256,6 +261,7 @@ router.get('/filters', async (req, res) => {
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
 
+    const packMode = packModeOf(req.query);
     await getSchema(pool);
     const suppCol = findSupplierColumn();
 
@@ -273,16 +279,16 @@ router.get('/filters', async (req, res) => {
 
     const tBatchF = realTable('Batch');
     const [doc_no, code, mat, mat_name, rmm_line_name, supplier, batch] = await Promise.all([
-      q('doc_no', `SELECT DISTINCT TOP 2000 p.doc_no AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND p.doc_no IS NOT NULL ORDER BY p.doc_no DESC`),
-      q('code', `SELECT DISTINCT TOP 2000 p.code AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND p.code IS NOT NULL ORDER BY p.code`),
-      q('mat', `SELECT TOP 3000 rm.mat AS value, MAX(rm.mat_name) AS meta ${BASE_FROM} WHERE ${BASE_WHERE} AND rm.mat IS NOT NULL GROUP BY rm.mat ORDER BY rm.mat`),
-      q('mat_name', `SELECT DISTINCT TOP 3000 rm.mat_name AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND rm.mat_name IS NOT NULL ORDER BY rm.mat_name`),
-      q('line', `SELECT DISTINCT TOP 300 htr.rmm_line_name AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND htr.rmm_line_name IS NOT NULL ORDER BY htr.rmm_line_name`),
+      q('doc_no', `SELECT DISTINCT TOP 2000 p.doc_no AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND p.doc_no IS NOT NULL ORDER BY p.doc_no DESC`),
+      q('code', `SELECT DISTINCT TOP 2000 p.code AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND p.code IS NOT NULL ORDER BY p.code`),
+      q('mat', `SELECT TOP 3000 rm.mat AS value, MAX(rm.mat_name) AS meta ${BASE_FROM} WHERE ${baseWhere(packMode)} AND rm.mat IS NOT NULL GROUP BY rm.mat ORDER BY rm.mat`),
+      q('mat_name', `SELECT DISTINCT TOP 3000 rm.mat_name AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND rm.mat_name IS NOT NULL ORDER BY rm.mat_name`),
+      q('line', `SELECT DISTINCT TOP 300 htr.rmm_line_name AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND htr.rmm_line_name IS NOT NULL ORDER BY htr.rmm_line_name`),
       suppCol
-        ? q('supplier', `SELECT DISTINCT TOP 2000 ${suppCol.alias}.[${suppCol.col}] AS value ${BASE_FROM} WHERE ${BASE_WHERE} AND ${suppCol.alias}.[${suppCol.col}] IS NOT NULL ORDER BY ${suppCol.alias}.[${suppCol.col}]`)
+        ? q('supplier', `SELECT DISTINCT TOP 2000 ${suppCol.alias}.[${suppCol.col}] AS value ${BASE_FROM} WHERE ${baseWhere(packMode)} AND ${suppCol.alias}.[${suppCol.col}] IS NOT NULL ORDER BY ${suppCol.alias}.[${suppCol.col}]`)
         : Promise.resolve([]),
       tBatchF
-        ? q('batch', `SELECT DISTINCT TOP 3000 bt.batch_before AS value ${BASE_FROM} ${BATCH_APPLY(tBatchF)} WHERE ${BASE_WHERE} AND bt.batch_before IS NOT NULL ORDER BY bt.batch_before`)
+        ? q('batch', `SELECT DISTINCT TOP 3000 bt.batch_before AS value ${BASE_FROM} ${BATCH_APPLY(tBatchF)} WHERE ${baseWhere(packMode)} AND bt.batch_before IS NOT NULL ORDER BY bt.batch_before`)
         : Promise.resolve([]),
     ]);
 
@@ -304,6 +310,7 @@ router.get('/search', async (req, res) => {
     if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
 
     const { code, doc_no, mat, mat_name, rmm_line_name, supplier, batch, sc_pack_date_from, sc_pack_date_to } = req.query;
+    const packMode = packModeOf(req.query);
     await getSchema(pool);
     const tBatchS = realTable('Batch');
 
@@ -351,7 +358,7 @@ router.get('/search', async (req, res) => {
         MAX(DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date)) AS max_delay_minutes
       ${BASE_FROM}
       ${BATCH_APPLY(tBatchS)}
-      WHERE ${BASE_WHERE}
+      WHERE ${baseWhere(packMode)}
 ${extraWhere}
       GROUP BY p.doc_no, p.code
       ORDER BY MAX(htr.sc_pack_date) DESC
@@ -417,7 +424,7 @@ router.get('/detail', async (req, res) => {
     const fPackTo = S(req.query.pack_to);
     const okYmd = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
     meta.filters = {
-      doc_no, code, batch, pkg_batch: pkgBatch, ing_batch: ingBatch,
+      doc_no, code, batch, pkg_batch: pkgBatch, ing_batch: ingBatch, pack_status: packModeOf(req.query),
       ...(scoped ? { scope: true, line: fLine, mat: fMat, mat_name: fMatName, supplier: fSupplier, pack_from: fPackFrom, pack_to: fPackTo } : {}),
     };
 
@@ -495,7 +502,7 @@ router.get('/detail', async (req, res) => {
         ${extraSelects.join(',\n        ')}
       ${BASE_FROM}
       ${extraJoins}
-      WHERE ${BASE_WHERE}
+      WHERE ${baseWhere(packModeOf(req.query))}
         AND (${docCond})
         AND (${codeCond})
         AND (${batchCond})

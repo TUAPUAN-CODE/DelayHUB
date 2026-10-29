@@ -321,7 +321,7 @@ export const downloadCsv = (filename, header, rows) => {
 };
 
 /* ═══ ขอบเขตการสอบกลับตามตัวกรองของหน้าค้นหา (?scope=1&code=&batch=&line=...) ═══ */
-export const SCOPE_KEYS = ['doc_no', 'code', 'batch', 'line', 'mat', 'mat_name', 'supplier', 'pack_from', 'pack_to'];
+export const SCOPE_KEYS = ['doc_no', 'code', 'batch', 'line', 'mat', 'mat_name', 'supplier', 'pack_from', 'pack_to', 'pack_status'];
 /** อ่านขอบเขตจาก URL: คืน null ถ้าไม่ใช่โหมดตามตัวกรอง */
 export const scopeFromParams = (params) => {
   if (params.get('scope') !== '1') return null;

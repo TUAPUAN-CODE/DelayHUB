@@ -22,7 +22,14 @@ const Spinner = ({ size = 20, border = 2 }) => (
 const EMPTY_FILTERS = {
   code: '', doc_no: '', mat: '', mat_name: '', rmm_line_name: '', supplier: '', batch: '',
   sc_pack_date_from: '', sc_pack_date_to: '',
+  pack_status: 'packed', // packed = บรรจุเสร็จ (เดิม) · all = ทุกสถานะ · unpacked = ยังไม่บรรจุเสร็จ
 };
+
+const PACK_STATUS_OPTIONS = [
+  { value: 'packed', label: 'บรรจุเสร็จเท่านั้น' },
+  { value: 'all', label: 'ทุกสถานะวัตถุดิบ' },
+  { value: 'unpacked', label: 'ยังไม่บรรจุเสร็จ (อยู่ระหว่างกระบวนการ)' },
+];
 
 // ข้อ 7: เพิ่มตัวเลือกเรียงตาม Batch และ doc_no (ทั้ง 2 ทิศทาง)
 // หมายเหตุ: ต้องให้ /api/traceback/search ส่งฟิลด์ batches_raw (STRING_AGG ของ batch_before)
@@ -78,7 +85,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
     (async () => {
       try {
         setOptsLoading(true);
-        const res = await axios.get(`${API_URL}/api/traceback/filters`);
+        const res = await axios.get(`${API_URL}/api/traceback/filters`, { params: { pack_status: filters.pack_status } });
         if (!cancelled) setOpts(prev => ({ ...prev, ...(res.data?.data || {}) }));
       } catch (e) {
         console.warn('โหลดรายการตัวกรองไม่สำเร็จ:', e.message);
@@ -87,7 +94,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [filters.pack_status]);
 
   const fetchData = useCallback(async (activeFilters) => {
     try {
@@ -127,8 +134,9 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
       mat: t(filters.mat), mat_name: t(filters.mat_name), supplier: t(filters.supplier),
       pack_from: t(filters.sc_pack_date_from), pack_to: t(filters.sc_pack_date_to),
     };
-    if (!Object.values(all).some(Boolean)) return { doc_no: r.doc_no, code: r.code };
-    return Object.fromEntries(Object.entries({ scope: true, ...all }).filter(([, v]) => v));
+    const packStatus = filters.pack_status && filters.pack_status !== 'packed' ? filters.pack_status : '';
+    if (!Object.values(all).some(Boolean)) return packStatus ? { scope: true, doc_no: r.doc_no, code: r.code, pack_status: packStatus } : { doc_no: r.doc_no, code: r.code };
+    return Object.fromEntries(Object.entries({ scope: true, ...all, pack_status: packStatus }).filter(([, v]) => v));
   };
 
   // เปิดใบสอบกลับ → เลื่อนขึ้นบนสุดเสมอ
@@ -203,6 +211,13 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
             loading={optsLoading}
             placeholder={!optsLoading && opts.supplier.length === 0 ? 'ไม่มีข้อมูลผู้ขายในระบบ' : 'ทุกราย'}
           />
+        </div>
+
+        <div style={{ marginBottom: 10, maxWidth: 360 }}>
+          <label style={labelStyle}>สถานะวัตถุดิบที่แสดง</label>
+          <select style={inputStyle} value={filters.pack_status} onChange={e => setF('pack_status', e.target.value)}>
+            {PACK_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </div>
 
         <label style={{ fontSize: 12, color: C.text2, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 10, fontWeight: 400 }}>

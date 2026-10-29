@@ -25,6 +25,8 @@ export const scopeText = (scope, s = {}) => {
   if (scope?.mat) parts.push(`Mat ${scope.mat}`);
   if (scope?.mat_name) parts.push(`วัตถุดิบ ${scope.mat_name}`);
   if (scope?.supplier) parts.push(`ผู้ขาย ${scope.supplier}`);
+  if (scope?.pack_status === 'all') parts.push('ทุกสถานะวัตถุดิบ');
+  if (scope?.pack_status === 'unpacked') parts.push('ยังไม่บรรจุเสร็จ');
   if (scope?.pack_from || scope?.pack_to) parts.push(`บรรจุ ${scope.pack_from || '…'} ถึง ${scope.pack_to || '…'}`);
   return parts.length ? parts.join(' · ') : `เอกสาร ${s.doc_no || '-'} · Code ${s.code || '-'}`;
 };
