@@ -348,3 +348,20 @@ export const scopeTitle = (scope) => {
   }
   return t.join(' · ') || 'ตามตัวกรอง';
 };
+
+/**
+ * The factory day starts at 05:30: 29/10 05:30 -> 30/10 05:30 is "day 29". ts = 'YYYY-MM-DD HH:mm[:ss]' (factory local time, as the server sends it).
+ * Returns 'YYYY-MM-DD' of the factory day, or '' when ts is empty / not a date.
+ */
+export const FACTORY_DAY_START_MIN = 5 * 60 + 30;
+export const factoryDay = (ts) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(ts || ''));
+  if (!m) return '';
+  const t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - FACTORY_DAY_START_MIN * 60000;
+  return new Date(t).toISOString().slice(0, 10);
+};
+/** 2026-10-29 -> 29/10/2569 (Buddhist year, like the rest of the page) */
+export const fmtDay = (ymd) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+  return m ? `${m[3]}/${m[2]}/${+m[1] + 543}` : '—';
+};

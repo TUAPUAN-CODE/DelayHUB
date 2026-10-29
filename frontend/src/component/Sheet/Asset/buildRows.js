@@ -144,7 +144,8 @@ const FIXED_STATUS = (r) => {
 
 const cleanText = (v) => v.normalize("NFC").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/\s+/g, " ").trim();
 
-export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(), mixed = []) => {
+// opts.showAll: every mapping gets a row, also the ones the Sheet hides (deleted, weight 0, no trolley ...) — used by the Traceback, which shows every status
+export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(), mixed = [], opts = {}) => {
   // production-plan rows (RMForProd) of "จัดการวัตถุดิบ", joined to a HU by MAT|BATCH
   const planByKey = new Map();
   (plans || []).forEach((p) => planBatches(p).forEach((b) => {
@@ -161,7 +162,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     if (isBigColdCombo(c) && noTro(m.tro_id)) return false; // "in the big cold room" needs a trolley
     return !(m.weight_RM !== null && m.weight_RM !== undefined && m.weight_RM !== "" && Number(m.weight_RM) === 0); // nothing left of the material
   };
-  const rows = (mappings || []).filter(isShown).map((m) => {
+  const rows = (mappings || []).filter(opts.showAll ? () => true : isShown).map((m) => {
     const h = m.hu !== null && m.hu !== undefined && m.hu !== "" ? huByKey.get(String(m.hu)) : null;
     if (h) used.add(String(m.hu));
     const merged = h ? mergeHu(m, h) : { ...m };
@@ -233,7 +234,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   });
   // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
-  const visible = rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label)));
+  const visible = opts.showAll ? rows : rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label)));
   visible.sort((a, b) => b.__last - a.__last);
   return visible;
 };

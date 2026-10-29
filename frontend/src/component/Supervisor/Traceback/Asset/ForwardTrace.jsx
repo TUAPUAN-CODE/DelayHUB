@@ -5,7 +5,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { T, TYPE_LABEL, inputCss } from './tracebackUI';
 import { Tag, Kpi, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
-import { fmtDT, fmtNum, fmtDur, readRecent, pushRecent, readVariants, saveVariants, downloadCsv, uniq } from './tracebackCore';
+import { fmtDT, fmtNum, readRecent, pushRecent, readVariants, saveVariants, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
+import ForwardLotsGrid from './ForwardLotsGrid';
 import { HoldDialog } from './HoldList';
 import { exportForwardExcel, exportForwardPDF } from './tracebackExport';
 
@@ -82,6 +83,8 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lotFilter, setLotFilter] = useState('all');
+  const [flt, setFlt] = useState({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); // narrows the result already found (the day starts at 05:30)
+  const setF = (k, v) => setFlt(p => ({ ...p, [k]: v }));
   const [recent, setRecent] = useState(() => readRecent().filter(r => r.kind === 'fwd'));
   const inputRef = useRef(null);
 
@@ -157,9 +160,42 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const lots = useMemo(() => (data?.lots || []).filter(l => (
-    lotFilter === 'all' || (lotFilter === 'packed' ? !!l.sc_pack_date : !l.sc_pack_date)
-  )), [data, lotFilter]);
+  // the lots after the filters above the tables: status, document, Code, material, line and the factory day (05:30 - 05:30) of the pack date
+  // (a lot that is not packed yet is dated by its prep-finished time)
+  const lots = useMemo(() => {
+    const has = (v, q) => !q || String(v || '').toLowerCase().includes(q.trim().toLowerCase());
+    return (data?.lots || []).filter(l => {
+      if (lotFilter !== 'all' && (lotFilter === 'packed') !== !!l.sc_pack_date) return false;
+      if (!has(l.doc_no, flt.doc) || !has(l.code, flt.code) || !has(l.rmm_line_name, flt.line)) return false;
+      if (flt.mat && !has(l.mat, flt.mat) && !has(l.mat_name, flt.mat)) return false;
+      if (flt.from || flt.to) {
+        const d = factoryDay(l.sc_pack_date || l.rmit_date);
+        if (!d || (flt.from && d < flt.from) || (flt.to && d > flt.to)) return false;
+      }
+      return true;
+    });
+  }, [data, lotFilter, flt]);
+  const lotIds = useMemo(() => (data?.lots || []).map(l => l.mapping_id), [data]);
+  const shownIds = useMemo(() => new Set(lots.map(l => l.mapping_id)), [lots]);
+
+  // one row per factory day + document + Code
+  const dayRows = useMemo(() => {
+    const map = new Map();
+    lots.forEach(l => {
+      const day = factoryDay(l.sc_pack_date || l.rmit_date) || '';
+      const k = `${day}|${l.doc_no}|${l.code}`;
+      let g = map.get(k);
+      if (!g) { g = { day, doc_no: l.doc_no, code: l.code, lots: 0, packed: 0, in_process: 0, total_weight: 0, lines: new Set(), pack_first: null, pack_last: null }; map.set(k, g); }
+      g.lots++;
+      if (l.sc_pack_date) g.packed++; else g.in_process++;
+      g.total_weight += Number(l.weight_RM) || 0;
+      if (l.rmm_line_name) g.lines.add(l.rmm_line_name);
+      if (l.sc_pack_date && (!g.pack_first || l.sc_pack_date < g.pack_first)) g.pack_first = l.sc_pack_date;
+      if (l.sc_pack_date && (!g.pack_last || l.sc_pack_date > g.pack_last)) g.pack_last = l.sc_pack_date;
+    });
+    return [...map.values()].map(g => ({ ...g, lines: [...g.lines], total_weight: Math.round(g.total_weight * 1000) / 1000 }))
+      .sort((a, b) => String(b.day).localeCompare(String(a.day)) || String(a.doc_no).localeCompare(String(b.doc_no)));
+  }, [lots]);
 
   const s = data?.summary || {};
   const errs = Object.entries(data?.errors || {});
@@ -325,22 +361,43 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
             </Card>
           )}
 
-          <Card title="สินค้าที่ได้รับผลกระทบ (รายเอกสารผลิต)" right={`${(data.products || []).length} รายการ`} tone="orange">
+          {/* ── ตัวกรองผลที่ค้นพบ (แถบเดียว ไม่ซ้อนกล่อง) ── */}
+          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            {[['doc', 'เลขเอกสาร', 120], ['code', 'Code สินค้า', 150], ['mat', 'วัตถุดิบ (รหัส/ชื่อ)', 170], ['line', 'ไลน์', 90]].map(([k, label, w]) => (
+              <label key={k} style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>
+                {label}
+                <input value={flt[k]} onChange={e => setF(k, e.target.value)} style={{ ...inputCss, width: w, height: 34 }} />
+              </label>
+            ))}
+            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>วันโรงงาน จาก (เริ่ม 05:30)
+              <input type="date" value={flt.from} onChange={e => setF('from', e.target.value)} style={{ ...inputCss, width: 150, height: 34 }} />
+            </label>
+            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>ถึง
+              <input type="date" value={flt.to} onChange={e => setF('to', e.target.value)} style={{ ...inputCss, width: 150, height: 34 }} />
+            </label>
+            <Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />
+            <Btn variant="ghost" style={{ height: 34 }} onClick={() => { setLotFilter('all'); setFlt({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); }}>ล้างตัวกรอง</Btn>
+            <span style={{ fontSize: 12, color: T.text2, paddingBottom: 8 }}>แสดง {lots.length.toLocaleString()} จาก {(data.lots || []).length.toLocaleString()} ล็อต</span>
+          </div>
+
+          <Card title="สินค้าที่ได้รับผลกระทบ — แยกตามวัน (วันโรงงานเริ่ม 05:30)" right={`${dayRows.length} รายการ`} tone="orange" pad="0">
             <SimpleTable
-              rows={data.products} getKey={p => `${p.doc_no}|${p.code}`}
+              flush
+              rows={dayRows} getKey={p => `${p.day}|${p.doc_no}|${p.code}`}
               rowTone={p => (p.in_process ? 'orange' : null)}
-              empty="ไม่พบสินค้าที่ใช้รหัสนี้"
+              empty="ไม่พบสินค้าที่ใช้รหัสนี้ (ลองล้างตัวกรอง)"
               columns={[
+                { key: 'day', label: 'วันโรงงาน', render: p => <b>{fmtDay(p.day)}</b>, sortValue: p => p.day },
                 { key: 'doc_no', label: 'เลขเอกสาร', render: p => <b>{p.doc_no}</b> },
                 { key: 'code', label: 'Code สินค้า', wrap: true },
                 { key: 'lots', label: 'ล็อต', align: 'right' },
                 { key: 'packed', label: 'บรรจุแล้ว', align: 'right' },
                 { key: 'in_process', label: 'ในกระบวนการ', align: 'right', render: p => (p.in_process ? <Tag tone="orange">{p.in_process}</Tag> : 0) },
                 { key: 'total_weight', label: 'น้ำหนัก (kg)', align: 'right', render: p => fmtNum(p.total_weight, 1) },
-                { key: 'lines', label: 'ไลน์', render: p => (p.lines || []).join(', ') || '—' },
-                { key: 'pack', label: 'ช่วงบรรจุ', render: p => `${fmtDT(p.pack_first)} → ${fmtDT(p.pack_last)}` },
+                { key: 'lines', label: 'ไลน์', render: p => (p.lines || []).join(', ') || '—', sortValue: p => (p.lines || []).join(', ') },
+                { key: 'pack', label: 'ช่วงบรรจุ', render: p => (p.pack_first ? `${fmtDT(p.pack_first)} → ${fmtDT(p.pack_last)}` : '—'), sortValue: p => p.pack_first || null },
                 {
-                  key: 'open', label: 'ใบสอบกลับ',
+                  key: 'open', label: 'ใบสอบกลับ', sortable: false,
                   render: p => (p.packed && onOpenRecord
                     ? <Btn variant="outline" style={{ height: 28, fontSize: 12 }} onClick={() => onOpenRecord(p.doc_no, p.code)}>เปิด</Btn>
                     : '—'),
@@ -350,9 +407,9 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
           </Card>
 
           {(data.sources || []).length > 0 && (
-            <Card title="หลักฐานที่ใช้จับคู่ (แหล่งข้อมูล)" right="ยืนยันได้ว่าเชื่อมกันด้วยอะไร">
+            <Card title="หลักฐานที่ใช้จับคู่ (แหล่งข้อมูล)" right="ยืนยันได้ว่าเชื่อมกันด้วยอะไร" pad="0">
               <SimpleTable
-                rows={data.sources} maxHeight={320}
+                flush rows={data.sources} maxHeight={320}
                 columns={[
                   { key: 'type', label: 'ประเภท', render: x => <Tag tone={x.type === 'pkg' ? 'orange' : x.type === 'ing' ? 'ok' : 'blue'}>{TYPE_LABEL[x.type]}</Tag> },
                   { key: 'label', label: 'รายการ', wrap: true },
@@ -367,26 +424,8 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
             </Card>
           )}
 
-          <Card
-            title="ล็อตการผลิตทั้งหมด"
-            right={<Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />}
-          >
-            <SimpleTable
-              rows={lots} getKey={l => l.mapping_id} maxHeight={460}
-              rowTone={l => (!l.sc_pack_date ? 'orange' : null)}
-              columns={[
-                { key: 'mapping_id', label: 'mapping' },
-                { key: 'mat', label: 'วัตถุดิบ', wrap: true, render: l => `${l.mat} · ${l.mat_name || ''}` },
-                { key: 'batch_before', label: 'Batch', render: l => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{l.batch_before || '—'}</span> },
-                { key: 'doc_no', label: 'เอกสาร' },
-                { key: 'rmm_line_name', label: 'ไลน์' },
-                { key: 'weight_RM', label: 'kg', align: 'right', render: l => fmtNum(l.weight_RM, 1) },
-                { key: 'rmit_date', label: 'เตรียมเสร็จ', render: l => fmtDT(l.rmit_date) },
-                { key: 'sc_pack_date', label: 'บรรจุเสร็จ', render: l => fmtDT(l.sc_pack_date) },
-                { key: 'delay', label: 'เตรียม→บรรจุ', align: 'right', render: l => (l.delay_minutes == null ? '—' : fmtDur(l.delay_minutes)) },
-                { key: 'status', label: 'สถานะ', render: l => (l.sc_pack_date ? <Tag tone="plain">บรรจุแล้ว</Tag> : <Tag tone="orange">{l.dest || 'ในกระบวนการ'}</Tag>) },
-              ]}
-            />
+          <Card title="ล็อตการผลิตทั้งหมด — ทุกเวลา · DBS 1-4 · Sensory / Remark QC" right={`${lots.length.toLocaleString()} ล็อต`} pad="0">
+            <ForwardLotsGrid ids={lotIds} show={shownIds} />
           </Card>
         </>
       )}

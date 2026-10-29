@@ -1,5 +1,6 @@
 // ชิ้นส่วน UI ที่ใช้ร่วมกันในหน้า Traceback (Forward / Mock Recall / ผังต้นไม้ / ไทม์ไลน์)
 import { T } from './tracebackUI';
+import useTableSort, { isSortable } from './tableSort';
 import { useRemarkCs, remarkCsText, remarkCsHu } from '../../../Layout/RemarkCs';
 
 const TONES = {
@@ -32,7 +33,7 @@ export const Kpi = ({ label, value, sub, tone = 'blue' }) => {
 };
 
 export const Card = ({ title, right, tone = 'blue', children, pad = '14px 16px' }) => (
-  <div style={{ marginTop: 14, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', background: T.white }}>
+  <div style={{ marginTop: 14, border: `1px solid ${T.line}`, borderRadius: 10, overflow: 'hidden', background: T.white }}>
     {title && (
       <div style={{
         background: tone === 'orange' ? T.orange : T.blue, color: T.white, padding: '9px 14px',
@@ -83,17 +84,34 @@ const TH = {
 };
 const TD = { fontSize: 12.5, color: T.text, padding: '8px 11px', borderBottom: `1px solid ${T.line}` };
 
-/** ตารางอย่างง่าย: columns = [{ key, label, align, render, wrap }] */
-export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight }) => {
+/** หัวคอลัมน์ที่กดเพื่อเรียงได้ (กดครั้งแรก น้อย→มาก · ครั้งที่สอง มาก→น้อย · ครั้งที่สามกลับลำดับเดิม) */
+export const SortableTh = ({ col, rows, sort, onToggle, style }) => {
+  const can = isSortable(col, rows);
+  const active = sort?.key === col.key;
+  return (
+    <th
+      style={{ ...style, textAlign: col.align || 'left', minWidth: col.minWidth, cursor: can ? 'pointer' : 'default', userSelect: 'none' }}
+      onClick={can ? () => onToggle(col.key) : undefined}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
+      title={can ? 'กดเพื่อเรียงข้อมูล' : undefined}
+    >
+      {col.label}{can && <span style={{ marginLeft: 4, opacity: active ? 1 : 0.45, fontSize: 10 }}>{active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}</span>}
+    </th>
+  );
+};
+
+/** ตารางอย่างง่าย: columns = [{ key, label, align, render, wrap, sortValue }] — กดหัวคอลัมน์เพื่อเรียง */
+export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight, flush = false }) => {
+  const { sorted, sort, toggle } = useTableSort(rows, columns);
   if (!rows?.length) {
     return <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: 18, fontSize: 13, color: T.text2, background: T.white }}>{empty}</div>;
   }
   return (
-    <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, overflow: 'auto', background: T.white, maxHeight }}>
+    <div style={{ border: flush ? 'none' : `1px solid ${T.line}`, borderRadius: flush ? 0 : 10, overflow: 'auto', background: T.white, maxHeight }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr>{columns.map(c => <th key={c.key} style={{ ...TH, textAlign: c.align || 'left' }}>{c.label}</th>)}</tr></thead>
+        <thead><tr>{columns.map(c => <SortableTh key={c.key} col={c} rows={rows} sort={sort} onToggle={toggle} style={TH} />)}</tr></thead>
         <tbody>
-          {rows.map((r, i) => {
+          {sorted.map((r, i) => {
             const tone = rowTone?.(r);
             const bg = tone === 'bad' ? T.badSoft : tone === 'orange' ? T.orangeSoft : tone === 'ok' ? T.okSoft : (i % 2 ? T.bg : T.white);
             return (

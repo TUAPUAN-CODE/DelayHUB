@@ -75,7 +75,7 @@ const DONE_RANGE_SQL = `rmm.mapping_id IN (
 
 /** opts.dated (scope "done"): the request has a date range (no text) */
 const buildMappingQuery = (scope = "open", opts = {}) => {
-  const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : `WHERE
+  const whereSql = scope === "one" ? "WHERE rmm.mapping_id = @one_id" : scope === "ids" ? "WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, N','))" : `WHERE
         -- rows deleted by the clear / QC-delete / room-delete buttons keep a marker in stay_place / dest ("...ลบจาก...", "ห้องเย็นลบ", "ลบวัตถุดิบโดยSupQC") — not shown
         -- COLLATE Thai_100_BIN2: a LIKE '%..%' under the database collation (Thai_100_CI_AI) calls the OS string compare for every row (~10 s per column on 5e5 rows, and it is not counted as CPU); the marker is a fixed text written by the app, so a binary compare is exact and ~100x faster
         ISNULL(rmm.dest, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%' AND ISNULL(rmm.stay_place, N'') COLLATE Thai_100_BIN2 NOT LIKE N'%ลบ%'
@@ -1276,6 +1276,47 @@ router.get("/sheet/mix-source", async (req, res) => {
 });
 
 // the query builders, for scripts/sheet-timing.js (measures each query on the real database)
+// ── many mappings by their ids, in the row shape of the Sheet (Traceback "สอบกลับไปข้างหน้า": every time, DBS, status ... of each lot) ──
+//   GET /sheet/rows-by-ids?ids=1,2,3 (max 3000) → { mappings, qc: { [mapping_id]: QC detail (sensory, remarks ...) } }
+//   Same row as the table but with NO filter (deleted / weight 0 / finished rows are returned too: the traceback shows every status).
+const QC_DETAIL_SQL = (cols) => `
+  SELECT rmm.mapping_id, ${cols.join(", ")}
+  FROM TrolleyRMMapping rmm WITH (NOLOCK)
+  JOIN QC qc WITH (NOLOCK) ON qc.qc_id = rmm.qc_id
+  WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, N','))`;
+const QC_DETAIL_COLS = [
+  "qc.color AS qc_color", "qc.odor AS qc_odor", "qc.texture AS qc_texture", "qc.sq_acceptance AS qc_sq_acceptance", "qc.sq_remark AS qc_sq_remark",
+  "qc.md AS qc_md", "qc.md_remark AS qc_md_remark", "qc.defect AS qc_defect", "qc.defect_acceptance AS qc_defect_acceptance", "qc.defect_remark AS qc_defect_remark",
+  "qc.Moisture AS qc_moisture", "qc.Temp AS qc_temp", "qc.percent_fine AS qc_percent_fine", "qc.general_remark AS qc_general_remark",
+];
+// the columns that must exist in every database; when the full list fails (a column missing in this database) the short list is read instead
+const QC_DETAIL_COLS_SAFE = ["qc.color AS qc_color", "qc.odor AS qc_odor", "qc.texture AS qc_texture", "qc.sq_remark AS qc_sq_remark"];
+router.get("/sheet/rows-by-ids", async (req, res) => {
+  try {
+    const ids = [...new Set(String(req.query.ids || "").split(",").map((x) => parseInt(x.trim(), 10)).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 3000);
+    if (!ids.length) return res.status(400).json({ success: false, error: "กรุณาระบุ ids" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const idText = ids.join(",");
+    const r = await pool.request().input("mlimit", sql.Int, ids.length).input("ids", sql.NVarChar(sql.MAX), idText).query(buildMappingQuery("ids"));
+    let qc = {};
+    for (const cols of [QC_DETAIL_COLS, QC_DETAIL_COLS_SAFE]) {
+      try {
+        const q = await pool.request().input("ids", sql.NVarChar(sql.MAX), idText).query(QC_DETAIL_SQL(cols));
+        q.recordset.forEach((x) => { qc[x.mapping_id] = x; });
+        break;
+      } catch (err) {
+        console.error("❌ [Route GET /sheet/rows-by-ids] QC detail:", err.message);
+        qc = {};
+      }
+    }
+    res.json({ success: true, mappings: r.recordset, qc });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/rows-by-ids] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.__queries = { buildMappingQuery, buildHuQuery, buildPlanQuery, buildMixedQuery };
 
 module.exports = router;

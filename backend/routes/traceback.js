@@ -1322,7 +1322,9 @@ router.get('/forward', async (req, res) => {
         const dmap = await decodeBatches(pool, [{ batch_code: code, mat: lots[0]?.mat || null }]);
         decoded = dmap.get(code.toUpperCase()) || null;
       } catch (e) {
-        errors.decode = e.message;
+        // the batch master tables (trac_back_batch_structure ...) do not exist in every database: that is "no master data", not an error to show
+        if (/Invalid object name/i.test(e.message || '')) console.warn('⚠️ [traceback/forward] decode ข้าม:', e.message);
+        else errors.decode = e.message;
       }
     }
 

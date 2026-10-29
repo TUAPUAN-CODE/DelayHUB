@@ -7,7 +7,8 @@ import {
 import { exportDetailExcel } from './tracebackExport';
 import { exportSummaryPDF, scopeText } from './tracebackSummaryPdf';
 import { chainCompleteness, riskAssessment, currentUserName, exceptionList, scopeToParams, scopeTitle } from './tracebackCore';
-import { Ring, RemarkCsText, RemarkCsGroupText } from './TraceAtoms';
+import { Ring, RemarkCsText, RemarkCsGroupText, SortableTh } from './TraceAtoms';
+import useTableSort from './tableSort';
 import useRemarkCsByBatch from './useRemarkCsByBatch';
 import { DocumentFlow, ExceptionsPanel, LotAudit, QrLabelsDialog, HoldBanner } from './DetailExtras';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -221,9 +222,10 @@ const FilterBar = ({ children, onClear, count }) => (
 );
 
 /* ═══ ตาราง ═══════════════════════════════════════════════════════════════ */
-const DataTable = ({ columns, rows, getKey, renderExpanded, empty = 'ไม่มีข้อมูล', rowTone }) => {
+const DataTable = ({ columns, rows: rawRows, getKey, renderExpanded, empty = 'ไม่มีข้อมูล', rowTone }) => {
   const [open, setOpen] = useState({});
-  if (!rows?.length) {
+  const { sorted: rows, sort, toggle } = useTableSort(rawRows, columns);
+  if (!rawRows?.length) {
     return (
       <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: 20, background: T.white, fontSize: 13, color: T.text2, fontWeight: 400 }}>
         {empty}
@@ -236,9 +238,7 @@ const DataTable = ({ columns, rows, getKey, renderExpanded, empty = 'ไม่�
         <thead>
           <tr>
             {renderExpanded && <th style={{ ...THS, width: 34 }} />}
-            {columns.map(c => (
-              <th key={c.key} style={{ ...THS, textAlign: c.align || 'left', minWidth: c.minWidth }}>{c.label}</th>
-            ))}
+            {columns.map(c => <SortableTh key={c.key} col={c} rows={rawRows} sort={sort} onToggle={toggle} style={THS} />)}
           </tr>
         </thead>
         <tbody>
