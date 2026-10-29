@@ -101,7 +101,7 @@ export const SortableTh = ({ col, rows, sort, onToggle, style }) => {
 };
 
 /** ตารางอย่างง่าย: columns = [{ key, label, align, render, wrap, sortValue }] — กดหัวคอลัมน์เพื่อเรียง */
-export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight, flush = false, plain = false }) => {
+export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข้อมูล', rowTone, maxHeight, flush = false, plain = false, onRowClick }) => {
   const { sorted, sort, toggle } = useTableSort(rows, columns);
   if (!rows?.length) {
     return <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: 18, fontSize: 13, color: T.text2, background: T.white }}>{empty}</div>;
@@ -115,7 +115,7 @@ export const SimpleTable = ({ columns, rows, getKey, empty = 'ไม่มีข
             const tone = rowTone?.(r);
             const bg = plain ? T.white : tone === 'bad' ? T.badSoft : tone === 'orange' ? T.orangeSoft : tone === 'ok' ? T.okSoft : (i % 2 ? T.bg : T.white);
             return (
-              <tr key={getKey ? getKey(r, i) : i} style={{ background: bg }}>
+              <tr key={getKey ? getKey(r, i) : i} style={{ background: bg, cursor: onRowClick ? 'pointer' : 'default' }} onClick={onRowClick ? () => onRowClick(r) : undefined}>
                 {columns.map(c => (
                   <td key={c.key} style={{ ...TD, textAlign: c.align || 'left', whiteSpace: c.wrap ? 'normal' : 'nowrap' }}>
                     {c.render ? c.render(r, i) : (r[c.key] === 0 || r[c.key] ? r[c.key] : '—')}
@@ -194,3 +194,8 @@ export const RemarkCsGroupText = ({ lots }) => {
     </div>
   );
 };
+
+/** ตัวเลือกทิศทางการสอบกลับ อยู่ในกล่องค้นหา: สอบย้อนกลับ / สอบไปข้างหน้า */
+export const ModeSwitch = ({ mode, onChange }) => (
+  <Segmented value={mode} onChange={onChange} options={[{ value: 'backward', label: 'สอบย้อนกลับ' }, { value: 'forward', label: 'สอบไปข้างหน้า' }]} />
+);

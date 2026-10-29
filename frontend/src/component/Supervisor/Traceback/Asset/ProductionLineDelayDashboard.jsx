@@ -7,6 +7,7 @@ import {
   fmtDisplay, fmtNum, DELAY_STYLE,
 } from './tracebackUI';
 import { readRecent, pushRecent } from './tracebackCore';
+import { SimpleTable } from './TraceAtoms';
 import { exportResultsExcel } from './tracebackExport';
 
 axios.defaults.withCredentials = true;
@@ -35,6 +36,10 @@ const PACK_STATUS_OPTIONS = [
 // หมายเหตุ: ต้องให้ /api/traceback/search ส่งฟิลด์ batches_raw (STRING_AGG ของ batch_before)
 // กลับมาด้วย (ดู traceback.routes.js ที่แก้ไปพร้อมกัน) ไม่งั้นการเรียงตาม batch จะใช้ไม่ได้จริง
 const SORT_OPTIONS = [
+  { value: 'mat_2x_asc', label: 'Mat 2x ก → ฮ' },
+  { value: 'mat_2x_desc', label: 'Mat 2x ฮ → ก' },
+  { value: 'batch_2x_asc', label: 'Batch 2x ก → ฮ' },
+  { value: 'batch_2x_desc', label: 'Batch 2x ฮ → ก' },
   { value: 'pack_date_desc', label: 'วันบรรจุ ล่าสุด → เก่าสุด' },
   { value: 'pack_date_asc', label: 'วันบรรจุ เก่าสุด → ล่าสุด' },
   { value: 'severe_desc', label: 'ดีเลย์รุนแรง มาก → น้อย' },
@@ -48,23 +53,18 @@ const SORT_OPTIONS = [
   { value: 'batch_desc', label: 'รหัสรุ่น (Batch) ฮ → ก' },
 ];
 
-// ปุ่มช่วงวันที่ลัด (วันที่ตามเวลาเครื่อง)
 const ymd = (d) => {
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
-const DATE_PRESETS = [
-  { label: 'วันนี้', from: 0, to: 0 },
-  { label: 'เมื่อวาน', from: 1, to: 1 },
-  { label: '7 วัน', from: 6, to: 0 },
-  { label: '30 วัน', from: 29, to: 0 },
-];
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
+// the page opens with the last 7 days already searched, so the data is on screen at once
+const DEFAULT_FILTERS = { ...EMPTY_FILTERS, sc_pack_date_from: daysAgo(6), sc_pack_date_to: daysAgo(0) };
 
 // selected / onSelect มาจาก TracebackPage เพื่อให้ URL (?doc_no=&code=) เปิดใบสอบกลับตรงได้
-const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [singleDayMode, setSingleDayMode] = useState(true);
+const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = null }) => {
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [singleDayMode, setSingleDayMode] = useState(false);
   const [sortBy, setSortBy] = useState('pack_date_desc');
 
   const [opts, setOpts] = useState({ code: [], doc_no: [], mat: [], mat_name: [], rmm_line_name: [], supplier: [], batch: [] });
@@ -112,15 +112,12 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
     }
   }, []);
 
+  // the data is on screen when the page opens (last 7 days); a record opened by its address needs no list behind it
+  useEffect(() => { if (!selected) fetchData(DEFAULT_FILTERS); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSearch = () => fetchData(filters);
-  const applyPreset = (pr) => {
-    const next = { ...filters, sc_pack_date_from: daysAgo(pr.from), sc_pack_date_to: daysAgo(pr.to) };
-    setSingleDayMode(pr.from === pr.to);
-    setFilters(next);
-    fetchData(next);
-  };
   const handleReset = () => {
-    setFilters(EMPTY_FILTERS); setResults([]); setSearched(false); setError(null);
+    setFilters(DEFAULT_FILTERS); setSingleDayMode(false); fetchData(DEFAULT_FILTERS);
   };
 
   // ขอบเขตของใบสอบกลับ = ตัวกรองทุกช่องที่ตั้งไว้ในหน้าค้นหา (ทุกตัวมีผลบังคับ ไม่ผูกกับการ์ดที่กด):
@@ -151,6 +148,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
     const t = v => (v ? new Date(v).getTime() : 0);
     const n = v => Number(v || 0);
     // batches: คาดว่า backend ส่ง "batches" เป็น string คั่นด้วย comma (ดู routes.js)
+    const first2x = v => String(v || '').split(',')[0].trim();
     const firstBatch = r => String(r.batches || '').split(',')[0].trim();
     const cmp = {
       pack_date_desc: (a, b) => t(b.pack_date_last) - t(a.pack_date_last),
@@ -164,6 +162,10 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
       code_asc: (a, b) => String(a.code || '').localeCompare(String(b.code || ''), 'th'),
       batch_asc: (a, b) => firstBatch(a).localeCompare(firstBatch(b), 'th'),
       batch_desc: (a, b) => firstBatch(b).localeCompare(firstBatch(a), 'th'),
+      mat_2x_asc: (a, b) => first2x(a.mats_2x).localeCompare(first2x(b.mats_2x), 'th'),
+      mat_2x_desc: (a, b) => first2x(b.mats_2x).localeCompare(first2x(a.mats_2x), 'th'),
+      batch_2x_asc: (a, b) => first2x(a.batches_2x).localeCompare(first2x(b.batches_2x), 'th'),
+      batch_2x_desc: (a, b) => first2x(b.batches_2x).localeCompare(first2x(a.batches_2x), 'th'),
     }[sortBy];
     return cmp ? arr.sort(cmp) : arr;
   }, [results, sortBy]);
@@ -194,7 +196,10 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
 
       {/* ── แถบค้นหา ─────────────────────────────────────────────────────── */}
       <div style={{ background: C.white, border: `0.5px solid ${C.line}`, borderRadius: 14, padding: '18px 20px', marginBottom: 16, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.text2, marginBottom: 14 }}>ค้นหาการผลิตเพื่อสอบกลับ</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>ค้นหาการผลิตเพื่อสอบกลับ</div>
+          {modeSwitch}
+        </div>
 
         <div className="tb-grid" style={{ marginBottom: 12 }}>
           <SearchableSelect label="เลขเอกสาร (doc_no)" value={filters.doc_no} onChange={v => setF('doc_no', v)} options={opts.doc_no} loading={optsLoading} placeholder="ทุกเอกสาร" />
@@ -250,16 +255,6 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
             </div>
           )}
           <SearchableSelect label="เรียงลำดับผลลัพธ์" value={sortBy} onChange={v => setSortBy(v || 'pack_date_desc')} options={SORT_OPTIONS} allowFree={false} placeholder="เลือกการเรียง" />
-        </div>
-
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-          <span style={{ fontSize: 12, color: C.text2, fontWeight: 500 }}>ช่วงวันที่ลัด:</span>
-          {DATE_PRESETS.map(pr => (
-            <button key={pr.label} type="button" onClick={() => applyPreset(pr)} disabled={loading}
-              style={{ border: `1px solid ${C.line}`, background: C.blueSoft, color: C.blueDark, borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-              {pr.label}
-            </button>
-          ))}
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -334,55 +329,29 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
       )}
 
       {searched && !loading && results.length > 0 && (
-        <div className="tb-cards">
-          {sorted.map((r, i) => {
-            const lvl = r.severe_delay_count > 0 ? 'severe' : r.warn_delay_count > 0 ? 'warn' : 'ok';
-            const ds = DELAY_STYLE[lvl];
-            return (
-              <div
-                key={`${r.doc_no}-${r.code}-${i}`}
-                className="tb-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => openRecord(r)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRecord(r); } }}
-                style={{
-                  background: C.white,
-                  border: `0.5px solid ${C.line}`,
-                  borderLeft: `4px solid ${ds.border}`,
-                  borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
-                  boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.doc_no}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2, fontWeight: 400 }}>{r.code}</div>
-                  </div>
-                  <Chip
-                    label={lvl === 'ok' ? 'ปกติ' : `${ds.label} ${lvl === 'severe' ? r.severe_delay_count : r.warn_delay_count}`}
-                    bg={ds.bg} color={ds.color}
-                  />
-                </div>
-
-                <div style={{ fontSize: 12.5, color: C.text2, marginBottom: 8, lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: 400 }}>
-                  {r.mat_names || '-'}
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  <Chip label={`${r.material_count} วัตถุดิบ`} bg={C.line2} color={C.text2} />
-                  <Chip label={`${fmtNum(r.total_weight_rm, 1)} kg`} bg={C.line2} color={C.text2} />
-                  {r.lines && <Chip label={r.lines} bg={C.violetSoft} color="#5B21B6" />}
-                </div>
-
-                <div style={{ fontSize: 11, color: C.faint, fontWeight: 400 }}>
-                  บรรจุ {fmtDisplay(r.pack_date_first)}
-                  {r.pack_date_first !== r.pack_date_last ? ` → ${fmtDisplay(r.pack_date_last)}` : ''}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <SimpleTable
+          rows={sorted} getKey={(r, i) => `${r.doc_no}-${r.code}-${i}`} plain onRowClick={openRecord}
+          columns={[
+            { key: 'doc_no', label: 'เลขเอกสาร', render: r => <b>{r.doc_no}</b> },
+            { key: 'code', label: 'Code สินค้า', wrap: true },
+            { key: 'mat_names', label: 'วัตถุดิบ', wrap: true, minWidth: 220 },
+            { key: 'batches', label: 'Batch', wrap: true, render: r => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{r.batches || '—'}</span> },
+            { key: 'batches_2x', label: 'Batch 2x', wrap: true, render: r => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{r.batches_2x || '—'}</span> },
+            { key: 'mats_2x', label: 'Mat 2x', wrap: true, render: r => r.mats_2x || '—' },
+            { key: 'lines', label: 'ไลน์' },
+            { key: 'material_count', label: 'วัตถุดิบ (ล็อต)', align: 'right' },
+            { key: 'total_weight_rm', label: 'น้ำหนัก (kg)', align: 'right', render: r => fmtNum(r.total_weight_rm, 1) },
+            { key: 'pack_date_first', label: 'วันบรรจุ', render: r => `${fmtDisplay(r.pack_date_first)}${r.pack_date_first !== r.pack_date_last ? ` → ${fmtDisplay(r.pack_date_last)}` : ''}` },
+            {
+              key: 'delay', label: 'ดีเลย์', sortValue: r => (r.severe_delay_count || 0) * 1000 + (r.warn_delay_count || 0),
+              render: r => {
+                const lvl = r.severe_delay_count > 0 ? 'severe' : r.warn_delay_count > 0 ? 'warn' : 'ok';
+                const ds = DELAY_STYLE[lvl];
+                return <Chip label={lvl === 'ok' ? 'ปกติ' : `${ds.label} ${lvl === 'severe' ? r.severe_delay_count : r.warn_delay_count}`} bg={ds.bg} color={ds.color} />;
+              },
+            },
+          ]}
+        />
       )}
     </div>
   );

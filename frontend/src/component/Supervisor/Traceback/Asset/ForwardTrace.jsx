@@ -101,7 +101,7 @@ const impactText = (d) => {
   ].filter(x => x !== undefined).join('\n');
 };
 
-const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, onStartRecall, onQueryChange, onHoldsChanged }) => {
+const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, onStartRecall, onQueryChange, modeSwitch = null, onHoldsChanged }) => {
   const [multi, setMulti] = useState(false);
   const [multiText, setMultiText] = useState('');
   const [variants, setVariants] = useState(readVariants);
@@ -244,7 +244,10 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     <div>
       {/* ── ช่องสแกน ── */}
       <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '16px 18px' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep, marginBottom: 12 }}>สอบกลับไปข้างหน้า</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep }}>ค้นหาการผลิตเพื่อสอบกลับ</div>
+          {modeSwitch}
+        </div>
         {multi ? (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <textarea value={multiText} onChange={e => setMultiText(e.target.value.toUpperCase())} rows={4}

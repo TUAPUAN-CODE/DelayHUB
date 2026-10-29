@@ -365,6 +365,7 @@ router.get('/search', async (req, res) => {
         STRING_AGG(CONVERT(NVARCHAR(MAX), htr.rmm_line_name), ', ') AS lines_raw,
         STRING_AGG(CONVERT(NVARCHAR(MAX), rm.mat_name), ', ')       AS mat_names_raw,
         ${tBatchS ? "STRING_AGG(CONVERT(NVARCHAR(MAX), bt.batch_before), ',')   AS batches_raw," : "CAST(NULL AS NVARCHAR(MAX)) AS batches_raw,"}
+        ${tBatchS ? "STRING_AGG(CONVERT(NVARCHAR(MAX), bt.batch_after), ',')   AS batches_2x_raw," : "CAST(NULL AS NVARCHAR(MAX)) AS batches_2x_raw,"}
         SUM(CASE WHEN DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) > ${SEVERE_MIN} THEN 1 ELSE 0 END) AS severe_delay_count,
         SUM(CASE WHEN DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) BETWEEN ${WARN_MIN + 1} AND ${SEVERE_MIN} THEN 1 ELSE 0 END) AS warn_delay_count,
         AVG(CAST(DATEDIFF(MINUTE, htr.rmit_date, htr.sc_pack_date) AS FLOAT)) AS avg_delay_minutes,
@@ -377,9 +378,30 @@ ${extraWhere}
       ORDER BY MAX(htr.sc_pack_date) DESC
     `);
 
+    // Mat 2x of each production: read on its own (the Mat table / its column may be missing in a database: then the list stays empty, the search still works)
+    const mats2x = new Map();
+    const tMatS = realTable('Mat');
+    if (tMatS) {
+      try {
+        const m2 = await request.query(`
+      SELECT p.doc_no, p.code, STRING_AGG(CONVERT(NVARCHAR(MAX), mt2.mat_2x), ',') AS mats_2x_raw
+      ${BASE_FROM}
+      ${BATCH_APPLY(tBatchS)}
+      OUTER APPLY (SELECT TOP 1 x.mat_2x FROM [${tMatS}] x WHERE x.mapping_id = rmm.mapping_id) mt2
+      WHERE ${baseWhere(packMode)}
+${extraWhere}
+      GROUP BY p.doc_no, p.code`);
+        m2.recordset.forEach(r => mats2x.set(`${r.doc_no}|${r.code}`, uniqList(r.mats_2x_raw).join(',')));
+      } catch (e) {
+        console.warn('⚠️ [traceback/search] Mat 2x ข้าม:', e.message);
+      }
+    }
+
     const data = result.recordset.map(r => ({
       doc_no: r.doc_no,
       code: r.code,
+      mats_2x: mats2x.get(`${r.doc_no}|${r.code}`) || '',
+      batches_2x: uniqList(r.batches_2x_raw).join(','),
       material_count: r.material_count,
       distinct_mat_count: r.distinct_mat_count,
       total_weight_rm: r.total_weight_rm,

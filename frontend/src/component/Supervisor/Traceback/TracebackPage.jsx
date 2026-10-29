@@ -6,6 +6,7 @@ import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
 import MockRecall from "./Asset/MockRecall";
 import HoldList from "./Asset/HoldList";
+import { ModeSwitch } from "./Asset/TraceAtoms";
 import { T } from "./Asset/tracebackUI";
 import { scopeFromParams, scopeToParams } from "./Asset/tracebackCore";
 
@@ -22,7 +23,6 @@ const MODES = [
 ];
 
 // hidden = the page is not shown (no tab, the address ?mode=recall / ?mode=holds opens the default page); its code stays here and in Asset/ so it can be switched on again
-const VISIBLE_MODES = MODES.filter((m) => !m.hidden);
 const HIDDEN_KEYS = new Set(MODES.filter((m) => m.hidden).map((m) => m.key));
 
 const TracebackPage = () => {
@@ -66,30 +66,8 @@ const TracebackPage = () => {
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
-        {/* ── เลือกโหมด (หน้า recall / holds ซ่อนอยู่) ── */}
-        {!selected && (
-          <div className="tb-noprint" role="tablist" style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>
-            {VISIBLE_MODES.map((m) => {
-              const on = mode === m.key;
-              return (
-                <button key={m.key} type="button" role="tab" aria-selected={on} onClick={() => setMode(m.key)}
-                  style={{
-                    textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderRadius: 12, padding: "12px 14px",
-                    border: `2px solid ${on ? T.orange : T.line}`, background: T.white,
-                    boxShadow: on ? "0 6px 18px rgba(242,107,29,0.15)" : "none",
-                  }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: on ? T.orange : T.blueDeep }}>
-                    {m.title} <span style={{ fontSize: 11.5, fontWeight: 600, color: T.text2 }}>· {m.en}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: T.text2, marginTop: 3 }}>{m.desc}</div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
         <div style={{ padding: "4px 0 12px" }}>
-          {mode === "backward" && <ProductionLineDelayDashboard selected={selected} onSelect={onSelect} />}
+          {mode === "backward" && <ProductionLineDelayDashboard selected={selected} onSelect={onSelect} modeSwitch={<ModeSwitch mode={mode} onChange={setMode} />} />}
           {mode === "forward" && (
             <div style={{ paddingTop: 16 }}>
               <ForwardTrace
@@ -98,6 +76,7 @@ const TracebackPage = () => {
                 initialType={params.get("type") || "auto"}
                 onOpenRecord={openRecord}
                 onQueryChange={onForwardQuery}
+                modeSwitch={<ModeSwitch mode={mode} onChange={setMode} />}
               />
             </div>
           )}

@@ -660,4 +660,10 @@ export default {
   "วันผลิต": ["Production day", "ထုတ်လုပ်သည့်နေ့", "ថ្ងៃផលិត"],
   "สอบกลับไปข้างหน้า": ["Trace forward", "ရှေ့သို့ ခြေရာခံရန်", "តាមដានទៅមុខ"],
   "กรุณาระบุ ids": ["Please specify ids", "ids ကို ဖော်ပြပါ", "សូមបញ្ជាក់ ids"],
+  "Mat 2x ก → ฮ": ["Mat 2x A → Z", "Mat 2x က → အ", "Mat 2x ក → អ"],
+  "Mat 2x ฮ → ก": ["Mat 2x Z → A", "Mat 2x အ → က", "Mat 2x អ → ក"],
+  "Batch 2x ก → ฮ": ["Batch 2x A → Z", "Batch 2x က → အ", "Batch 2x ក → អ"],
+  "Batch 2x ฮ → ก": ["Batch 2x Z → A", "Batch 2x အ → က", "Batch 2x អ → ក"],
+  "วัตถุดิบ (ล็อต)": ["Raw materials (lots)", "ကုန်ကြမ်း (လော့)", "វត្ថុធាតុដើម (ឡូត)"],
+  "วันบรรจุ": ["Pack date", "ထုပ်ပိုးသည့်နေ့", "ថ្ងៃវេចខ្ចប់"],
 };
