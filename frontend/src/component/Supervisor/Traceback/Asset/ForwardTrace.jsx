@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { T, TYPE_LABEL, inputCss } from './tracebackUI';
-import { Tag, Kpi, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
+import { Tag, Card, Btn, Segmented, SimpleTable, Spinner } from './TraceAtoms';
 import { fmtDT, fmtNum, readRecent, pushRecent, readVariants, saveVariants, downloadCsv, uniq, factoryDay, fmtDay } from './tracebackCore';
 import ForwardLotsGrid from './ForwardLotsGrid';
 import SearchableSelect from './SearchableSelect';
@@ -116,6 +116,7 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
   const [flt, setFlt] = useState({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); // narrows the result already found (the day starts at 05:30)
   const setF = (k, v) => setFlt(p => ({ ...p, [k]: v }));
   const [sortBy, setSortBy] = useState('day_desc');
+  const [view, setView] = useState('day'); // which table: the affected products by day, or every lot
   const [recent, setRecent] = useState(() => readRecent().filter(r => r.kind === 'fwd'));
   const inputRef = useRef(null);
 
@@ -243,12 +244,7 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
     <div>
       {/* ── ช่องสแกน ── */}
       <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '16px 18px' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep, marginBottom: 4 }}>
-          สอบกลับไปข้างหน้า — รหัสนี้ถูกใช้ในสินค้าอะไรบ้าง
-        </div>
-        <div style={{ fontSize: 12.5, color: T.text2, marginBottom: 12 }}>
-          สแกนบาร์โค้ด/QR ด้วยเครื่องสแกน หรือพิมพ์แล้วกด Enter · "ค้นหาทุกประเภท" จะหาในวัตถุดิบ ส่วนผสม และบรรจุภัณฑ์พร้อมกัน
-        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: T.blueDeep, marginBottom: 12 }}>สอบกลับไปข้างหน้า</div>
         {multi ? (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <textarea value={multiText} onChange={e => setMultiText(e.target.value.toUpperCase())} rows={4}
@@ -299,6 +295,39 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
             </div>
           )}
         </div>
+        {data && !loading && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.line}` }}>
+            {/* ── ตัวกรองผลที่ค้นพบ: เลือกจากรายการ (พิมพ์ค้นหาได้) แล้วตารางทุกตารางในหน้านี้ปรับตาม ── */}
+          <div style={{ marginTop: 0, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ width: 170 }}><SearchableSelect label="เลขเอกสาร" value={flt.doc} onChange={v => setF('doc', v)} options={opts.doc} placeholder="ทุกเอกสาร" /></div>
+            <div style={{ width: 200 }}><SearchableSelect label="Code สินค้า" value={flt.code} onChange={v => setF('code', v)} options={opts.code} placeholder="ทุก Code" /></div>
+            <div style={{ width: 240 }}><SearchableSelect label="วัตถุดิบ (รหัส/ชื่อ)" value={flt.mat} onChange={v => setF('mat', v)} options={opts.mat} placeholder="ทุกรายการ" /></div>
+            <div style={{ width: 130 }}><SearchableSelect label="ไลน์" value={flt.line} onChange={v => setF('line', v)} options={opts.line} placeholder="ทุกไลน์" /></div>
+            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>วันผลิต จาก (วันเริ่ม 05:30)
+              <input type="date" value={flt.from} onChange={e => setF('from', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
+            </label>
+            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>ถึง
+              <input type="date" value={flt.to} onChange={e => setF('to', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
+            </label>
+            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>เรียงลำดับผลลัพธ์
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputCss, width: 210, height: 38 }}>
+                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />
+            <span style={{ fontSize: 12, color: T.text2 }}>ช่วงวันลัด:</span>
+            {DATE_PRESETS.map(pr => (
+              <button key={pr.label} type="button" onClick={() => { const t = factoryToday(); setFlt(p => ({ ...p, from: shiftDay(t, pr.from), to: shiftDay(t, pr.to) })); }}
+                style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{pr.label}</button>
+            ))}
+            <Btn variant="ghost" style={{ height: 32 }} onClick={() => { setLotFilter('all'); setFlt({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); setSortBy('day_desc'); }}>ล้างเงื่อนไข</Btn>
+            <span style={{ fontSize: 12, color: T.text2 }}>แสดง {lots.length.toLocaleString()} จาก {(data.lots || []).length.toLocaleString()} ล็อต</span>
+          </div>
+
+          </div>
+        )}
       </div>
 
       {error && (
@@ -342,12 +371,6 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
           </div>
 
           {notice && <div style={{ marginTop: 10 }}><Tag tone={notice.startsWith('ส่ง LINE ไม่') ? 'bad' : 'ok'}>{notice}</Tag></div>}
-          {data.elapsed_ms != null && (
-            <div style={{ marginTop: 8, fontSize: 12, color: T.text2 }}>
-              ระบบใช้เวลาสอบกลับ {(data.elapsed_ms / 1000).toFixed(2)} วินาที · ค้นเมื่อ {fmtDT(new Date().toISOString())}
-              {data.per_code ? ` · ${data.per_code.length} รหัส` : ''}
-            </div>
-          )}
           {data.per_code && (
             <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {data.per_code.map(p => <Tag key={p.code} tone={p.products ? 'orange' : 'plain'}>{p.code}: {p.products} เอกสาร / {p.lots} ล็อต</Tag>)}
@@ -373,63 +396,12 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
           )}
           {s.truncated && <div style={{ marginTop: 8 }}><Tag tone="orange">ผลลัพธ์มากเกิน แสดง 3,000 ล็อตแรก</Tag></div>}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginTop: 12 }}>
-            <Kpi label="เอกสารผลิตที่กระทบ" value={s.product_count || 0} tone={s.product_count ? 'orange' : 'ok'} />
-            <Kpi label="ล็อตทั้งหมด" value={s.lot_count || 0} />
-            <Kpi label="บรรจุแล้ว" value={s.packed_count || 0} sub="ต้องพิจารณาเรียกคืน" tone={s.packed_count ? 'bad' : 'ok'} />
-            <Kpi label="ยังอยู่ในกระบวนการ" value={s.in_process_count || 0} sub="กักได้ทันที" tone={s.in_process_count ? 'orange' : 'ok'} />
-            <Kpi label="น้ำหนักรวม (kg)" value={fmtNum(s.total_weight, 1)} />
-            <Kpi label="ช่วงบรรจุ" value={<span style={{ fontSize: 13 }}>{fmtDT(s.pack_date_first)}<br />{fmtDT(s.pack_date_last)}</span>} />
-          </div>
-
-          {(data.products || []).length > 1 && (
-            <Card title="สัดส่วนน้ำหนักที่ไปอยู่ในแต่ละเอกสาร (Batch distribution)">
-              {(() => {
-                const max = Math.max(...data.products.map(p => p.total_weight || 0), 1);
-                const total = data.products.reduce((a, p) => a + (p.total_weight || 0), 0) || 1;
-                return data.products.slice(0, 20).map(p => (
-                  <div key={`${p.doc_no}|${p.code}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px,220px) 1fr 110px', gap: 10, alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.code}>{p.doc_no}</span>
-                    <span style={{ height: 14, background: T.blueSoft, borderRadius: 7, overflow: 'hidden' }}>
-                      <span style={{ display: 'block', height: '100%', width: `${((p.total_weight || 0) / max) * 100}%`, background: p.in_process ? T.orange : T.blue }} />
-                    </span>
-                    <span style={{ fontSize: 12, textAlign: 'right', color: T.text2 }}>{fmtNum(p.total_weight, 1)} kg · {Math.round(((p.total_weight || 0) / total) * 100)}%</span>
-                  </div>
-                ));
-              })()}
-            </Card>
-          )}
-
-          {/* ── ตัวกรองผลที่ค้นพบ: เลือกจากรายการ (พิมพ์ค้นหาได้) แล้วตารางทุกตารางในหน้านี้ปรับตาม ── */}
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ width: 170 }}><SearchableSelect label="เลขเอกสาร" value={flt.doc} onChange={v => setF('doc', v)} options={opts.doc} placeholder="ทุกเอกสาร" /></div>
-            <div style={{ width: 200 }}><SearchableSelect label="Code สินค้า" value={flt.code} onChange={v => setF('code', v)} options={opts.code} placeholder="ทุก Code" /></div>
-            <div style={{ width: 240 }}><SearchableSelect label="วัตถุดิบ (รหัส/ชื่อ)" value={flt.mat} onChange={v => setF('mat', v)} options={opts.mat} placeholder="ทุกรายการ" /></div>
-            <div style={{ width: 130 }}><SearchableSelect label="ไลน์" value={flt.line} onChange={v => setF('line', v)} options={opts.line} placeholder="ทุกไลน์" /></div>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>วันผลิต จาก (วันเริ่ม 05:30)
-              <input type="date" value={flt.from} onChange={e => setF('from', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
-            </label>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>ถึง
-              <input type="date" value={flt.to} onChange={e => setF('to', e.target.value)} style={{ ...inputCss, width: 150, height: 38 }} />
-            </label>
-            <label style={{ fontSize: 11.5, color: T.text2, display: 'grid', gap: 3 }}>เรียงลำดับผลลัพธ์
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputCss, width: 210, height: 38 }}>
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Segmented value={lotFilter} onChange={setLotFilter} options={LOT_FILTERS} />
-            <span style={{ fontSize: 12, color: T.text2 }}>ช่วงวันลัด:</span>
-            {DATE_PRESETS.map(pr => (
-              <button key={pr.label} type="button" onClick={() => { const t = factoryToday(); setFlt(p => ({ ...p, from: shiftDay(t, pr.from), to: shiftDay(t, pr.to) })); }}
-                style={{ border: `1px solid ${T.blueLine}`, background: T.blueSoft, color: T.blueDeep, borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{pr.label}</button>
-            ))}
-            <Btn variant="ghost" style={{ height: 32 }} onClick={() => { setLotFilter('all'); setFlt({ doc: '', code: '', mat: '', line: '', from: '', to: '' }); setSortBy('day_desc'); }}>ล้างเงื่อนไข</Btn>
-            <span style={{ fontSize: 12, color: T.text2 }}>แสดง {lots.length.toLocaleString()} จาก {(data.lots || []).length.toLocaleString()} ล็อต</span>
-          </div>
-
-          <Card title="สินค้าที่ได้รับผลกระทบ" right={`${dayRows.length} รายการ`} pad="0">
+          <Card
+            title={view === 'day' ? 'สินค้าที่ได้รับผลกระทบ' : 'ล็อตการผลิตทั้งหมด'}
+            right={<Segmented value={view} onChange={setView} options={[{ value: 'day', label: `สินค้าที่ได้รับผลกระทบ (${dayRows.length})` }, { value: 'lots', label: `ล็อตการผลิตทั้งหมด (${lots.length.toLocaleString()})` }]} />}
+            pad="0"
+          >
+            {view === 'day' ? (
             <SimpleTable
               flush plain
               rows={dayRows} getKey={p => `${p.day}|${p.doc_no}|${p.code}`}
@@ -451,10 +423,9 @@ const ForwardTrace = ({ initialCode = '', initialType = 'auto', onOpenRecord, on
                 },
               ]}
             />
-          </Card>
-
-          <Card title="ล็อตการผลิตทั้งหมด — ทุกเวลา · DBS 1-4 · Sensory / Remark QC" right={`${lots.length.toLocaleString()} ล็อต`} pad="0">
-            <ForwardLotsGrid lots={data.lots || []} show={shownIds} />
+            ) : (
+              <ForwardLotsGrid lots={data.lots || []} show={shownIds} />
+            )}
           </Card>
         </>
       )}

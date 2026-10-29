@@ -6,10 +6,8 @@ import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
 import MockRecall from "./Asset/MockRecall";
 import HoldList from "./Asset/HoldList";
-import UniversalSearch from "./Asset/UniversalSearch";
 import { T } from "./Asset/tracebackUI";
 import { scopeFromParams, scopeToParams } from "./Asset/tracebackCore";
-import logoUrl from "../../../assets/brand/itail-logo.png";
 
 // /sup/Traceback — ศูนย์สอบกลับการผลิต
 //   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง · ?scope=1&code=&batch=&line=… ใบสอบกลับตามตัวกรอง
@@ -19,9 +17,13 @@ import logoUrl from "../../../assets/brand/itail-logo.png";
 const MODES = [
   { key: "backward", title: "สอบย้อนกลับ", en: "Trace Backward", desc: "จากสินค้า / เอกสารผลิต → วัตถุดิบ ส่วนผสม บรรจุภัณฑ์ ผู้ขาย" },
   { key: "forward", title: "สอบไปข้างหน้า", en: "Trace Forward", desc: "จากรหัสรุ่น / Lot → สินค้าทุกเอกสารที่ได้รับผลกระทบ" },
-  { key: "recall", title: "จำลองการเรียกคืน", en: "Mock Recall", desc: "จับเวลา เช็กลิสต์ สมดุลมวล และออกโปรโตคอล PDF" },
-  { key: "holds", title: "รายการกักสินค้า", en: "Hold / QN", desc: "เอกสารที่ถูกกักจากผลสอบกลับ · ปลดกักพร้อมเหตุผล" },
+  { key: "recall", hidden: true, title: "จำลองการเรียกคืน", en: "Mock Recall", desc: "จับเวลา เช็กลิสต์ สมดุลมวล และออกโปรโตคอล PDF" },
+  { key: "holds", hidden: true, title: "รายการกักสินค้า", en: "Hold / QN", desc: "เอกสารที่ถูกกักจากผลสอบกลับ · ปลดกักพร้อมเหตุผล" },
 ];
+
+// hidden = the page is not shown (no tab, the address ?mode=recall / ?mode=holds opens the default page); its code stays here and in Asset/ so it can be switched on again
+const VISIBLE_MODES = MODES.filter((m) => !m.hidden);
+const HIDDEN_KEYS = new Set(MODES.filter((m) => m.hidden).map((m) => m.key));
 
 const TracebackPage = () => {
   const [params, setParams] = useSearchParams();
@@ -29,7 +31,8 @@ const TracebackPage = () => {
   const docNo = params.get("doc_no");
   // ?scope=1&code=&batch=&line=... = ใบสอบกลับตามตัวกรองของหน้าค้นหา (ไม่ผูกกับเอกสารเดียว)
   const scope = scopeFromParams(params);
-  const mode = (scope || docNo) ? "backward" : (params.get("mode") || "backward");
+  const requested = params.get("mode") || "backward";
+  const mode = (scope || docNo || HIDDEN_KEYS.has(requested)) ? "backward" : requested;
   const selected = scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null);
 
   const setMode = (m) => setParams(m === "backward" ? {} : { mode: m });
@@ -55,15 +58,6 @@ const TracebackPage = () => {
 
   const clearSeed = useCallback(() => setRecallSeed(null), []);
 
-  const goForward = useCallback((code, type) => {
-    setParams({ mode: "forward", code, type, go: String(Date.now()) }); // go: เปิดหน้า forward ใหม่แล้วค้นหาทันที
-  }, [setParams]);
-
-  const startRecall = (fwd) => {
-    setRecallSeed(fwd);
-    setParams({ mode: "recall" });
-  };
-
   return (
     <div style={{ backgroundColor: T.bg }} className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
@@ -72,39 +66,25 @@ const TracebackPage = () => {
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
-        {/* ── แถบหัว: โลโก้ i-Tail (พื้นโปร่งใส) + เลือกโหมด ── */}
+        {/* ── เลือกโหมด (หน้า recall / holds ซ่อนอยู่) ── */}
         {!selected && (
-          <div className="tb-noprint" style={{
-            marginTop: 12, borderRadius: 16, overflow: "hidden", border: `1px solid ${T.line}`,
-            background: `linear-gradient(120deg, ${T.white} 0%, ${T.blueSoft} 55%, ${T.orangeSoft} 100%)`,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", flexWrap: "wrap" }}>
-              <img src={logoUrl} alt="i-Tail" style={{ height: 56, width: "auto" }} />
-              <div style={{ flex: "1 1 260px" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: T.orange, letterSpacing: 1 }}>TRACEABILITY CENTER</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: T.blueDeep, lineHeight: 1.2 }}>ศูนย์สอบกลับการผลิต</div>
-                <div style={{ fontSize: 13, color: T.text2 }}>วัตถุดิบ · ส่วนผสม · บรรจุภัณฑ์ — ย้อนกลับ ไปข้างหน้า และจำลองการเรียกคืน</div>
-              </div>
-            </div>
-            <UniversalSearch onOpenRecord={openRecord} onForward={goForward} />
-            <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10, padding: "0 20px 16px" }}>
-              {MODES.map((m) => {
-                const on = mode === m.key;
-                return (
-                  <button key={m.key} type="button" role="tab" aria-selected={on} onClick={() => setMode(m.key)}
-                    style={{
-                      textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderRadius: 12, padding: "12px 14px",
-                      border: `2px solid ${on ? T.orange : T.line}`, background: on ? T.white : "rgba(255,255,255,0.7)",
-                      boxShadow: on ? "0 6px 18px rgba(217,88,13,0.15)" : "none",
-                    }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: on ? T.orange : T.blueDeep }}>
-                      {m.title} <span style={{ fontSize: 11.5, fontWeight: 600, color: T.text2 }}>· {m.en}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: T.text2, marginTop: 3 }}>{m.desc}</div>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="tb-noprint" role="tablist" style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>
+            {VISIBLE_MODES.map((m) => {
+              const on = mode === m.key;
+              return (
+                <button key={m.key} type="button" role="tab" aria-selected={on} onClick={() => setMode(m.key)}
+                  style={{
+                    textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderRadius: 12, padding: "12px 14px",
+                    border: `2px solid ${on ? T.orange : T.line}`, background: T.white,
+                    boxShadow: on ? "0 6px 18px rgba(242,107,29,0.15)" : "none",
+                  }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: on ? T.orange : T.blueDeep }}>
+                    {m.title} <span style={{ fontSize: 11.5, fontWeight: 600, color: T.text2 }}>· {m.en}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: T.text2, marginTop: 3 }}>{m.desc}</div>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -117,7 +97,6 @@ const TracebackPage = () => {
                 initialCode={params.get("code") || ""}
                 initialType={params.get("type") || "auto"}
                 onOpenRecord={openRecord}
-                onStartRecall={startRecall}
                 onQueryChange={onForwardQuery}
               />
             </div>
