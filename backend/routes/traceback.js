@@ -258,12 +258,17 @@ const packDateCond = (mode, cond) => (mode === 'packed' ? cond : mode === 'unpac
 const baseWhere = (mode) => (mode === 'all' ? '1 = 1' : mode === 'unpacked' ? `NOT (${PACKED_COND})` : PACKED_COND);
 
 // ═══ 1) GET /filters ═══════════════════════════════════════════════════════
+// the dropdown lists are the same for every user and change slowly: kept 10 minutes in the worker. They always come from the packed lots
+// (the "all statuses" version read every mapping ever made with 7 queries at once: 21 s on the floor's busiest hour)
+const FILTERS_TTL_MS = 10 * 60 * 1000;
+let filtersCache = null; // { at, body }
 router.get('/filters', async (req, res) => {
   try {
+    if (filtersCache && Date.now() - filtersCache.at < FILTERS_TTL_MS) return res.json(filtersCache.body);
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
 
-    const packMode = packModeOf(req.query);
+    const packMode = 'packed';
     await getSchema(pool);
     const suppCol = findSupplierColumn();
 
@@ -294,11 +299,14 @@ router.get('/filters', async (req, res) => {
         : Promise.resolve([]),
     ]);
 
-    res.json({
+    const body = {
       success: true,
       data: { doc_no, code, mat, mat_name, rmm_line_name, supplier, batch },
       supplier_column: suppCol ? `${suppCol.table}.${suppCol.col}` : null,
-    });
+    };
+    // a list that came back empty because a query failed is not kept (the next call tries again)
+    if (doc_no.length || batch.length) filtersCache = { at: Date.now(), body };
+    res.json(body);
   } catch (err) {
     console.error('❌ [traceback/filters]', err);
     res.status(500).json({ success: false, error: err.message });

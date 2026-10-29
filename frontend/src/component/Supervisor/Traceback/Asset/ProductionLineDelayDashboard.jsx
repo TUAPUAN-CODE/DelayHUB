@@ -85,7 +85,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
     (async () => {
       try {
         setOptsLoading(true);
-        const res = await axios.get(`${API_URL}/api/traceback/filters`, { params: { pack_status: filters.pack_status } });
+        const res = await axios.get(`${API_URL}/api/traceback/filters`);
         if (!cancelled) setOpts(prev => ({ ...prev, ...(res.data?.data || {}) }));
       } catch (e) {
         console.warn('โหลดรายการตัวกรองไม่สำเร็จ:', e.message);
@@ -94,7 +94,7 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect }) => {
       }
     })();
     return () => { cancelled = true; };
-  }, [filters.pack_status]);
+  }, []);
 
   const fetchData = useCallback(async (activeFilters) => {
     try {
