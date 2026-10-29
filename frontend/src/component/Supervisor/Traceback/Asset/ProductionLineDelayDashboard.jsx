@@ -13,6 +13,17 @@ import { exportResultsExcel } from './tracebackExport';
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
+// a long list of codes (a production can use 20+ batches): the first few, "+N" for the rest, the full list in the tooltip
+const ListCell = ({ value, max = 3 }) => {
+  const items = String(value || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!items.length) return '—';
+  return (
+    <span title={items.join(', ')} style={{ fontFamily: 'ui-monospace,monospace' }}>
+      {items.slice(0, max).join(', ')}{items.length > max ? <span style={{ color: C.muted }}>{` +${items.length - max}`}</span> : null}
+    </span>
+  );
+};
+
 const Chip = ({ label, bg, color, title }) => (
   <span title={title} style={{ fontSize: 11, background: bg, color, padding: '2px 9px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 400 }}>{label}</span>
 );
@@ -53,18 +64,11 @@ const SORT_OPTIONS = [
   { value: 'batch_desc', label: 'รหัสรุ่น (Batch) ฮ → ก' },
 ];
 
-const ymd = (d) => {
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
-const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
-// the page opens with the last 7 days already searched, so the data is on screen at once
-const DEFAULT_FILTERS = { ...EMPTY_FILTERS, sc_pack_date_from: daysAgo(6), sc_pack_date_to: daysAgo(0) };
 
 // selected / onSelect มาจาก TracebackPage เพื่อให้ URL (?doc_no=&code=) เปิดใบสอบกลับตรงได้
 const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = null }) => {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [singleDayMode, setSingleDayMode] = useState(false);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [singleDayMode, setSingleDayMode] = useState(true);
   const [sortBy, setSortBy] = useState('pack_date_desc');
 
   const [opts, setOpts] = useState({ code: [], doc_no: [], mat: [], mat_name: [], rmm_line_name: [], supplier: [], batch: [] });
@@ -112,12 +116,9 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
     }
   }, []);
 
-  // the data is on screen when the page opens (last 7 days); a record opened by its address needs no list behind it
-  useEffect(() => { if (!selected) fetchData(DEFAULT_FILTERS); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleSearch = () => fetchData(filters);
   const handleReset = () => {
-    setFilters(DEFAULT_FILTERS); setSingleDayMode(false); fetchData(DEFAULT_FILTERS);
+    setFilters(EMPTY_FILTERS); setSingleDayMode(true); setResults([]); setSearched(false); setError(null);
   };
 
   // ขอบเขตของใบสอบกลับ = ตัวกรองทุกช่องที่ตั้งไว้ในหน้าค้นหา (ทุกตัวมีผลบังคับ ไม่ผูกกับการ์ดที่กด):
@@ -285,23 +286,6 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
         )}
       </div>
 
-      {searched && !loading && results.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 14 }}>
-          {[
-            ['เอกสารผลิต', results.length, C.blue],
-            ['ดีเลย์รุนแรง', results.filter(r => r.severe_delay_count > 0).length, DELAY_STYLE.severe.color],
-            ['ดีเลย์เตือน', results.filter(r => !r.severe_delay_count && r.warn_delay_count > 0).length, DELAY_STYLE.warn.color],
-            ['ปกติ', results.filter(r => !r.severe_delay_count && !r.warn_delay_count).length, DELAY_STYLE.ok.color],
-            ['น้ำหนักรวม (kg)', fmtNum(results.reduce((a, r) => a + (Number(r.total_weight_rm) || 0), 0), 1), C.blueDark],
-          ].map(([l, v, c]) => (
-            <div key={l} style={{ background: C.white, border: `1px solid ${C.line}`, borderLeft: `4px solid ${c}`, borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ fontSize: 11.5, color: C.text2, fontWeight: 500 }}>{l}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {error && (
         <div style={{ padding: '1rem', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, color: '#B91C1C', fontSize: 14, marginBottom: 16, fontWeight: 400 }}>
           ค้นหาไม่สำเร็จ: {error} — ตรวจสอบเงื่อนไขแล้วลองอีกครั้ง
@@ -334,10 +318,10 @@ const ProductionLineDelayDashboard = ({ selected = null, onSelect, modeSwitch = 
           columns={[
             { key: 'doc_no', label: 'เลขเอกสาร', render: r => <b>{r.doc_no}</b> },
             { key: 'code', label: 'Code สินค้า', wrap: true },
-            { key: 'mat_names', label: 'วัตถุดิบ', wrap: true, minWidth: 220 },
-            { key: 'batches', label: 'Batch', wrap: true, render: r => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{r.batches || '—'}</span> },
-            { key: 'batches_2x', label: 'Batch 2x', wrap: true, render: r => <span style={{ fontFamily: 'ui-monospace,monospace' }}>{r.batches_2x || '—'}</span> },
-            { key: 'mats_2x', label: 'Mat 2x', wrap: true, render: r => r.mats_2x || '—' },
+            { key: 'mat_names', label: 'วัตถุดิบ', wrap: true, minWidth: 220, render: r => <ListCell value={r.mat_names} max={2} /> },
+            { key: 'batches', label: 'Batch', wrap: true, render: r => <ListCell value={r.batches} /> },
+            { key: 'batches_2x', label: 'Batch 2x', wrap: true, render: r => <ListCell value={r.batches_2x} /> },
+            { key: 'mats_2x', label: 'Mat 2x', wrap: true, render: r => <ListCell value={r.mats_2x} /> },
             { key: 'lines', label: 'ไลน์' },
             { key: 'material_count', label: 'วัตถุดิบ (ล็อต)', align: 'right' },
             { key: 'total_weight_rm', label: 'น้ำหนัก (kg)', align: 'right', render: r => fmtNum(r.total_weight_rm, 1) },
