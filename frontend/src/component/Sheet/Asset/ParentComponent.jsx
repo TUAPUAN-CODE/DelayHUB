@@ -395,6 +395,11 @@ const ParentComponent = ({ role, view = "work" }) => {
       // "รอเตรียมวัตถุดิบใหม่": only ใส่รถเข็น (รอแก้ไข) · กลับมาเตรียม · แก้ไข, whatever kind of waiting-list row it is (the old queues are looked up by the flow)
       if (stLabel === "รอเตรียมวัตถุดิบใหม่") {
         const rk = r.__rework;
+        // Tuna scrap / CK bone coming back from the big cold room: only "กลับมาเตรียม" (no rework buttons, so nobody presses the wrong one)
+        if (isFlowGroup(r) && rk === "B") {
+          out.push({ col: "t_rework", key: "im-cart", label: "กลับมาเตรียม", color: "#B45309", run: () => reworkRef.current?.cart(r, "import") });
+          return out;
+        }
         out.push({ col: "t_rework", key: "rw-cart", label: "ใส่รถเข็น (รอแก้ไข)", color: "#B91C1C", run: () => reworkRef.current?.cart(r, "rework") });
         out.push({ col: "t_rework", key: "im-cart", label: "กลับมาเตรียม", color: "#B45309", run: () => reworkRef.current?.cart(r, "import") });
         out.push({ col: "t_rework", key: "rw-edit", label: "แก้ไข", color: "#B26A00", run: () => reworkRef.current?.edit(r, rk === "B" ? "import" : "rework") });
