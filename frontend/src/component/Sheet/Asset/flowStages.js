@@ -24,6 +24,16 @@ export const STAGE_BUTTON = {
   freeze2_out: "ออก Freeze ครั้งที่ 2",
 };
 
+/** which Role page does each step (the Supervisor can do all of them); the other Roles see the button disabled with the page to go to */
+export const STAGE_ROLES = {
+  petfood_in: ["cs1"], petfood_out: ["cs1"],
+  freeze1_in: ["cs2"], freeze1_out: ["cs2"], freeze2_in: ["cs2"], freeze2_out: ["cs2"],
+  grind_done: ["prep"],
+};
+const ROLE_PAGE = { cs1: "ห้องเย็น", cs2: "ห้องเย็นใหญ่", prep: "จุดเตรียม" };
+export const stageRoleOk = (role, stage) => role === "sup" || (STAGE_ROLES[stage] || []).includes(role);
+export const stageRoleHint = (stage) => `ทำรายการได้ที่หน้า ${(STAGE_ROLES[stage] || []).map((r) => ROLE_PAGE[r]).join(" / ")}`;
+
 // status chip shown once a step is stamped (the last stamped step) — "(paste)" names the steps before the final preparation
 // styled: the chip keeps its own colour (these labels are not in STATUS_LIST, so a saved "สถานะที่ดู" never hides them: unknown labels are always shown)
 const S = (label, color, bg) => ({ label, color, bg, styled: true });
@@ -100,4 +110,15 @@ export const flowDbs = (row, now = null) => {
     mk(stamps.grind_done, stamps.freeze2_in, stdMin(row.FLOW_COOK_FREEZE), true),
     mk(stamps.freeze2_out, prepAt, stdMin(row.FLOW_FREEZE_PREP), true),
   ];
+};
+
+/** the unique number of a flow item: F + the id of its production-plan row (rmfp_id); it stays the same from the scan to the packing */
+export const flowIdOf = (row) => (row?.rmfp_id ? `F${row.rmfp_id}` : "");
+
+/** extra fields of a flow row for the columns: flow_id and one time column per step (fl_<step>) */
+export const flowFields = (row) => {
+  const out = { flow_id: flowIdOf(row), flow_start: row.cooked_date || null };
+  const stamps = parseStages(row.flow_stages);
+  [...new Set([...STAGES_TUNA, ...STAGES_CK])].forEach((k) => { out[`fl_${k}`] = stamps[k] || null; });
+  return out;
 };

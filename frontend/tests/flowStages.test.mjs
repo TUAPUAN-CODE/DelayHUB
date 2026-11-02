@@ -61,3 +61,24 @@ test("flow: DBS3 of the mapping row = preparation -> packed", () => {
   assert.equal(d[6].minutes, 30);          // freeze2_out 18:00 -> rmit 18:30 (std 1 h)
   assert.equal(d[6].over, false);
 });
+
+test("flow: unique number F<rmfp_id> and one time column per step", async () => {
+  const { flowFields, flowIdOf, stageRoleOk } = await import("../src/component/Sheet/Asset/flowStages.js");
+  const row = { ...ck, rmfp_id: 248555, cooked_date: "2026-11-02 08:00:00" };
+  assert.equal(flowIdOf(row), "F248555");
+  const f = flowFields(row);
+  assert.equal(f.flow_id, "F248555");
+  assert.equal(f.flow_start, "2026-11-02 08:00:00");
+  assert.equal(f.fl_freeze1_in, "2026-11-02 08:30:00");
+  assert.equal(f.fl_freeze2_in, null);
+  assert.equal(f.fl_petfood_in, null);
+});
+
+test("flow: each step is done on its own page", async () => {
+  const { stageRoleOk } = await import("../src/component/Sheet/Asset/flowStages.js");
+  assert.equal(stageRoleOk("cs2", "freeze1_in"), true);
+  assert.equal(stageRoleOk("prep", "freeze1_in"), false);
+  assert.equal(stageRoleOk("cs1", "petfood_in"), true);
+  assert.equal(stageRoleOk("prep", "grind_done"), true);
+  assert.equal(stageRoleOk("sup", "freeze2_out"), true);
+});

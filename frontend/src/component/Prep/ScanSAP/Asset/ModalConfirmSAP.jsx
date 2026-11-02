@@ -1069,7 +1069,7 @@ useEffect(() => {
 
             {isFlow && (
               <Box sx={{ mb: 2 }}>
-                <Typography sx={{ mb: 1 }}>เวลาอบเสร็จ/เตรียมเสร็จ (เริ่มนับ Delay ของ flow)</Typography>
+                <Typography sx={{ mb: 1 }}>เวลาอบเสร็จ/เตรียมเสร็จ สำหรับ (CK Bone And Tuna Scrap)</Typography>
                 <TextField
                   type="datetime-local" size="small" fullWidth value={cookedAt} required
                   onChange={(e) => setCookedAt(e.target.value)}

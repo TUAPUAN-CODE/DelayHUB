@@ -1163,6 +1163,37 @@ router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_
 // Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
 router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
 
+// the whole story of one flow item (page "ค้นหา mapping_id", search "F<number>"): the plan row, every step stamped, the mappings made from it
+//   GET /sheet/flow?rmfp_id=
+router.get("/sheet/flow", async (req, res) => {
+  try {
+    const rmfpId = parseInt(String(req.query.rmfp_id || "").replace(/^[Ff]/, ""), 10);
+    if (Number.isNaN(rmfpId) || rmfpId <= 0) return res.status(400).json({ success: false, error: "กรุณาระบุเลขรายการ Flow เป็นตัวเลข (เช่น F248555)" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool);
+    const plan = await pool.request().input("id", sql.Int, rmfpId).query(`
+      SELECT rmf.rmfp_id, rmf.batch, rmf.weight, rmf.hu, rm.mat, rm.mat_name, rmg.rm_group_name, rmg.cs_to_freeze, rmg.cook_to_freeze, rmg.freeze_to_prep,
+             rmg.prep_to_cold, rmg.cold_to_pack,
+             CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, h.cooked_date), 120) AS cooked_date
+      FROM RMForProd rmf WITH (NOLOCK)
+      JOIN ProdRawMat pr WITH (NOLOCK) ON pr.prod_rm_id = rmf.prod_rm_id
+      JOIN RawMat rm WITH (NOLOCK) ON rm.mat = pr.mat
+      JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+      LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = rmf.hist_id_rmfp
+      WHERE rmf.rmfp_id = @id`);
+    if (!plan.recordset.length) return res.status(404).json({ success: false, error: `ไม่พบเลขรายการ Flow F${rmfpId}` });
+    const stages = await pool.request().input("id", sql.Int, rmfpId).query(
+      "SELECT stage, CONVERT(VARCHAR(19), stamped_at, 120) AS at, created_by FROM FlowStage WITH (NOLOCK) WHERE rmfp_id = @id ORDER BY stamped_at, flow_stage_id");
+    const maps = await pool.request().input("id", sql.Int, rmfpId).query(
+      "SELECT mapping_id, tro_id, rm_status, stay_place, dest, weight_RM FROM TrolleyRMMapping WITH (NOLOCK) WHERE rmfp_id = @id ORDER BY mapping_id");
+    res.json({ success: true, plan: plan.recordset[0], stages: stages.recordset, mappings: maps.recordset });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/flow] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // a step of the flow of Tuna scrap / CK bone (lib/flowDelay.js): stamped once, in order, on the production-plan row
 //   POST /sheet/flow-stage { rmfp_id, stage, at: "yyyy-MM-dd HH:mm" }
 router.post("/sheet/flow-stage", async (req, res) => {

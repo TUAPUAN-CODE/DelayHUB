@@ -12,6 +12,6 @@ const SECTIONS = [
   { items: [{ name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/ColdStorages/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" }] },
 ];
 
-const SidebarOven = () => <AppSidebar title="DelayHUB" subtitle="ห้องเย็น v2" sections={SECTIONS} />;
+const SidebarOven = () => <AppSidebar title="DelayHUB" subtitle="ห้องเย็นใหญ่" sections={SECTIONS} />;
 
 export default SidebarOven;

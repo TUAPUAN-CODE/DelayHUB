@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { buildRows } from "./buildRows";
 import { COLUMNS } from "./columns";
 import { isFlowGroup } from "./dbs";
+import FlowPanel from "./FlowPanel";
 import RowDetail from "../../Layout/DataGrid/RowDetail";
 import EditCellDialog from "./EditCellDialog";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
@@ -44,6 +45,7 @@ const MappingTool = () => {
   const [statusOpen, setStatusOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [lin, setLin] = useState({ id: null, loading: false, data: null, error: "" });
+  const [flowId, setFlowId] = useState(() => (/^f\d+$/i.test(params.get("id") || "") ? String(params.get("id")).slice(1) : null)); // a search "F<number>" = the whole story of a flow item (Tuna scrap / CK bone)
   const [trail, setTrail] = useState([]); // the mappings opened before this one through a link (button "กลับไปรายการ …")
   const linReq = useRef(0);
 
@@ -74,6 +76,16 @@ const MappingTool = () => {
   }, []);
 
   const search = useCallback(async (raw, keepTab = false) => {
+    // "F248555" = the number of a Tuna scrap / CK bone item (its production-plan row): show every step; a plain number = a mapping_id as before
+    const fm = /^f(\d+)$/i.exec(String(raw).trim());
+    if (fm) {
+      setFlowId(fm[1]);
+      setState({ loading: false, error: "", mapping: null, hu: null, editable: [] });
+      setLin({ id: null, loading: false, data: null, error: "" });
+      setParams({ id: `F${fm[1]}` }, { replace: true });
+      return;
+    }
+    setFlowId(null);
     const id = parseInt(String(raw).trim(), 10);
     if (Number.isNaN(id) || id <= 0) { setState({ loading: false, error: "กรุณาใส่ mapping_id เป็นตัวเลข", mapping: null, hu: null, editable: [] }); return; }
     setState((s) => ({ ...s, loading: true, error: "" }));
@@ -136,8 +148,8 @@ const MappingTool = () => {
     <Box sx={{ maxWidth: 1100, mx: "auto", p: { xs: 1, md: 2 } }}>
       <Typography sx={{ fontSize: 20, fontWeight: 700, mb: 1.5 }}>ค้นหาด้วย mapping_id</Typography>
       <Paper variant="outlined" sx={{ p: 1.5, mb: 2, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-        <TextField size="small" label="mapping_id" value={input} autoFocus onChange={(e) => setInput(e.target.value.replace(/\D/g, ""))}
-          onKeyDown={(e) => { if (e.key === "Enter") searchTyped(); }} inputProps={{ inputMode: "numeric" }} sx={{ width: 200 }} />
+        <TextField size="small" label="mapping_id หรือเลขรายการ Flow (F...)" value={input} autoFocus onChange={(e) => setInput(e.target.value.replace(/[^0-9Ff]/g, "").replace(/(?!^)[Ff]/g, ""))}
+          onKeyDown={(e) => { if (e.key === "Enter") searchTyped(); }} inputProps={{ inputMode: "text" }} sx={{ width: 300 }} />
         <Button variant="contained" startIcon={state.loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />} disabled={state.loading || !input} onClick={searchTyped}>ค้นหา</Button>
         {trail.length > 0 && <Button size="small" startIcon={<ArrowBackIcon />} onClick={goBack}>{`กลับไปรายการ ${trail[trail.length - 1]}`}</Button>}
         <Box sx={{ flex: 1 }} />
@@ -147,6 +159,8 @@ const MappingTool = () => {
       </Paper>
 
       {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
+
+      {flowId && <FlowPanel rmfpId={flowId} onOpenMapping={(id) => { setFlowId(null); setInput(String(id)); search(id); }} />}
 
       {!state.mapping && lin.id && (lin.loading || lin.data?.children?.length > 0 || lin.data?.parents?.length > 0) && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -163,6 +177,7 @@ const MappingTool = () => {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
               <Typography sx={{ fontSize: 17, fontWeight: 700 }}>{row.mat_name || row.mat || `รายการ ${row.mapping_id}`}</Typography>
               <Chip size="small" label={`mapping_id ${row.mapping_id}`} />
+              {isFlowGroup(row) && row.rmfp_id && <Chip size="small" color="primary" clickable label={`เลขรายการ Flow F${row.rmfp_id} · ดูขั้นตอน`} onClick={() => { setInput(`F${row.rmfp_id}`); search(`F${row.rmfp_id}`); }} />}
               {st ? <Chip size="small" label={st.name || st.label} sx={{ background: st.bg, color: st.color, fontWeight: 700 }} /> : <Chip size="small" color="warning" label="ซ่อนในตาราง (ลบ / น้ำหนัก 0 / สถานะระบบ)" />}
               <Box sx={{ flex: 1 }} />
               <Button variant="outlined" startIcon={<SwapHorizIcon />} onClick={ask(() => setStatusOpen(true))}>เปลี่ยนสถานะ</Button>

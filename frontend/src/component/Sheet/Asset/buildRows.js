@@ -1,6 +1,6 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
 import { getDbs } from "./dbs";
-import { isFlowGroup, flowState } from "./flowStages";
+import { isFlowGroup, flowState, flowFields } from "./flowStages";
 import { reworkKind } from "./prep/kinds";
 import { withZone } from "./statusZones";
 
@@ -175,6 +175,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     merged.__kind = "map";
     merged.__hu = h || null; // the loaded HU row, used by the HU time-stamp tools
     merged.__dbs = safeDbs(merged, now);
+    if (isFlowGroup(merged)) Object.assign(merged, flowFields(merged)); // flow_id + the time of each step of Tuna scrap / CK bone
     merged.__stage = packStage(merged);
     // a plan can go into several trolleys: the trolley row does not take the plan row away (it stays "รอใส่รถเข็น" until it is closed with "ใส่รถเข็นครบแล้ว")
     merged.__plans = [];
@@ -213,7 +214,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
       emulsion_text: p.emulsion_text || emulsionByPlan.get(p.rmfp_id) || null,
       __trolleys: inTrolley.get(String(p.rmfp_id))?.count || 0, __inTrolleyKg: inTrolley.get(String(p.rmfp_id))?.weight || 0, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
     };
-    if (isFlowGroup(planRow)) planRow.__dbs = safeDbs(planRow, now); // the DBS of the steps of Tuna scrap / CK bone
+    if (isFlowGroup(planRow)) { Object.assign(planRow, flowFields(planRow)); planRow.__dbs = safeDbs(planRow, now); } // the DBS + the times of the steps of Tuna scrap / CK bone
     rows.push(planRow);
   });
   // mixed lots (emulsions mixed into a production-plan row) that are not in a trolley yet: rows of their own, with the emulsion text

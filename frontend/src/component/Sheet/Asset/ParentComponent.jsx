@@ -60,7 +60,7 @@ import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
 import FlowStageDialog from "./cold/FlowStageDialog";
-import { isFlowGroup, flowState, flowReadyForCart, STAGE_BUTTON } from "./flowStages";
+import { isFlowGroup, flowState, flowReadyForCart, STAGE_BUTTON, stageRoleOk, stageRoleHint } from "./flowStages";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -373,7 +373,11 @@ const ParentComponent = ({ role, view = "work" }) => {
     // Tuna scrap / CK bone: the plan row has one button, the next step of its flow (any Role; the order is kept by the server too)
     if (r.__kind === "plan" && isFlowGroup(r)) {
       const next = flowState(r).next;
-      if (next) out.push({ col: "t_bar", key: "flow-stage", label: STAGE_BUTTON[next], color: "#B45309", title: `บันทึกเวลา: ${STAGE_BUTTON[next]}`, run: () => setFlowStage({ row: r, stage: next, seq: Date.now() }) });
+      // each step is done on its own page (petfood: ห้องเย็น · Freeze: ห้องเย็นใหญ่ · Grinding: จุดเตรียม); the Supervisor can do all of them
+      if (next) {
+        const ok = stageRoleOk(role, next);
+        out.push({ col: "t_bar", key: "flow-stage", label: STAGE_BUTTON[next], color: "#B45309", ok, title: ok ? `บันทึกเวลา: ${STAGE_BUTTON[next]}` : stageRoleHint(next), run: () => { if (ok) setFlowStage({ row: r, stage: next, seq: Date.now() }); } });
+      }
     }
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
