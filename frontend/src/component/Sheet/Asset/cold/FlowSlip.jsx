@@ -3,7 +3,7 @@ import { Box, Button, Dialog, Typography } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import { useRemarkCs } from "../../../Layout/RemarkCs";
-import { STAGE_BUTTON, flowState } from "../flowStages";
+import { STAGE_BUTTON, flowState, flowDeadlineNotes } from "../flowStages";
 
 const fmt = (v) => (v ? String(v).slice(0, 16).replace("T", " ") : "");
 
@@ -79,6 +79,7 @@ const FlowSlip = ({ row, onClose }) => {
         <Line label="เวลาอบเสร็จ/เตรียมเสร็จ" value={fmt(row.cooked_date)} />
         <RemarkLine hu={row.hu} mat={row.mat} batch={row.batch} />
         <Line label="สถานะ" value={status} />
+        {flowDeadlineNotes(row).map((n) => <Line key={n.value} label={n.label} value={n.value} />)}
 
         {order.some((k) => stamps[k]) && (
           <Typography className="print-title" sx={{ fontSize: "20px", color: "#000", margin: "10px", "@media print": { fontSize: "12px", fontWeight: "bold", margin: "4px 0" } }}>ขั้นตอน</Typography>

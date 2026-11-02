@@ -11,6 +11,7 @@ import { buildRows } from "./buildRows";
 import { COLUMNS } from "./columns";
 import { isFlowGroup } from "./dbs";
 import FlowPanel from "./FlowPanel";
+import FlowStageDialog from "./cold/FlowStageDialog";
 import RowDetail from "../../Layout/DataGrid/RowDetail";
 import EditCellDialog from "./EditCellDialog";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
@@ -51,6 +52,8 @@ const MappingTool = () => {
   const [toast, setToast] = useState("");
   const [lin, setLin] = useState({ id: null, loading: false, data: null, error: "" });
   const [flowId, setFlowId] = useState(() => (/^f\d+$/i.test(params.get("id") || "") ? String(params.get("id")).slice(1) : null)); // a search "F<number>" = the whole story of a flow item (Tuna scrap / CK bone)
+  const [flowEdit, setFlowEdit] = useState(null); // { row (needs rmfp_id), stage, at }: edit the time of a step of Tuna scrap / CK bone
+  const [flowTick, setFlowTick] = useState(0);
   const [trail, setTrail] = useState([]); // the mappings opened before this one through a link (button "กลับไปรายการ …")
   const linReq = useRef(0);
 
@@ -165,7 +168,7 @@ const MappingTool = () => {
 
       {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
 
-      {flowId && <FlowPanel rmfpId={flowId} onOpenMapping={(id) => { setFlowId(null); setInput(String(id)); search(id); }} />}
+      {flowId && <FlowPanel rmfpId={flowId} tick={flowTick} onEdit={(stage, at) => ask(() => setFlowEdit({ row: { rmfp_id: Number(flowId), flow_id: `F${flowId}` }, stage, at }))()} onOpenMapping={(id) => { setFlowId(null); setInput(String(id)); search(id); }} />}
 
       {!state.mapping && lin.id && (lin.loading || lin.data?.children?.length > 0 || lin.data?.parents?.length > 0) && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -214,13 +217,15 @@ const MappingTool = () => {
 
           {tab === "times" && (
             <Paper variant="outlined" sx={{ p: 1 }}>
-              {TIME_COLUMNS.map((c, i) => (
+              {TIME_COLUMNS.filter((c) => isFlowGroup(row) || !(c.key.startsWith("fl_") || c.key === "flow_start")).map((c, i) => (
                 <Box key={c.key}>
                   {i > 0 && <Divider />}
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.75, px: 1 }}>
                     <Typography sx={{ flex: 1, fontSize: 13.5, color: "#5B6B8C", fontWeight: 600 }}>{c.label}</Typography>
                     <Typography sx={{ width: 150, fontSize: 14, fontFamily: "ui-monospace,monospace", color: row[c.key] ? "inherit" : "#B0B8C9" }}>{fmtTime(row[c.key])}</Typography>
-                    {editableDates.has(c.key)
+                    {c.key.startsWith("fl_") && row.rmfp_id && row[c.key]
+                      ? <Button size="small" startIcon={<EditIcon fontSize="small" />} onClick={ask(() => setFlowEdit({ row: { ...row, flow_id: `F${row.rmfp_id}` }, stage: c.key.slice(3), at: row[c.key] }))}>แก้ไข</Button>
+                      : editableDates.has(c.key)
                       ? (<>
                         <Button size="small" startIcon={<EditIcon fontSize="small" />} onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: c }))}>แก้ไข</Button>
                         <Button size="small" color="warning" disabled={!row[c.key]} onClick={ask(() => setTimeTarget({ row: { ...row, mapping_id: row.mapping_id }, col: c, startCleared: true }))}>ล้างเป็น NULL</Button>
@@ -248,6 +253,7 @@ const MappingTool = () => {
         </>
       )}
 
+      {flowEdit && <FlowStageDialog edit row={flowEdit.row} stage={flowEdit.stage} initialAt={flowEdit.at} onClose={() => setFlowEdit(null)} onSaved={(msg) => { setFlowEdit(null); setFlowTick((n) => n + 1); if (state.mapping) afterSave(msg); else setToast(msg); }} />}
       <UnlockDialog open={unlockAsk} onClose={() => setUnlockAsk(false)} onUnlocked={() => { setUnlockAsk(false); setUnlocked(true); setToast("ปลดล็อกแล้ว แก้ไขข้อมูลได้"); if (state.mapping) loadLog(state.mapping.mapping_id); }} />
       <EditCellDialog target={timeTarget} onClose={() => setTimeTarget(null)} onSaved={afterSave} />
       <StatusFixDialog open={statusOpen} row={state.mapping} hu={state.hu} onClose={() => setStatusOpen(false)} onSaved={afterSave} />

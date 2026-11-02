@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Chip, CircularProgress, Link, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Link, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { STAGES_CK, STAGES_TUNA, STAGE_BUTTON, parseStages } from "./flowStages";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -13,7 +13,7 @@ const dur = (m) => (m === null ? "-" : `${Math.floor(m / 60)} h ${m % 60} m`);
  * how long each step took, and the mappings made from it. GET /api/sheet/flow
  * `rmfpId` = the number after the F · `flowStages` (optional) = the steps already on a mapping row, shown while the server answers.
  */
-const FlowPanel = ({ rmfpId, onOpenMapping }) => {
+const FlowPanel = ({ rmfpId, onOpenMapping, onEdit = null, tick = 0 }) => {
   const [state, setState] = useState({ loading: true, error: "", data: null });
   useEffect(() => {
     let alive = true;
@@ -22,11 +22,11 @@ const FlowPanel = ({ rmfpId, onOpenMapping }) => {
       .then((res) => { if (alive) setState({ loading: false, error: "", data: res.data }); })
       .catch((err) => { console.error("[FlowPanel] load error:", err); if (alive) setState({ loading: false, error: err.response?.data?.error || err.message || "โหลดไม่สำเร็จ", data: null }); });
     return () => { alive = false; };
-  }, [rmfpId]);
+  }, [rmfpId, tick]);
 
   if (state.loading) return <Box sx={{ p: 2 }}><CircularProgress size={22} /></Box>;
   if (state.error) return <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>;
-  const { plan, stages = [], mappings = [] } = state.data || {};
+  const { plan, stages = [], mappings = [], edits = [] } = state.data || {};
   if (!plan) return <Alert severity="error" sx={{ mb: 2 }}>ไม่พบข้อมูลเลขรายการ Flow นี้</Alert>;
   const hasPetfood = plan.cs_to_freeze !== null;
   const order = hasPetfood ? STAGES_TUNA : STAGES_CK;
@@ -45,7 +45,7 @@ const FlowPanel = ({ rmfpId, onOpenMapping }) => {
         {[plan.mat && `Mat ${plan.mat}`, plan.batch && `Batch ${plan.batch}`, plan.hu && `HU ${plan.hu}`, plan.weight !== null && plan.weight !== undefined && `${plan.weight} kg`].filter(Boolean).join(" · ")}
       </Typography>
       <Table size="small" sx={{ mt: 1.5 }}>
-        <TableHead><TableRow><TableCell>ขั้นตอน</TableCell><TableCell>เวลา</TableCell><TableCell>ใช้เวลาจากขั้นก่อน</TableCell><TableCell>บันทึกโดย</TableCell></TableRow></TableHead>
+        <TableHead><TableRow><TableCell>ขั้นตอน</TableCell><TableCell>เวลา</TableCell><TableCell>ใช้เวลาจากขั้นก่อน</TableCell><TableCell>บันทึกโดย</TableCell>{onEdit && <TableCell />}</TableRow></TableHead>
         <TableBody>
           {rows.map((r, i) => {
             const prev = i > 0 ? rows[i - 1].at : null;
@@ -55,11 +55,22 @@ const FlowPanel = ({ rmfpId, onOpenMapping }) => {
                 <TableCell sx={{ fontFamily: "ui-monospace,monospace", color: r.at ? "inherit" : "#B0B8C9" }}>{fmt(r.at)}</TableCell>
                 <TableCell>{r.at && prev ? dur(mins(prev, r.at)) : "-"}</TableCell>
                 <TableCell>{r.by || "-"}</TableCell>
+                {onEdit && <TableCell>{r.key !== "start" && r.at ? <Button size="small" onClick={() => onEdit(r.key, r.at)}>แก้ไข</Button> : null}</TableCell>}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+      {edits.length > 0 && (
+        <>
+          <Typography sx={{ fontSize: 13.5, fontWeight: 700, mt: 2 }}>ประวัติการแก้เวลา</Typography>
+          {edits.map((e) => (
+            <Typography key={`${e.created_at}-${e.stage}`} sx={{ fontSize: 13 }}>
+              {`${fmt(e.created_at)} · ${STAGE_BUTTON[e.stage] || e.stage}: ${fmt(e.old_at)} → ${fmt(e.new_at)} · ${e.username || "-"}${e.reason ? ` · ${e.reason}` : ""}`}
+            </Typography>
+          ))}
+        </>
+      )}
       <Typography sx={{ fontSize: 13.5, fontWeight: 700, mt: 2 }}>รายการ (mapping) ที่สร้างจากรายการนี้</Typography>
       {mappings.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary" }}>ยังไม่ได้ใส่รถเข็น (จะใส่ได้หลังออก Freeze ครั้งที่ 2)</Typography>

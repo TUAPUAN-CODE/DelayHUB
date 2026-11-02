@@ -23,8 +23,14 @@ const toServer = (day, hour, minute) => {
  * The day is picked, the hour is 1-24 (24-hour clock, no AM / PM) and the minute 0-59, or the button "ตอนนี้" fills the present time.
  * POST /api/sheet/flow-stage (FlowStage of the production-plan row); a tap outside does not close it.
  */
-const FlowStageDialog = ({ row, stage, onClose, onSaved }) => {
-  const initial = (() => { const base = new Date(); return { day: dayText(base), hour: base.getHours() === 0 ? 24 : base.getHours(), minute: base.getMinutes() }; })();
+const FlowStageDialog = ({ row, stage, onClose, onSaved, edit = false, initialAt = null }) => {
+  // edit = change the time of a step that is already saved (PATCH, needs the unlock / admin, the old time is kept in the log)
+  const initial = (() => {
+    const base = edit && initialAt ? new Date(String(initialAt).replace(" ", "T")) : new Date();
+    if (base.getHours() === 0) { base.setDate(base.getDate() - 1); return { day: dayText(base), hour: 24, minute: new Date(edit && initialAt ? String(initialAt).replace(" ", "T") : Date.now()).getMinutes() }; } // 00:xx = hour 24 of the day before
+    return { day: dayText(base), hour: base.getHours(), minute: base.getMinutes() };
+  })();
+  const [reason, setReason] = useState("");
   const [day, setDay] = useState(initial.day);
   const [hour, setHour] = useState(initial.hour);
   const [minute, setMinute] = useState(initial.minute);
@@ -41,13 +47,15 @@ const FlowStageDialog = ({ row, stage, onClose, onSaved }) => {
   const save = async () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) { setError("กรุณาเลือกวันที่"); return; }
     const value = toServer(day, hour, minute);
-    if (new Date(value.replace(" ", "T")).getTime() > Date.now() + 5 * 60000) { setError("เวลาจบ Cooking ต้องไม่เป็นเวลาในอนาคต"); return; }
+    if (new Date(value.replace(" ", "T")).getTime() > Date.now() + 5 * 60000) { setError("เวลาต้องไม่เป็นเวลาในอนาคต"); return; }
     setSaving(true);
     setError("");
     try {
-      const res = await axios.post(`${API_URL}/api/sheet/flow-stage`, { rmfp_id: row.rmfp_id, stage, at: value });
+      const res = edit
+        ? await axios.patch(`${API_URL}/api/sheet/flow-stage`, { rmfp_id: row.rmfp_id, stage, at: value, reason: reason.trim() })
+        : await axios.post(`${API_URL}/api/sheet/flow-stage`, { rmfp_id: row.rmfp_id, stage, at: value });
       if (!res.data?.success) throw new Error(res.data?.error || "บันทึกไม่สำเร็จ");
-      onSaved(`บันทึก ${STAGE_BUTTON[stage]} ${value} แล้ว`);
+      onSaved(edit ? `แก้เวลา ${STAGE_BUTTON[stage]} เป็น ${value} แล้ว` : `บันทึก ${STAGE_BUTTON[stage]} ${value} แล้ว`);
     } catch (err) {
       console.error("[FlowStageDialog] save:", err);
       setError(errText(err));
@@ -57,7 +65,7 @@ const FlowStageDialog = ({ row, stage, onClose, onSaved }) => {
 
   return (
     <Dialog open onClose={(e, reason) => { if (!saving && reason !== "backdropClick") onClose(); }} disableEscapeKeyDown fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontSize: 17, fontWeight: 700 }}>บันทึกเวลา: {STAGE_BUTTON[stage]}</DialogTitle>
+      <DialogTitle sx={{ fontSize: 17, fontWeight: 700 }}>{edit ? "แก้เวลา" : "บันทึกเวลา"}: {STAGE_BUTTON[stage]}</DialogTitle>
       <DialogContent dividers>
         <Typography sx={{ fontSize: 13, color: "#6B7489", mb: 1.5 }}>
           {[row.flow_id, row.mat_name || row.mat, `Batch ${row.batch || "-"}`, row.hu && `HU ${row.hu}`].filter(Boolean).join(" · ")}
@@ -75,6 +83,7 @@ const FlowStageDialog = ({ row, stage, onClose, onSaved }) => {
         <Typography sx={{ fontSize: 12.5, color: "#6B7489", mt: 1 }}>
           เวลาที่จะบันทึก: {toServer(day || dayText(new Date()), hour, minute)} (24 = เที่ยงคืนของวันที่เลือก)
         </Typography>
+        {edit && <TextField size="small" fullWidth label="เหตุผลที่แก้ (ไม่บังคับ)" value={reason} disabled={saving} onChange={(e) => setReason(e.target.value)} inputProps={{ maxLength: 300 }} sx={{ mt: 1.5 }} />}
         {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
       </DialogContent>
       <DialogActions>

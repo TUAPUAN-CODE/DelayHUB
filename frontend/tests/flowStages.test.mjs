@@ -83,3 +83,19 @@ test("flow: each step is done on its own page", async () => {
   assert.equal(stageRoleOk("prep", "grind_done"), true);
   assert.equal(stageRoleOk("sup", "freeze2_out"), true);
 });
+
+test("flow: deadlines printed on the slips", async () => {
+  const { deadlineValue, flowDeadlineNotes, flowPackNotes } = await import("../src/component/Sheet/Asset/flowStages.js");
+  assert.equal(deadlineValue("ออก Freeze ครั้งที่ 2", "2026-11-02 10:00:00", "เตรียมเสร็จ", "1.00"), "ออก Freeze ครั้งที่ 2 10:00 น. → ต้องเตรียมเสร็จ ภายใน 11:00 น.");
+  assert.equal(deadlineValue("เตรียมเสร็จ", "2026-11-02 10:30:00", "บรรจุเสร็จ", "4.00"), "เตรียมเสร็จ 10:30 น. → ต้องบรรจุเสร็จ ภายใน 14:30 น.");
+  assert.equal(deadlineValue("เตรียมเสร็จ", "2026-11-02 22:00:00", "บรรจุเสร็จ", "4.00"), "เตรียมเสร็จ 22:00 น. → ต้องบรรจุเสร็จ ภายใน 02:00 น. (03/11)");
+  assert.equal(deadlineValue("x", null, "y", "1"), null);
+  // a plan row: grind done, not in freeze 2 yet -> one open deadline; after freeze 2 in and out -> the preparation deadline
+  const plan = { ...base, __kind: "plan", flow_stages: "freeze1_in|2026-11-02 08:30:00,freeze1_out|2026-11-02 11:00:00,grind_done|2026-11-02 13:00:00" };
+  assert.deepEqual(flowDeadlineNotes(plan).map((n) => n.value), ["Grinding เสร็จ 13:00 น. → ต้องเข้า Freeze ครั้งที่ 2 ภายใน 14:00 น."]);
+  const out = { ...plan, flow_stages: `${plan.flow_stages},freeze2_in|2026-11-02 13:20:00,freeze2_out|2026-11-02 18:00:00` };
+  assert.deepEqual(flowDeadlineNotes(out).map((n) => n.value), ["ออก Freeze ครั้งที่ 2 18:00 น. → ต้องเตรียมเสร็จ ภายใน 19:00 น."]);
+  // a mapping slip: prepared, not packed -> the packing deadline; packed -> nothing
+  assert.equal(flowPackNotes({ rmit_date: "2026-11-02 10:30:00", sc_pack_date: null, cold_to_pack: "4.00" })[0].value, "เตรียมเสร็จ 10:30 น. → ต้องบรรจุเสร็จ ภายใน 14:30 น.");
+  assert.equal(flowPackNotes({ rmit_date: "2026-11-02 10:30:00", sc_pack_date: "2026-11-02 12:00:00", cold_to_pack: "4.00" }).length, 0);
+});

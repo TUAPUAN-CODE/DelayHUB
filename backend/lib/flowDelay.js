@@ -27,6 +27,20 @@ BEGIN
         created_at    DATETIME      NOT NULL CONSTRAINT DF_FlowStage_created_at DEFAULT (GETDATE())
     );
     CREATE UNIQUE INDEX UX_FlowStage_rmfp_stage ON dbo.FlowStage (rmfp_id, stage);
+END
+IF OBJECT_ID(N'dbo.FlowStageLog', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.FlowStageLog (
+        log_id     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_FlowStageLog PRIMARY KEY,
+        rmfp_id    INT           NOT NULL,
+        stage      NVARCHAR(30)  NOT NULL,
+        old_at     DATETIME      NULL,
+        new_at     DATETIME      NULL,
+        reason     NVARCHAR(300) NULL,
+        username   NVARCHAR(100) NULL,
+        created_at DATETIME      NOT NULL CONSTRAINT DF_FlowStageLog_created_at DEFAULT (GETDATE())
+    );
+    CREATE INDEX IX_FlowStageLog_rmfp ON dbo.FlowStageLog (rmfp_id, log_id DESC);
 END`;
 
 /** adds the columns when they are missing (once per process; two workers at the same time: "already exists" is fine) */

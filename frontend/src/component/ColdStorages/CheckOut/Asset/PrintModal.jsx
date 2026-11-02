@@ -856,10 +856,17 @@ const MaterialItem = ({
                 <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
                     <InlineInfoItem label="รายการ" value={item.mapping_id != null ? String(item.mapping_id) : "ไม่มีข้อมูล"} fontSizes={fontSizes} />
                 </Box>
-                <FlowNoValue mappingId={item.mapping_id}>{(no) => (
-                    <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
-                        <InlineInfoItem label="เลขรายการ Paste" value={no} fontSizes={fontSizes} />
-                    </Box>
+                <FlowNoValue mappingId={item.mapping_id}>{(no, notes) => (
+                    <>
+                        <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+                            <InlineInfoItem label="เลขรายการ Paste" value={no} fontSizes={fontSizes} />
+                        </Box>
+                        {notes.map((n) => (
+                            <Box key={n.value} sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+                                <InlineInfoItem label={n.label} value={n.value} fontSizes={fontSizes} />
+                            </Box>
+                        ))}
+                    </>
                 )}</FlowNoValue>
                 <Box sx={{
                     display: "grid",

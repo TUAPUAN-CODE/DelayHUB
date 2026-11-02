@@ -128,3 +128,45 @@ export const flowFields = (row) => {
   [...new Set([...STAGES_TUNA, ...STAGES_CK])].forEach((k) => { out[`fl_${k}`] = stamps[k] || null; });
   return out;
 };
+
+// ───────── deadlines printed on the slips: "<step> HH:mm -> must <next step> within HH:mm" ─────────
+const p2 = (n) => String(n).padStart(2, "0");
+const toDate = (v) => (v ? new Date(String(v).replace(" ", "T")) : null);
+const hm = (d) => `${p2(d.getHours())}:${p2(d.getMinutes())} น.`;
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/** "ออก Freeze ครั้งที่ 2 10:00 น. → ต้องเตรียมเสร็จภายใน 11:00 น." (the day is added to a time that is not on the day of the step) */
+export const deadlineValue = (fromLabel, fromAt, toLabel, hours) => {
+  const from = toDate(fromAt);
+  const h = parseFloat(hours);
+  if (!from || Number.isNaN(from.getTime()) || Number.isNaN(h)) return null;
+  const due = new Date(from.getTime() + h * 3600000);
+  const dayText = (d) => (sameDay(d, from) ? "" : ` (${p2(d.getDate())}/${p2(d.getMonth() + 1)})`);
+  return `${fromLabel} ${hm(from)} → ต้อง${toLabel} ภายใน ${hm(due)}${dayText(due)}`;
+};
+
+/** the deadlines still open of a plan row (a step done, the next one not yet): [{ label, value }] */
+export const flowDeadlineNotes = (row) => {
+  const { stamps } = flowState(row);
+  const start = flowStart(row);
+  const rules = hasPetfood(row)
+    ? [
+      { fromLabel: "อบเสร็จ", from: start, toLabel: "เข้าห้องเย็น petfood", to: stamps.petfood_in, hours: row.DBS1 },
+      { fromLabel: STAGE_BUTTON.petfood_out, from: stamps.petfood_out, toLabel: "เข้า Freeze ครั้งที่ 1", to: stamps.freeze1_in, hours: row.FLOW_CS_FREEZE },
+    ]
+    : [{ fromLabel: "เตรียมเสร็จ CK bone", from: start, toLabel: "เข้า Freeze ครั้งที่ 1", to: stamps.freeze1_in, hours: row.DBS1 }];
+  rules.push(
+    { fromLabel: STAGE_BUTTON.grind_done, from: stamps.grind_done, toLabel: "เข้า Freeze ครั้งที่ 2", to: stamps.freeze2_in, hours: row.FLOW_COOK_FREEZE },
+    { fromLabel: STAGE_BUTTON.freeze2_out, from: stamps.freeze2_out, toLabel: "เตรียมเสร็จ", to: null, hours: row.FLOW_FREEZE_PREP },
+  );
+  return rules
+    .filter((r) => r.from && !r.to)
+    .map((r) => ({ label: "กำหนด", value: deadlineValue(r.fromLabel, r.from, r.toLabel, r.hours) }))
+    .filter((n) => n.value);
+};
+
+/** the deadline of a mapping slip (info of GET /api/sheet/flow-ids): prepared -> must be packed within DBS3 hours, until it is packed */
+export const flowPackNotes = (info) => {
+  if (!info?.rmit_date || info.sc_pack_date) return [];
+  const value = deadlineValue("เตรียมเสร็จ", info.rmit_date, "บรรจุเสร็จ", info.cold_to_pack);
+  return value ? [{ label: "กำหนด", value }] : [];
+};

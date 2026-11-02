@@ -1165,7 +1165,8 @@ router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_
 // Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
 router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
 
-// "F<rmfp_id>" of the mappings that belong to a Tuna scrap / CK bone item (printed on the slips): GET /sheet/flow-ids?mapping_ids=1,2,3 -> { data: { "1": "F248555" } }
+// "F<rmfp_id>" of the mappings that belong to a Tuna scrap / CK bone item (printed on the slips) + what the slip needs for its deadline:
+//   GET /sheet/flow-ids?mapping_ids=1,2,3 -> { data: { "1": { no: "F248555", rmit_date, sc_pack_date, cold_to_pack } } }
 router.get("/sheet/flow-ids", async (req, res) => {
   try {
     const ids = [...new Set(String(req.query.mapping_ids || "").split(",").map((x) => parseInt(x, 10)).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 300);
@@ -1174,17 +1175,77 @@ router.get("/sheet/flow-ids", async (req, res) => {
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     await ensureFlowColumns(pool);
     const r = await pool.request().input("ids", sql.NVarChar(sql.MAX), ids.join(",")).query(`
-      SELECT rmm.mapping_id, rmm.rmfp_id
+      SELECT rmm.mapping_id, rmm.rmfp_id, rmg.cold_to_pack,
+             (SELECT TOP 1 CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, hh.rmit_date), 120) FROM History hh WITH (NOLOCK) WHERE hh.mapping_id = rmm.mapping_id ORDER BY hh.hist_id DESC) AS rmit_date,
+             (SELECT TOP 1 CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, hh.sc_pack_date), 120) FROM History hh WITH (NOLOCK) WHERE hh.mapping_id = rmm.mapping_id ORDER BY hh.hist_id DESC) AS sc_pack_date
       FROM TrolleyRMMapping rmm WITH (NOLOCK)
       JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
       JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
       WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, N','))
         AND rmg.cook_to_freeze IS NOT NULL`);
     const data = {};
-    r.recordset.forEach((x) => { data[x.mapping_id] = `F${x.rmfp_id}`; });
+    r.recordset.forEach((x) => { data[x.mapping_id] = { no: `F${x.rmfp_id}`, rmit_date: x.rmit_date || null, sc_pack_date: x.sc_pack_date || null, cold_to_pack: x.cold_to_pack ?? null }; });
     res.json({ success: true, data });
   } catch (err) {
     console.error("❌ [Route GET /sheet/flow-ids] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// edit the time of a step that is already stamped (page "ค้นหา mapping_id": admin / unlocked with the Setting password, like the other edits of the Sheet)
+//   PATCH /sheet/flow-stage { rmfp_id, stage, at: "yyyy-MM-dd HH:mm", reason } — the old time is kept in FlowStageLog
+router.patch("/sheet/flow-stage", async (req, res) => {
+  try {
+    const rmfpId = parseInt(req.body?.rmfp_id, 10);
+    const stage = String(req.body?.stage || "");
+    const reason = String(req.body?.reason || "").trim().slice(0, 300);
+    let at = String(req.body?.at || "").trim().replace("T", " ");
+    if (Number.isNaN(rmfpId) || rmfpId <= 0 || !stage) return res.status(400).json({ success: false, error: "ข้อมูลไม่ครบ (rmfp_id / stage)" });
+    if (!DATETIME_RE.test(at)) return res.status(400).json({ success: false, error: "เวลาต้องเป็นรูป yyyy-MM-dd HH:mm" });
+    if (at.length === 16) at += ":00";
+    const atDate = new Date(at.replace(" ", "T"));
+    if (Number.isNaN(atDate.getTime())) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
+    if (atDate.getTime() > Date.now() + 5 * 60000) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นเวลาในอนาคต" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool);
+    const cur = await pool.request().input("id", sql.Int, rmfpId).query(`
+      SELECT rmg.cs_to_freeze, rmg.cook_to_freeze, CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, h.cooked_date), 120) AS cooked_date
+      FROM RMForProd rmf WITH (NOLOCK)
+      JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+      LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = rmf.hist_id_rmfp
+      WHERE rmf.rmfp_id = @id`);
+    if (!cur.recordset.length || cur.recordset[0].cook_to_freeze === null) return res.status(404).json({ success: false, error: "ไม่พบรายการ Flow นี้" });
+    const g = cur.recordset[0];
+    const order = flowStageOrder(g.cs_to_freeze !== null);
+    const idx = order.indexOf(stage);
+    if (idx < 0) return res.status(400).json({ success: false, error: "ไม่รู้จักขั้นตอนนี้" });
+    const done = await pool.request().input("id", sql.Int, rmfpId).query("SELECT stage, CONVERT(VARCHAR(19), stamped_at, 120) AS at FROM FlowStage WITH (NOLOCK) WHERE rmfp_id = @id");
+    const have = new Map(done.recordset.map((r) => [r.stage, r.at]));
+    if (!have.has(stage)) return res.status(400).json({ success: false, error: "ขั้นตอนนี้ยังไม่ได้บันทึก (ใช้ปุ่มของขั้นตอนบันทึกก่อน)" });
+    // the order of the times must stay: after the step before (or the start), before the step after
+    const prevAt = idx > 0 ? have.get(order[idx - 1]) : g.cooked_date;
+    const nextAt = idx + 1 < order.length ? have.get(order[idx + 1]) : null;
+    const t = (v) => new Date(String(v).replace(" ", "T")).getTime();
+    if (prevAt && atDate.getTime() < t(prevAt)) return res.status(400).json({ success: false, error: `เวลาต้องไม่ก่อนขั้นตอนก่อนหน้า (${prevAt})` });
+    if (nextAt && atDate.getTime() > t(nextAt)) return res.status(400).json({ success: false, error: `เวลาต้องไม่หลังขั้นตอนถัดไป (${nextAt})` });
+    const old = have.get(stage);
+    if (old === at) return res.status(400).json({ success: false, error: "เวลาเท่าเดิม ไม่ได้แก้ไข" });
+    const user = req.user || {};
+    const tx = new sql.Transaction(pool);
+    await tx.begin();
+    try {
+      await new sql.Request(tx).input("id", sql.Int, rmfpId).input("st", sql.NVarChar(30), stage).input("at", sql.NVarChar(30), at)
+        .query("UPDATE FlowStage SET stamped_at = CONVERT(DATETIME, @at, 120) WHERE rmfp_id = @id AND stage = @st");
+      await new sql.Request(tx).input("id", sql.Int, rmfpId).input("st", sql.NVarChar(30), stage).input("old", sql.NVarChar(30), old).input("at", sql.NVarChar(30), at)
+        .input("rs", sql.NVarChar(300), reason || null).input("un", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
+        .query("INSERT INTO FlowStageLog (rmfp_id, stage, old_at, new_at, reason, username) VALUES (@id, @st, CONVERT(DATETIME, @old, 120), CONVERT(DATETIME, @at, 120), @rs, @un)");
+      await tx.commit();
+    } catch (err) { await safeRollback(tx); throw err; }
+    invalidateSheetCache();
+    res.json({ success: true, stage, at, old });
+  } catch (err) {
+    console.error("❌ [Route PATCH /sheet/flow-stage] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1213,7 +1274,9 @@ router.get("/sheet/flow", async (req, res) => {
       "SELECT stage, CONVERT(VARCHAR(19), stamped_at, 120) AS at, created_by FROM FlowStage WITH (NOLOCK) WHERE rmfp_id = @id ORDER BY stamped_at, flow_stage_id");
     const maps = await pool.request().input("id", sql.Int, rmfpId).query(
       "SELECT mapping_id, tro_id, rm_status, stay_place, dest, weight_RM FROM TrolleyRMMapping WITH (NOLOCK) WHERE rmfp_id = @id ORDER BY mapping_id");
-    res.json({ success: true, plan: plan.recordset[0], stages: stages.recordset, mappings: maps.recordset });
+    const edits = await pool.request().input("id", sql.Int, rmfpId).query(
+      "SELECT TOP 50 stage, CONVERT(VARCHAR(19), old_at, 120) AS old_at, CONVERT(VARCHAR(19), new_at, 120) AS new_at, reason, username, CONVERT(VARCHAR(19), created_at, 120) AS created_at FROM FlowStageLog WITH (NOLOCK) WHERE rmfp_id = @id ORDER BY log_id DESC");
+    res.json({ success: true, plan: plan.recordset[0], stages: stages.recordset, mappings: maps.recordset, edits: edits.recordset });
   } catch (err) {
     console.error("❌ [Route GET /sheet/flow] Error:", err);
     res.status(500).json({ success: false, error: err.message });

@@ -229,6 +229,8 @@ const RULES = [
   { m: "GET", p: /^\/api\/user\/permissions$/, check: selfOrAdmin((req) => req.query.user_id) },
   // แก้ไขข้อมูลในตาราง Sheet (กำลังดำเนินการ / เสร็จสิ้น): Supervisor / Master หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว (ปุ่ม "แก้ไขข้อมูล" ที่ header)
   { m: "PATCH", p: /^\/api\/sheet\/edit$/, check: adminOrUnlock, final: true },
+  // แก้เวลาของขั้นตอน Flow (Tuna scrap / CK bone): เหมือนการแก้เวลาใน Sheet — หัวหน้า หรือผู้ที่ใส่รหัสผ่าน
+  { m: "PATCH", p: /^\/api\/sheet\/flow-stage$/, check: adminOrUnlock, final: true },
   { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock, final: true },
   // what the page "ค้นหา mapping_id" reads (it is on the menu of every Role): any logged-in user, not narrowed by rolePolicy.json
   { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options|lineage|flow|flow-ids)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
