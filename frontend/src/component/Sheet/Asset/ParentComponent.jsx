@@ -59,6 +59,8 @@ import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/
 import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
+import CookEndDialog from "./cold/CookEndDialog";
+import { isFlowGroup } from "./dbs";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -159,6 +161,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gather, setGather] = useState(null); // cold room: { rows, seq } of the "จัดชุด" dialog (the ticked rows as they were when it opened)
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
+  const [cookEnd, setCookEnd] = useState(null); // { row, seq }: "จบ Cooking" of a material of a multi-stage flow (Tuna scrap, CK bone)
   const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
   const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role), ensure: ENSURE_STATUSES[role] });
@@ -430,6 +433,10 @@ const ParentComponent = ({ role, view = "work" }) => {
       out.push({ col: "t_bar", key: "cold-edit", label: "แก้ไข Code / Line / น้ำหนัก", color: "#0F3FC4", icon: <EditOutlinedIcon fontSize="small" />, title: "แก้ไข Code (แผนผลิต) / Line / น้ำหนัก ของวัตถุดิบในห้องเย็น", run: () => setColdEdit({ row: r, seq: Date.now() }) });
     }
     const st = String(r.rm_status || "");
+    // end of pressure cooking: only a material of a multi-stage flow group (Tuna scrap, CK bone), until it is prepared
+    if (isFlowGroup(r) && !r.rmit_date && ["prep", "cs1", "cs2", "pack", "sup"].includes(role)) {
+      out.push({ col: "t_bar", key: "cook-end", label: r.cook_end_date ? "แก้เวลาจบ Cooking" : "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
+    }
     if (role === "cs1") {
       if (!r.cs_id && r.tro_id && CS1_DEST.includes(r.dest)) out.push({ col: "t_cs1", key: "in", label: "รับเข้า", color: "#E65100", run: () => trolleyRef.current?.checkin(r) });
       if (r.cs_id && r.cs_id < 10) {
@@ -768,6 +775,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Snackbar>
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
+      {cookEnd && <CookEndDialog key={cookEnd.seq} row={cookEnd.row} onClose={() => setCookEnd(null)} onSaved={(msg) => { setCookEnd(null); afterCellEdit(msg); }} />}
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />

@@ -47,6 +47,9 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
     cold_to_pack: data?.cold_to_pack || "",
     cold: data?.cold || "",
     rework: data?.rework || "",
+    cs_to_freeze: data?.cs_to_freeze ?? "",
+    cook_to_freeze: data?.cook_to_freeze ?? "",
+    freeze_to_prep: data?.freeze_to_prep ?? "",
   });
 
   const timeFields = [
@@ -56,6 +59,15 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
     { label: "ในห้องเย็น", field: "cold" },
     { label: "Rework", field: "rework" },
   ];
+
+  // Flow หลายช่วง (Tuna scrap, CK bone): ไม่บังคับ เว้นว่าง = ไม่ใช้ช่วงนั้น (ชม.)
+  const flowFields = [
+    { label: "ออกห้องเย็น > เข้า Slow freeze (Flow)", field: "cs_to_freeze" },
+    { label: "จบ Cooking > เข้า Slow freeze (Flow)", field: "cook_to_freeze" },
+    { label: "ออก Slow freeze > เตรียม (Flow)", field: "freeze_to_prep" },
+  ];
+  const FLOW_KEYS = flowFields.map((f) => f.field);
+  const allFields = [...timeFields, ...flowFields];
 
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +80,9 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
         cold_to_pack: data?.cold_to_pack || "",
         cold: data?.cold || "",
         rework: data?.rework || "",
+        cs_to_freeze: data?.cs_to_freeze ?? "",
+        cook_to_freeze: data?.cook_to_freeze ?? "",
+        freeze_to_prep: data?.freeze_to_prep ?? "",
       });
     }
   }, [isOpen, data]);
@@ -124,7 +139,7 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
     if (
       !rawmatGroupName ||
       !selectedRawmatType ||
-      Object.values(times).some((val) => val === "" || val === null)
+      Object.entries(times).some(([key, val]) => !FLOW_KEYS.includes(key) && (val === "" || val === null))
     ) {
       setError("กรุณากรอกข้อมูลให้ครบทุกช่อง!");
       setLoading(false);
@@ -141,6 +156,9 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
       cold: parseFloat(times.cold),
       cold_to_pack: parseFloat(times.cold_to_pack),
       rework: parseFloat(times.rework),
+      cs_to_freeze: times.cs_to_freeze,
+      cook_to_freeze: times.cook_to_freeze,
+      freeze_to_prep: times.freeze_to_prep,
     };
 
     try {
@@ -233,7 +251,7 @@ const EditRawmatGroup = ({ isOpen, onClose, onSuccess, data }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {timeFields.map(({ label, field }) => (
+                  {allFields.map(({ label, field }) => (
                     <TableRow key={field}>
                       <TableCell
                         sx={{

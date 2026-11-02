@@ -53,7 +53,24 @@ const buildMappedRow = (row) => {
   };
 };
 
-const getRemappedRow = (row) => { const m = buildMappedRow(row); ROW_OF.set(m, row); return m; };
+// Multi-stage flows (Tuna scrap, CK bone): a group whose RawMatGroup.cook_to_freeze is filled (FLOW_COOK_FREEZE).
+//   DBS1 = cooked_date -> first stay in a cold room · DBS3 = rmit_date (preparation done, after the big cold room) -> sc_pack_date
+//   plus three more stages (index 4..6 of getDbs): leaving the cold room -> into the big cold room, end of cooking -> into the big cold room,
+//   leaving the big cold room -> preparation
+export const isFlowGroup = (row) => row?.FLOW_COOK_FREEZE !== null && row?.FLOW_COOK_FREEZE !== undefined && row?.FLOW_COOK_FREEZE !== '';
+
+const getRemappedRow = (row) => {
+  const m = buildMappedRow(row);
+  ROW_OF.set(m, row);
+  if (isFlowGroup(row)) {
+    m._flow = true;
+    m._P = row.rmit_date;
+    m._A = row.cooked_date || null;
+    const first = sortedColdStays(m)[0];
+    m._B = first ? first.in : null;
+  }
+  return m;
+};
 
 const isSpecialGroup = (row) => {
   const gid = Number(row.rm_group_id);
@@ -144,6 +161,7 @@ const outsideColdMinutes = (mapped) => {
 
 const calculateDBS3FromMapped = (mapped, isSpecial = false) => {
   if (isSpecial) return '-';
+  if (mapped._flow) return formatMinutesToTime(calculateMinutesDifference(mapped._P, mapped._F));
   const min = outsideColdMinutes(mapped);
   return min === null ? '-' : formatMinutesToTime(min >= 0 ? min : 0);
 };
@@ -215,6 +233,7 @@ const calcDBS2Minutes = (mapped, isSpecial) => {
 
 const calcDBS3Minutes = (mapped, isSpecial) => {
   if (isSpecial) return null;
+  if (mapped._flow) return calculateMinutesDifference(mapped._P, mapped._F);
   const min = outsideColdMinutes(mapped);
   return min === null ? null : (min >= 0 ? min : 0);
 };
@@ -247,6 +266,11 @@ const isFinished = (row) => Boolean(row.sc_pack_date) || String(row.rm_status ||
 const applyLive = (m, row, nowD) => {
   if (isFinished(row)) return;
   const gid = Number(row.rm_group_id);
+  if (m._flow) {
+    if (m._A && !m._B) m._B = nowD;          // DBS1 running (cooked, not in a cold room yet)
+    if (m._P && !m._F) m._F = nowD;          // DBS3 running (prepared, not packed yet)
+    return;
+  }
   if (isSpecialGroup(row)) {
     if (!m._F && (gid === 46 ? m._B : (m._C || m._A))) m._F = nowD;
     return;
@@ -258,6 +282,34 @@ const applyLive = (m, row, nowD) => {
     if (m._D3 && !m._E3) m._E3 = nowD;
     m._F = nowD;
   }
+};
+
+const ms = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
+const FLOW_NONE = { text: '-', minutes: null, std: null, over: false };
+
+/** the three extra stages of a flow group: [leave cold room -> big cold room, end of cooking -> big cold room, leave big cold room -> preparation] */
+const flowStages = (mapped, row, nowD) => {
+  const stays = sortedColdStays(mapped);
+  const stds = [row.FLOW_CS_FREEZE, row.FLOW_COOK_FREEZE, row.FLOW_FREEZE_PREP].map(parseStandardDBSToMinutes);
+  const live = nowD && !isFinished(row) ? nowD : null;
+  const mk = (i, from, to) => {
+    if (stds[i] === null) return FLOW_NONE;
+    const end = to || live;
+    const minutes = from && end ? calculateMinutesDifference(from, end) : null;
+    return { text: minutes === null ? '-' : formatMinutesToTime(minutes), minutes, std: stds[i], over: minutes !== null && minutes > stds[i] };
+  };
+  const out0 = stays[0]?.out && stays[0].out !== '-' ? stays[0].out : null;
+  const cookEnd = ms(row.cook_end_date);
+  const afterCook = cookEnd === null ? null : stays.find((p) => (ms(p.in) ?? -1) > cookEnd);
+  // leaving the big cold room counts from the stay AFTER the cooking (the freeze before the cooking is not the one that goes to preparation)
+  const afterStays = cookEnd === null ? [] : stays.filter((p) => (ms(p.in) ?? -1) > cookEnd);
+  const last = afterStays[afterStays.length - 1];
+  const lastOut = last?.out && last.out !== '-' ? last.out : null;
+  return [
+    mk(0, out0, stays[1]?.in || null),
+    mk(1, row.cook_end_date || null, afterCook?.in || null),
+    mk(2, lastOut, row.rmit_date || null),
+  ];
 };
 
 /** [{text, minutes, std, over}] for DBS1..DBS4 of a mapping row (over = longer than the standard of its raw material group). `now` (ms or Date) makes the running stage count up to the present. */
@@ -278,11 +330,13 @@ export const getDbs = (row, now = null) => {
     calculateDBS3FromMapped(mapped, special),
     calculateDBS4FromMapped(mapped, special, row),
   ];
-  return texts.map((text, i) => {
+  const out = texts.map((text, i) => {
     const minutes = mins[i] ?? parseTimeToMinutes(text);
     const skip = (i === 1 || i === 2) && special; // special groups have no DBS2/DBS3 standard
     return { text, minutes, std: skip ? null : std[i], over: !skip && std[i] !== null && minutes !== null && minutes > std[i] };
   });
+  if (mapped._flow) out.push(...flowStages(mapped, row, now ? new Date(now) : null));
+  return out;
 };
 
 /**
@@ -295,6 +349,14 @@ export const getDbs = (row, now = null) => {
  */
 export const stageDbsIndex = (row) => {
   if (isFinished(row)) return 3;
+  if (isFlowGroup(row)) {
+    const inRoom = Boolean(row.cs_id) || sortedColdStays(getRemappedRow(row)).some((p) => !p.out || p.out === '-');
+    if (row.rmit_date) return 2;                                   // prepared: the packing clock (DBS3)
+    if (inRoom) return 1;
+    const cookEnd = ms(row.cook_end_date);
+    if (cookEnd !== null && !sortedColdStays(getRemappedRow(row)).some((p) => (ms(p.in) ?? -1) > cookEnd)) return 5; // cooked, waiting for the big cold room
+    return row.cooked_date && !row.come_cold_date && !row.cs_come_cold_date ? 0 : 1;
+  }
   const inCold = Boolean(row.cs_id)
     || Boolean(row.come_cold_date && !row.out_cold_date)
     || Boolean(row.come_cold_date_two && !row.out_cold_date_two)

@@ -1,5 +1,6 @@
 const { placeholders, bindList } = require("../lib/sqlParams");
 const { safeRollback } = require("../lib/safeRollback");
+const { ensureFlowColumns, hoursOrNull } = require("../lib/flowDelay");
 const express = require("express");
 const { connectToDatabase } = require("../database/db");
 const sql = require("mssql");
@@ -1122,6 +1123,7 @@ router.get("/get/rawmat-groups", async (req, res) => {
       });
     }
 
+    await ensureFlowColumns(pool);
     const result = await pool.request().query(`
         SELECT
           rmg.rm_group_id,
@@ -1133,7 +1135,10 @@ router.get("/get/rawmat-groups", async (req, res) => {
           rmg.prep_to_cold,
           rmg.cold_to_pack,
           rmg.cold,
-          rmg.rework
+          rmg.rework,
+          rmg.cs_to_freeze,
+          rmg.cook_to_freeze,
+          rmg.freeze_to_prep
         FROM RawMatGroup rmg
         JOIN RawMatType rmt ON rmt.rm_type_id = rmg.rm_type_id
       `);
@@ -1161,8 +1166,15 @@ router.post("/add/rawmat-group", async (req, res) => {
     cold,
     cold_to_pack,
     rework,
-    cooked_group
+    cooked_group,
+    cs_to_freeze,
+    cook_to_freeze,
+    freeze_to_prep
   } = req.body;
+  const flowHours = { cs_to_freeze: hoursOrNull(cs_to_freeze), cook_to_freeze: hoursOrNull(cook_to_freeze), freeze_to_prep: hoursOrNull(freeze_to_prep) };
+  if (Object.values(flowHours).includes(undefined)) {
+    return res.status(400).json({ success: false, error: "เวลาของ Flow ต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป หรือเว้นว่าง" });
+  }
 
   // ตรวจสอบว่าข้อมูลที่ได้รับมาครบถ้วนหรือไม่
   if (
@@ -1205,6 +1217,7 @@ router.post("/add/rawmat-group", async (req, res) => {
       });
     }
 
+    await ensureFlowColumns(pool);
     // ทำการเพิ่มกลุ่มวัตถุดิบลงในฐานข้อมูล
     await pool
       .request()
@@ -1216,9 +1229,12 @@ router.post("/add/rawmat-group", async (req, res) => {
       .input("cold_to_pack", cold_to_pack)
       .input("rework", rework)
       .input("cooked_group", cooked_group)
+      .input("cs_to_freeze", sql.Decimal(10, 2), flowHours.cs_to_freeze)
+      .input("cook_to_freeze", sql.Decimal(10, 2), flowHours.cook_to_freeze)
+      .input("freeze_to_prep", sql.Decimal(10, 2), flowHours.freeze_to_prep)
       .query(
-        `INSERT INTO RawMatGroup (rm_group_name, rm_type_id, prep_to_cold, prep_to_pack, cold, cold_to_pack, rework, cooked_group)
-         VALUES (@rm_group_name, @rm_type_id, @prep_to_cold, @prep_to_pack, @cold, @cold_to_pack, @rework, @cooked_group)`
+        `INSERT INTO RawMatGroup (rm_group_name, rm_type_id, prep_to_cold, prep_to_pack, cold, cold_to_pack, rework, cooked_group, cs_to_freeze, cook_to_freeze, freeze_to_prep)
+         VALUES (@rm_group_name, @rm_type_id, @prep_to_cold, @prep_to_pack, @cold, @cold_to_pack, @rework, @cooked_group, @cs_to_freeze, @cook_to_freeze, @freeze_to_prep)`
       );
 
     res.status(201).json({
@@ -1323,7 +1339,14 @@ router.put("/update/rawmat-group", async (req, res) => {
     cold,
     cold_to_pack,
     rework,
+    cs_to_freeze,
+    cook_to_freeze,
+    freeze_to_prep,
   } = req.body;
+  const flowHours = { cs_to_freeze: hoursOrNull(cs_to_freeze), cook_to_freeze: hoursOrNull(cook_to_freeze), freeze_to_prep: hoursOrNull(freeze_to_prep) };
+  if (Object.values(flowHours).includes(undefined)) {
+    return res.status(400).json({ success: false, error: "เวลาของ Flow ต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป หรือเว้นว่าง" });
+  }
 
   // ตรวจสอบว่าข้อมูลที่ได้รับมาครบถ้วนหรือไม่
   if (
@@ -1383,9 +1406,13 @@ router.put("/update/rawmat-group", async (req, res) => {
       });
     }
 
+    await ensureFlowColumns(pool);
     // ทำการอัปเดตข้อมูล
     await pool
       .request()
+      .input("cs_to_freeze", sql.Decimal(10, 2), flowHours.cs_to_freeze)
+      .input("cook_to_freeze", sql.Decimal(10, 2), flowHours.cook_to_freeze)
+      .input("freeze_to_prep", sql.Decimal(10, 2), flowHours.freeze_to_prep)
       .input("rm_group_id", rm_group_id)
       .input("rm_group_name", rm_group_name)
       .input("rm_type_id", rm_type_id)
@@ -1402,7 +1429,10 @@ router.put("/update/rawmat-group", async (req, res) => {
             prep_to_cold = @prep_to_cold,
             cold = @cold,
             cold_to_pack = @cold_to_pack,
-            rework = @rework
+            rework = @rework,
+            cs_to_freeze = @cs_to_freeze,
+            cook_to_freeze = @cook_to_freeze,
+            freeze_to_prep = @freeze_to_prep
         WHERE rm_group_id = @rm_group_id
       `);
 

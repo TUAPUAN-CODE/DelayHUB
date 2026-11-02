@@ -134,6 +134,7 @@ export const COLUMNS = [
   x("slot_id", "ช่อง", "info", 70),
   // เตรียม / QC
   t("cooked_date", "ต้ม/อบเสร็จ", "prep"),
+  t("cook_end_date", "จบ Cooking", "prep"),
   t("rmit_date", "เตรียมเสร็จ", "prep"),
   t("start_mixed_date", "เริ่มผสม", "prep"),
   t("start_gravy_date", "เริ่มใส่ Gravy", "prep"),
@@ -185,12 +186,16 @@ export const COLUMNS = [
   dbs(1, "DBS2", "DBS2 อยู่ห้องเย็น"),
   dbs(2, "DBS3", "DBS3 ห้องเย็น→บรรจุ"),
   dbs(3, "DBS4", "DBS4 รวม"),
+  // Flow หลายช่วง (Tuna scrap, CK bone): มีค่าเฉพาะกลุ่มที่ตั้งเกณฑ์ไว้
+  dbs(4, "FLOW_CS_FREEZE", "Flow ออกห้องเย็น→Slow freeze"),
+  dbs(5, "FLOW_COOK_FREEZE", "Flow จบ Cooking→Slow freeze"),
+  dbs(6, "FLOW_FREEZE_PREP", "Flow ออก Slow freeze→เตรียม"),
 ];
 
 // Columns the Supervisor may edit (double-click while "โหมดแก้ไข" is on). The server has its own whitelist (SheetRoutes EDIT_MAP) — keep both in step.
 const EDITABLE = new Set([
   "hu", "mix_code", "tro_id", "rmm_line_name", "weight_RM", "tray_count", "rm_status", "remark", "dest", "remark_dalay",
-  "cooked_date", "rmit_date", "start_mixed_date", "start_gravy_date", "gm_date", "qc_date",
+  "cooked_date", "cook_end_date", "rmit_date", "start_mixed_date", "start_gravy_date", "gm_date", "qc_date",
   "come_cold_date", "out_cold_date", "come_cold_date_two", "out_cold_date_two", "come_cold_date_three", "out_cold_date_three",
   "cs_come_cold_date", "cs_out_cold_date", "cs_come_cold_date_two", "cs_out_cold_date_two", "cs_come_cold_date_three", "cs_out_cold_date_three",
   "cs_come_cold_date_four", "cs_out_cold_date_four", "sc_pack_date",

@@ -9,6 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useSearchParams } from "react-router-dom";
 import { buildRows } from "./buildRows";
 import { COLUMNS } from "./columns";
+import { isFlowGroup } from "./dbs";
 import RowDetail from "../../Layout/DataGrid/RowDetail";
 import EditCellDialog from "./EditCellDialog";
 import UnlockDialog, { hasUnlock } from "./UnlockDialog";
@@ -187,7 +188,7 @@ const MappingTool = () => {
             <Tab value="lineage" label={`ถูกนำไปเป็นรายการใหม่${lin.id === row.mapping_id && lin.data?.children?.length ? ` (${lin.data.children.length})` : ""}`} />
           </Tabs>
 
-          {tab === "detail" && <Paper variant="outlined"><RowDetail row={row} columns={DETAIL_COLUMNS} title={`ข้อมูลของรายการ ${row.mapping_id}`} /></Paper>}
+          {tab === "detail" && <Paper variant="outlined"><RowDetail row={row} columns={isFlowGroup(row) ? DETAIL_COLUMNS : DETAIL_COLUMNS.filter((c) => !String(c.key).startsWith("FLOW_"))} title={`ข้อมูลของรายการ ${row.mapping_id}`} /></Paper>}
 
           {tab === "lineage" && <LineagePanel state={lin.id === row.mapping_id ? lin : { loading: true }} onOpen={openLinked} />}
 

@@ -5,6 +5,7 @@ const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 const { cached, invalidateSheetCache } = require("../lib/sheetCache");
 const { COLD_STD_SQL } = require("../lib/coldStandard");
+const { ensureFlowColumns } = require("../lib/flowDelay");
 const { safeRollback } = require("../lib/safeRollback");
 const { verifyToken } = require("../lib/auth");
 const { getAuthMode } = require("../lib/authMiddleware");
@@ -29,6 +30,7 @@ const HIST_DATES = [
   "withdraw_date_two", "withdraw_date_three", "withdraw_date_four",
   "input_pd_date", "input_pd_date_two", "input_pd_date_three", "output_pd_date", "output_pd_date_two", "output_pd_date_three",
   "input_cd_date", "input_cd_date_two", "input_cd_date_three",
+  "cook_end_date", // end of pressure cooking (multi-stage flows: Tuna scrap, CK bone)
 ];
 const HIST_TEXT = [
   "hu", "weight", "remark", "remark_dalay", "storage_purpose", "storage_purpose_2", "storage_purpose_3",
@@ -209,6 +211,7 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       FORMAT(rmg.prep_to_cold, 'N2') AS DBS1,
       FORMAT(${COLD_STD_SQL}, 'N2') AS DBS2, -- the room-specific standard (lib/coldStandard.js)
       FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
+      FORMAT(rmg.cs_to_freeze, 'N2') AS FLOW_CS_FREEZE, FORMAT(rmg.cook_to_freeze, 'N2') AS FLOW_COOK_FREEZE, FORMAT(rmg.freeze_to_prep, 'N2') AS FLOW_FREEZE_PREP,
       FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
       -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch
@@ -402,6 +405,7 @@ router.get("/sheet/rows", async (req, res) => {
     if (!pool) {
       return res.status(503).json({ success: false, error: "Database unavailable" });
     }
+    await ensureFlowColumns(pool); // columns of the multi-stage flows (lib/flowDelay.js)
 
     // work-table date range (YYYY-MM-DD): open_from + open_to together, or none = everything that is still open
     const okDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
@@ -471,6 +475,7 @@ router.get("/sheet/done", async (req, res) => {
     if (!pool) {
       return res.status(503).json({ success: false, error: "Database unavailable" });
     }
+    await ensureFlowColumns(pool); // columns of the multi-stage flows (lib/flowDelay.js)
     const result = await timed("done", () => pool.request()
       .input("mlimit", sql.Int, mlimit)
       .input("date_from", sql.Date, useDates ? dateFrom : null)
@@ -495,6 +500,7 @@ router.get("/sheet/mapping", async (req, res) => {
     if (Number.isNaN(id) || id <= 0) return res.status(400).json({ success: false, error: "กรุณาระบุ mapping_id เป็นตัวเลข" });
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool); // columns of the multi-stage flows (lib/flowDelay.js)
     const r = await pool.request().input("mlimit", sql.Int, 1).input("one_id", sql.Int, id).query(buildMappingQuery("one"));
     const mapping = r.recordset[0] || null;
     if (!mapping) return res.status(404).json({ success: false, error: `ไม่พบ mapping_id ${id}` });
@@ -840,6 +846,7 @@ const isDateType = (dt) => ["datetime", "datetime2", "smalldatetime", "date"].in
 /** body: { mapping_id, changes: { column: newValue|null }, expected: { column: valueSeenByTheClient|null }, reason }
  *  opts.only = the columns this route may change (default: every column of EDIT_MAP) · opts.coldOnly = only a mapping whose trolley is in a cold room slot
  *  opts.packOnly = only a mapping that is not packed yet (status "รอบรรจุเสร็จ" of the Pack Sheet)
+ *  opts.flowOnly = only a mapping of a multi-stage flow group (Tuna scrap, CK bone)
  *  opts.defaultReason = the reason written to SheetEditLog when none is typed */
 const sheetEditHandler = (opts = {}) => async (req, res) => {
   try {
@@ -937,6 +944,16 @@ const sheetEditHandler = (opts = {}) => async (req, res) => {
         const inSlot = mapRow.tro_id && (await new sql.Request(tx).input("t", sql.VarChar(4), String(mapRow.tro_id))
           .query("SELECT TOP 1 1 AS ok FROM Slot WITH (NOLOCK) WHERE tro_id = @t")).recordset.length > 0;
         if (!inSlot) { await safeRollback(tx); return res.status(400).json({ success: false, error: "แก้ได้เฉพาะรายการที่อยู่ในห้องเย็น (รถเข็นอยู่ในช่องของห้องเย็น)" }); }
+      }
+      if (opts.flowOnly) {
+        // only a material of a multi-stage flow group (Tuna scrap, CK bone: RawMatGroup.cook_to_freeze is filled)
+        const isFlow = (await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
+          SELECT TOP 1 1 AS ok
+          FROM TrolleyRMMapping rmm WITH (NOLOCK)
+          JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+          JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+          WHERE rmm.mapping_id = @id AND rmg.cook_to_freeze IS NOT NULL`)).recordset.length > 0;
+        if (!isFlow) { await safeRollback(tx); return res.status(400).json({ success: false, error: "บันทึกเวลาจบ Cooking ได้เฉพาะวัตถุดิบของกลุ่ม Flow (Tuna scrap / CK bone)" }); }
       }
       if (opts.packOnly) {
         const packed = (await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
@@ -1143,6 +1160,9 @@ router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_
 // Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
 router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
 
+// end of pressure cooking (Tuna scrap / CK bone): the time is typed by the person who sends the material to the big cold room
+router.patch("/sheet/cook-end", sheetEditHandler({ only: ["cook_end_date"], flowOnly: true, defaultReason: "บันทึกเวลาจบ Cooking" }));
+
 // master data for the dropdowns of the edit dialog (values that come from the database can only be picked, not typed)
 const OPTION_SQL = {
   mat: { q: "SELECT TOP (10000) mat AS value, mat_name FROM RawMat WITH (NOLOCK) ORDER BY mat_name", label: (r) => `${r.mat_name || ""} (${r.value})` },
@@ -1297,6 +1317,7 @@ router.get("/sheet/rows-by-ids", async (req, res) => {
     if (!ids.length) return res.status(400).json({ success: false, error: "กรุณาระบุ ids" });
     const pool = await connectToDatabase();
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool); // columns of the multi-stage flows (lib/flowDelay.js)
     const idText = ids.join(",");
     const r = await pool.request().input("mlimit", sql.Int, ids.length).input("ids", sql.NVarChar(sql.MAX), idText).query(buildMappingQuery("ids"));
     let qc = {};
