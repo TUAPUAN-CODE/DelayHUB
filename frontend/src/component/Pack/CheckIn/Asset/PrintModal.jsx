@@ -785,7 +785,7 @@ const MaterialItem = ({
                 </Box>
                 <FlowNoValue mappingId={item.mapping_id}>{(no) => (
                     <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
-                        <InlineInfoItem label="เลขรายการ Flow" value={no} fontSizes={fontSizes} />
+                        <InlineInfoItem label="เลขรายการ Paste" value={no} fontSizes={fontSizes} />
                     </Box>
                 )}</FlowNoValue>
                 <Box sx={{

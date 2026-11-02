@@ -58,7 +58,7 @@ export const FlowNoLine = ({ mappingId }) => {
   if (!no) return null;
   return (
     <Typography variant="h6" className="print-text" sx={{ color: "#464646", fontSize: "22px", margin: "10px", "@media print": { fontSize: "10px", margin: "2px 0" } }}>
-      เลขรายการ Flow : {no}
+      เลขรายการ Paste : {no}
     </Typography>
   );
 };
