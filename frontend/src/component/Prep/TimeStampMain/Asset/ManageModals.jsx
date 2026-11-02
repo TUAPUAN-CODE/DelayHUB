@@ -90,6 +90,7 @@ const ManageModals = forwardRef(function ManageModals({ onRefresh }, ref) {
     production: dataForModal1.production,
     level_eu: dataForModal1.level_eu,
     hu: dataForModal1.hu, // HU ของแผน — Modal2 ใช้แสดง/แก้ Remark CS ของ HU นี้
+    FLOW_COOK_FREEZE: dataForModal1.FLOW_COOK_FREEZE, // กลุ่ม Flow (Tuna scrap / CK bone): Modal2 ไม่ล็อกเวลาเตรียมเสร็จ
 
     // ✅ เพิ่มบรรทัดนี้
     batchAfterArray: data.batchAfterArray || [], 

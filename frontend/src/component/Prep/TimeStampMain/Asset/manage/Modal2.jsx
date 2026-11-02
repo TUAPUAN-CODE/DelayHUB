@@ -109,12 +109,15 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
   const planHu = Number.parseInt(data?.hu, 10);
   const hasHu = Number.isInteger(planHu) && planHu > 0;
 
+  // Tuna scrap / CK bone (a group with cook_to_freeze): the preparation time is chosen by hand, it is never locked
+  const isFlow = data?.FLOW_COOK_FREEZE !== undefined && data?.FLOW_COOK_FREEZE !== null && data?.FLOW_COOK_FREEZE !== "";
+
   // ✅ ถ้า rm_type_id เป็น 2 หรือ 3 ให้ทั้งสอง DateTimePicker เป็น read-only
-  const isReadOnlyTime = [999, 888].includes(rmTypeId);
+  const isReadOnlyTime = [999, 888].includes(rmTypeId) && !isFlow;
 
   //เซ็ทรหัสแก้ไขเวลาไม่ได้
   const SYNC_TIME_USER_IDS = [6760051];
-  const isSyncTime = SYNC_TIME_USER_IDS.includes(Number(localStorage.getItem('user_id')));
+  const isSyncTime = SYNC_TIME_USER_IDS.includes(Number(localStorage.getItem('user_id'))) && !isFlow;
 
   useEffect(() => {
     if (open && data) {
@@ -180,7 +183,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
       const formattedDateTime = convertToLocalTime(CookedDateTime);
       if (formattedDateTime) {
         setCookedTime(formattedDateTime);
-        if ([999, 888].includes(rmTypeId) || isSyncTime) {
+        if (isReadOnlyTime || isSyncTime) {
           setPreparedTime(formattedDateTime);
         }
       }
@@ -213,7 +216,7 @@ const Modal2 = ({ open, onClose, onNext, data, CookedDateTime, dest, rm_type_id 
     if (open) {
       fetchUserDataFromLocalStorage();
       // ✅ ตั้งเวลาเตรียมเสร็จเฉพาะเมื่อไม่ใช่ read-only mode และไม่ใช่ sync mode
-      if (![999, 888].includes(rmTypeId) && !isSyncTime) {
+      if (!isReadOnlyTime && !isSyncTime) {
         const now = new Date();
         setPreparedTime(convertToThaiTime(now.toISOString()));
       }
