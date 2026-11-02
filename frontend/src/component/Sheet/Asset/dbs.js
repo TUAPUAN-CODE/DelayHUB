@@ -312,6 +312,14 @@ const flowStages = (mapped, row, nowD) => {
   ];
 };
 
+/** a flow-group material that finished cooking and has not gone into the big cold room yet ("รอห้องเย็นรับเข้า"), even without a trolley */
+export const flowWaitsForFreeze = (row) => {
+  if (!isFlowGroup(row) || !row.cook_end_date || row.rmit_date || row.sc_pack_date || row.cs_id) return false;
+  const cookEnd = ms(row.cook_end_date);
+  if (cookEnd === null) return false;
+  return !sortedColdStays(getRemappedRow(row)).some((p) => (ms(p.in) ?? -1) > cookEnd);
+};
+
 /** [{text, minutes, std, over}] for DBS1..DBS4 of a mapping row (over = longer than the standard of its raw material group). `now` (ms or Date) makes the running stage count up to the present. */
 export const getDbs = (row, now = null) => {
   const mapped = getRemappedRow(row);

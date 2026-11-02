@@ -1,5 +1,5 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
-import { getDbs } from "./dbs";
+import { getDbs, flowWaitsForFreeze, isFlowGroup } from "./dbs";
 import { reworkKind } from "./prep/kinds";
 import { withZone } from "./statusZones";
 
@@ -60,6 +60,8 @@ const baseStatusOf = (r) => {
     const a = analyzeRow(r);
     return { label: a.status.label, color: a.status.color, bg: a.status.bg };
   }
+  // Tuna scrap / CK bone: cooking finished, not in the big cold room yet — shown even without a trolley
+  if (r.__kind === "map" && flowWaitsForFreeze(r)) return { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
   const fixed = FIXED_STATUS(r);
   if (fixed) return fixed;
   const st = String(r.rm_status || "");
@@ -234,7 +236,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   });
   // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
-  const visible = opts.showAll ? rows : rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label)));
+  const visible = opts.showAll ? rows : rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label) && !isFlowGroup(r)));
   visible.sort((a, b) => b.__last - a.__last);
   return visible;
 };
