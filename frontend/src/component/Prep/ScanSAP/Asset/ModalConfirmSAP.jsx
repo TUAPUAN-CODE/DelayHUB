@@ -355,6 +355,19 @@ const DataReviewSAP = ({ open, onClose, material, batch, hu }) => {
   const [withdraw, setWithdraw] = useState("");
   // Tuna scrap / CK bone (a group with cook_to_freeze filled): the time cooked / prepared is typed here (it starts the flow: DBS1)
   const [cookedAt, setCookedAt] = useState("");
+  // typed as day + hour 00-23 + minute (a 24-hour clock, no AM / PM); cookedAt = "yyyy-MM-ddTHH:mm" is built from the three
+  const [ckDay, setCkDay] = useState("");
+  const [ckHour, setCkHour] = useState("");
+  const [ckMin, setCkMin] = useState("");
+  useEffect(() => { setCookedAt(ckDay && ckHour !== "" && ckMin !== "" ? `${ckDay}T${ckHour}:${ckMin}` : ""); }, [ckDay, ckHour, ckMin]);
+  const cookedInFuture = !!cookedAt && new Date(cookedAt).getTime() > Date.now() + 60000;
+  const fillCookedNow = () => {
+    const n = new Date();
+    const p2 = (v) => String(v).padStart(2, "0");
+    setCkDay(`${n.getFullYear()}-${p2(n.getMonth() + 1)}-${p2(n.getDate())}`);
+    setCkHour(p2(n.getHours()));
+    setCkMin(p2(n.getMinutes()));
+  };
   const isFlow = selectedPlanSets.some((set) => set.group && set.group.cook_to_freeze !== null && set.group.cook_to_freeze !== undefined);
   const [group, setGroup] = useState([]);
   const [operator, setOperator] = useState("");
@@ -619,7 +632,7 @@ useEffect(() => {
     if (!operator || !deliveryLocation) {
       return false;
     }
-    if (isFlow && !cookedAt) return false; // Tuna scrap / CK bone: the time cooked / prepared starts the flow
+    if (isFlow && (!cookedAt || cookedInFuture)) return false; // Tuna scrap / CK bone: the time cooked / prepared starts the flow
 
     // ถ้าเป็น Emulsion หรือ BatchMix ไม่ต้องเช็ค Plan Sets
     if (emulsion === "true" || batchmix === "true") {
@@ -1070,12 +1083,17 @@ useEffect(() => {
             {isFlow && (
               <Box sx={{ mb: 2 }}>
                 <Typography sx={{ mb: 1 }}>เวลาอบเสร็จ/เตรียมเสร็จ สำหรับ (CK Bone And Tuna Scrap)</Typography>
-                <TextField
-                  type="datetime-local" size="small" fullWidth value={cookedAt} required
-                  onChange={(e) => setCookedAt(e.target.value)}
-                  inputProps={{ max: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }}
-                  InputLabelProps={{ shrink: true }}
-                />
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                  <TextField type="date" size="small" label="วันที่" value={ckDay} required onChange={(e) => setCkDay(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 170 }} error={cookedInFuture} />
+                  <TextField select size="small" label="ชั่วโมง (00-23)" value={ckHour} required onChange={(e) => setCkHour(e.target.value)} sx={{ width: 140 }} error={cookedInFuture}>
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => <MenuItem key={h} value={h}>{h}</MenuItem>)}
+                  </TextField>
+                  <TextField select size="small" label="นาที" value={ckMin} required onChange={(e) => setCkMin(e.target.value)} sx={{ width: 100 }} error={cookedInFuture}>
+                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                  </TextField>
+                  <Button size="small" variant="outlined" onClick={fillCookedNow}>ตอนนี้</Button>
+                </Box>
+                {cookedInFuture && <Typography variant="caption" color="error">เวลาต้องไม่เป็นเวลาในอนาคต</Typography>}
               </Box>
             )}
 

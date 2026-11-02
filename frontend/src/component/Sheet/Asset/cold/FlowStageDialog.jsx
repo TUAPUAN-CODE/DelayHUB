@@ -60,7 +60,7 @@ const FlowStageDialog = ({ row, stage, onClose, onSaved }) => {
       <DialogTitle sx={{ fontSize: 17, fontWeight: 700 }}>บันทึกเวลา: {STAGE_BUTTON[stage]}</DialogTitle>
       <DialogContent dividers>
         <Typography sx={{ fontSize: 13, color: "#6B7489", mb: 1.5 }}>
-          {row.mat_name || row.mat} · Batch {row.batch || "-"}
+          {[row.flow_id, row.mat_name || row.mat, `Batch ${row.batch || "-"}`, row.hu && `HU ${row.hu}`].filter(Boolean).join(" · ")}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
           <TextField size="small" type="date" label="วันที่" value={day} disabled={saving} onChange={(e) => setDay(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />

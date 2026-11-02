@@ -110,7 +110,13 @@ export const COLUMNS = [
   tool("t_rework", "รอแก้ไข / กลับมาเตรียม", 200, ["prep"]),
   tool("t_mix", "ผสม", 150, ["prep"]),
   // "รายการ" = mapping_id, always right after the tools
-  { key: "mapping_id", label: "รายการ", group: "tool", kind: "data", type: "number", frozen: true, width: 80 },
+  // the number of the item: mapping_id; a Tuna scrap / CK bone plan row has no mapping yet, so it shows its flow number (F + rmfp_id, see flowStages.js)
+  {
+    key: "mapping_id", label: "รายการ", group: "tool", kind: "data", type: "text", frozen: true, width: 100,
+    text: (r) => String(r.mapping_id ?? r.flow_id ?? ""),
+    sortValue: (r) => (r.mapping_id !== null && r.mapping_id !== undefined ? Number(r.mapping_id) : null),
+    render: (r) => (r.mapping_id !== null && r.mapping_id !== undefined ? r.mapping_id : r.flow_id ? <b style={{ color: "#B45309" }}>{r.flow_id}</b> : null),
+  },
   // ข้อมูล
   x("hu", "HU", "info", 100),
   x("from_mapping_id", "มาจากรายการ", "info", 100),

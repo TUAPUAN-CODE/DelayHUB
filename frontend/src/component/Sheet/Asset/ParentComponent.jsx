@@ -584,7 +584,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const actionBar = (
     <Paper variant="outlined" sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, px: 1.5, py: 1, mb: 1, flexShrink: 0, borderColor: activeRow ? "#F26B1D" : undefined, background: activeRow ? "#FFF7F0" : undefined }}>
       <Typography variant="body2" sx={{ fontWeight: 700, color: activeRow ? "#D95A10" : "text.secondary" }}>
-        {activeRow ? `แถวที่เลือก: ${[activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
+        {activeRow ? `แถวที่เลือก: ${[activeRow.flow_id && !activeRow.mapping_id && `รายการ ${activeRow.flow_id}`, activeRow.hu && `HU ${activeRow.hu}`, activeRow.tro_id && `รถเข็น ${activeRow.tro_id}`, activeRow.mat_name || activeRow.batch].filter(Boolean).join(" · ") || `รายการ ${activeRow.mapping_id ?? ""}`}` : "คลิกที่แถวในตารางเพื่อเลือก แล้วเลือกรายการที่ต้องการทำตรงนี้"}
       </Typography>
       {mixBar}
       {gatherBar}

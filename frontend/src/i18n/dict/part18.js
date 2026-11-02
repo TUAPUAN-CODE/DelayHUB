@@ -740,4 +740,6 @@ export default {
   "ทำรายการได้ที่หน้า {x}": ["This can be done on the page {x}", "ဤစာမျက်နှာ {x} တွင် လုပ်ဆောင်နိုင်သည်", "អាចធ្វើបាននៅទំព័រ {x}"],
   "mapping_id หรือเลขรายการ Flow (F...)": ["mapping_id or the Flow item number (F...)", "mapping_id သို့မဟုတ် Flow ပစ္စည်းနံပါတ် (F...)", "mapping_id ឬលេខ Flow (F...)"],
   "เลขรายการ Flow F{x} · ดูขั้นตอน": ["Flow item number F{x} · view the steps", "Flow ပစ္စည်းနံပါတ် F{x} · အဆင့်များကြည့်ရန်", "លេខ Flow F{x} · មើលជំហាន"],
+  "เวลาต้องไม่เป็นเวลาในอนาคต": ["The time must not be in the future", "အချိန်သည် အနာဂတ် မဖြစ်ရပါ", "ម៉ោងមិនអាចជាពេលអនាគតបានទេ"],
+  "ไม่พบข้อมูลเลขรายการ Flow นี้": ["No data found for this Flow item number", "ဤ Flow ပစ္စည်းနံပါတ်အတွက် ဒေတာ မတွေ့ပါ", "រកមិនឃើញទិន្នន័យសម្រាប់លេខ Flow នេះ"],
 };
