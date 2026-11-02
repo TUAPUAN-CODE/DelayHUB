@@ -2,6 +2,7 @@ const { placeholders, bindList, toIntList, toNumber } = require("../lib/sqlParam
 const { safeRollback } = require("../lib/safeRollback");
 const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs, currentRemarkCs, logRemarkCsChange, remarkCsByBatch } = require("../lib/remarkCs");
 const { recordLineage } = require("../lib/mappingLineage");
+const { ensureFlowColumns } = require("../lib/flowDelay");
 // ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
 const dateRangeFromQuery = (q) => {
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
@@ -3479,6 +3480,12 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
       }
       if (deliveryType === "ส่งห้องเย็นใหญ่") {
         rm_status = "รอQCตรวจสอบ";
+        // multi-stage flow groups (Tuna scrap, CK bone ...: RawMatGroup.cook_to_freeze filled): the first trolley goes to the big cold room as a deposit
+        // ("รอกลับมาเตรียม", no QC status yet) — QC comes after it returns to preparation (กลับมาเตรียม -> รอQCตรวจสอบ -> pack)
+        await ensureFlowColumns(pool);
+        const flowGroup = await transaction.request().input("g", sql.Int, rm_group_id)
+          .query("SELECT TOP 1 1 AS ok FROM RawMatGroup WHERE rm_group_id = @g AND cook_to_freeze IS NOT NULL");
+        if (flowGroup.recordset.length > 0) rm_status = "รอกลับมาเตรียม";
       }
 
       // 9️⃣ Insert TrolleyRMMapping
