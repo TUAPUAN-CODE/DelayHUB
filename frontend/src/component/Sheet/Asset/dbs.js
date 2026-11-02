@@ -59,12 +59,20 @@ const buildMappedRow = (row) => {
 //   leaving the big cold room -> preparation
 export const isFlowGroup = (row) => row?.FLOW_COOK_FREEZE !== null && row?.FLOW_COOK_FREEZE !== undefined && row?.FLOW_COOK_FREEZE !== '';
 
+const msOf = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
+/** the preparation AFTER the freeze: rmit_date later than the end of cooking (putting the first load on a trolley also sets rmit_date, that one does not count) */
+export const flowPrepared = (row) => {
+  const prep = msOf(row?.rmit_date);
+  const cookEnd = msOf(row?.cook_end_date);
+  return prep !== null && cookEnd !== null && prep > cookEnd;
+};
+
 const getRemappedRow = (row) => {
   const m = buildMappedRow(row);
   ROW_OF.set(m, row);
   if (isFlowGroup(row)) {
     m._flow = true;
-    m._P = row.rmit_date;
+    m._P = flowPrepared(row) ? row.rmit_date : null;
     m._A = row.cooked_date || null;
     const first = sortedColdStays(m)[0];
     m._B = first ? first.in : null;
@@ -308,13 +316,13 @@ const flowStages = (mapped, row, nowD) => {
   return [
     mk(0, out0, stays[1]?.in || null),
     mk(1, row.cook_end_date || null, afterCook?.in || null),
-    mk(2, lastOut, row.rmit_date || null),
+    mk(2, lastOut, flowPrepared(row) ? row.rmit_date : null),
   ];
 };
 
 /** a flow-group material that finished cooking and has not gone into the big cold room yet ("รอห้องเย็นรับเข้า"), even without a trolley */
 export const flowWaitsForFreeze = (row) => {
-  if (!isFlowGroup(row) || !row.cook_end_date || row.rmit_date || row.sc_pack_date || row.cs_id) return false;
+  if (!isFlowGroup(row) || !row.cook_end_date || flowPrepared(row) || row.sc_pack_date || row.cs_id) return false;
   const cookEnd = ms(row.cook_end_date);
   if (cookEnd === null) return false;
   return !sortedColdStays(getRemappedRow(row)).some((p) => (ms(p.in) ?? -1) > cookEnd);
@@ -359,7 +367,7 @@ export const stageDbsIndex = (row) => {
   if (isFinished(row)) return 3;
   if (isFlowGroup(row)) {
     const inRoom = Boolean(row.cs_id) || sortedColdStays(getRemappedRow(row)).some((p) => !p.out || p.out === '-');
-    if (row.rmit_date) return 2;                                   // prepared: the packing clock (DBS3)
+    if (flowPrepared(row)) return 2;                               // prepared after the freeze: the packing clock (DBS3)
     if (inRoom) return 1;
     const cookEnd = ms(row.cook_end_date);
     if (cookEnd !== null && !sortedColdStays(getRemappedRow(row)).some((p) => (ms(p.in) ?? -1) > cookEnd)) return 5; // cooked, waiting for the big cold room

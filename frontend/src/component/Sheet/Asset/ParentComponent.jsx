@@ -60,7 +60,7 @@ import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
 import CookEndDialog from "./cold/CookEndDialog";
-import { isFlowGroup } from "./dbs";
+import { isFlowGroup, flowPrepared } from "./dbs";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -367,6 +367,11 @@ const ParentComponent = ({ role, view = "work" }) => {
     const out = [];
     const h = r.__hu;
     const stLabel = statusOf(r).label;
+    // end of pressure cooking: a material of a multi-stage flow group (Tuna scrap, CK bone), until it is prepared again after the freeze
+    // (first in the list: the cold-room branches below return early)
+    if (r.__kind === "map" && isFlowGroup(r) && !flowPrepared(r) && !r.sc_pack_date) {
+      out.push({ col: "t_bar", key: "cook-end", label: r.cook_end_date ? "แก้เวลาจบ Cooking" : "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
+    }
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
       // every row of this status can be checked in (whatever dest says): the dialog shows the rooms (cs_id 10 - 46) and the slot layout of the room picked
@@ -433,10 +438,6 @@ const ParentComponent = ({ role, view = "work" }) => {
       out.push({ col: "t_bar", key: "cold-edit", label: "แก้ไข Code / Line / น้ำหนัก", color: "#0F3FC4", icon: <EditOutlinedIcon fontSize="small" />, title: "แก้ไข Code (แผนผลิต) / Line / น้ำหนัก ของวัตถุดิบในห้องเย็น", run: () => setColdEdit({ row: r, seq: Date.now() }) });
     }
     const st = String(r.rm_status || "");
-    // end of pressure cooking: only a material of a multi-stage flow group (Tuna scrap, CK bone), until it is prepared
-    if (isFlowGroup(r) && !r.rmit_date && ["prep", "cs1", "cs2", "pack", "sup"].includes(role)) {
-      out.push({ col: "t_bar", key: "cook-end", label: r.cook_end_date ? "แก้เวลาจบ Cooking" : "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
-    }
     if (role === "cs1") {
       if (!r.cs_id && r.tro_id && CS1_DEST.includes(r.dest)) out.push({ col: "t_cs1", key: "in", label: "รับเข้า", color: "#E65100", run: () => trolleyRef.current?.checkin(r) });
       if (r.cs_id && r.cs_id < 10) {
