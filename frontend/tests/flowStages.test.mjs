@@ -36,8 +36,9 @@ test("flow: the trolley only after the last freeze", () => {
 
 test("flow: DBS of the steps (CK bone)", () => {
   const d = flowDbs(ck, "2026-11-02 14:00:00");
-  assert.equal(d[0].minutes, 30);          // 08:00 -> 08:30 (DBS1, std 1 h)
-  assert.equal(d[0].over, false);
+  assert.equal(d[0].text, "-");            // no DBS1 / DBS2 / DBS4 for these materials
+  assert.equal(d[7].minutes, 30);          // 08:00 -> 08:30 first cold room (step 7, std 1 h = prep_to_cold)
+  assert.equal(d[7].over, false);
   assert.equal(d[5].minutes, 60);          // grind_done 13:00 -> now 14:00 (running, std 1 h)
   assert.equal(d[5].over, false);
   const late = flowDbs(ck, "2026-11-02 14:30:00");
@@ -47,8 +48,8 @@ test("flow: DBS of the steps (CK bone)", () => {
 
 test("flow: DBS of the steps (Tuna scrap) + getDbs uses them", () => {
   const d = getDbs(tuna, "2026-11-02 15:30:00");
-  assert.equal(d.length, 7);
-  assert.equal(d[0].minutes, 120);         // 08:00 -> 10:00 petfood_in (std 4 h)
+  assert.equal(d.length, 8);
+  assert.equal(d[7].minutes, 120);         // 08:00 -> 10:00 petfood_in (std 4 h)
   assert.equal(d[4].minutes, 90);          // petfood_out 14:00 -> now 15:30 (running, std 1 h)
   assert.equal(d[4].over, true);
 });

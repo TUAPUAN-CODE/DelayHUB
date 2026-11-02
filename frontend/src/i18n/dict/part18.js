@@ -748,4 +748,6 @@ export default {
   "ปริ้นสลีประบุวัตถุดิบ (เลขรายการ Flow, Batch, HU, ขั้นตอน)": ["Print the material label (Flow number, Batch, HU, steps)", "ကုန်ကြမ်းလေဘယ် ပုံနှိပ်ရန် (Flow နံပါတ်၊ Batch၊ HU၊ အဆင့်များ)", "បោះពុម្ពស្លាកវត្ថុធាតុដើម (លេខ Flow, Batch, HU, ជំហាន)"],
   "เลขรายการ Paste": ["Paste item number", "Paste ပစ္စည်းနံပါတ်", "លេខរបស់ Paste"],
   "เลขรายการ Paste : {x}": ["Paste item number : {x}", "Paste ပစ္စည်းနံပါတ် : {x}", "លេខរបស់ Paste : {x}"],
+  "Flow เตรียมเสร็จ/อบเสร็จ→เข้า Freeze 1 / ห้องเย็น petfood": ["Flow: prepared / cooked → Freeze 1 / petfood cold room", "Flow: ပြင်ဆင်ပြီး/ချက်ပြီး → Freeze 1 / petfood အေးခန်း", "Flow: រៀបចំរួច/ចម្អិនរួច → Freeze 1 / បន្ទប់ត្រជាក់ petfood"],
+  "DBS3 เตรียมเสร็จ→บรรจุเสร็จ": ["DBS3 prepared → packed", "DBS3 ပြင်ဆင်ပြီး → ထုပ်ပိုးပြီး", "DBS3 រៀបចំរួច → វេចខ្ចប់រួច"],
 };

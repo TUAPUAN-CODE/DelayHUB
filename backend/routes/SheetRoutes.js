@@ -213,6 +213,8 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
       FORMAT(rmg.cs_to_freeze, 'N2') AS FLOW_CS_FREEZE, FORMAT(rmg.cook_to_freeze, 'N2') AS FLOW_COOK_FREEZE, FORMAT(rmg.freeze_to_prep, 'N2') AS FLOW_FREEZE_PREP,
       (SELECT STRING_AGG(CONCAT(fs.stage, N'|', CONVERT(VARCHAR(19), fs.stamped_at, 120)), N',') FROM FlowStage fs WITH (NOLOCK) WHERE fs.rmfp_id = rmf.rmfp_id) AS flow_stages,
+      -- Tuna scrap / CK bone: the time cooked / prepared typed at the scan (History of the plan row); the mapping's own cooked_date is rewritten by "กลับมาเตรียม"
+      CASE WHEN rmg.cook_to_freeze IS NOT NULL THEN (SELECT CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, hp.cooked_date), 120) FROM History hp WITH (NOLOCK) WHERE hp.hist_id = rmf.hist_id_rmfp) END AS flow_cooked_date,
       FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
       -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch

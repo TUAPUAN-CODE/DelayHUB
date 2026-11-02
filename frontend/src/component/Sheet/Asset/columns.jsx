@@ -205,6 +205,7 @@ export const COLUMNS = [
   { ...dbs(4, "FLOW_CS_FREEZE", "Flow ออกห้องเย็น petfood→Freeze 1"), group: "flow" },
   { ...dbs(5, "FLOW_COOK_FREEZE", "Flow Grinding เสร็จ→Freeze 2"), group: "flow" },
   { ...dbs(6, "FLOW_FREEZE_PREP", "Flow ออก Freeze 2→เตรียม"), group: "flow" },
+  { ...dbs(7, "FLOW_START_COLD", "Flow เตรียมเสร็จ/อบเสร็จ→เข้า Freeze 1 / ห้องเย็น petfood"), group: "flow" },
 ];
 
 // Columns the Supervisor may edit (double-click while "โหมดแก้ไข" is on). The server has its own whitelist (SheetRoutes EDIT_MAP) — keep both in step.

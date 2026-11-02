@@ -22,6 +22,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const fmtTime = (v) => (v === null || v === undefined || v === "" ? "-" : String(v).replace("T", " ").slice(0, 16));
 const DETAIL_COLUMNS = COLUMNS.filter((c) => c.kind === "data" && c.type !== "time");
+// Tuna scrap / CK bone have only DBS3 (preparation -> packed); their other steps are the "Flow" columns. Other materials have no Flow columns.
+const FLOW_ONLY_HIDE = new Set(["DBS1", "DBS2", "DBS4"]);
+const detailColumnsOf = (row) => (isFlowGroup(row)
+  ? DETAIL_COLUMNS.filter((c) => !FLOW_ONLY_HIDE.has(c.key)).map((c) => (c.key === "DBS3" ? { ...c, label: "DBS3 เตรียมเสร็จ→บรรจุเสร็จ" } : c))
+  : DETAIL_COLUMNS.filter((c) => !String(c.key).startsWith("FLOW_")));
 const COL_BY_KEY = Object.fromEntries(COLUMNS.map((c) => [c.key, c]));
 const MAIN_EDITS = [["rmm_line_name", "แก้ไลน์"], ["code", "แก้ Code (แผนผลิต)"], ["weight_RM", "แก้น้ำหนัก"]];
 const TIME_COLUMNS = COLUMNS.filter((c) => c.kind === "data" && c.type === "time");
@@ -203,7 +208,7 @@ const MappingTool = () => {
             <Tab value="lineage" label={`ถูกนำไปเป็นรายการใหม่${lin.id === row.mapping_id && lin.data?.children?.length ? ` (${lin.data.children.length})` : ""}`} />
           </Tabs>
 
-          {tab === "detail" && <Paper variant="outlined"><RowDetail row={row} columns={isFlowGroup(row) ? DETAIL_COLUMNS : DETAIL_COLUMNS.filter((c) => !String(c.key).startsWith("FLOW_"))} title={`ข้อมูลของรายการ ${row.mapping_id}`} /></Paper>}
+          {tab === "detail" && <Paper variant="outlined"><RowDetail row={row} columns={detailColumnsOf(row)} title={`ข้อมูลของรายการ ${row.mapping_id}`} /></Paper>}
 
           {tab === "lineage" && <LineagePanel state={lin.id === row.mapping_id ? lin : { loading: true }} onOpen={openLinked} />}
 

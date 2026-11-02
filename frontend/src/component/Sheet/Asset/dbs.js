@@ -299,16 +299,16 @@ export const getDbs = (row, now = null) => {
  * A row of a special group has no DBS1-3: the caller falls back to DBS4 when the chosen DBS has no value.
  */
 export const stageDbsIndex = (row) => {
-  if (isFinished(row)) return 3;
+  if (isFinished(row)) return isFlowGroup(row) ? 2 : 3; // Tuna scrap / CK bone: the final total is DBS3
   if (isFlowGroup(row)) {
     // the step the row is in = the DBS column that is running: after the trolley DBS3, else by the last stamped step
     if (row.__kind === "map" && row.rmit_date) return 2;
     const { last } = flowState(row);
-    if (!last) return 0;
+    if (!last) return 7;
     if (last === "petfood_out") return 4;
     if (last === "grind_done") return 5;
     if (last === "freeze2_out") return 6;
-    return 0;
+    return 7;
   }
   const inCold = Boolean(row.cs_id)
     || Boolean(row.come_cold_date && !row.out_cold_date)

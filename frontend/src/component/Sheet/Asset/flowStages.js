@@ -81,10 +81,13 @@ const stdMin = (v) => { const n = parseFloat(v); return Number.isNaN(n) ? null :
 
 /**
  * DBS list of a flow row (same shape as getDbs: [{text, minutes, std, over}], index 0..6):
- *  0 DBS1  start (cooked_date) -> first cold room (petfood_in / freeze1_in)      2 DBS3  rmit_date -> sc_pack_date (after the trolley)
+ *  2 DBS3  rmit_date -> sc_pack_date (after the trolley) — the only DBS of these materials (0, 1, 3 are empty)
+ *  7 start (cooked / prepared) -> first cold room (petfood_in / freeze1_in)
  *  4 leave petfood cold room -> Freeze 1 (Tuna)   5 Grinding done -> Freeze 2   6 leave Freeze 2 -> preparation (the trolley / rmit_date)
  * 1 and 3 have no meaning for a flow row. `now` makes the running step count up to the present time (a finished row never runs).
  */
+export const flowStart = (row) => row.flow_cooked_date || row.cooked_date || null; // the plan's time (mapping rows) else the row's own
+
 export const flowDbs = (row, now = null) => {
   const { stamps } = flowState(row);
   const finished = Boolean(row.sc_pack_date) || String(row.rm_status || "") === "สำเร็จ" || String(row.dest || "").startsWith("บรรจุเสร็จ");
@@ -101,14 +104,16 @@ export const flowDbs = (row, now = null) => {
   const firstCold = hasPetfood(row) ? stamps.petfood_in : stamps.freeze1_in;
   const prepAt = row.__kind === "map" ? row.rmit_date : null; // the preparation after the last freeze = the trolley
   const dbs3 = row.__kind === "map" && row.rmit_date ? mk(row.rmit_date, row.sc_pack_date, stdMin(row.DBS3), true) : NONE;
+  // Tuna scrap / CK bone have no DBS1, DBS2, DBS4: only DBS3 (preparation -> packed); the other steps are "Flow" columns (index 4..7)
   return [
-    mk(row.cooked_date, firstCold, stdMin(row.DBS1), true),
+    NONE,
     NONE,
     dbs3,
     NONE,
     hasPetfood(row) ? mk(stamps.petfood_out, stamps.freeze1_in, stdMin(row.FLOW_CS_FREEZE), true) : NONE,
     mk(stamps.grind_done, stamps.freeze2_in, stdMin(row.FLOW_COOK_FREEZE), true),
     mk(stamps.freeze2_out, prepAt, stdMin(row.FLOW_FREEZE_PREP), true),
+    mk(flowStart(row), firstCold, stdMin(row.DBS1), true), // 7: cooked / prepared -> the first cold room (the standard is the group's prep_to_cold)
   ];
 };
 
@@ -117,7 +122,8 @@ export const flowIdOf = (row) => (row?.rmfp_id ? `F${row.rmfp_id}` : "");
 
 /** extra fields of a flow row for the columns: flow_id and one time column per step (fl_<step>) */
 export const flowFields = (row) => {
-  const out = { flow_id: flowIdOf(row), flow_start: row.cooked_date || null };
+  // FLOW_START_COLD = the standard of the first step (cooked / prepared -> first cold room), so the detail page shows it like the other standards
+  const out = { flow_id: flowIdOf(row), flow_start: flowStart(row), FLOW_START_COLD: row.DBS1 ?? null };
   const stamps = parseStages(row.flow_stages);
   [...new Set([...STAGES_TUNA, ...STAGES_CK])].forEach((k) => { out[`fl_${k}`] = stamps[k] || null; });
   return out;
