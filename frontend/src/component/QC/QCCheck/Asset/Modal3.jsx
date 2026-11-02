@@ -1,3 +1,4 @@
+import { FlowNoLine } from "../../../Layout/FlowNo";
 import React from 'react';
 import { useRef as useSlipRef } from "react";
 import SlipPrintSettings from "../../../Layout/SlipPrintSettings";
@@ -678,6 +679,7 @@ open={open}
 						}}>
 							รายการ : {mapping_id || "ไม่มีข้อมูล"}
 						</Typography>
+						<FlowNoLine mappingId={mapping_id} />
 
 						<Typography variant="h6" className="print-text" sx={{
 							color: "#464646",

@@ -1163,6 +1163,30 @@ router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_
 // Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
 router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
 
+// "F<rmfp_id>" of the mappings that belong to a Tuna scrap / CK bone item (printed on the slips): GET /sheet/flow-ids?mapping_ids=1,2,3 -> { data: { "1": "F248555" } }
+router.get("/sheet/flow-ids", async (req, res) => {
+  try {
+    const ids = [...new Set(String(req.query.mapping_ids || "").split(",").map((x) => parseInt(x, 10)).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 300);
+    if (!ids.length) return res.json({ success: true, data: {} });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool);
+    const r = await pool.request().input("ids", sql.NVarChar(sql.MAX), ids.join(",")).query(`
+      SELECT rmm.mapping_id, rmm.rmfp_id
+      FROM TrolleyRMMapping rmm WITH (NOLOCK)
+      JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+      JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+      WHERE rmm.mapping_id IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@ids, N','))
+        AND rmg.cook_to_freeze IS NOT NULL`);
+    const data = {};
+    r.recordset.forEach((x) => { data[x.mapping_id] = `F${x.rmfp_id}`; });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("❌ [Route GET /sheet/flow-ids] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // the whole story of one flow item (page "ค้นหา mapping_id", search "F<number>"): the plan row, every step stamped, the mappings made from it
 //   GET /sheet/flow?rmfp_id=
 router.get("/sheet/flow", async (req, res) => {

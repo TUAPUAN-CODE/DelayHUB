@@ -1,3 +1,4 @@
+import { FlowNoValue } from "../../../Layout/FlowNo";
 import React, { useEffect, useState } from "react";
 import { useRef as useSlipRef } from "react";
 import SlipPrintSettings from "../../../Layout/SlipPrintSettings";
@@ -855,6 +856,11 @@ const MaterialItem = ({
                 <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
                     <InlineInfoItem label="รายการ" value={item.mapping_id != null ? String(item.mapping_id) : "ไม่มีข้อมูล"} fontSizes={fontSizes} />
                 </Box>
+                <FlowNoValue mappingId={item.mapping_id}>{(no) => (
+                    <Box sx={{ mb: 0.5, '@media print': { marginBottom: '1px' } }}>
+                        <InlineInfoItem label="เลขรายการ Flow" value={no} fontSizes={fontSizes} />
+                    </Box>
+                )}</FlowNoValue>
                 <Box sx={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",

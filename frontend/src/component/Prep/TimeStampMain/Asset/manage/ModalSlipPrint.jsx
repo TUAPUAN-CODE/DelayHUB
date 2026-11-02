@@ -1,4 +1,5 @@
 // ModalSlipPrint.jsx
+import { FlowNoLine } from "../../../../Layout/FlowNo";
 import React, { useEffect } from 'react';
 import { Box, Button, Typography, Dialog } from '@mui/material';
 import PrintIcon from "@mui/icons-material/Print";
@@ -224,6 +225,7 @@ const ModalSlipPrint = ({ open, onClose, data }) => {
               รายการ : {data?.mapping_id ?? "-"}
             </Typography>
           )}
+          <FlowNoLine mappingId={data?.mapping_id} />
           <Typography className="print-text" sx={{ 
             fontSize: "22px",
             color: "#464646",

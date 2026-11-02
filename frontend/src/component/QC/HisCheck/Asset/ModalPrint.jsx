@@ -1,3 +1,4 @@
+import { FlowNoLine } from "../../../Layout/FlowNo";
 import React, { useEffect } from "react";
 import { Box, Button, Typography, Dialog } from '@mui/material';
 import PrintIcon from "@mui/icons-material/Print";
@@ -394,6 +395,7 @@ const ModalPrint = ({ open, onClose, rowData }) => {
           }}>
             รายการ : {rowData?.mapping_id ?? "-"}
           </Typography>
+          <FlowNoLine mappingId={rowData?.mapping_id} />
           <Typography variant="h6" className="print-text" sx={{
             color: "#464646",
             fontSize: "22px",
