@@ -3323,6 +3323,7 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
       step("connect to database");
       pool = await connectToDatabase();
+      await ensureFlowColumns(pool); // (before the transaction: adding a column waits for locks)
       transaction = new sql.Transaction(pool);
 
       // 1️⃣ ตรวจสอบ trolley
@@ -3482,7 +3483,6 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
         rm_status = "รอQCตรวจสอบ";
         // multi-stage flow groups (Tuna scrap, CK bone ...: RawMatGroup.cook_to_freeze filled): the first trolley goes to the big cold room as a deposit
         // ("รอกลับมาเตรียม", no QC status yet) — QC comes after it returns to preparation (กลับมาเตรียม -> รอQCตรวจสอบ -> pack)
-        await ensureFlowColumns(pool);
         const flowGroup = await transaction.request().input("g", sql.Int, rm_group_id)
           .query("SELECT TOP 1 1 AS ok FROM RawMatGroup WHERE rm_group_id = @g AND cook_to_freeze IS NOT NULL");
         if (flowGroup.recordset.length > 0) rm_status = "รอกลับมาเตรียม";
@@ -8806,7 +8806,11 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
       dest,
       cookedDateTimeNew,
       level_eu,
-      preparedDateTimeNew
+      preparedDateTimeNew,
+      storagePurpose,
+      histamine,
+      coldRemark,
+      depositDate
     } = req.body;
 
     const requiredFields = [
@@ -8831,6 +8835,7 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
     let transaction;
     try {
       const pool = await connectToDatabase();
+      await ensureFlowColumns(pool); // (before the transaction: adding a column waits for locks)
       transaction = new sql.Transaction(pool);
       await transaction.begin();
 
@@ -8898,14 +8903,20 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
 
       const oldMap = origData.recordset[0];
 
+      // multi-stage flow groups (Tuna scrap, CK bone: RawMatGroup.cook_to_freeze filled) can go to the big cold room again from here
+      const flowRes = await transaction.request().input("rmfp", sql.Int, oldMap.rmfp_id)
+        .query(`SELECT TOP 1 1 AS ok FROM RMForProd rf JOIN RawMatGroup rg ON rg.rm_group_id = rf.rm_group_id WHERE rf.rmfp_id = @rmfp AND rg.cook_to_freeze IS NOT NULL`);
+      const isFlow = flowRes.recordset.length > 0;
+      const toBigCold = isFlow && desttype === "ส่งห้องเย็นใหญ่";
+
       // ✅ Insert Mapping ใหม่
       const insertNew = await transaction.request()
         .input("tro_id", sql.VarChar, license_plate)
         .input("weight_RM", weightTotal)
         .input("tray_count", ntray)
-        .input("dest", 'รอCheckin')
+        .input("dest", toBigCold ? 'ห้องเย็นใหญ่' : 'รอCheckin')
         .input("stay_place", 'จุดเตรียม')
-        .input("rm_status", 'รอQCตรวจสอบ')
+        .input("rm_status", toBigCold ? 'รอกลับมาเตรียม' : 'รอQCตรวจสอบ')
         .input("process_id", Process)
         .input("batch_id", batch_id)
         .input("rmfp_id", oldMap.rmfp_id)
@@ -9039,6 +9050,32 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
             @remark_rework, @remark_rework_cold, @edit_rework, GETDATE()
           )
         `);
+
+      // flow groups: the old mapping is deleted below, so its end of cooking and every cold-room stay go to the new History (the Delay of the whole flow stays on one row)
+      // + the details of the big cold room typed in the form
+      if (isFlow) {
+        await transaction.request()
+          .input("old_id", sql.Int, Number(mapping_id))
+          .input("new_id", sql.Int, new_mapping_id)
+          .input("sp", sql.VarChar(50), toBigCold ? (storagePurpose || null) : null)
+          .input("hist", sql.VarChar(50), toBigCold ? (histamine || null) : null)
+          .input("rem", sql.VarChar(200), toBigCold ? (coldRemark || null) : null)
+          .input("dep", sql.Date, toBigCold && depositDate ? new Date(depositDate) : null)
+          .query(`
+            UPDATE hn SET
+              hn.cook_end_date = ho.cook_end_date,
+              hn.come_cold_date_two = ho.come_cold_date_two, hn.out_cold_date_two = ho.out_cold_date_two,
+              hn.come_cold_date_three = ho.come_cold_date_three, hn.out_cold_date_three = ho.out_cold_date_three,
+              hn.cs_come_cold_date = ho.cs_come_cold_date, hn.cs_out_cold_date = ho.cs_out_cold_date,
+              hn.cs_come_cold_date_two = ho.cs_come_cold_date_two, hn.cs_out_cold_date_two = ho.cs_out_cold_date_two,
+              hn.cs_come_cold_date_three = ho.cs_come_cold_date_three, hn.cs_out_cold_date_three = ho.cs_out_cold_date_three,
+              hn.cs_come_cold_date_four = ho.cs_come_cold_date_four, hn.cs_out_cold_date_four = ho.cs_out_cold_date_four,
+              hn.storage_purpose = COALESCE(@sp, hn.storage_purpose), hn.histamine = COALESCE(@hist, hn.histamine),
+              hn.at_pd_cold_remark = COALESCE(@rem, hn.at_pd_cold_remark), hn.at_pd_deposit_date = COALESCE(@dep, hn.at_pd_deposit_date)
+            FROM History hn
+            CROSS APPLY (SELECT TOP 1 * FROM History hh WHERE hh.mapping_id = @old_id ORDER BY hh.hist_id DESC) ho
+            WHERE hn.mapping_id = @new_id`);
+      }
 
       // ✅ ลบ mapping เดิม
       const deleteResult = await transaction.request()

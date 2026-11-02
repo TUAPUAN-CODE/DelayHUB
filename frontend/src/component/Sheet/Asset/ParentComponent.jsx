@@ -369,8 +369,9 @@ const ParentComponent = ({ role, view = "work" }) => {
     const stLabel = statusOf(r).label;
     // end of pressure cooking: a material of a multi-stage flow group (Tuna scrap, CK bone), until it is prepared again after the freeze
     // (first in the list: the cold-room branches below return early)
-    if (r.__kind === "map" && isFlowGroup(r) && !flowPrepared(r) && !r.sc_pack_date) {
-      out.push({ col: "t_bar", key: "cook-end", label: r.cook_end_date ? "แก้เวลาจบ Cooking" : "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
+    // (once the time is saved there is no edit button: a wrong time is fixed from the page "ค้นหา mapping_id")
+    if (r.__kind === "map" && isFlowGroup(r) && !flowPrepared(r) && !r.sc_pack_date && !r.cook_end_date) {
+      out.push({ col: "t_bar", key: "cook-end", label: "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
     }
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {

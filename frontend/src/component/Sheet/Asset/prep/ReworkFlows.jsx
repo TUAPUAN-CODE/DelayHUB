@@ -9,6 +9,7 @@ import ImModal1 from "../../../Prep/MatImport/Asset/Modal1";
 import ImModal2 from "../../../Prep/MatImport/Asset/Modal2";
 import ImModal3 from "../../../Prep/MatImport/Asset/Modal3";
 import ImEdit from "../../../Prep/MatImport/Asset/ModalEditPD";
+import { isFlowGroup } from "../dbs";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -55,7 +56,7 @@ const ReworkFlows = forwardRef(({ onDone }, ref) => {
       if (!d) { onDone?.(); return; }
       setKind(k);
       setM1(k === "import"
-        ? { rm_type_id: d.rm_type_id, mapping_id: d.mapping_id, tro_id: d.tro_id, CookedDateTime: d.CookedDateTime, batch: d.batch, edit_rework: d.edit_rework, rmfp_id: d.rmfp_id }
+        ? { rm_type_id: d.rm_type_id, mapping_id: d.mapping_id, tro_id: d.tro_id, CookedDateTime: d.CookedDateTime, batch: d.batch, edit_rework: d.edit_rework, rmfp_id: d.rmfp_id, isFlow: isFlowGroup(row) }
         : { mapping_id: d.mapping_id, tro_id: d.tro_id, rm_status: d.rm_status, qccheck_cold: d.qccheck_cold, remark_rework: d.remark_rework, remark_rework_cold: d.remark_rework_cold });
     },
     edit: async (row, k) => {
@@ -68,13 +69,13 @@ const ReworkFlows = forwardRef(({ onDone }, ref) => {
 
   const next2 = (data) => {
     setM2(im
-      ? { ...data, batch: data.batch, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, CookedDateTime: m1?.CookedDateTime, rm_type_id: m1?.rm_type_id, edit_rework: m1?.edit_rework }
+      ? { ...data, batch: data.batch, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, CookedDateTime: m1?.CookedDateTime, rm_type_id: m1?.rm_type_id, edit_rework: m1?.edit_rework, isFlow: m1?.isFlow }
       : { ...data, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, rm_status: m1?.rm_status, qccheck_cold: m1?.qccheck_cold, remark_rework_cold: m1?.remark_rework_cold, remark_rework: m1?.remark_rework });
     setM1((v) => v && { ...v, __closed: true });
   };
   const next3 = (data) => {
     setM3(im
-      ? { ...data, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, edit_rework: m1?.edit_rework }
+      ? { ...data, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, edit_rework: m1?.edit_rework, isFlow: m1?.isFlow }
       : { ...data, mapping_id: m1?.mapping_id, tro_id: m1?.tro_id, rm_status: m1?.rm_status, qccheck_cold: m1?.qccheck_cold, remark_rework_cold: m1?.remark_rework_cold, remark_rework: m1?.remark_rework });
     setM2(null);
   };

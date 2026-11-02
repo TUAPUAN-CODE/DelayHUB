@@ -22,6 +22,10 @@ import {
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlined";
 import axios from "axios";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 axios.defaults.withCredentials = true; 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -43,6 +47,13 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
   const [preparedTimeError, setPreparedTimeError] = useState(false);
   const [preparedTime, setPreparedTime] = useState('');
   const [timeValid, setTimeValid] = useState(true);
+  // Tuna scrap / CK bone (flow groups): the cooked time is the preparation time (field hidden) and the material can go to the big cold room
+  const isFlow = !!data?.isFlow;
+  const [storagePurpose, setStoragePurpose] = useState('');
+  const [histamine, setHistamine] = useState('');
+  const [coldRemark, setColdRemark] = useState('');
+  const [depositDate, setDepositDate] = useState(null);
+  const [storagePurposeError, setStoragePurposeError] = useState(false);
 
   useEffect(() => {
     const fetchProcessTypes = async () => {
@@ -168,6 +179,13 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
       isValid = false;
     }
 
+    if (isFlow && deliveryLocation === "ห้องเย็นใหญ่" && !storagePurpose) {
+      setStoragePurposeError(true);
+      isValid = false;
+    } else {
+      setStoragePurposeError(false);
+    }
+
     // Validate delivery location
     if (!deliveryLocation) {
       setLocationError(true);
@@ -200,7 +218,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
     const weight = parseFloat(weightPerCart);
     const trays = parseInt(numberOfTrays, 10);
 
-    const formattedCookedTime = cookedTime
+    const formattedCookedTime = (isFlow ? preparedTime : cookedTime)
       ? new Intl.DateTimeFormat("en-GB", {
         day: "2-digit",
         month: "2-digit",
@@ -208,7 +226,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
-      }).format(new Date(cookedTime))
+      }).format(new Date(isFlow ? preparedTime : cookedTime))
       : "";
 
     const formattedPreparedTime = preparedTime
@@ -223,7 +241,8 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
       : "";
 
     // Set deliveryType automatically based on deliveryLocation
-    const deliveryType = deliveryLocation === "เข้าห้องเย็น" ? "QCตรวจสอบ" : "";
+    const toBigCold = isFlow && deliveryLocation === "ห้องเย็นใหญ่";
+    const deliveryType = toBigCold ? "ส่งห้องเย็นใหญ่" : (deliveryLocation === "เข้าห้องเย็น" ? "QCตรวจสอบ" : "");
 
     const updatedData = {
       ...data,
@@ -234,6 +253,10 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
         selectedProcessType,
         deliveryLocation: String(deliveryLocation),
         deliveryType: String(deliveryType),
+        storagePurpose: toBigCold ? storagePurpose : null,
+        histamine: toBigCold ? (histamine || null) : null,
+        coldRemark: toBigCold ? (coldRemark || null) : null,
+        depositDate: toBigCold ? (depositDate || null) : null,
       },
       cookedDateTimeNew: formattedCookedTime,
       preparedDateTimeNew: formattedPreparedTime,
@@ -402,6 +425,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
 
           <Divider sx={{ mt: 1, mb: 2 }} />
 
+          {!isFlow && (
           <TextField
             label="เวลาอบเสร็จ/ต้มเสร็จ"
             type="datetime-local"
@@ -416,6 +440,7 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
             }}
             InputLabelProps={{ shrink: true }}
           />
+          )}
 
           <TextField
             label="วันที่เตรียมเสร็จ"
@@ -529,8 +554,69 @@ const Modal2 = ({ open, onClose, onNext, data, mapping_id, tro_id, CookedDateTim
                 style={{ color: "#666" }}
                 label="ห้องเย็น"
               />
+              {isFlow && (
+                <FormControlLabel
+                  value="ห้องเย็นใหญ่"
+                  control={<Radio />}
+                  style={{ color: "#666" }}
+                  label="ห้องเย็นใหญ่"
+                />
+              )}
             </RadioGroup>
           </Box>
+          {isFlow && deliveryLocation === "ห้องเย็นใหญ่" && (
+            <Box sx={{ border: "1px solid #0F3FC4", borderRadius: "4px", padding: "12px", backgroundColor: "#EAF0FF", marginTop: "12px", marginBottom: "16px" }}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F3FC4", marginBottom: "10px" }}>
+                ข้อมูลเพิ่มเติมสำหรับห้องเย็นใหญ่
+              </Typography>
+              <FormControl fullWidth size="small" sx={{ marginBottom: "12px" }} error={storagePurposeError}>
+                <InputLabel>วัตถุประสงค์การจัดเก็บ *</InputLabel>
+                <Select
+                  value={storagePurpose}
+                  onChange={(e) => { setStoragePurpose(e.target.value); setStoragePurposeError(false); }}
+                  label="วัตถุประสงค์การจัดเก็บ *"
+                >
+                  <MenuItem value="ฝากเก็บเพื่อรอผลิต">ฝากเก็บเพื่อรอผลิต</MenuItem>
+                  <MenuItem value="ฟรีสเพื่อจัดเก็บ">ฟรีสเพื่อจัดเก็บ</MenuItem>
+                  <MenuItem value="ส่งคืน">ส่งคืน</MenuItem>
+                </Select>
+                {storagePurposeError && (
+                  <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                    กรุณาเลือกวัตถุประสงค์การจัดเก็บ
+                  </Typography>
+                )}
+              </FormControl>
+              <TextField
+                label="ผล Histamine"
+                variant="outlined"
+                fullWidth
+                size="small"
+                value={histamine}
+                onChange={(e) => setHistamine(e.target.value)}
+                placeholder="กรอกผล Histamine (ถ้ามี)"
+                inputProps={{ maxLength: 50 }}
+              />
+              <TextField
+                label="หมายเหตุ"
+                variant="outlined"
+                fullWidth
+                size="small"
+                value={coldRemark}
+                onChange={(e) => setColdRemark(e.target.value)}
+                placeholder="กรอกหมายเหตุ (ถ้ามี)"
+                inputProps={{ maxLength: 200 }}
+                sx={{ mt: "12px" }}
+              />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="จัดเก็บถึงวันที่"
+                  value={depositDate ? dayjs(depositDate) : null}
+                  onChange={(newValue) => setDepositDate(newValue ? newValue.format("YYYY-MM-DD") : null)}
+                  slotProps={{ textField: { fullWidth: true, size: "small", sx: { mt: "12px" } } }}
+                />
+              </LocalizationProvider>
+            </Box>
+          )}
           {locationError && (
             <Typography variant="caption" color="error" sx={{ ml: 2 }}>
               กรุณาเลือกสถานที่จัดส่ง
