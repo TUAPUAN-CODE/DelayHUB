@@ -996,9 +996,8 @@ router.get("/fetchRawMat2XByMat", async (req, res) => {
       .input("mat", sql.VarChar(20), mat)
       .query(`
         SELECT r2x.[mat_2X], r2x.[mat_name_2x]
-        FROM [PFCMv2].[dbo].[RawMatMapping] m
-        LEFT JOIN [PFCMv2].[dbo].[RawMat2X] r2x ON r2x.mat_2X = m.mat_2x
-        LEFT JOIN [PFCMv2].[dbo].[RawMat]   r   ON r.mat     = m.mat
+        FROM [PFCMv2].[dbo].[RawMatMapping] m WITH (NOLOCK)
+        JOIN [PFCMv2].[dbo].[RawMat2X] r2x WITH (NOLOCK) ON r2x.mat_2X = m.mat_2x
         WHERE m.mat = @mat
         ORDER BY r2x.mat_2X
       `);
