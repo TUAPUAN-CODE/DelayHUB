@@ -5,7 +5,7 @@ const sql = require("mssql");
 const { connectToDatabase } = require("../database/db");
 const { cached, invalidateSheetCache } = require("../lib/sheetCache");
 const { COLD_STD_SQL } = require("../lib/coldStandard");
-const { ensureFlowColumns } = require("../lib/flowDelay");
+const { ensureFlowColumns, flowStageOrder } = require("../lib/flowDelay");
 const { safeRollback } = require("../lib/safeRollback");
 const { verifyToken } = require("../lib/auth");
 const { getAuthMode } = require("../lib/authMiddleware");
@@ -212,6 +212,7 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       FORMAT(${COLD_STD_SQL}, 'N2') AS DBS2, -- the room-specific standard (lib/coldStandard.js)
       FORMAT(rmg.cold_to_pack, 'N2') AS DBS3,
       FORMAT(rmg.cs_to_freeze, 'N2') AS FLOW_CS_FREEZE, FORMAT(rmg.cook_to_freeze, 'N2') AS FLOW_COOK_FREEZE, FORMAT(rmg.freeze_to_prep, 'N2') AS FLOW_FREEZE_PREP,
+      (SELECT STRING_AGG(CONCAT(fs.stage, N'|', CONVERT(VARCHAR(19), fs.stamped_at, 120)), N',') FROM FlowStage fs WITH (NOLOCK) WHERE fs.rmfp_id = rmf.rmfp_id) AS flow_stages,
       FORMAT(CASE WHEN rmg.rm_group_id IN (55, 85, 49, 46, 82) THEN rmg.prep_to_pack
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
       -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch
@@ -318,6 +319,8 @@ const buildPlanQuery = () => `
       rmg.rm_type_id,
       rmg.rm_group_name,
       rmg.cold,${dbsStdSql("rmg")},
+      FORMAT(rmg.cs_to_freeze, 'N2') AS FLOW_CS_FREEZE, FORMAT(rmg.cook_to_freeze, 'N2') AS FLOW_COOK_FREEZE, FORMAT(rmg.freeze_to_prep, 'N2') AS FLOW_FREEZE_PREP,
+      (SELECT STRING_AGG(CONCAT(fs.stage, N'|', CONVERT(VARCHAR(19), fs.stamped_at, 120)), N',') FROM FlowStage fs WITH (NOLOCK) WHERE fs.rmfp_id = rmf.rmfp_id) AS flow_stages,
       rmf.level_eu,
       rmf.remark,
       rmf.hu,
@@ -1159,6 +1162,55 @@ router.patch("/sheet/edit", sheetEditHandler());
 router.patch("/sheet/cold-edit", sheetEditHandler({ only: ["prod_id", "rmm_line_name", "weight_RM"], coldOnly: true, defaultReason: "แก้ไขในห้องเย็น" }));
 // Pack ("แก้ไขแผนการผลิต / น้ำหนัก" of the rows that wait for packing): only the weight, only before the row is packed
 router.patch("/sheet/pack-edit", sheetEditHandler({ only: ["weight_RM"], packOnly: true, defaultReason: "แก้ไขน้ำหนักที่บรรจุ" }));
+
+// a step of the flow of Tuna scrap / CK bone (lib/flowDelay.js): stamped once, in order, on the production-plan row
+//   POST /sheet/flow-stage { rmfp_id, stage, at: "yyyy-MM-dd HH:mm" }
+router.post("/sheet/flow-stage", async (req, res) => {
+  try {
+    const rmfpId = parseInt(req.body?.rmfp_id, 10);
+    const stage = String(req.body?.stage || "");
+    let at = String(req.body?.at || "").trim().replace("T", " ");
+    if (Number.isNaN(rmfpId) || rmfpId <= 0 || !stage) return res.status(400).json({ success: false, error: "ข้อมูลไม่ครบ (rmfp_id / stage)" });
+    if (!DATETIME_RE.test(at)) return res.status(400).json({ success: false, error: "เวลาต้องเป็นรูป yyyy-MM-dd HH:mm" });
+    if (at.length === 16) at += ":00";
+    const atDate = new Date(at.replace(" ", "T"));
+    if (Number.isNaN(atDate.getTime())) return res.status(400).json({ success: false, error: "เวลาไม่ถูกต้อง" });
+    if (atDate.getTime() > Date.now() + 5 * 60000) return res.status(400).json({ success: false, error: "เวลาต้องไม่เป็นเวลาในอนาคต" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureFlowColumns(pool);
+    const cur = await pool.request().input("id", sql.Int, rmfpId).query(`
+      SELECT rmg.cs_to_freeze, rmg.cook_to_freeze, CONVERT(VARCHAR(19), TRY_CONVERT(DATETIME, h.cooked_date), 120) AS cooked_date
+      FROM RMForProd rmf WITH (NOLOCK)
+      JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
+      LEFT JOIN History h WITH (NOLOCK) ON h.hist_id = rmf.hist_id_rmfp
+      WHERE rmf.rmfp_id = @id`);
+    if (!cur.recordset.length) return res.status(404).json({ success: false, error: "ไม่พบรายการแผนผลิตนี้" });
+    const g = cur.recordset[0];
+    if (g.cook_to_freeze === null) return res.status(400).json({ success: false, error: "บันทึกขั้นตอนนี้ได้เฉพาะวัตถุดิบของกลุ่ม Flow (Tuna scrap / CK bone)" });
+    const order = flowStageOrder(g.cs_to_freeze !== null);
+    const done = await pool.request().input("id", sql.Int, rmfpId).query("SELECT stage, CONVERT(VARCHAR(19), stamped_at, 120) AS at FROM FlowStage WITH (NOLOCK) WHERE rmfp_id = @id");
+    const have = new Map(done.recordset.map((r) => [r.stage, r.at]));
+    const next = order.find((x) => !have.has(x));
+    if (!next) return res.status(400).json({ success: false, error: "รายการนี้ผ่านครบทุกขั้นตอนแล้ว" });
+    if (stage !== next) return res.status(400).json({ success: false, error: `ขั้นตอนต่อไปของรายการนี้ไม่ใช่ขั้นนี้ (ลำดับถัดไปคือ ${next})`, next });
+    const prevKey = order[order.indexOf(next) - 1];
+    const prevAt = prevKey ? have.get(prevKey) : g.cooked_date;
+    if (prevAt && atDate.getTime() < new Date(String(prevAt).replace(" ", "T")).getTime()) {
+      return res.status(400).json({ success: false, error: `เวลาต้องไม่ก่อนขั้นตอนก่อนหน้า (${prevAt})` });
+    }
+    const user = req.user || {};
+    await pool.request().input("id", sql.Int, rmfpId).input("st", sql.NVarChar(30), stage).input("at", sql.NVarChar(30), at)
+      .input("by", sql.NVarChar(100), user.username ? String(user.username).slice(0, 100) : null)
+      .query("INSERT INTO FlowStage (rmfp_id, stage, stamped_at, created_by) VALUES (@id, @st, CONVERT(DATETIME, @at, 120), @by)");
+    invalidateSheetCache();
+    res.json({ success: true, stage, at });
+  } catch (err) {
+    if (err && (err.number === 2601 || err.number === 2627)) return res.status(409).json({ success: false, error: "ขั้นตอนนี้ถูกบันทึกไปแล้ว (มีคนทำก่อนหน้า) กรุณารีเฟรช" });
+    console.error("❌ [Route POST /sheet/flow-stage] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // end of pressure cooking (Tuna scrap / CK bone): the time is typed by the person who sends the material to the big cold room
 router.patch("/sheet/cook-end", sheetEditHandler({ only: ["cook_end_date"], flowOnly: true, defaultReason: "บันทึกเวลาจบ Cooking" }));

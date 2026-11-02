@@ -162,6 +162,7 @@ const ConfirmProdModal = ({
   batchmix,
   operator,
   withdraw,
+  cookedAt, // Tuna scrap / CK bone: the time typed in the form (local text, yyyy-MM-ddTHH:mm), empty = now
   hu,
   mat2x, // ✅ เพิ่ม mat2x (ค่ารหัส mat_2X ที่เลือก)
   mat2xName, // ✅ เพิ่ม mat2xName (ชื่อของ mat_2X ที่เลือก ไว้แสดงผลสรุป)
@@ -177,7 +178,7 @@ const ConfirmProdModal = ({
   const [error, setError] = useState(null);
 
   const handleConfirm = async () => {
-    const currentDateTime = new Date();
+    const currentDateTime = cookedAt ? new Date(cookedAt) : new Date();
     currentDateTime.setHours(currentDateTime.getHours() + 7);
     const formattedDateTime = currentDateTime.toISOString();
 
@@ -352,6 +353,9 @@ const DataReviewSAP = ({ open, onClose, material, batch, hu }) => {
   const [jobType, setJobType] = useState("ผสมวัตถุดิบ");
   const [weighttotal, setWeighttotal] = useState("");
   const [withdraw, setWithdraw] = useState("");
+  // Tuna scrap / CK bone (a group with cook_to_freeze filled): the time cooked / prepared is typed here (it starts the flow: DBS1)
+  const [cookedAt, setCookedAt] = useState("");
+  const isFlow = selectedPlanSets.some((set) => set.group && set.group.cook_to_freeze !== null && set.group.cook_to_freeze !== undefined);
   const [group, setGroup] = useState([]);
   const [operator, setOperator] = useState("");
   const [isConfirmProdOpen, setIsConfirmProdOpen] = useState(false);
@@ -615,6 +619,7 @@ useEffect(() => {
     if (!operator || !deliveryLocation) {
       return false;
     }
+    if (isFlow && !cookedAt) return false; // Tuna scrap / CK bone: the time cooked / prepared starts the flow
 
     // ถ้าเป็น Emulsion หรือ BatchMix ไม่ต้องเช็ค Plan Sets
     if (emulsion === "true" || batchmix === "true") {
@@ -1062,6 +1067,18 @@ useEffect(() => {
               </Box>
             </Box>
 
+            {isFlow && (
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ mb: 1 }}>เวลาอบเสร็จ/เตรียมเสร็จ (เริ่มนับ Delay ของ flow)</Typography>
+                <TextField
+                  type="datetime-local" size="small" fullWidth value={cookedAt} required
+                  onChange={(e) => setCookedAt(e.target.value)}
+                  inputProps={{ max: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            )}
+
             {/* สถานที่จัดส่ง */}
             <Box sx={{ mb: 2 }}>
               <Typography sx={{ mb: 1 }}>สถานที่จัดส่ง</Typography>
@@ -1123,6 +1140,7 @@ useEffect(() => {
         batchmix={batchmix}
         operator={operator}
         withdraw={withdraw}
+        cookedAt={isFlow ? cookedAt : ""}
         weighttotal={weighttotal}
         level_eu={level_eu}  // Pass EU level to confirm modal
         isLoading={isLoading}

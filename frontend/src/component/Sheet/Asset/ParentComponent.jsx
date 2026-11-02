@@ -59,8 +59,8 @@ import { BatchCartDialog, BatchDeleteDialog, BatchEditPlanDialog } from "./pack/
 import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
-import CookEndDialog from "./cold/CookEndDialog";
-import { isFlowGroup, flowPrepared } from "./dbs";
+import FlowStageDialog from "./cold/FlowStageDialog";
+import { isFlowGroup, flowState, flowReadyForCart, STAGE_BUTTON } from "./flowStages";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
 import useGridPrefs from "../../Layout/DataGrid/useGridPrefs";
@@ -161,7 +161,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gather, setGather] = useState(null); // cold room: { rows, seq } of the "จัดชุด" dialog (the ticked rows as they were when it opened)
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
-  const [cookEnd, setCookEnd] = useState(null); // { row, seq }: "จบ Cooking" of a material of a multi-stage flow (Tuna scrap, CK bone)
+  const [flowStage, setFlowStage] = useState(null); // { row, stage, seq }: a step of the flow of Tuna scrap / CK bone (flowStages.js)
   const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
   const statusPrefs = useGridPrefs(`sheet-${role}-statuses`, { visible: defaultStatuses(role), ensure: ENSURE_STATUSES[role] });
@@ -264,6 +264,9 @@ const ParentComponent = ({ role, view = "work" }) => {
         if (myKey !== rangeKeyRef.current) return;
         setMix(next);
         if (!unchanged) setPlans((res.data.plans || []).map(prepPlan)); // scanned production-plan rows (all raw material types) that are not in a trolley yet
+      } else if (role === "cs1" || role === "cs2" || role === "sup") {
+        // the cold rooms / Supervisor see only the plan rows of Tuna scrap / CK bone (they go through the cold rooms before any trolley exists)
+        if (!unchanged) setPlans((res.data.plans || []).filter(isFlowGroup).map(prepPlan));
       }
     } catch (err) {
       console.error("[Sheet] load error:", err);
@@ -367,11 +370,10 @@ const ParentComponent = ({ role, view = "work" }) => {
     const out = [];
     const h = r.__hu;
     const stLabel = statusOf(r).label;
-    // end of pressure cooking: a material of a multi-stage flow group (Tuna scrap, CK bone), until it is prepared again after the freeze
-    // (first in the list: the cold-room branches below return early)
-    // (once the time is saved there is no edit button: a wrong time is fixed from the page "ค้นหา mapping_id")
-    if (r.__kind === "map" && isFlowGroup(r) && !flowPrepared(r) && !r.sc_pack_date && !r.cook_end_date) {
-      out.push({ col: "t_bar", key: "cook-end", label: "จบ Cooking", color: "#B45309", title: "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)", run: () => setCookEnd({ row: r, seq: Date.now() }) });
+    // Tuna scrap / CK bone: the plan row has one button, the next step of its flow (any Role; the order is kept by the server too)
+    if (r.__kind === "plan" && isFlowGroup(r)) {
+      const next = flowState(r).next;
+      if (next) out.push({ col: "t_bar", key: "flow-stage", label: STAGE_BUTTON[next], color: "#B45309", title: `บันทึกเวลา: ${STAGE_BUTTON[next]}`, run: () => setFlowStage({ row: r, stage: next, seq: Date.now() }) });
     }
     // cs2 (/ColdStorages): "รอห้องเย็นรับเข้า" has only one button, รับเข้า
     if (role === "cs2" && stLabel === "รอห้องเย็นรับเข้า") {
@@ -428,7 +430,8 @@ const ParentComponent = ({ role, view = "work" }) => {
           if (r.__plans.length === 1) return action === "cart" ? openPlanCart(r.__plans[0]) : manageRef.current?.openEdit?.(r.__plans[0]);
           setPlanPick({ action, plans: r.__plans });
         };
-        out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
+        // Tuna scrap / CK bone: the trolley is put on only after the last Freeze (status "รอใส่รถเข็น")
+        if (!(isFlowGroup(r.__plans[0]) && !flowReadyForCart(r.__plans[0]))) out.push({ col: "t_bar", key: "cart-plan", label: "ใส่รถเข็น", color: "#1552F0", title: "ใส่รถเข็น", run: () => pick("cart") });
         out.push({ col: "t_bar", key: "edit-plan", label: "เปลี่ยนแผนการผลิต", color: "#B45309", title: "เปลี่ยนแผนการผลิต", run: () => pick("edit") });
       }
       const kind = r.__kind === "mix" ? r.__mix : r.__loaf ? "loaf" : null;
@@ -782,7 +785,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Snackbar>
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
-      {cookEnd && <CookEndDialog key={cookEnd.seq} row={cookEnd.row} onClose={() => setCookEnd(null)} onSaved={(msg) => { setCookEnd(null); afterCellEdit(msg); }} />}
+      {flowStage && <FlowStageDialog key={flowStage.seq} row={flowStage.row} stage={flowStage.stage} onClose={() => setFlowStage(null)} onSaved={(msg) => { setFlowStage(null); afterCellEdit(msg); }} />}
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
       <TrolleyFlows ref={trolleyRef} rows={data.mappings} onDone={reload} />

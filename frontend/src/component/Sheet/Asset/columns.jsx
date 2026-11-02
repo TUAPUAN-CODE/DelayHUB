@@ -187,9 +187,9 @@ export const COLUMNS = [
   dbs(2, "DBS3", "DBS3 ห้องเย็น→บรรจุ"),
   dbs(3, "DBS4", "DBS4 รวม"),
   // Flow หลายช่วง (Tuna scrap, CK bone): มีค่าเฉพาะกลุ่มที่ตั้งเกณฑ์ไว้
-  dbs(4, "FLOW_CS_FREEZE", "Flow ออกห้องเย็น→Slow freeze"),
-  dbs(5, "FLOW_COOK_FREEZE", "Flow จบ Cooking→Slow freeze"),
-  dbs(6, "FLOW_FREEZE_PREP", "Flow ออก Slow freeze→เตรียม"),
+  dbs(4, "FLOW_CS_FREEZE", "Flow ออกห้องเย็น petfood→Freeze 1"),
+  dbs(5, "FLOW_COOK_FREEZE", "Flow Grinding เสร็จ→Freeze 2"),
+  dbs(6, "FLOW_FREEZE_PREP", "Flow ออก Freeze 2→เตรียม"),
 ];
 
 // Columns the Supervisor may edit (double-click while "โหมดแก้ไข" is on). The server has its own whitelist (SheetRoutes EDIT_MAP) — keep both in step.

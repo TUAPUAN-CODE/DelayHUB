@@ -29,9 +29,9 @@ const ViewRawmatTimeModal = ({ isOpen, onClose, data }) => {
     { label: "Rework", value: data.rework },
     // Flow หลายช่วง (Tuna scrap, CK bone): แสดงเฉพาะกลุ่มที่ตั้งค่าไว้
     ...[
-      { label: "ออกห้องเย็น - เข้า Slow freeze", value: data.cs_to_freeze },
-      { label: "จบ Cooking - เข้า Slow freeze", value: data.cook_to_freeze },
-      { label: "ออก Slow freeze - เตรียม", value: data.freeze_to_prep },
+      { label: "ออกห้องเย็น petfood - เข้า Freeze ครั้งที่ 1", value: data.cs_to_freeze },
+      { label: "Grinding เสร็จ - เข้า Freeze ครั้งที่ 2", value: data.cook_to_freeze },
+      { label: "ออก Freeze ครั้งที่ 2 - เตรียม", value: data.freeze_to_prep },
     ].filter((d) => d.value !== null && d.value !== undefined),
   ];
 

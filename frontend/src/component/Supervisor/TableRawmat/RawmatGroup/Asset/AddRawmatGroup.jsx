@@ -57,9 +57,9 @@ const AddRawmatGroup = ({ isOpen, onClose, onSuccess }) => {
 
   // Flow หลายช่วง (Tuna scrap, CK bone): ไม่บังคับ เว้นว่าง = ไม่ใช้ช่วงนั้น (ชม.)
   const flowFields = [
-    { label: "ออกห้องเย็น > เข้า Slow freeze (Flow)", field: "cs_to_freeze" },
-    { label: "จบ Cooking > เข้า Slow freeze (Flow)", field: "cook_to_freeze" },
-    { label: "ออก Slow freeze > เตรียม (Flow)", field: "freeze_to_prep" },
+    { label: "ออกห้องเย็น petfood > เข้า Freeze ครั้งที่ 1 (Flow)", field: "cs_to_freeze" },
+    { label: "Grinding เสร็จ > เข้า Freeze ครั้งที่ 2 (Flow)", field: "cook_to_freeze" },
+    { label: "ออก Freeze ครั้งที่ 2 > เตรียม (Flow)", field: "freeze_to_prep" },
   ];
   const FLOW_KEYS = flowFields.map((f) => f.field);
   const allFields = [...timeFields, ...flowFields];

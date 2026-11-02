@@ -1,4 +1,5 @@
 const { toIntList } = require("../lib/sqlParams");
+const { ensureFlowColumns } = require("../lib/flowDelay");
 const express = require("express");
 const { connectToDatabase } = require("../database/db");
 const Papa = require("papaparse");
@@ -185,6 +186,7 @@ router.get("/fetchGroup", async (req, res) => {
 
   try {
     const pool = await connectToDatabase();
+    await ensureFlowColumns(pool); // cook_to_freeze / cs_to_freeze tell the scan form that a group is a multi-stage flow (Tuna scrap, CK bone)
 
     const rmGroupResult = await pool.request()
       .input("mat", sql.NVarChar, mat)
@@ -197,7 +199,7 @@ router.get("/fetchGroup", async (req, res) => {
     if (rmGroupResult.recordset.length === 0) {
       // all=1: a material with no cooking group linked yet can use any group (the stamp page must not be blocked by a missing link)
       if (req.query.all === "1") {
-        const allGroups = await pool.request().query("SELECT rm_group_id, rm_group_name FROM RawMatGroup ORDER BY rm_group_name");
+        const allGroups = await pool.request().query("SELECT rm_group_id, rm_group_name, cook_to_freeze, cs_to_freeze FROM RawMatGroup ORDER BY rm_group_name");
         return res.json({ success: true, data: allGroups.recordset });
       }
       return res.json({ success: true, data: [] }); // Return empty array instead of 404
@@ -207,7 +209,7 @@ router.get("/fetchGroup", async (req, res) => {
 
     // Create a query with properly parameterized IN clause
     let groupQuery = `
-      SELECT rm_group_id, rm_group_name 
+      SELECT rm_group_id, rm_group_name, cook_to_freeze, cs_to_freeze 
       FROM RawMatGroup 
       WHERE rm_group_id IN (`;
 

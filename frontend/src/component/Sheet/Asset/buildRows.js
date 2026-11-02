@@ -1,5 +1,6 @@
 import { analyzeRow } from "../../ColdStorages/SapSheet/Asset/sapTimeline";
-import { getDbs, flowWaitsForFreeze, isFlowGroup } from "./dbs";
+import { getDbs } from "./dbs";
+import { isFlowGroup, flowState } from "./flowStages";
 import { reworkKind } from "./prep/kinds";
 import { withZone } from "./statusZones";
 
@@ -51,6 +52,8 @@ export const statusOf = (r) => withZone(baseStatusOf(r));
 
 const baseStatusOf = (r) => {
   if (r.__kind === "mixed") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // mixed with emulsions, not in a trolley yet: it waits for a trolley like a plan row
+  // Tuna scrap / CK bone: the step the plan row has reached (FlowStage); "รอใส่รถเข็น" only after the last freeze
+  if (r.__kind === "plan" && isFlowGroup(r)) return flowState(r).status;
   if (r.__kind === "plan") return { label: "รอใส่รถเข็น", color: "#6B21A8", bg: "#E9D5FF" }; // scanned (SAP label), not in a trolley yet
   // waiting to be mixed: still at the line (the "รอเตรียมผสมวัตถุดิบ" status was removed; the mixing tools stay on the row)
   if (r.__kind === "mix") return { label: "อยู่ที่ไลน์", color: "#6A1B9A", bg: "#F3E5F5" };
@@ -60,8 +63,6 @@ const baseStatusOf = (r) => {
     const a = analyzeRow(r);
     return { label: a.status.label, color: a.status.color, bg: a.status.bg };
   }
-  // Tuna scrap / CK bone: cooking finished, not in the big cold room yet — shown even without a trolley
-  if (r.__kind === "map" && flowWaitsForFreeze(r)) return { label: "รอห้องเย็นรับเข้า", color: "#B45309", bg: "#FEF3C7" };
   const fixed = FIXED_STATUS(r);
   if (fixed) return fixed;
   const st = String(r.rm_status || "");
@@ -207,11 +208,13 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
     consumed.add(p.rmfp_id);
     // the SAP times of its HU (เริ่มละลาย / ละลายเสร็จ / จ่ายลงไลน์ / ไลน์รับเข้า …) are shown on the plan row too; the HU tools stay on the HU row (__hu: null)
     const h = p.hu ? huByKey.get(String(p.hu)) : null;
-    rows.push({
+    const planRow = {
       ...(h ? mergeHu(p, h) : p), weight_RM: p.weight, code: p.production,
       emulsion_text: p.emulsion_text || emulsionByPlan.get(p.rmfp_id) || null,
       __trolleys: inTrolley.get(String(p.rmfp_id))?.count || 0, __inTrolleyKg: inTrolley.get(String(p.rmfp_id))?.weight || 0, rmm_line_name: p.rmfp_line_name, __key: `plan:${p.rmfp_id}`, __kind: "plan", __dbs: [], __hu: null, __plans: [p],
-    });
+    };
+    if (isFlowGroup(planRow)) planRow.__dbs = safeDbs(planRow, now); // the DBS of the steps of Tuna scrap / CK bone
+    rows.push(planRow);
   });
   // mixed lots (emulsions mixed into a production-plan row) that are not in a trolley yet: rows of their own, with the emulsion text
   (mixed || []).forEach((m) => {
@@ -236,7 +239,7 @@ export const buildRows = (hus, mappings, mix = {}, plans = [], now = Date.now(),
   });
   // items waiting to be mixed have no times: they are kept on top so they are not lost below thousands of rows
   rows.forEach((r) => { r.__status = statusOf(r); r.__last = r.__kind === "mix" ? now : lastActivity(r); });
-  const visible = opts.showAll ? rows : rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label) && !isFlowGroup(r)));
+  const visible = opts.showAll ? rows : rows.filter((r) => !(r.__kind === "map" && noTro(r.tro_id) && NEEDS_TROLLEY.has(r.__status.label)));
   visible.sort((a, b) => b.__last - a.__last);
   return visible;
 };
