@@ -698,4 +698,6 @@ export default {
   "แก้เวลาจบ Cooking": ["Edit Cooking end time", "Cooking ပြီးဆုံးချိန် ပြင်ရန်", "កែម៉ោងចប់ Cooking"],
   "บันทึกเวลาจบ Cooking (เลือกชั่วโมง 1-24)": ["Record the Cooking end time (choose hour 1-24)", "Cooking ပြီးဆုံးချိန် မှတ်တမ်းတင်ရန် (နာရီ 1-24 ရွေးပါ)", "កត់ត្រាម៉ោងចប់ Cooking (ជ្រើសរើសម៉ោង 1-24)"],
   "บันทึกเวลาจบ Cooking ได้เฉพาะวัตถุดิบของกลุ่ม Flow (Tuna scrap / CK bone)": ["The Cooking end time can only be recorded for materials of the Flow groups (Tuna scrap / CK bone)", "Cooking ပြီးဆုံးချိန်ကို Flow အုပ်စု (Tuna scrap / CK bone) ၏ ကုန်ကြမ်းအတွက်သာ မှတ်တမ်းတင်နိုင်သည်", "អាចកត់ត្រាម៉ោងចប់ Cooking បានតែសម្រាប់វត្ថុធាតុដើមក្នុងក្រុម Flow (Tuna scrap / CK bone)"],
+  "วันที่เบิกวัตถุดิบจากห้องเย็นใหญ่ (ไม่บังคับ)": ["Date the material was withdrawn from the big cold room (optional)", "ကုန်ကြမ်းကို အေးခန်းကြီးမှ ထုတ်ယူသည့်ရက် (မဖြစ်မနေမလို)", "កាលបរិច្ឆេទដកវត្ថុធាតុដើមពីបន្ទប់ត្រជាក់ធំ (មិនចាំបាច់)"],
+  "ไม่ใส่วันที่เบิก": ["No withdrawal date", "ထုတ်ယူရက် မထည့်ပါ", "មិនដាក់កាលបរិច្ឆេទដក"],
 };

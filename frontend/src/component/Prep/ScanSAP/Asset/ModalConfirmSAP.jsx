@@ -181,7 +181,7 @@ const ConfirmProdModal = ({
     currentDateTime.setHours(currentDateTime.getHours() + 7);
     const formattedDateTime = currentDateTime.toISOString();
 
-    const formattedWithdraw = formatCookedDateTime(withdraw, false);
+    const formattedWithdraw = withdraw ? formatCookedDateTime(withdraw, false) : null; // the withdraw date is optional: empty = saved as no date
 
     const weightPerPlan = parseFloat(weighttotal) / (selectedPlanSets.length || 1);
     const formattedEuLevel = level_eu !== "-" ? `Eu ${level_eu}` : "-";
@@ -321,7 +321,7 @@ const ConfirmProdModal = ({
           <Typography>ผู้ดำเนินการ: {operator}</Typography>
           <Typography>สถานที่จัดส่ง: {deliveryLocation}</Typography>
           {/* <Typography>ผสมวัตถุดิบ ( Loaf ): {emulsion}</Typography> */}
-          <Typography>วันที่เบิก: {new Date(withdraw).toLocaleString()}</Typography>
+          <Typography>วันที่เบิก: {withdraw ? new Date(withdraw).toLocaleString() : "ไม่ระบุ"}</Typography>
 
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
@@ -612,7 +612,7 @@ useEffect(() => {
       return false;
     }
 
-    if (!operator || !withdraw || !deliveryLocation) {
+    if (!operator || !deliveryLocation) {
       return false;
     }
 
@@ -656,7 +656,7 @@ useEffect(() => {
       return;
     }
 
-    if (!operator || !withdraw || !deliveryLocation) {
+    if (!operator || !deliveryLocation) {
       setErrorMessage("กรุณากรอกข้อมูลให้ครบถ้วน");
       setSnackbarOpen(true);
       return;
@@ -1019,7 +1019,7 @@ useEffect(() => {
           <>
             {/* วันที่เบิก */}
             <Box sx={{ mb: 2 }}>
-              <Typography sx={{ mb: 1 }}>วันที่เบิกวัตถุดิบจากห้องเย็นใหญ่</Typography>
+              <Typography sx={{ mb: 1 }}>วันที่เบิกวัตถุดิบจากห้องเย็นใหญ่ (ไม่บังคับ)</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DateTimePicker
@@ -1039,7 +1039,7 @@ useEffect(() => {
                       textField: {
                         fullWidth: true,
                         size: "small",
-                        required: true
+                        required: false
                       }
                     }}
                   />
@@ -1055,6 +1055,9 @@ useEffect(() => {
                   sx={{ whiteSpace: 'nowrap' }}
                 >
                   เลือกเวลาตอนนี้
+                </Button>
+                <Button variant="text" disabled={!withdraw} onClick={() => setWithdraw("")} sx={{ whiteSpace: 'nowrap' }}>
+                  ไม่ใส่วันที่เบิก
                 </Button>
               </Box>
             </Box>
