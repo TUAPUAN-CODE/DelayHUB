@@ -60,6 +60,7 @@ import GatherSelected from "./cold/GatherSelected";
 import ColdSlipPrint from "./cold/ColdSlipPrint";
 import ColdEditDialog from "./cold/ColdEditDialog";
 import FlowStageDialog from "./cold/FlowStageDialog";
+import FlowSlip from "./cold/FlowSlip";
 import { isFlowGroup, flowState, flowReadyForCart, STAGE_BUTTON, stageRoleOk, stageRoleHint } from "./flowStages";
 import StatusVisibilityDialog from "./StatusVisibilityDialog";
 import { KNOWN_STATUSES, defaultStatuses, ENSURE_STATUSES } from "./statusVisibility";
@@ -161,6 +162,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [now, setNow] = useState(() => Date.now()); // the running DBS clocks follow this, once a minute
   const [gather, setGather] = useState(null); // cold room: { rows, seq } of the "จัดชุด" dialog (the ticked rows as they were when it opened)
   const [slipTro, setSlipTro] = useState(null); // cold room: tro_id of the trolley whose slip ("ปริ้นสลีป") is open
+  const [flowSlip, setFlowSlip] = useState(null); // { row, seq }: the label of a Tuna scrap / CK bone plan row (cold/FlowSlip.jsx)
   const [flowStage, setFlowStage] = useState(null); // { row, stage, seq }: a step of the flow of Tuna scrap / CK bone (flowStages.js)
   const [coldEdit, setColdEdit] = useState(null); // { row, seq }: "แก้ไข Code / Line / น้ำหนัก" of a material in a cold room
   // "สถานะที่ดู": the statuses this account wants in the table (default: the ones of its own Role); saved per account in the same prefs table as the grid settings
@@ -373,6 +375,7 @@ const ParentComponent = ({ role, view = "work" }) => {
     // Tuna scrap / CK bone: the plan row has one button, the next step of its flow (any Role; the order is kept by the server too)
     if (r.__kind === "plan" && isFlowGroup(r)) {
       const next = flowState(r).next;
+      out.push({ col: "t_bar", key: "flow-slip", label: "ปริ้นสลีป", color: "#37474F", title: "ปริ้นสลีประบุวัตถุดิบ (เลขรายการ Flow, Batch, HU, ขั้นตอน)", run: () => setFlowSlip({ row: r, seq: Date.now() }) });
       // each step is done on its own page (petfood: ห้องเย็น · Freeze: ห้องเย็นใหญ่ · Grinding: จุดเตรียม); the Supervisor can do all of them
       if (next) {
         const ok = stageRoleOk(role, next);
@@ -789,6 +792,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       </Snackbar>
       <StatusVisibilityDialog open={statusDlg} onClose={() => setStatusDlg(false)} role={role} selected={statusPrefs.visible} counts={statusCounts} onChange={statusPrefs.setVisible} />
       {slipTro && <ColdSlipPrint tro_id={slipTro} onClose={() => setSlipTro(null)} />}
+      {flowSlip && <FlowSlip key={flowSlip.seq} row={flowSlip.row} onClose={() => setFlowSlip(null)} />}
       {flowStage && <FlowStageDialog key={flowStage.seq} row={flowStage.row} stage={flowStage.stage} onClose={() => setFlowStage(null)} onSaved={(msg) => { setFlowStage(null); afterCellEdit(msg); }} />}
       {coldEdit && <ColdEditDialog key={coldEdit.seq} row={coldEdit.row} onClose={() => setColdEdit(null)} onSaved={(msg) => { setColdEdit(null); afterCellEdit(msg); }} />}
       {gather && <GatherSelected key={gather.seq} onClose={() => setGather(null)} rows={gather.rows} trolleys={coldTrolleys} role={role} onDone={(n) => { setToast(`จัดชุดเรียบร้อย ${n} รายการ`); setSelected(new Set()); reload(); }} />}
