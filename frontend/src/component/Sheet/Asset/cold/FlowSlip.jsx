@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Box, Button, Dialog, Typography } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
-import { RemarkCsLine } from "../../../Layout/RemarkCs";
+import { useRemarkCs } from "../../../Layout/RemarkCs";
 import { STAGE_BUTTON, flowState } from "../flowStages";
 
 const fmt = (v) => (v ? String(v).slice(0, 16).replace("T", " ") : "");
@@ -22,11 +22,17 @@ const PRINT_CSS = `
   }
 `;
 
-const Line = ({ label, value }) => (
+// only what has data is printed
+const Line = ({ label, value }) => (value === null || value === undefined || value === "" ? null : (
   <Typography className="print-text" sx={{ fontSize: "20px", color: "#464646", margin: "6px 10px", overflowWrap: "anywhere", "@media print": { fontSize: "10px", margin: "2px 0" } }}>
-    {label} : {value || "-"}
+    {label} : {value}
   </Typography>
-);
+));
+
+const RemarkLine = ({ hu, mat, batch }) => {
+  const text = useRemarkCs([{ mappingId: null, hu, mat, batch }]);
+  return <Line label="Remark CS" value={text} />;
+};
 
 /**
  * "ปริ้นสลีป" of a Tuna scrap / CK bone plan row (it has no trolley and no mapping_id yet): the label that tells the cold room which material it is —
@@ -45,7 +51,7 @@ const FlowSlip = ({ row, onClose }) => {
     return () => window.removeEventListener("afterprint", onClose);
   }, [onClose]);
 
-  const { order, stamps, next } = flowState(row);
+  const { order, stamps } = flowState(row);
   const status = row.__status?.name || row.__status?.label || "";
   return (
     <Dialog open onClose={(e, reason) => { if (reason !== "backdropClick") onClose(); }}
@@ -60,7 +66,7 @@ const FlowSlip = ({ row, onClose }) => {
           ป้ายระบุวัตถุดิบ (Flow)
         </Typography>
         <Typography className="print-big" sx={{ fontSize: "40px", fontWeight: "bold", textAlign: "center", mb: 1, "@media print": { fontSize: "22px", marginBottom: "1mm" } }}>
-          {row.flow_id || "-"}
+          {row.flow_id}
         </Typography>
 
         <Line label="วัตถุดิบ" value={row.mat_name} />
@@ -71,16 +77,13 @@ const FlowSlip = ({ row, onClose }) => {
         <Line label="กลุ่มวัตถุดิบ" value={row.rm_group_name} />
         <Line label="แผนผลิต" value={row.code || row.production} />
         <Line label="เวลาอบเสร็จ/เตรียมเสร็จ" value={fmt(row.cooked_date)} />
-        <Box className="print-text" sx={{ fontSize: "20px", color: "#464646", margin: "6px 10px", "@media print": { fontSize: "10px", margin: "2px 0" } }}>
-          <RemarkCsLine hu={row.hu} mat={row.mat} batch={row.batch} />
-        </Box>
+        <RemarkLine hu={row.hu} mat={row.mat} batch={row.batch} />
         <Line label="สถานะ" value={status} />
 
-        <Typography className="print-title" sx={{ fontSize: "20px", color: "#000", margin: "10px", "@media print": { fontSize: "12px", fontWeight: "bold", margin: "4px 0" } }}>ขั้นตอน</Typography>
-        {order.map((k) => (
-          <Line key={k} label={STAGE_BUTTON[k]} value={stamps[k] ? fmt(stamps[k]) : (k === next ? "____/____  เวลา ____:____ น." : "")} />
-        ))}
-        <Line label="ผู้ดำเนินการ" value="" />
+        {order.some((k) => stamps[k]) && (
+          <Typography className="print-title" sx={{ fontSize: "20px", color: "#000", margin: "10px", "@media print": { fontSize: "12px", fontWeight: "bold", margin: "4px 0" } }}>ขั้นตอน</Typography>
+        )}
+        {order.filter((k) => stamps[k]).map((k) => <Line key={k} label={STAGE_BUTTON[k]} value={fmt(stamps[k])} />)}
       </Box>
     </Dialog>
   );
