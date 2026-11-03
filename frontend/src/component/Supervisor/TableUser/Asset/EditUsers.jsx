@@ -36,6 +36,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
   const [extraRoles, setExtraRoles] = useState([]); // Role เพิ่มเติม (นอกจากสถานที่ทำงานหลัก) ที่พนักงานสลับไปใช้ได้จากปุ่มที่ header
 
   const [manualTrolley, setManualTrolley] = useState(false); // สิทธิ์ manual_trolley: คีย์เลขรถเข็นเองใน modal Scan รถเข็น
+  const [scanSapOnly, setScanSapOnly] = useState(false); // สิทธิ์ scan_sap_only: ปุ่มสแกนป้าย SAP ห้ามพิมพ์เอง ต้องสแกนเท่านั้น
   const [rawmatTypes, setRawmatTypes] = useState([]); // เก็บข้อมูล rawmatType
   const [selectedRawmatTypes, setSelectedRawmatTypes] = useState(
     Array.isArray(userData?.rm_type_ids) ? userData.rm_type_ids : []
@@ -63,7 +64,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
         .catch((err) => console.error("โหลด Role เพิ่มเติมไม่สำเร็จ:", err.message));
 
       axios.get(`${API_URL}/api/user/permissions`, { params: { user_id: userData.user_id } })
-        .then((res) => setManualTrolley((res.data?.data || []).includes("manual_trolley")))
+        .then((res) => { const perms = res.data?.data || []; setManualTrolley(perms.includes("manual_trolley")); setScanSapOnly(perms.includes("scan_sap_only")); })
         .catch((err) => console.error("โหลดสิทธิ์พิเศษไม่สำเร็จ:", err.message));
 
       // ใช้ค่า rm_type_ids โดยตรงถ้าเป็น array
@@ -205,7 +206,7 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
           .then(() => ({ success: true }))
           .catch((err) => ({ success: false, error: err.response?.data?.error || "บันทึก Role เพิ่มเติมไม่สำเร็จ" }));
 
-        const permsResult = await axios.put(`${API_URL}/api/user/permissions`, { user_id: userId, perms: manualTrolley ? ["manual_trolley"] : [] })
+        const permsResult = await axios.put(`${API_URL}/api/user/permissions`, { user_id: userId, perms: [manualTrolley && "manual_trolley", scanSapOnly && "scan_sap_only"].filter(Boolean) })
           .then(() => ({ success: true }))
           .catch((err) => ({ success: false, error: err.response?.data?.error || "บันทึกสิทธิ์พิเศษไม่สำเร็จ" }));
 
@@ -345,6 +346,10 @@ const EditUsers = ({ isOpen, onClose, onSuccess, userData }) => {
             <FormControlLabel
               control={<Checkbox checked={manualTrolley} onChange={(e) => setManualTrolley(e.target.checked)} color="primary" />}
               label="คีย์เลขรถเข็นเองได้ (modal Scan รถเข็น)"
+            />
+            <FormControlLabel
+              control={<Checkbox checked={scanSapOnly} onChange={(e) => setScanSapOnly(e.target.checked)} color="primary" />}
+              label="สแกนป้าย SAP ต้องสแกนเท่านั้น (พิมพ์เองไม่ได้)"
             />
           </div>
 
