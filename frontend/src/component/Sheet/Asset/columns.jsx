@@ -123,6 +123,7 @@ export const COLUMNS = [
   x("mix_code", "รหัสผสม", "info", 100),
   x("tro_id", "รถเข็น", "info", 80),
   x("batch", "Batch", "info", 110, { get: (r) => r.batch_after || r.batch }),
+  x("batch_2x", "Batch แปลง", "info", 110, { get: (r) => r.batch_after || null }),
   x("mat", "รหัสวัตถุดิบ", "info", 100),
   x("mat_name", "ชื่อวัตถุดิบ", "info", 190),
   x("code", "แผนผลิต", "info", 130),
