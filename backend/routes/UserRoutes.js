@@ -97,7 +97,8 @@ router.put("/user/roles", async (req, res) => {
 // ─────────────────────[ สิทธิ์พิเศษต่อบัญชี ]─────────────────────
 // UserPermissions(user_id, perm_key): สิทธิ์ที่ Supervisor/Master ให้เป็นรายบัญชีในหน้าการจัดการพนักงาน
 // ตอนนี้มี  manual_trolley = คีย์เลขรถเข็นเองใน modal Scan รถเข็น (ปกติสแกนได้อย่างเดียว) — เพิ่มสิทธิ์ใหม่ที่ KNOWN_PERMISSIONS
-const KNOWN_PERMISSIONS = ["manual_trolley"];
+// manual_trolley = คีย์เลขรถเข็นเองได้ · scan_sap_only = ปุ่ม "สแกนป้าย SAP" ห้ามพิมพ์เอง (ต้องมาจากการสแกน; ไม่มีสิทธิ์นี้ = พิมพ์ได้เหมือนเดิม)
+const KNOWN_PERMISSIONS = ["manual_trolley", "scan_sap_only"];
 let userPermsChecked = false;
 async function ensureUserPermissionsTable(pool) {
   if (userPermsChecked) return;

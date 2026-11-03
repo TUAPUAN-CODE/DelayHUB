@@ -6,6 +6,7 @@ import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
 import useQrCamera from "../../../../hooks/useQrCamera";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { mustScanSap } from "../../../../utils/userPerms";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -49,6 +50,8 @@ const CameraActivationModal = ({
   const [inputValue, setInputValue] = useState('');
   const [isRawMaterialFocused, setIsRawMaterialFocused] = useState(false);
   const [hu, setHu] = useState('');
+  const scanOnly = mustScanSap(); // บัญชีที่ถูกตั้งให้ต้องสแกนเท่านั้น (หน้าการจัดการพนักงาน): พิมพ์เองไม่ได้
+  const scanBuf = useRef({ text: '', at: 0 });
 
   const CloseButton = styled(IconButton)(({ theme }) => ({
     position: "absolute",
@@ -73,7 +76,7 @@ const CameraActivationModal = ({
 
     const handleKeyPress = (e) => {
       // Handle the Enter key from scanner (scanners often send Enter after data)
-      if (isRawMaterialFocused && e.key === 'Enter') {
+      if (!scanOnly && isRawMaterialFocused && e.key === 'Enter') {
         e.preventDefault();
         processScannerInput();
       }
@@ -99,11 +102,34 @@ const CameraActivationModal = ({
     }
   }, [open]);
 
-  const processScannerInput = () => {
-    if (!inputValue) return;
+  // scanOnly: เครื่องสแกน USB พิมพ์ข้อมูลเร็วมาก (ตัวอักษรห่างกันไม่ถึง ~100 ms) แล้วปิดด้วย Enter — คนพิมพ์เองไม่ทัน บัฟเฟอร์จะถูกล้าง
+  useEffect(() => {
+    if (!open || !scanOnly) return undefined;
+    const MAX_GAP_MS = 100;
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const now = Date.now();
+      const b = scanBuf.current;
+      if (now - b.at > MAX_GAP_MS) b.text = '';
+      b.at = now;
+      if (e.key === 'Enter') {
+        const text = b.text;
+        b.text = '';
+        if (text.length >= 10) { e.preventDefault(); processScannerInput(text); }
+      } else if (e.key.length === 1) {
+        b.text += e.key;
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, scanOnly]);
+
+  const processScannerInput = (typed) => {
+    const raw = typeof typed === 'string' ? typed : inputValue;
+    if (!raw) return;
     
     // Example input: 14L300000512|NCE80A18K3|301710388|330.000|KG
-    const parts = inputValue.split('|');
+    const parts = raw.split('|');
     if (parts.length >= 3) {
       const var1 = parts[0].substring(0, 12); // First 12 characters
       const var2 = parts[1].substring(0, 10); // First 10 characters of second part
@@ -356,6 +382,12 @@ const CameraActivationModal = ({
             </Alert>
           )}
 
+          {scanOnly && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              บัญชีนี้ต้องสแกนเท่านั้น (พิมพ์เองไม่ได้) — ใช้กล้อง หรือยิงด้วยเครื่องสแกน
+            </Alert>
+          )}
+
           <Divider />
           
           <video 
@@ -393,6 +425,7 @@ const CameraActivationModal = ({
               }}
               getOptionLabel={(option) => `${option.mat}`}
               isOptionEqualToValue={(option, value) => option.mat === value.mat}
+              readOnly={scanOnly}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -413,7 +446,7 @@ const CameraActivationModal = ({
                         {params.InputProps.endAdornment}
                       </>
                     ),
-                    readOnly: scanSuccess
+                    readOnly: scanSuccess || scanOnly
                   }}
                   sx={{
                     '& label': {
@@ -454,7 +487,7 @@ const CameraActivationModal = ({
                 required
                 InputProps={{ 
                   endAdornment: <IoInformationCircle color={theme.palette.info.main} />,
-                  readOnly: scanSuccess
+                  readOnly: scanSuccess || scanOnly
                 }}
                 inputProps={{ 
                   maxLength: 10,
@@ -487,7 +520,7 @@ const CameraActivationModal = ({
                 required
                 InputProps={{ 
                   endAdornment: <IoInformationCircle color={theme.palette.info.main} />,
-                  readOnly: scanSuccess
+                  readOnly: scanSuccess || scanOnly
                 }}
                 inputProps={{ 
                   maxLength: 9,
