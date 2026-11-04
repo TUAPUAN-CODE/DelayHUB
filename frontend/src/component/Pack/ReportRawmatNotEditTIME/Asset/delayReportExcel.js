@@ -6,6 +6,7 @@ import templateUrl from '../../../../assets/templates/F3PFPV04.xlsx?url';
 import {
   getRemappedRow, isSpecialGroup, calcDBS1Minutes, calcDBS2Minutes, calcDBS3Minutes, calcDBS4Minutes,
 } from './delayReportCore';
+import { reportRemark } from '../../../Sheet/Asset/fishBatch';
 
 const FIRST_ROW = 11;
 const ROWS_PER_PAGE = 17;
@@ -63,7 +64,7 @@ const lineOf = (row) => {
     AA: hours(calcDBS2Minutes(m, sp)),
     AB: hours(calcDBS3Minutes(m, sp)),
     AC: hours(calcDBS4Minutes(m, sp, row)),
-    AD: row.remark_dalay ?? '',
+    AD: reportRemark(row),
   };
 };
 
