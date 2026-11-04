@@ -78,10 +78,11 @@ const DonePanel = ({ gridKey, gridProps }) => {
   // the column "กะ" is only in this table: it is added once to the saved columns of every account (and can be sorted / filtered like any column)
   // in this table "Batch" is the STARTING batch (Batch.batch_before; the plan's batch when there is none): the converted batch has its own column "Batch แปลง"
   const columns = useMemo(() => [
-    ...(gridProps.columns || []).map((c) => (c.key === "batch" ? { ...c, get: (r) => r.batch_before || r.batch_after || r.batch } : c)),
+    // Batch + Batch แปลง are frozen side by side (default of this table; accounts that saved their own frozen columns get it once, see ensureVisible)
+    ...(gridProps.columns || []).map((c) => (c.key === "batch" ? { ...c, frozen: true, get: (r) => r.batch_before || r.batch_after || r.batch } : c.key === "batch_2x" ? { ...c, frozen: true } : c)),
     SHIFT_COLUMN,
   ], [gridProps.columns]);
-  const ensureVisible = useMemo(() => [...(gridProps.ensureVisible || []), { key: "shift", after: "mapping_id" }], [gridProps.ensureVisible]);
+  const ensureVisible = useMemo(() => [...(gridProps.ensureVisible || []), { key: "shift", after: "mapping_id" }, { key: "batch", move: true, pin: true }, { key: "batch_2x", after: "batch", move: true, pin: true }], [gridProps.ensureVisible]);
 
   // Export takes the rows of the shift picked above AND what the user narrowed the grid down to; its Date is filled from them:
   // every row packed on one day -> that day, else the fetched range when it is one day, else today

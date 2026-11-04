@@ -15,7 +15,7 @@ const MISSING = "ยังไม่ได้สร้างตารางเก
 
 /**
  * Columns a page wants every account to see, also accounts that saved their columns before the column existed / was asked for:
- * ensure = [{ key, after? }] — each key is added ONCE per account (after the column `after`, else at the end) and remembered in ext.__ensured,
+ * ensure = [{ key, after?, move?, pin? }] — each key is added ONCE per account (after the column `after`, else at the end) and remembered in ext.__ensured,
  * so an account can still hide it afterwards. Returns the same object when nothing is added.
  */
 const applyEnsure = (cfg, ensure) => {
@@ -24,12 +24,18 @@ const applyEnsure = (cfg, ensure) => {
   const todo = ensure.filter((e) => !done.has(e.key));
   if (!todo.length) return cfg;
   const visible = [...(cfg.visible || [])];
-  todo.forEach(({ key, after }) => {
-    if (visible.includes(key)) return;
-    const i = after ? visible.indexOf(after) : -1;
-    visible.splice(i >= 0 ? i + 1 : visible.length, 0, key);
+  let pins = cfg.pins;
+  todo.forEach(({ key, after, move, pin }) => {
+    // move: put the column right after `after` even when the account already shows it (done once per account, the account can move it again)
+    if (move && visible.includes(key)) visible.splice(visible.indexOf(key), 1);
+    if (!visible.includes(key)) {
+      const i = after ? visible.indexOf(after) : -1;
+      visible.splice(i >= 0 ? i + 1 : move ? 0 : visible.length, 0, key); // moved columns without `after` go to the front
+    }
+    // pin: freeze the column for an account that saved its own frozen columns (the others get it from the column's own `frozen`)
+    if (pin && Array.isArray(pins) && !pins.includes(key)) pins = [...pins, key];
   });
-  return { ...cfg, visible, ext: { ...(cfg.ext || {}), __ensured: [...done, ...todo.map((e) => e.key)] } };
+  return { ...cfg, visible, pins, ext: { ...(cfg.ext || {}), __ensured: [...done, ...todo.map((e) => e.key)] } };
 };
 
 /**
