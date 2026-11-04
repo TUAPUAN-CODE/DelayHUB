@@ -14,13 +14,14 @@ test("not fish / no starting batch: remark unchanged", () => {
 });
 test("same code, different starting batches (fish only)", () => {
   const rows = [
-    { mapping_id: 1, rm_type_id: 3, code: "A217 (Can B)", batch_before: "b1" },
-    { mapping_id: 2, rm_type_id: 3, code: "A217 (Can B)", batch_before: "B2" },
-    { mapping_id: 3, rm_type_id: 3, code: "A217 (Can B)", batch_before: "B2" },
-    { mapping_id: 4, rm_type_id: 3, code: "A300 (Can A)", batch_before: "B9" },
-    { mapping_id: 5, rm_type_id: 2, code: "A400 (Can A)", batch_before: "C1" },
-    { mapping_id: 6, rm_type_id: 2, code: "A400 (Can A)", batch_before: "C2" },
+    { mapping_id: 1, rm_type_id: 3, mat: "M1", code: "A217 (Can B)", batch_before: "b1" },
+    { mapping_id: 2, rm_type_id: 3, mat: "M1", code: "A217 (Can B)", batch_before: "B2" },
+    { mapping_id: 3, rm_type_id: 3, mat: "M1", code: "A217 (Can B)", batch_before: "B2" },
+    { mapping_id: 4, rm_type_id: 3, mat: "M1", code: "A300 (Can A)", batch_before: "B9" },
+    { mapping_id: 5, rm_type_id: 2, mat: "M1", code: "A400 (Can A)", batch_before: "C1" },
+    { mapping_id: 6, rm_type_id: 2, mat: "M1", code: "A400 (Can A)", batch_before: "C2" },
   ];
+  rows.push({ mapping_id: 7, rm_type_id: 3, mat: "M2", code: "A217 (Can B)", batch_before: "Z9" }); // another mat of the same code: not the same group
   const g = findSameCodeDifferentBatch(rows);
   assert.equal(g.length, 1);
   assert.equal(g[0].code, "A217 (Can B)");

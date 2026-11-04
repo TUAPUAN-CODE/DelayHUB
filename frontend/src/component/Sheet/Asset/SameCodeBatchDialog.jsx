@@ -13,7 +13,7 @@ const SameCodeBatchDialog = ({ open, rows, onClose }) => {
       <DialogTitle sx={{ fontWeight: 700 }}>ตรวจ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา)</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          ตรวจเฉพาะวัตถุดิบกลุ่มปลาในแถวที่ดึงมา: Code (แผนผลิต + ไลน์) เดียวกันที่มี Batch ตั้งต้น 2 Batch ขึ้นไป
+          ตรวจเฉพาะวัตถุดิบกลุ่มปลาในแถวที่ดึงมา: Code (แผนผลิต + ไลน์) และวัตถุดิบ (Mat) เดียวกัน ที่มี Batch ตั้งต้น 2 Batch ขึ้นไป
         </Typography>
         {groups.length === 0 ? (
           <Alert severity="success">ไม่พบ Code ที่เดินคนละ Batch ในข้อมูลที่ดึงมา</Alert>
@@ -21,8 +21,8 @@ const SameCodeBatchDialog = ({ open, rows, onClose }) => {
           <>
             <Alert severity="warning" sx={{ mb: 1.5 }}>{`พบ ${groups.length} Code ที่เดินหลาย Batch`}</Alert>
             {groups.map((g) => (
-              <Box key={g.code} sx={{ mb: 2 }}>
-                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{`${g.code} — ${g.batches.length} Batch`}</Typography>
+              <Box key={`${g.code}|${g.mat}`} sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{`${g.code} · ${g.mat_name || g.mat} (${g.mat}) — ${g.batches.length} Batch`}</Typography>
                 <Table size="small">
                   <TableHead>
                     <TableRow><TableCell>Batch ตั้งต้น</TableCell><TableCell>Batch แปลง (2x)</TableCell><TableCell>รายการ</TableCell><TableCell>วัตถุดิบ</TableCell><TableCell>บรรจุเสร็จ</TableCell></TableRow>

@@ -19,23 +19,25 @@ export const reportRemark = (row) => {
 };
 
 /**
- * Fish rows that ran the same Code (plan + line, e.g. "A217 (Can B)") with different starting batches (batch_before).
- * -> [{ code, batches: [{ batch, rows: [row] }] }] (only codes with 2 or more different batches), codes and batches sorted.
+ * Fish rows that ran the same Code (plan + line, e.g. "A217 (Can B)") with the SAME material (mat) but different starting batches (batch_before).
+ * -> [{ code, mat, mat_name, batches: [{ batch, rows: [row] }] }] (only groups with 2 or more different batches), sorted.
  */
 export const findSameCodeDifferentBatch = (rows) => {
-  const byCode = new Map();
+  const groups = new Map();
   (rows || []).forEach((r) => {
     if (!isFishRow(r)) return;
     const code = clean(r.code) || [clean(r.doc_no ?? r.production), clean(r.rmm_line_name) && `(${clean(r.rmm_line_name)})`].filter(Boolean).join(" ");
+    const mat = clean(r.mat).toUpperCase();
     const batch = clean(r.batch_before).toUpperCase();
-    if (!code || !batch) return;
-    if (!byCode.has(code)) byCode.set(code, new Map());
-    const m = byCode.get(code);
-    if (!m.has(batch)) m.set(batch, []);
-    m.get(batch).push(r);
+    if (!code || !mat || !batch) return;
+    const key = `${code}\u0000${mat}`;
+    if (!groups.has(key)) groups.set(key, { code, mat, mat_name: clean(r.mat_name), byBatch: new Map() });
+    const g = groups.get(key);
+    if (!g.byBatch.has(batch)) g.byBatch.set(batch, []);
+    g.byBatch.get(batch).push(r);
   });
-  return [...byCode.entries()]
-    .filter(([, m]) => m.size >= 2)
-    .map(([code, m]) => ({ code, batches: [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([batch, rs]) => ({ batch, rows: rs })) }))
-    .sort((a, b) => a.code.localeCompare(b.code, "th", { numeric: true }));
+  return [...groups.values()]
+    .filter((g) => g.byBatch.size >= 2)
+    .map((g) => ({ code: g.code, mat: g.mat, mat_name: g.mat_name, batches: [...g.byBatch.entries()].sort(([x], [y]) => x.localeCompare(y)).map(([batch, rs]) => ({ batch, rows: rs })) }))
+    .sort((x, y) => x.code.localeCompare(y.code, "th", { numeric: true }) || x.mat.localeCompare(y.mat));
 };
