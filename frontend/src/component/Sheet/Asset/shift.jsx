@@ -1,21 +1,7 @@
 // Shift of a finished row, by the time packing was done (sc_pack_date):
 //   DS = 06:00 – 17:30 · NS = 17:30 – 06:00 (the night runs into the next day: 00:00 – 05:59 is still the NS of the day before)
-const DS_FROM = 6 * 60;        // 06:00
-const DS_TO = 17 * 60 + 30;    // 17:30
-
-const toDate = (v) => {
-  if (v === null || v === undefined || v === "" || v === "-") return null;
-  const d = new Date(String(v).replace(" ", "T"));
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-
-/** "DS" | "NS" | null (not packed yet) */
-export const shiftOf = (v) => {
-  const d = toDate(v);
-  if (!d) return null;
-  const m = d.getHours() * 60 + d.getMinutes();
-  return m >= DS_FROM && m < DS_TO ? "DS" : "NS";
-};
+import { shiftOf, toDate } from "./shiftTime.js";
+export { shiftOf, workDayOf } from "./shiftTime.js";
 
 const LOOK = {
   DS: { color: "#92400E", bg: "#FEF3C7", title: "DS 06:00–17:30" },

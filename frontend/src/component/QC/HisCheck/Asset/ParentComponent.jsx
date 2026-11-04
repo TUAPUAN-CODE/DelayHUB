@@ -27,10 +27,6 @@ const ParentComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // State สำหรับ Pagination (ฝั่ง client เท่านั้น เพราะ API ดึงข้อมูลทั้งหมดมาแล้ว)
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
-
   // State สำหรับช่วงวันที่ (rmit_date)
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
@@ -79,7 +75,6 @@ const ParentComponent = () => {
       });
 
       setQcHistoryData(preparedData);
-      setPage(0); // reset หน้าทุกครั้งที่ดึงข้อมูลใหม่
       setLoading(false);
 
     } catch (error) {
@@ -110,18 +105,6 @@ const ParentComponent = () => {
       return;
     }
     fetchData(startDate, endDate);
-  };
-
-  // จัดการการเปลี่ยนหน้า
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // จัดการการเปลี่ยนจำนวนแถวต่อหน้า
-  const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 10);
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
   };
 
   return (
@@ -192,28 +175,18 @@ const ParentComponent = () => {
         </Box>
       )}
 
-      {/* เนื้อหา: loading หรือ ตาราง */}
-      {loading ? (
-        <Box sx={{
-          flex: 1,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <CircularProgress />
+      {/* ตาราง: sort / ค้นหา / กรองที่หัวคอลัมน์ และตั้งค่าคอลัมน์ที่แสดงได้ (DataGrid มาตรฐานของระบบ) */}
+      <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <Box sx={{ position: 'absolute', inset: 0 }}>
+          {loading && qcHistoryData.length === 0 ? (
+            <Box sx={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <QcHisTable filteredData={qcHistoryData} loading={loading} />
+          )}
         </Box>
-      ) : (
-        <Box sx={{ flex: 1, overflow: 'hidden' }}>
-          <QcHisTable
-            filteredData={qcHistoryData}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            totalRows={qcHistoryData.length}
-            handleChangePage={handleChangePage}
-            handleChangeRowsPerPage={handleChangeRowsPerPage}
-          />
-        </Box>
-      )}
+      </Box>
     </Paper>
   );
 };
