@@ -12,14 +12,14 @@ test("not fish / no starting batch: remark unchanged", () => {
   assert.equal(reportRemark({}), "");
   assert.ok(isFishRow({ rm_type_id: "67" }));
 });
-test("same code, different 2x batches (fish only)", () => {
+test("same code, different starting batches (fish only)", () => {
   const rows = [
-    { mapping_id: 1, rm_type_id: 3, code: "A217 (Can B)", batch_after: "b1" },
-    { mapping_id: 2, rm_type_id: 3, code: "A217 (Can B)", batch_after: "B2" },
-    { mapping_id: 3, rm_type_id: 3, code: "A217 (Can B)", batch_after: "B2" },
-    { mapping_id: 4, rm_type_id: 3, code: "A300 (Can A)", batch_after: "B9" },
-    { mapping_id: 5, rm_type_id: 2, code: "A400 (Can A)", batch_after: "C1" },
-    { mapping_id: 6, rm_type_id: 2, code: "A400 (Can A)", batch_after: "C2" },
+    { mapping_id: 1, rm_type_id: 3, code: "A217 (Can B)", batch_before: "b1" },
+    { mapping_id: 2, rm_type_id: 3, code: "A217 (Can B)", batch_before: "B2" },
+    { mapping_id: 3, rm_type_id: 3, code: "A217 (Can B)", batch_before: "B2" },
+    { mapping_id: 4, rm_type_id: 3, code: "A300 (Can A)", batch_before: "B9" },
+    { mapping_id: 5, rm_type_id: 2, code: "A400 (Can A)", batch_before: "C1" },
+    { mapping_id: 6, rm_type_id: 2, code: "A400 (Can A)", batch_before: "C2" },
   ];
   const g = findSameCodeDifferentBatch(rows);
   assert.equal(g.length, 1);
