@@ -13,7 +13,7 @@ const SameCodeBatchDialog = ({ open, rows, onClose }) => {
       <DialogTitle sx={{ fontWeight: 700 }}>ตรวจ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา)</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          ตรวจเฉพาะวัตถุดิบกลุ่มปลาในแถวที่ดึงมา: Code (แผนผลิต + ไลน์) เดียวกันที่มี Batch แปลง (2x) ตั้งแต่ 2 Batch ขึ้นไป
+          ตรวจเฉพาะวัตถุดิบกลุ่มปลาในแถวที่ดึงมา: Code (แผนผลิต + ไลน์) เดียวกันที่มี Batch ตั้งต้น 2 Batch ขึ้นไป
         </Typography>
         {groups.length === 0 ? (
           <Alert severity="success">ไม่พบ Code ที่เดินคนละ Batch ในข้อมูลที่ดึงมา</Alert>
@@ -25,13 +25,13 @@ const SameCodeBatchDialog = ({ open, rows, onClose }) => {
                 <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{`${g.code} — ${g.batches.length} Batch`}</Typography>
                 <Table size="small">
                   <TableHead>
-                    <TableRow><TableCell>Batch แปลง (2x)</TableCell><TableCell>Batch ตั้งต้น</TableCell><TableCell>รายการ</TableCell><TableCell>วัตถุดิบ</TableCell><TableCell>บรรจุเสร็จ</TableCell></TableRow>
+                    <TableRow><TableCell>Batch ตั้งต้น</TableCell><TableCell>Batch แปลง (2x)</TableCell><TableCell>รายการ</TableCell><TableCell>วัตถุดิบ</TableCell><TableCell>บรรจุเสร็จ</TableCell></TableRow>
                   </TableHead>
                   <TableBody>
                     {g.batches.flatMap((b) => b.rows.map((r) => (
                       <TableRow key={r.mapping_id}>
                         <TableCell sx={{ fontWeight: 600 }}>{b.batch}</TableCell>
-                        <TableCell>{r.batch_before || "-"}</TableCell>
+                        <TableCell>{r.batch_after || "-"}</TableCell>
                         <TableCell>{r.mapping_id}</TableCell>
                         <TableCell>{r.mat_name || r.mat || "-"}</TableCell>
                         <TableCell>{String(r.sc_pack_date || "").slice(0, 16).replace("T", " ") || "-"}</TableCell>

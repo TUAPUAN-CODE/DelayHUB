@@ -19,7 +19,7 @@ export const reportRemark = (row) => {
 };
 
 /**
- * Fish rows that ran the same Code (plan + line, e.g. "A217 (Can B)") with different 2x batches.
+ * Fish rows that ran the same Code (plan + line, e.g. "A217 (Can B)") with different starting batches (batch_before).
  * -> [{ code, batches: [{ batch, rows: [row] }] }] (only codes with 2 or more different batches), codes and batches sorted.
  */
 export const findSameCodeDifferentBatch = (rows) => {
@@ -27,7 +27,7 @@ export const findSameCodeDifferentBatch = (rows) => {
   (rows || []).forEach((r) => {
     if (!isFishRow(r)) return;
     const code = clean(r.code) || [clean(r.doc_no ?? r.production), clean(r.rmm_line_name) && `(${clean(r.rmm_line_name)})`].filter(Boolean).join(" ");
-    const batch = clean(r.batch_after).toUpperCase();
+    const batch = clean(r.batch_before).toUpperCase();
     if (!code || !batch) return;
     if (!byCode.has(code)) byCode.set(code, new Map());
     const m = byCode.get(code);
