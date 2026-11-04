@@ -7,6 +7,7 @@ import {
   getRemappedRow, isSpecialGroup, calculateDBS1FromMapped, calculateDBS2FromMapped, calculateDBS3FromMapped, calculateDBS4FromMapped,
   calcDBS1Minutes, calcDBS2Minutes, calcDBS3Minutes, calcDBS4Minutes, parseStandardDBSToMinutes,
 } from './delayReportCore';
+import { reportRemark } from '../../../Sheet/Asset/fishBatch';
 
 export const formatDateTimeForPDF = (dateTimeStr) => {
   if (!dateTimeStr || dateTimeStr === '-') return '-';
@@ -314,7 +315,7 @@ export const buildDelayReportPdf = (dataRows, sigData = {}, meta = {}) => {
       cellOver(calculateDBS3FromMapped(m, sp), colDBS3, over3, { fontSize: 5, bold: true });
       cellOver(calculateDBS4FromMapped(m, sp, row), colDBS4, over4, { fontSize: 5, bold: true });
       // ✅ ใส่ remark_dalay ในคอลัมน์ Remark
-      cell(row.remark_dalay, colRemark, { align: 'left', fontSize: 4 });
+      cell(reportRemark(row), colRemark, { align: 'left', fontSize: 4 });
     });
 
     const remainingRows = minRows - pageRows.length;

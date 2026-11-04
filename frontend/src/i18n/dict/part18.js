@@ -759,4 +759,12 @@ export default {
   "กำหนด": ["Deadline", "သတ်မှတ်ရက်", "ពេលកំណត់"],
   "สแกนป้าย SAP ต้องสแกนเท่านั้น (พิมพ์เองไม่ได้)": ["SAP label: scan only (typing by hand is not allowed)", "SAP တံဆိပ်: စကင်န်ဖတ်ရန်သာ (လက်ဖြင့် ရိုက်၍မရပါ)", "ស្លាក SAP៖ ស្កេនតែប៉ុណ្ណោះ (មិនអាចវាយដោយដៃ)"],
   "บัญชีนี้ต้องสแกนเท่านั้น (พิมพ์เองไม่ได้) — ใช้กล้อง หรือยิงด้วยเครื่องสแกน": ["This account must scan (typing by hand is not allowed) — use the camera or the scanner", "ဤအကောင့်သည် စကင်န်ဖတ်ရမည် (လက်ဖြင့် ရိုက်၍မရပါ) — ကင်မရာ သို့မဟုတ် စကင်နာကို သုံးပါ", "គណនីនេះត្រូវស្កេនតែប៉ុណ្ណោះ (មិនអាចវាយដោយដៃ) — ប្រើកាមេរ៉ា ឬម៉ាស៊ីនស្កេន"],
+  "ตรวจ Code เดียวกัน คนละ Batch (ปลา)": ["Check same Code, different Batch (fish)", "တူညီသော Code၊ မတူညီသော Batch စစ်ဆေးရန် (ငါး)", "ពិនិត្យ Code ដូចគ្នា Batch ខុសគ្នា (ត្រី)"],
+  "ตรวจ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา)": ["Check same Code, same line, different Batch (fish)", "တူညီသော Code၊ တူညီသော လိုင်း၊ မတူညီသော Batch စစ်ဆေးရန် (ငါး)", "ពិនិត្យ Code ដូចគ្នា ខ្សែដូចគ្នា Batch ខុសគ្នា (ត្រី)"],
+  "ตรวจเฉพาะวัตถุดิบกลุ่มปลาในแถวที่ดึงมา: Code (แผนผลิต + ไลน์) เดียวกันที่มี Batch แปลง (2x) ตั้งแต่ 2 Batch ขึ้นไป": ["Fish raw materials in the fetched rows only: the same Code (plan + line) with 2 or more converted (2x) Batches", "ဆွဲယူထားသော အတန်းများရှိ ငါးအုပ်စုကိုသာ စစ်ဆေးသည် — Code (အစီအစဉ် + လိုင်း) တူညီပြီး ပြောင်းလဲထားသော (2x) Batch ၂ ခုနှင့်အထက်ရှိသည်", "ពិនិត្យតែក្រុមត្រីក្នុងជួរដែលទាញមក៖ Code (ផែនការ + ខ្សែ) ដូចគ្នាដែលមាន Batch ប្តូរ (2x) ចាប់ពី 2 Batch ឡើងទៅ"],
+  "ไม่พบ Code ที่เดินคนละ Batch ในข้อมูลที่ดึงมา": ["No Code was run with different Batches in the fetched data", "ဆွဲယူထားသောဒေတာတွင် မတူညီသော Batch ဖြင့် လည်ပတ်သော Code မတွေ့ပါ", "រកមិនឃើញ Code ដែលដំណើរការជាមួយ Batch ផ្សេងគ្នាក្នុងទិន្នន័យដែលទាញមក"],
+  "พบ {n} Code ที่เดินหลาย Batch": ["Found {n} Code(s) run with several Batches", "Batch များစွာဖြင့် လည်ပတ်သော Code {n} ခု တွေ့ရှိသည်", "រកឃើញ Code {n} ដែលដំណើរការជាមួយ Batch ច្រើន"],
+  "{x} — {n} Batch": ["{x} — {n} Batch", "{x} — {n} Batch", "{x} — {n} Batch"],
+  "Batch แปลง (2x)": ["Converted Batch (2x)", "ပြောင်းလဲထားသော Batch (2x)", "Batch ប្តូរ (2x)"],
+  "Batch ตั้งต้น": ["Starting Batch", "စတင် Batch", "Batch ដើម"],
 };

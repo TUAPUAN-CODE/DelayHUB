@@ -219,6 +219,8 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
                   ELSE rmg.prep_to_cold + rmg.cold_to_pack END, 'N2') AS DBS4,
       -- some routes add a mapping without a Batch row (saveTrolley, getout/Trolley, Add/rm/...TrolleyMapping): fall back to the plan's batch
       COALESCE(NULLIF(b.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_after,
+      -- the batch before the change (fish: the starting batch) — shown in the Remark of the Delay report; falls back to the plan's batch
+      COALESCE(NULLIF(b.batch_before, N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch_before,
       emx.emulsion_text,
       sl.slot_id,
       -- the room comes from Slot: table ColdStorage only lists the large rooms (cs_id 10-46), so the small rooms of /coldStorage (cs_id 1-8)
@@ -260,7 +262,7 @@ const buildMappingQuery = (scope = "open", opts = {}) => {
       WHERE rmem.rmfp_id = rmm.rmfp_id
   ) emx
   OUTER APPLY (
-      SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after
+      SELECT STRING_AGG(bb.batch_after, ', ') AS batch_after, STRING_AGG(bb.batch_before, ', ') AS batch_before
       FROM Batch bb WITH (NOLOCK) WHERE bb.mapping_id = rmm.mapping_id
   ) b
   ${scope === "open" ? `-- the wide History columns only for the rows that are left

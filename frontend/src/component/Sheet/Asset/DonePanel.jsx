@@ -8,6 +8,7 @@ import HamsterLoader from "../../Layout/DataGrid/HamsterLoader";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import DoneExportDialog from "./DoneExportDialog";
+import SameCodeBatchDialog from "./SameCodeBatchDialog";
 import { SHIFT_COLUMN, shiftOf } from "./shift";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -31,6 +32,7 @@ const DonePanel = ({ gridKey, gridProps }) => {
   const [error, setError] = useState("");
   const [activeKey, setActiveKey] = useState(null);
   const [exportKind, setExportKind] = useState(null); // "pdf" | "excel"
+  const [checkOpen, setCheckOpen] = useState(false); // ตรวจ Code/ไลน์เดียวกัน คนละ Batch (ปลา)
   const [shift, setShift] = useState("all"); // all | DS | NS — by the time packing was done (shift.jsx)
   const [gridShown, setGridShown] = useState(null); // rows the grid shows now (after its search / column filters)
 
@@ -111,9 +113,11 @@ const DonePanel = ({ gridKey, gridProps }) => {
           <ToggleButton value="NS" title="บรรจุเสร็จ 17:30–06:00">NS{mappings ? ` (${shiftCount.NS})` : ""}</ToggleButton>
         </ToggleButtonGroup>
         <Box sx={{ flex: 1 }} />
+        <Button variant="outlined" disabled={!shown?.length || loading} onClick={() => setCheckOpen(true)}>ตรวจ Code เดียวกัน คนละ Batch (ปลา)</Button>
         <Button variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} disabled={!exportRows.length || loading} onClick={() => setExportKind("pdf")}>Export PDF รายงาน Delay</Button>
         <Button variant="outlined" color="success" startIcon={<GridOnIcon />} disabled={!exportRows.length || loading} onClick={() => setExportKind("excel")}>Export Excel (F3PFPV04)</Button>
       </Paper>
+      <SameCodeBatchDialog open={checkOpen} rows={shown} onClose={() => setCheckOpen(false)} />
       <DoneExportDialog open={!!exportKind} kind={exportKind} rows={exportRows} defaultDate={exportDate} onClose={() => setExportKind(null)} />
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {info?.capped && !loading && (
