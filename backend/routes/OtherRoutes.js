@@ -507,4 +507,132 @@ router.put("/other/lots/:id/recall", async (req, res) => {
   }
 });
 
+// ───────── แก้ไขข้อมูลจากหน้าเว็บ (ปุ่ม "แก้ไขข้อมูล" ใส่รหัสผ่าน Setting เหมือนหน้า Sheet) ─────────
+// ต้องมี header x-setting-unlock (หรือเป็น Supervisor/Master) — ตรวจที่ lib/authMiddleware.js (RULES: /api/other/edit/*) · ทุกครั้งเขียนลง OtherLotLog (ค่าเดิม → ค่าใหม่ + เหตุผล)
+const fmtLogAt = (v) => (v ? String(v).slice(0, 16) : "-");
+const parseEditAt = (v, now) => {
+  const d = parseDate(String(v ?? "").trim() === "" ? null : v);
+  if (!d || String(v ?? "").trim() === "") return { error: "เวลาไม่ถูกต้อง" };
+  if (d.getTime() > now.getTime() + FUTURE_MS) return { error: "เวลาต้องไม่เป็นอนาคต" };
+  return { d };
+};
+/** the kg of a lot must stay consistent after an edit: weight >= kg in, kg out <= kg in, the sets in the cold room <= kg in the cold room */
+const checkLotKg = async (transaction, lotId) => {
+  const kg = await lotKg(new sql.Request(transaction), lotId);
+  const w = await new sql.Request(transaction).input("id", sql.Int, lotId).query("SELECT weight_kg FROM OtherLot WHERE lot_id = @id");
+  const weight = Number(w.recordset[0]?.weight_kg) || 0;
+  if (kg.kgIn > weight + 1e-6) return `น้ำหนักที่เข้าห้องเย็นรวม ${kg.kgIn} kg เกินน้ำหนักที่เตรียม ${weight} kg`;
+  if (kg.kgOut > kg.kgIn + 1e-6) return `น้ำหนักที่ออกรวม ${kg.kgOut} kg เกินที่เข้าห้องเย็น ${kg.kgIn} kg`;
+  if (kg.unassigned < -1e-6) return `น้ำหนักชุดย่อยในห้องเย็น (${kg.kgSets} kg) เกินที่อยู่ในห้องเย็น (${kg.inCold} kg)`;
+  return "";
+};
+const editTx = async (req, res, name, work) => {
+  let transaction;
+  try {
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    await ensureTables(pool);
+    transaction = new sql.Transaction(pool);
+    await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+    const now = await dbNow(new sql.Request(transaction));
+    const out = await work(transaction, now);
+    if (out.error) { await safeRollback(transaction); return res.status(out.status || 400).json({ success: false, error: out.error }); }
+    const bad = await checkLotKg(transaction, out.lotId);
+    if (bad) { await safeRollback(transaction); return res.status(400).json({ success: false, error: bad }); }
+    await addLog(new sql.Request(transaction), out.lotId, out.action, `${out.detail}${out.reason ? ` · เหตุผล: ${out.reason}` : ""}`, who(req));
+    await transaction.commit();
+    res.json({ success: true, message: "แก้ไขข้อมูลแล้ว" });
+  } catch (err) {
+    if (transaction) { try { await safeRollback(transaction); } catch (e) { /* already closed */ } }
+    console.error(`[Route ${name}] Error:`, err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// lot: { lot_name, ref_code, weight_kg, prep_done_at, lid_open_at ("" = clear), note, reason? }
+router.put("/other/edit/lots/:id", (req, res) => {
+  const lotId = parseInt(req.params.id, 10);
+  const b = req.body || {};
+  const name = trim(b.lot_name, 200);
+  const weight = toNum(b.weight_kg);
+  if (Number.isNaN(lotId)) return res.status(400).json({ success: false, error: "ข้อมูลไม่ถูกต้อง" });
+  if (!name) return res.status(400).json({ success: false, error: "กรุณากรอกชื่อรายการ" });
+  if (!(weight > 0)) return res.status(400).json({ success: false, error: "น้ำหนักต้องมากกว่า 0" });
+  return editTx(req, res, "/other/edit/lots/:id", async (tx, now) => {
+    const cur = await new sql.Request(tx).input("id", sql.Int, lotId).query(`
+      SELECT lot_name, ref_code, weight_kg, CONVERT(VARCHAR(19), prep_done_at, 120) AS prep_done_at, CONVERT(VARCHAR(19), lid_open_at, 120) AS lid_open_at, note
+      FROM OtherLot WHERE lot_id = @id`);
+    const o = cur.recordset[0];
+    if (!o) return { error: "ไม่พบรายการ", status: 404 };
+    const prep = parseEditAt(b.prep_done_at, now);
+    if (prep.error) return { error: `เวลาเตรียมเสร็จ: ${prep.error}` };
+    let lid = null;
+    if (String(b.lid_open_at ?? "").trim() !== "") {
+      const x = parseEditAt(b.lid_open_at, now);
+      if (x.error) return { error: `เวลาเปิดฝา: ${x.error}` };
+      lid = x.d;
+    } else if (o.lid_open_at) {
+      const sets = await new sql.Request(tx).input("id", sql.Int, lotId).query("SELECT COUNT(*) AS n FROM OtherLotSet WHERE lot_id = @id AND cancelled_at IS NULL");
+      if (sets.recordset[0].n > 0) return { error: "ล้างเวลาเปิดฝาไม่ได้ เพราะมีชุดย่อยแล้ว" };
+    }
+    await new sql.Request(tx).input("id", sql.Int, lotId).input("name", sql.NVarChar(200), name).input("ref", sql.NVarChar(100), trim(b.ref_code, 100))
+      .input("w", sql.Decimal(12, 2), r2(weight)).input("prep", sql.VarChar(19), thaiText(prep.d)).input("lid", sql.VarChar(19), lid ? thaiText(lid) : null).input("note", sql.NVarChar(300), trim(b.note, 300))
+      .query("UPDATE OtherLot SET lot_name = @name, ref_code = @ref, weight_kg = @w, prep_done_at = CONVERT(DATETIME, @prep, 120), lid_open_at = CONVERT(DATETIME, @lid, 120), note = @note WHERE lot_id = @id");
+    const diff = [];
+    const add = (label, a, c) => { if (String(a ?? "") !== String(c ?? "")) diff.push(`${label} ${a ?? "-"} → ${c ?? "-"}`); };
+    add("ชื่อ", o.lot_name, name); add("อ้างอิง", o.ref_code, trim(b.ref_code, 100)); add("น้ำหนัก", Number(o.weight_kg), r2(weight));
+    add("เตรียมเสร็จ", fmtLogAt(o.prep_done_at), fmtLogAt(thaiText(prep.d))); add("เปิดฝา", fmtLogAt(o.lid_open_at), lid ? fmtLogAt(thaiText(lid)) : "-"); add("หมายเหตุ", o.note, trim(b.note, 300));
+    if (!diff.length) return { error: "ไม่มีการเปลี่ยนแปลง" };
+    return { lotId, action: "EDIT_LOT", detail: diff.join(" · "), reason: trim(b.reason, 200) };
+  });
+});
+
+// move IN / OUT: { qty_kg, moved_at, reason? } (a move that belongs to a set: the kg follows the set, only the time can change here)
+router.put("/other/edit/moves/:id", (req, res) => {
+  const moveId = parseInt(req.params.id, 10);
+  const b = req.body || {};
+  const qty = toNum(b.qty_kg);
+  if (Number.isNaN(moveId)) return res.status(400).json({ success: false, error: "ข้อมูลไม่ถูกต้อง" });
+  if (!(qty > 0)) return res.status(400).json({ success: false, error: "น้ำหนักต้องมากกว่า 0" });
+  return editTx(req, res, "/other/edit/moves/:id", async (tx, now) => {
+    const cur = await new sql.Request(tx).input("id", sql.Int, moveId).query("SELECT lot_id, kind, qty_kg, CONVERT(VARCHAR(19), moved_at, 120) AS moved_at, set_id FROM OtherLotMove WHERE move_id = @id");
+    const o = cur.recordset[0];
+    if (!o) return { error: "ไม่พบรายการเคลื่อนไหว", status: 404 };
+    const at = parseEditAt(b.moved_at, now);
+    if (at.error) return { error: at.error };
+    if (o.set_id && Math.abs(Number(o.qty_kg) - qty) > 1e-6) return { error: "น้ำหนักของการออกห้องเย็นแบบชุด แก้ที่ชุดย่อย" };
+    await new sql.Request(tx).input("id", sql.Int, moveId).input("q", sql.Decimal(12, 2), r2(qty)).input("at", sql.VarChar(19), thaiText(at.d))
+      .query("UPDATE OtherLotMove SET qty_kg = @q, moved_at = CONVERT(DATETIME, @at, 120) WHERE move_id = @id");
+    const diff = [];
+    if (Math.abs(Number(o.qty_kg) - r2(qty)) > 1e-6) diff.push(`น้ำหนัก ${Number(o.qty_kg)} → ${r2(qty)} kg`);
+    if (fmtLogAt(o.moved_at) !== fmtLogAt(thaiText(at.d))) diff.push(`เวลา ${fmtLogAt(o.moved_at)} → ${fmtLogAt(thaiText(at.d))}`);
+    if (!diff.length) return { error: "ไม่มีการเปลี่ยนแปลง" };
+    return { lotId: o.lot_id, action: o.kind === "IN" ? "EDIT_IN" : "EDIT_OUT", detail: `${o.kind === "IN" ? "เข้า" : "ออก"}ห้องเย็น #${moveId}: ${diff.join(" · ")}`, reason: trim(b.reason, 200) };
+  });
+});
+
+// set: { qty_kg, made_at, reason? } (a set that already went out: only the time of making it can change)
+router.put("/other/edit/sets/:id", (req, res) => {
+  const setId = parseInt(req.params.id, 10);
+  const b = req.body || {};
+  const qty = toNum(b.qty_kg);
+  if (Number.isNaN(setId)) return res.status(400).json({ success: false, error: "ข้อมูลไม่ถูกต้อง" });
+  if (!(qty > 0)) return res.status(400).json({ success: false, error: "น้ำหนักต้องมากกว่า 0" });
+  return editTx(req, res, "/other/edit/sets/:id", async (tx, now) => {
+    const cur = await new sql.Request(tx).input("id", sql.Int, setId).query("SELECT lot_id, set_no, qty_kg, CONVERT(VARCHAR(19), made_at, 120) AS made_at, out_move_id, cancelled_at FROM OtherLotSet WHERE set_id = @id");
+    const o = cur.recordset[0];
+    if (!o || o.cancelled_at) return { error: "ไม่พบชุดย่อย", status: 404 };
+    const at = parseEditAt(b.made_at, now);
+    if (at.error) return { error: at.error };
+    if (o.out_move_id && Math.abs(Number(o.qty_kg) - qty) > 1e-6) return { error: "ชุดนี้ออกห้องเย็นแล้ว แก้น้ำหนักไม่ได้ (แก้เวลาได้)" };
+    await new sql.Request(tx).input("id", sql.Int, setId).input("q", sql.Decimal(12, 2), r2(qty)).input("at", sql.VarChar(19), thaiText(at.d))
+      .query("UPDATE OtherLotSet SET qty_kg = @q, made_at = CONVERT(DATETIME, @at, 120) WHERE set_id = @id");
+    const diff = [];
+    if (Math.abs(Number(o.qty_kg) - r2(qty)) > 1e-6) diff.push(`น้ำหนัก ${Number(o.qty_kg)} → ${r2(qty)} kg`);
+    if (fmtLogAt(o.made_at) !== fmtLogAt(thaiText(at.d))) diff.push(`เวลาจัดชุด ${fmtLogAt(o.made_at)} → ${fmtLogAt(thaiText(at.d))}`);
+    if (!diff.length) return { error: "ไม่มีการเปลี่ยนแปลง" };
+    return { lotId: o.lot_id, action: "EDIT_SET", detail: `ชุด ${o.set_no} (#${setId}): ${diff.join(" · ")}`, reason: trim(b.reason, 200) };
+  });
+});
+
 module.exports = router;

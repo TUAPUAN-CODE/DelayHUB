@@ -1,18 +1,22 @@
 import { Box, Button, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
+import EditIcon from "@mui/icons-material/Edit";
 import { fmtAt, setCode, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN } from "./lotCalc";
 import { inSlip, outSlip, setSlip } from "./slips";
 import { Clock, DIM, SUB } from "./lotUi";
 
 const Title = ({ children }) => <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>{children}</Typography>;
+const Pencil = ({ title, onClick }) => <IconButton size="small" color="warning" title={title} onClick={onClick}><EditIcon fontSize="small" /></IconButton>;
 const Print = ({ title, onClick }) => <IconButton size="small" title={title} onClick={onClick}><PrintIcon fontSize="small" /></IconButton>;
 
 /**
  * The opened row of a lot: outside / in the cold room (first in, first out), every "เข้าห้องเย็น" stamp, and the sets ("จัดชุด").
  * c = calcLot(lot, now) · s = calcSets(lot, c, now) · readOnly = History page (print only)
  * onPrint([slip]) · onSetOut(set) · onSetCancel(set)
+ * editMode (the button "แก้ไขข้อมูล" is unlocked): pencils to edit a stamp (onEditMove(move)) / a set (onEditSet(set))
  */
-const LotDetail = ({ lot, c, s, readOnly, onPrint, onSetOut, onSetCancel }) => {
+const LotDetail = ({ lot, c, s, readOnly, editMode = false, onPrint, onSetOut, onSetCancel, onEditMove, onEditSet }) => {
+  const moveById = new Map(lot.moves.map((m) => [m.move_id, m]));
   const ins = lot.moves.filter((m) => m.kind === "IN");
   const setById = new Map(s.sets.map((x) => [x.set_id, x]));
   // the slip of an OUT: the set's slip when the OUT was a set, else the slip of that OUT of the lot
@@ -51,7 +55,7 @@ const LotDetail = ({ lot, c, s, readOnly, onPrint, onSetOut, onSetCancel }) => {
                     <TableCell align="right">{Number(m.qty_kg)} kg</TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(m.moved_at)}</TableCell>
                     <TableCell>{m.created_by || "-"}</TableCell>
-                    <TableCell><Print title="พิมพ์สลิปเข้าห้องเย็น" onClick={() => onPrint([inSlip(lot, m)])} /></TableCell>
+                    <TableCell><Print title="พิมพ์สลิปเข้าห้องเย็น" onClick={() => onPrint([inSlip(lot, m)])} />{editMode && <Pencil title="แก้ไขเวลา / น้ำหนักที่เข้าห้องเย็น" onClick={() => onEditMove(m)} />}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -73,7 +77,7 @@ const LotDetail = ({ lot, c, s, readOnly, onPrint, onSetOut, onSetCancel }) => {
                   <TableCell sx={{ whiteSpace: "nowrap" }}>{fmtAt(k.inAt)}</TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? fmtAt(k.outAt) : <span style={{ color: "#1552F0" }}>ยังอยู่ในห้องเย็น</span>}</TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap" }}>{k.outAt ? (k.packLeftMin > 0 ? fmtAt(k.packBy) : <span style={{ color: "#C62828" }}>ไม่เหลือเวลา</span>) : "-"}</TableCell>
-                  <TableCell>{k.outMoveId ? <Print title="พิมพ์สลิปออกห้องเย็น" onClick={() => printOut(k)} /> : null}</TableCell>
+                  <TableCell>{k.outMoveId ? <Print title="พิมพ์สลิปออกห้องเย็น" onClick={() => printOut(k)} /> : null}{editMode && k.outMoveId && moveById.get(k.outMoveId) ? <Pencil title="แก้ไขเวลา / น้ำหนักที่ออกห้องเย็น" onClick={() => onEditMove(moveById.get(k.outMoveId))} /> : null}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -98,6 +102,7 @@ const LotDetail = ({ lot, c, s, readOnly, onPrint, onSetOut, onSetCancel }) => {
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
                         <Print title={x.out ? "พิมพ์สลิปออกห้องเย็น" : "พิมพ์สลิปชุด"} onClick={() => onPrint([setSlip(lot, x)])} />
+                        {editMode && <Pencil title="แก้ไขเวลา / น้ำหนักของชุด" onClick={() => onEditSet(x)} />}
                         {!readOnly && !x.out && (
                           <>
                             <Button size="small" variant="outlined" onClick={() => onSetOut(x)} sx={{ ml: 0.5, textTransform: "none" }}>ออกห้องเย็น</Button>

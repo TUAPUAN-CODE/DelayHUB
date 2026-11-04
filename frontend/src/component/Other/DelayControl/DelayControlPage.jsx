@@ -8,9 +8,13 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import StampDialog from "./Asset/StampDialog";
 import SplitDialog from "./Asset/SplitDialog";
 import PasswordDialog from "./Asset/PasswordDialog";
+import EditDialog, { toInputAt } from "./Asset/EditDialog";
+import UnlockDialog, { hasUnlock } from "../../Sheet/Asset/UnlockDialog";
 import LotSlip from "./Asset/LotSlip";
 import LotDetail from "./Asset/LotDetail";
 import { calcLot, calcSets, fmtAt, fmtMin, setCode, LIMIT_INSIDE_MIN, LIMIT_OUTSIDE_MIN, LIMIT_AFTER_LID_MIN } from "./Asset/lotCalc";
@@ -31,7 +35,15 @@ const DelayControlPage = () => {
   const [open, setOpen] = useState(() => new Set());
   const [dialog, setDialog] = useState(null); // { kind: "new" | "IN" | "OUT" | "LID" | "SPLIT" | "SET_OUT" | "WEIGHT" | "SET_CANCEL", lot?, set?, seq }
   const [slips, setSlips] = useState(null);   // slips to print: right after a stamp, or again from the opened row
+  const [editMode, setEditMode] = useState(() => hasUnlock()); // button "แก้ไขข้อมูล": unlocked with the Setting password (like the Sheet pages)
+  const [unlockAsk, setUnlockAsk] = useState(false);
   const lastLoad = useRef(0);
+  useEffect(() => {
+    const drop = () => setEditMode(false); // the server refused the permit (expired / another user): ask the password again
+    window.addEventListener("setting-unlock-dropped", drop);
+    return () => window.removeEventListener("setting-unlock-dropped", drop);
+  }, []);
+  const toggleEdit = () => { if (editMode) setEditMode(false); else if (hasUnlock()) setEditMode(true); else setUnlockAsk(true); };
 
   const load = useCallback(async () => {
     lastLoad.current = Date.now();
@@ -179,6 +191,45 @@ const DelayControlPage = () => {
         />
       );
     }
+    if (kind === "EDIT_LOT") {
+      return (
+        <EditDialog
+          key={seq} title={`แก้ไขข้อมูล — ${label}`} onClose={close}
+          hint="แก้ไขแล้วระบบบันทึกค่าเดิม → ค่าใหม่ลงประวัติ · เว้นเวลาเปิดฝาว่าง = ล้างเวลาเปิดฝา (ทำไม่ได้ถ้ามีชุดย่อยแล้ว)"
+          fields={[
+            { key: "lot_name", label: "ชื่อวัตถุดิบ / รายการ", required: true }, { key: "ref_code", label: "Batch / รหัสอ้างอิง" },
+            { key: "weight_kg", label: "น้ำหนักที่เตรียม (kg)", type: "number", required: true }, { key: "prep_done_at", label: "เวลาเตรียมเสร็จ", type: "datetime", required: true },
+            { key: "lid_open_at", label: "เวลาเปิดฝา", type: "datetime" }, { key: "note", label: "หมายเหตุ", multiline: true },
+          ]}
+          values={{ lot_name: lot.lot_name, ref_code: lot.ref_code || "", weight_kg: String(lot.weight_kg), prep_done_at: toInputAt(lot.prep_done_at), lid_open_at: toInputAt(lot.lid_open_at), note: lot.note || "" }}
+          onSubmit={async (v) => (await send("put", `/api/other/edit/lots/${lot.lot_id}`, { ...v, prep_done_at: `${v.prep_done_at.replace("T", " ")}:00`, lid_open_at: v.lid_open_at ? `${v.lid_open_at.replace("T", " ")}:00` : "" })).error}
+        />
+      );
+    }
+    if (kind === "EDIT_MOVE") {
+      const m = lot.moves.find((x) => x.move_id === dialog.move.move_id) || dialog.move;
+      return (
+        <EditDialog
+          key={seq} title={`แก้ไข${m.kind === "IN" ? "การเข้า" : "การออก"}ห้องเย็น — ${label}`} onClose={close}
+          hint={m.set_id ? "การออกห้องเย็นแบบชุด: แก้ได้เฉพาะเวลา (น้ำหนักแก้ที่ชุดย่อย)" : undefined}
+          fields={[{ key: "qty_kg", label: "น้ำหนัก (kg)", type: "number", required: true }, { key: "moved_at", label: m.kind === "IN" ? "เวลาเข้าห้องเย็น" : "เวลาออกห้องเย็น", type: "datetime", required: true }]}
+          values={{ qty_kg: String(m.qty_kg), moved_at: toInputAt(m.moved_at) }}
+          onSubmit={async (v) => (await send("put", `/api/other/edit/moves/${m.move_id}`, { qty_kg: v.qty_kg, moved_at: `${v.moved_at.replace("T", " ")}:00`, reason: v.reason })).error}
+        />
+      );
+    }
+    if (kind === "EDIT_SET") {
+      const set = s.sets.find((x) => x.set_id === dialog.set.set_id) || dialog.set;
+      return (
+        <EditDialog
+          key={seq} title={`แก้ไขชุด ${setCode(lot, set)} — ${label}`} onClose={close}
+          hint={set.out ? "ชุดนี้ออกห้องเย็นแล้ว: แก้ได้เฉพาะเวลาจัดชุด" : undefined}
+          fields={[{ key: "qty_kg", label: "น้ำหนัก (kg)", type: "number", required: true }, { key: "made_at", label: "เวลาจัดชุด", type: "datetime", required: true }]}
+          values={{ qty_kg: String(set.kg), made_at: toInputAt(set.made_at) }}
+          onSubmit={async (v) => (await send("put", `/api/other/edit/sets/${set.set_id}`, { qty_kg: v.qty_kg, made_at: `${v.made_at.replace("T", " ")}:00`, reason: v.reason })).error}
+        />
+      );
+    }
     if (kind === "SET_CANCEL") {
       const set = dialog.set;
       return (
@@ -210,6 +261,7 @@ const DelayControlPage = () => {
             ควบคุม Delay: นอกห้องเย็น {fmtMin(LIMIT_OUTSIDE_MIN)} · ในห้องเย็นก่อนเปิดฝา {fmtMin(LIMIT_INSIDE_MIN)} · หลังเปิดฝา {fmtMin(LIMIT_AFTER_LID_MIN)}
           </Typography>
           <Box sx={{ flex: 1 }} />
+          <Button variant={editMode ? "contained" : "outlined"} color="warning" startIcon={editMode ? <LockOpenIcon /> : <LockOutlinedIcon />} onClick={toggleEdit} sx={{ textTransform: "none" }}>{editMode ? "โหมดแก้ไข (กดเพื่อปิด)" : "แก้ไขข้อมูล"}</Button>
           <Button variant="outlined" startIcon={<HistoryIcon />} onClick={() => navigate("/other/history")} sx={{ textTransform: "none" }}>History (รายการที่ปิดแล้ว)</Button>
         </Box>
         {error && <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError("")} action={<Button color="inherit" size="small" onClick={load}>ลองใหม่</Button>}>{error}</Alert>}
@@ -242,7 +294,7 @@ const DelayControlPage = () => {
                       <TableRow hover sx={{ background: c.done ? "#DCEBFF" : lv.bg }}>
                         <TableCell><IconButton size="small" onClick={() => toggle(lot.lot_id)}>{isOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}</IconButton></TableCell>
                         <TableCell><LotId lot={lot} /></TableCell>
-                        <TableCell><strong>{lot.lot_name}</strong>{lot.ref_code ? <div style={{ fontSize: 12, color: "#6B7489" }}>{lot.ref_code}</div> : null}</TableCell>
+                        <TableCell>{editMode && <IconButton size="small" color="warning" title="แก้ไขข้อมูลรายการ" onClick={() => openDialog({ kind: "EDIT_LOT", lot })} sx={{ mr: 0.5 }}><EditIcon fontSize="small" /></IconButton>}<strong>{lot.lot_name}</strong>{lot.ref_code ? <div style={{ fontSize: 12, color: "#6B7489" }}>{lot.ref_code}</div> : null}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                           {c.weight}
                           <IconButton size="small" title="แก้ไขน้ำหนัก (ต้องใส่รหัส)" onClick={() => openDialog({ kind: "WEIGHT", lot })} sx={{ ml: 0.25 }}><EditIcon sx={{ fontSize: 16 }} /></IconButton>
@@ -271,7 +323,8 @@ const DelayControlPage = () => {
                           <TableCell />
                           <TableCell colSpan={COLS - 1} sx={{ background: "#FAFBFF" }}>
                             <LotDetail
-                              lot={lot} c={c} s={s} onPrint={setSlips}
+                              lot={lot} c={c} s={s} onPrint={setSlips} editMode={editMode}
+                              onEditMove={(move) => openDialog({ kind: "EDIT_MOVE", lot, move })} onEditSet={(set) => openDialog({ kind: "EDIT_SET", lot, set })}
                               onSetOut={(set) => openDialog({ kind: "SET_OUT", lot, set })}
                               onSetCancel={(set) => openDialog({ kind: "SET_CANCEL", lot, set })}
                             />
@@ -287,6 +340,7 @@ const DelayControlPage = () => {
           </TableContainer>
         </Paper>
       </main>
+      <UnlockDialog open={unlockAsk} onClose={() => setUnlockAsk(false)} onUnlocked={() => { setUnlockAsk(false); setEditMode(true); }} />
       <LotSlip slips={slips} onClose={() => setSlips(null)} />
       {renderDialog()}
     </div>
