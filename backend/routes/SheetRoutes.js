@@ -937,6 +937,7 @@ const sheetEditHandler = (opts = {}) => async (req, res) => {
     try {
       const cur = await new sql.Request(tx).input("id", sql.Int, mappingId).query(`
         SELECT rmm.mapping_id, rmm.dest, rmm.stay_place, rmm.tro_id, rmm.mix_code, rmm.rmm_line_name, rmm.tray_count, rmm.weight_RM,
+               rmm.rm_status, rmm.rm_cold_status, -- the status columns of EDIT_MAP: without them the current value read back is empty and every edit of them was refused as "someone else edited it" (EDIT_CONFLICT)
                pr.prod_id, pr.mat,
                COALESCE(NULLIF(bx.batch_after, N''), NULLIF(CAST(rmm.production_batch AS NVARCHAR(200)), N''), NULLIF(CAST(rmf.batch AS NVARCHAR(200)), N'')) AS batch
         FROM TrolleyRMMapping rmm WITH (UPDLOCK, ROWLOCK)
