@@ -64,7 +64,7 @@ const addHeaders = (headersLike, url, method) => {
   // and with reading the edit history (GET /api/sheet/edit-log needs it too: without it a Role other than Supervisor / Master got 403 right after
   // unlocking, and that 403 threw the permit away — the next edit was refused although the page said "ปลดล็อกแล้ว")
   if (unlock && ((m === "PUT" && path.endsWith("/api/sheet/prefs")) || (m === "PATCH" && path.endsWith("/api/sheet/edit")) || (m === "GET" && path.endsWith("/api/sheet/edit-log"))
-    || (m === "PUT" && /\/api\/traceback\/holds\/\d+\/release$/.test(path)) || (m === "PUT" && /\/api\/other\/edit\//.test(path))) && !headersLike.has("X-Setting-Unlock")) {
+    || (m === "PUT" && /\/api\/traceback\/holds\/\d+\/release$/.test(path)) || (m === "PUT" && /\/api\/other\/edit\//.test(path)) || (m === "POST" && path.endsWith("/api/pack/pkg/details"))) && !headersLike.has("X-Setting-Unlock")) {
     headersLike.set("X-Setting-Unlock", unlock);
   }
 };
