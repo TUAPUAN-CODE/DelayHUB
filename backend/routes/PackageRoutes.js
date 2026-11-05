@@ -11138,6 +11138,57 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
   }
 });
 
+  // POST /api/pack/pkg/details — add a row by hand (button "เพิ่มแถวใหม่" in the edit mode of the document, also for a document in the history)
+  // needs the unlock of the button "แก้ไขข้อมูล" (RULES /api/pack/pkg/details in lib/authMiddleware.js) · no slip: slip_id stays empty
+  router.post('/pack/pkg/details', async (req, res) => {
+    const report_id = parseInt(req.body?.report_id, 10);
+    if (!report_id) return res.status(400).json({ success: false, error: 'กรุณาระบุ report_id' });
+    try {
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+      const rpt = await pool.request().input('report_id', sql.Int, report_id).query('SELECT report_id FROM PackagingUsageReport WHERE report_id = @report_id');
+      if (!rpt.recordset.length) return res.status(404).json({ success: false, error: 'ไม่พบเอกสาร' });
+
+      const b = req.body;
+      const str = (v, n) => { const t = v === null || v === undefined ? '' : String(v).trim(); return t ? t.slice(0, n) : null; };
+      const intOrNull = (v) => { if (v === '' || v === null || v === undefined) return null; const n = parseInt(v, 10); return Number.isNaN(n) ? NaN : n; };
+      // a date column: "yyyy-MM-dd" (a date + time text is cut to the date)
+      const dateOrNull = (v) => { const t = str(v, 40); if (!t) return null; const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? thaiStrToDbDate(`${m[1]}-${m[2]}-${m[3]} 00:00:00`) : NaN; };
+      const timeOrNull = (v) => { const t = str(v, 40); if (!t) return null; const d = thaiStrToDbDate(t); return d || NaN; };
+      const vals = {
+        code: str(b.code, 100), material_no: str(b.material_no, 100), lot_no: str(b.lot_no, 100), box_no: str(b.box_no, 50),
+        batch_no: str(b.batch_no, 100), hu_no: str(b.hu_no, 100), remark: str(b.remark, 500),
+        ink: str(b.ink, 50), roll_no: str(b.roll_no, 50), side: str(b.side, 50),
+        produce_date: dateOrNull(b.produce_date), receive_date: dateOrNull(b.receive_date),
+        start_time: timeOrNull(b.start_time), stop_time: timeOrNull(b.stop_time),
+        qty: intOrNull(b.qty), qty_received: intOrNull(b.qty_received), qty_used: intOrNull(b.qty_used), qty_damaged: intOrNull(b.qty_damaged), qty_remaining: intOrNull(b.qty_remaining),
+      };
+      const bad = Object.entries(vals).find(([, v]) => typeof v === 'number' && Number.isNaN(v));
+      if (bad) return res.status(400).json({ success: false, error: `ข้อมูลไม่ถูกต้อง: ${bad[0]}` });
+      if (vals.start_time && vals.stop_time && vals.stop_time < vals.start_time) return res.status(400).json({ success: false, error: 'เวลาเลิกใช้ต้องไม่ก่อนเวลาเริ่มใช้' });
+      if (!Object.values(vals).some((v) => v !== null)) return res.status(400).json({ success: false, error: 'กรุณากรอกข้อมูลอย่างน้อย 1 ช่อง' });
+
+      const types = {
+        code: sql.NVarChar(100), material_no: sql.NVarChar(100), lot_no: sql.NVarChar(100), box_no: sql.NVarChar(50), batch_no: sql.NVarChar(100), hu_no: sql.NVarChar(100),
+        remark: sql.NVarChar(500), ink: sql.NVarChar(50), roll_no: sql.NVarChar(50), side: sql.NVarChar(50),
+        produce_date: sql.Date, receive_date: sql.Date, start_time: sql.DateTime, stop_time: sql.DateTime,
+        qty: sql.Int, qty_received: sql.Int, qty_used: sql.Int, qty_damaged: sql.Int, qty_remaining: sql.Int,
+      };
+      const request = pool.request().input('report_id', sql.Int, report_id);
+      Object.entries(vals).forEach(([k, v]) => request.input(k, types[k], v));
+      const cols = Object.keys(vals);
+      const r = await request.query(`
+        INSERT INTO PackagingUsageDetail (report_id, ${cols.join(', ')})
+        OUTPUT INSERTED.detail_id
+        VALUES (@report_id, ${cols.map((c) => '@' + c).join(', ')})
+      `);
+      return res.status(201).json({ success: true, message: 'เพิ่มแถวสำเร็จ', detail_id: r.recordset[0]?.detail_id });
+    } catch (err) {
+      console.error('❌ POST /pack/pkg/details error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // PUT /api/pack/pkg/details/:detail_id — update only supplied fields
   router.put('/pack/pkg/details/:detail_id', async (req, res) => {
     const detail_id = parseInt(req.params.detail_id, 10);

@@ -1806,7 +1806,8 @@ const PouchCell = ({ value, field, isDate, disabled, onClick }) => {
 // ─── Edit Detail Modal ─────────────────────────────────────────────────────────
 // pouch   = ไลน์ Pouch/Sachet → แสดง Ink / Roll No. / Side
 // showQty = ไลน์ Pouch/Sachet + Cup 4/5 → แสดง รับ / ใช้ / เสีย / คงเหลือ
-const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty }) => {
+// detail.__new = a row added by hand (POST; the document is reportId): button "เพิ่มแถวใหม่" of the edit mode
+const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, reportId }) => {
   const { t } = useLang();
   const [form, setForm]     = useState({});
   const [saving, setSaving] = useState(false);
@@ -1842,7 +1843,8 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty }) => 
       ['produce_date', 'receive_date', 'start_time', 'stop_time'].forEach(f => {
         if (payload[f] === '') payload[f] = null;
       });
-      await axios.put(`${API_URL}/api/pack/pkg/details/${detail.detail_id}`, payload);
+      if (detail.__new) await axios.post(`${API_URL}/api/pack/pkg/details`, { ...payload, report_id: reportId });
+      else await axios.put(`${API_URL}/api/pack/pkg/details/${detail.detail_id}`, payload);
       await onSaved();
       onClose();
     } catch (err) {
@@ -1861,7 +1863,7 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty }) => 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid #e0e0e0' }}>
-        <Typography sx={{ fontWeight: 'bold', fontSize: '15px' }}>{t('detail.editRowTitle')}</Typography>
+        <Typography sx={{ fontWeight: 'bold', fontSize: '15px' }}>{detail.__new ? '➕ เพิ่มแถวใหม่' : t('detail.editRowTitle')}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </Box>
       <DialogContent sx={{ pt: 2 }}>
@@ -2143,7 +2145,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         </DialogActions>
       </Dialog>
 
-      <EditDetailModal open={!!editDetail} onClose={() => setEditDetail(null)} detail={editDetail} onSaved={fetchDetails} pouch={pouch} showQty={showQty} />
+      <EditDetailModal open={!!editDetail} onClose={() => setEditDetail(null)} detail={editDetail} onSaved={fetchDetails} pouch={pouch} showQty={showQty} reportId={report.report_id} />
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
         <Button startIcon={<ArrowBack />} size="small" variant="outlined" onClick={() => onBack(false)}>{t('btn.back')}</Button>
@@ -2181,8 +2183,9 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, backgroundColor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFB74D', flexWrap: 'wrap' }}>
           <Edit sx={{ color: '#E65100' }} />
           <Typography sx={{ fontSize: '13px', fontWeight: 'bold', color: '#E65100', flex: 1 }}>
-            โหมดแก้ไข: แก้ Code / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก {changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
+            โหมดแก้ไข: แก้ Code / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก · เพิ่มแถวใหม่ได้ด้วยปุ่ม "เพิ่มแถวใหม่" หรือสแกนสลิป (ใช้ได้กับเอกสารในประวัติด้วย){changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
           </Typography>
+          <Button size="small" variant="outlined" color="warning" startIcon={<Add />} onClick={() => setEditDetail({ __new: true })}>เพิ่มแถวใหม่</Button>
           <Button size="small" onClick={() => setDrafts({})} disabled={!changedCount || savingEdits}>ยกเลิกการแก้ไข</Button>
           <Button size="small" variant="contained" color="warning" onClick={saveEdits} disabled={!changedCount || savingEdits}
             startIcon={savingEdits ? <CircularProgress size={12} color="inherit" /> : <CheckCircle />}>
@@ -2201,7 +2204,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         </Box>
       </Paper>
 
-      {!isDone && (
+      {(!isDone || editMode) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, backgroundColor: '#e8f5e9', borderRadius: '8px', border: '1px solid #a5d6a7' }}>
           <Box sx={{ fontSize: '12px', fontWeight: 'bold', color: '#1b5e20', whiteSpace: 'nowrap' }}>{t('detail.scanStart')}</Box>
           <TextField inputRef={scanRef} size="small"

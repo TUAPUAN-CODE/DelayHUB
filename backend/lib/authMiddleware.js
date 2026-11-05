@@ -234,6 +234,8 @@ const RULES = [
   { m: "GET", p: /^\/api\/sheet\/edit-log$/, check: adminOrUnlock, final: true },
   // หน้า Other / คุมเวลาล็อต: แก้ข้อมูลล็อต / การเข้า-ออกห้องเย็น / ชุดย่อย — หัวหน้า หรือผู้ที่ใส่รหัสผ่าน Setting (เหมือนปุ่ม "แก้ไขข้อมูล" ของ Sheet)
   { m: "PUT", p: /^\/api\/other\/edit\//, check: adminOrUnlock, final: true },
+  // หน้า /packaging/UsePKG: เพิ่มแถวเอง (ปุ่ม "เพิ่มแถวใหม่" ในโหมดแก้ไข) — หัวหน้า หรือผู้ที่ใส่รหัสผ่าน Setting
+  { m: "POST", p: /^\/api\/pack\/pkg\/details$/, check: adminOrUnlock, final: true },
   // what the page "ค้นหา mapping_id" reads (it is on the menu of every Role): any logged-in user, not narrowed by rolePolicy.json
   { m: "GET", p: /^\/api\/sheet\/(mapping|edit-options|lineage|flow|flow-ids)$/, check: () => null, final: true }, // the page "ค้นหา mapping_id" shows the history to whoever unlocked the edit
   // การตั้งค่าตารางเป็นของแต่ละบัญชี
