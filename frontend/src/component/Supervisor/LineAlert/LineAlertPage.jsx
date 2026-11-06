@@ -7,7 +7,7 @@ import Buttom from "../../Layout/Buttom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const POLL_MS = 2000;
-const POLL_MAX = 30;   // 30 x 2 s = 60 s
+const POLL_MAX = 75;   // 75 x 2 s = 150 s (the check of the finished rows can take a minute or two; the command itself expires after 3 minutes)
 
 /**
  * Supervisor: send the LINE alerts NOW (do not wait for the hourly round). The backend leaves a command in Redis; the alert worker (PM2 delay-alert-worker)

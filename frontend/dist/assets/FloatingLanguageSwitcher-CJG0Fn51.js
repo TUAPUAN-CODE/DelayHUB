@@ -1,1 +1,0 @@
-import{q as i}from"./react-vendor-CKsdqMT1.js";import{L as o}from"./LanguageSwitcher-B0gk4l77.js";const a=()=>i("div",{style:{position:"fixed",top:12,right:12,zIndex:1300},children:i(o,{sx:{background:"#fff"}})});export{a as F};
