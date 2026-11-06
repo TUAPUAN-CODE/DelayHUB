@@ -199,38 +199,39 @@ const OUT_KEYS = ["out_cold_date", "out_cold_date_two", "out_cold_date_three", "
 const IN_KEYS = ["come_cold_date", "come_cold_date_two", "come_cold_date_three", "cs_come_cold_date", "cs_come_cold_date_two", "cs_come_cold_date_three", "cs_come_cold_date_four"];
 const latest = (r, keys) => keys.map((k) => toMs(r[k])).filter((x) => x !== null).sort((a, b) => b - a)[0] ?? null;
 // the activity times printed in the message, in this order (only the ones that have a value)
+// ห้องเย็นเล็ก = PF; ห้องเย็นใหญ่ = CS (ต้ม/อบเสร็จ ไม่แสดงในข้อความ)
 const ACTIVITY = [
-  ["cooked_date", "ต้ม/อบเสร็จ"], ["rmit_date", "เตรียมเสร็จ"], ["qc_date", "QC ตรวจ"],
-  ["come_cold_date", "เข้าห้องเย็น 1"], ["out_cold_date", "ออกห้องเย็น 1"],
-  ["come_cold_date_two", "เข้าห้องเย็น 2"], ["out_cold_date_two", "ออกห้องเย็น 2"],
-  ["come_cold_date_three", "เข้าห้องเย็น 3"], ["out_cold_date_three", "ออกห้องเย็น 3"],
-  ["cs_come_cold_date", "เข้าห้องเย็นใหญ่ 1"], ["cs_out_cold_date", "ออกห้องเย็นใหญ่ 1"],
-  ["cs_come_cold_date_two", "เข้าห้องเย็นใหญ่ 2"], ["cs_out_cold_date_two", "ออกห้องเย็นใหญ่ 2"],
+  ["rmit_date", "เตรียมเสร็จ"], ["qc_date", "QC ตรวจ"],
+  ["come_cold_date", "เข้าห้องเย็น PF ครั้งที่ 1"], ["out_cold_date", "ออกห้องเย็น PF ครั้งที่ 1"],
+  ["come_cold_date_two", "เข้าห้องเย็น PF ครั้งที่ 2"], ["out_cold_date_two", "ออกห้องเย็น PF ครั้งที่ 2"],
+  ["come_cold_date_three", "เข้าห้องเย็น PF ครั้งที่ 3"], ["out_cold_date_three", "ออกห้องเย็น PF ครั้งที่ 3"],
+  ["cs_come_cold_date", "เข้าห้องเย็นใหญ่ ครั้งที่ 1"], ["cs_out_cold_date", "ออกห้องเย็นใหญ่ ครั้งที่ 1"],
+  ["cs_come_cold_date_two", "เข้าห้องเย็นใหญ่ ครั้งที่ 2"], ["cs_out_cold_date_two", "ออกห้องเย็นใหญ่ ครั้งที่ 2"],
 ];
 const p2 = (n) => String(n).padStart(2, "0");
 const fmtAt = (ms) => { const d = new Date(ms); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear() + 543} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
 const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} ชม. ${m % 60} นาที` : `${m} นาที`);
 
 /** one block per row, every field on its own line */
-const transitBlock = (r, outMs, extra) => {
+const transitBlock = (r, outMs, extra, statusText) => {
   const rows = [
+    `รายการ : ${r.mapping_id}`,
     `mat name : ${r.mat_name || "-"}`,
     `mat : ${r.mat || "-"}`,
     `batch : ${r.batch_after || r.batch || "-"}`,
   ];
   if (r.tro_id) rows.push(`รถเข็น : ${r.tro_id}`);
   if (r.code || r.production) rows.push(`แผนผลิต : ${r.code || r.production}`);
-  rows.push(`สถานะ : ${[T_(r.stay_place), T_(r.dest)].filter(Boolean).join(" → ") || "-"}`);
+  rows.push(`สถานะ : ${statusText || [T_(r.stay_place), T_(r.dest)].filter(Boolean).join(" → ") || "-"}`);
   rows.push("ช่วงเวลากิจกรรมต่างๆของวัตถุดิบ :");
   ACTIVITY.forEach(([k, label]) => { const ms = toMs(r[k]); if (ms !== null) rows.push(`  - ${label} : ${fmtAt(ms)}`); });
-  if (outMs !== null && !ACTIVITY.some(([k]) => toMs(r[k]) === outMs)) rows.push(`  - ออกห้องเย็น : ${fmtAt(outMs)}`);
+  if (outMs !== null && !ACTIVITY.some(([k]) => toMs(r[k]) === outMs)) rows.push(`  - ออกห้องเย็น PF : ${fmtAt(outMs)}`);
   rows.push(extra);
-  rows.push(`รายการ : ${r.mapping_id}`);
   return rows.join("\n");
 };
 
 const joinBlocks = (title, blocks, c) => {
-  const footer = c.link ? `\n\nดูตาราง: ${c.link}` : "";
+  const footer = "";   // ข้อความแจ้งห้องเย็นใหญ่ไม่แนบลิงก์ตาราง
   let text = title; let left = 0;
   blocks.forEach((b) => {
     const add = `\n━━━━━━━━━━\n${b}`;
@@ -277,7 +278,7 @@ const transitCheck = (rows, prevTransit, now, c, baseline) => {
   }
   if (arrived.length) {
     messages.push(joinBlocks(`✅ รับเข้าห้องเย็นใหญ่แล้ว แต่ใช้เวลาเกิน ${c.transitMin} นาที (${arrived.length} รายการ)`,
-      arrived.map(({ r, out, took, at }) => transitBlock(r, out, `รับเข้า : ${fmtAt(at)}\nใช้เวลาออก→เข้า : ${fmtMin(took)}`)), c));
+      arrived.map(({ r, out, took, at }) => transitBlock(r, out, `ใช้เวลาออก→เข้า : ${fmtMin(took)}`, T_(r.stay_place) === "เข้าห้องเย็นใหญ่" && T_(r.dest) === "ในห้องเย็นใหญ่" ? "อยู่ในห้องเย็นใหญ่" : undefined)), c));
   }
   return { next, messages };
 };
