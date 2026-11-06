@@ -6,6 +6,15 @@ import { findSameCodeDifferentBatch } from "./fishBatch";
  * ตรวจ (ปลา): Code เดียวกัน (แผนผลิต + ไลน์) แต่ Batch แปลง (2x) คนละ Batch — จากแถวที่ดึงมาในหน้าดำเนินการเสร็จสิ้น
  * rows = แถวดิบจาก /api/sheet/done (หลังเลือกกะแล้ว)
  */
+// สีพื้นหลังแยกตาม Batch ตั้งต้น (วนสีตามลำดับ Batch ในแต่ละ Code) — แถวของ Batch เดียวกันได้สีเดียวกัน
+const BATCH_COLORS = [
+  { bg: "#DBEAFE", bar: "#2563EB" },
+  { bg: "#FCE7F3", bar: "#DB2777" },
+  { bg: "#DCFCE7", bar: "#16A34A" },
+  { bg: "#FEF3C7", bar: "#D97706" },
+  { bg: "#EDE9FE", bar: "#7C3AED" },
+  { bg: "#CCFBF1", bar: "#0D9488" },
+];
 const fmtDay = (d) => { const [y, m, x] = String(d || "").split("-"); return y ? `${x}/${m}/${y}` : "-"; };
 
 const SameCodeBatchDialog = ({ open, rows, onClose }) => {
@@ -36,9 +45,9 @@ const SameCodeBatchDialog = ({ open, rows, onClose }) => {
                         <TableRow><TableCell>Batch ตั้งต้น</TableCell><TableCell>Batch แปลง (2x)</TableCell><TableCell>รายการ</TableCell><TableCell>วัตถุดิบ</TableCell><TableCell>บรรจุเสร็จ</TableCell></TableRow>
                       </TableHead>
                       <TableBody>
-                        {g.batches.flatMap((b) => b.rows.map((r) => (
-                          <TableRow key={r.mapping_id}>
-                            <TableCell sx={{ fontWeight: 600 }}>{b.batch}</TableCell>
+                        {g.batches.flatMap((b, bi) => b.rows.map((r) => (
+                          <TableRow key={r.mapping_id} sx={{ background: BATCH_COLORS[bi % BATCH_COLORS.length].bg }}>
+                            <TableCell sx={{ fontWeight: 600, borderLeft: `6px solid ${BATCH_COLORS[bi % BATCH_COLORS.length].bar}` }}>{b.batch}</TableCell>
                             <TableCell>{r.batch_after || "-"}</TableCell>
                             <TableCell>{r.mapping_id}</TableCell>
                             <TableCell>{r.mat_name || r.mat || "-"}</TableCell>
