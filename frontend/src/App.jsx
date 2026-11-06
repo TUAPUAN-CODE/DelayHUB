@@ -19,6 +19,7 @@ const AppColdStorages = lazy(() => import("./component/ColdStorages/AppColdStora
 const AppPrep = lazy(() => import("./component/Prep/AppPrep.jsx"));
 const AppOther = lazy(() => import("./component/Other/AppOther.jsx"));
 const AppMaster = lazy(() => import("./component/Master/AppMaster.jsx")); // เพิ่ม AppMaster
+const NewsPage = lazy(() => import("./component/News/NewsPage.jsx")); // การแจ้งเตือนล่าสุด: ทุก Role ที่ล็อกอินอ่านได้
 
 // User-related components
 const Login = lazy(() => import("./component/User/Login.jsx"));
@@ -84,6 +85,7 @@ function App() {
           <Route path="/other/*" element={<AppOther />} />
           <Route path="/ColdStorages/*" element={<AppColdStorages />} />
           <Route path="/master/*" element={<AppMaster />} /> {/* เพิ่ม Route สำหรับ Master */}
+          <Route path="/news" element={<NewsPage />} />
         </Routes>
       </Suspense>
       </ErrorBoundary>

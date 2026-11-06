@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
-import { ArrowLeftRight, ChevronDown, Pencil, Settings, UserRound } from "lucide-react";
+import { ArrowLeftRight, Bell, ChevronDown, Pencil, Settings, UserRound } from "lucide-react";
 import { openSettings, useEditor, useHasSettings } from "./DataGrid/settingsBus";
 import axios from "axios";
 import { WORKPLACE_ROUTES, readRoles } from "../../services/roleRoutes";
@@ -112,10 +112,33 @@ const RoleSwitcher = () => {
   );
 };
 
+/** true when the "การแจ้งเตือนล่าสุด" feed has an alert newer than the one this browser last saw (checked every 2 minutes, never while the tab is hidden) */
+const useNewsDot = () => {
+  const [dot, setDot] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const check = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await axios.get(`${API_URL}/api/sheet/delay-alert/feed`, { params: { limit: 1 } });
+        const at = res.data?.entries?.[0]?.at || 0;
+        let seen = 0;
+        try { seen = Number(localStorage.getItem("news_seen_at") || 0); } catch { /* storage blocked */ }
+        if (alive) setDot(at > seen);
+      } catch { /* the bell just shows no dot */ }
+    };
+    check();
+    const t = setInterval(check, 120000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+  return dot;
+};
+
 const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
   const { pathname, search } = useLocation();
   const hasSettings = useHasSettings();
   const editor = useEditor();
+  const newsDot = useNewsDot();
   const normalized = useMemo(() => sections || [{ items: items || [] }], [sections, items]);
 
   const { main, bottom, leaves } = useMemo(() => {
@@ -151,6 +174,10 @@ const AppSidebar = ({ title = "PFCM", subtitle, sections, items }) => {
             <Pencil size={16} className="shrink-0" /><span>{editor.on ? "กำลังแก้ไข" : "แก้ไขข้อมูล"}</span>
           </button>
         )}
+        <Link to="/news" className="app-top-link" title="การแจ้งเตือนล่าสุด" aria-label="การแจ้งเตือนล่าสุด" style={{ position: "relative" }}>
+          <Bell size={16} className="shrink-0" /><span>ข่าวสาร</span>
+          {newsDot && <span aria-hidden="true" style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, borderRadius: 999, background: "#EF4444" }} />}
+        </Link>
         {userName && <span className="app-top-name" title={userName}><UserRound size={16} className="shrink-0" /><span>{userName}</span></span>}
         <LanguageSwitcher sx={{ color: "#fff", background: "rgb(255 255 255 / .14)", height: 32, "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(255 255 255 / .45)" }, "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" }, "& .MuiSvgIcon-root": { color: "#fff" }, "& svg": { color: "#fff" } }} />
       </div>
