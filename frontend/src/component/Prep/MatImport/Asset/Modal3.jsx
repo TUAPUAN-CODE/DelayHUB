@@ -114,6 +114,7 @@ const formattedPreparedTime = formatDateTime(data?.preparedDateTimeNew);
       level_eu: input2?.level_eu || "",
       Process: input2?.selectedProcessType?.process_id,
       userID: Number(userId),
+      batchAfterArray: data?.batchAfterArray,   // Batch แปลงที่กรอกในขั้นเลือกรถเข็น (แทนที่ Batch แปลงเดิมของ mapping ใหม่)
     };
 
     console.log("Payload before sending:", payload);
@@ -213,6 +214,9 @@ finally {
             {/* <Typography>ป้ายทะเบียนคันเก่า: {data?.tro_id || "ข้อมูลไม่พบ"}</Typography> */}
             {/* <Typography>Batch ก่อน: {batchBefore || "ยังไม่ได้กำหนด"}</Typography> */}
             {/* <Typography>Batch ใหม่: {batchAfter || "ยังไม่ได้กำหนด"}</Typography> */}
+            {data?.batchAfterArray?.length > 0 && (
+              <Typography>{`Batch แปลง: ${data.batchAfterArray.map((b) => b.batch_after).join(", ")}`}</Typography>
+            )}
             <Typography>น้ำหนักวัตถุดิบ/รถเข็น: {input2?.weightPerCart || "ข้อมูลไม่พบ"}</Typography>
             <Typography>จำนวนถาด: {input2?.numberOfTrays || "ข้อมูลไม่พบ"}</Typography>
             <Typography>ผู้ดำเนินการ: {input2?.operator || "ข้อมูลไม่พบ"}</Typography>

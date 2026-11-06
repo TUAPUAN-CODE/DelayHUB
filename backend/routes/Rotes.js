@@ -1,4 +1,5 @@
 const { safeRollback } = require("../lib/safeRollback");
+const { cleanBatchAfterArray, applyBatchAfter } = require("../lib/batchAfter");
 // prod_rm_id of (plan, material); the link (ProdRawMat) is created when it does not exist yet, so a material is not limited to the plans linked in the master data
 async function ensureProdRmId(pool, prodId, mat) {
   const sql = require("mssql");
@@ -2074,6 +2075,9 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
   router.put("/MatOnTrolley/updateProduction", async (req, res) => {
     const { mapping_id, ProdID, mat, line_name, name_edit_prod, weight } = req.body;
     const io = req.app.get("io");
+    // Batch แปลงที่กรอกในฟอร์ม "แก้ไข" ของสถานะรอเตรียมวัตถุดิบใหม่: แทนที่ Batch แปลงเดิมของ mapping นี้ (ไม่ส่ง = ไม่แก้)
+    let batchList = null;
+    try { batchList = cleanBatchAfterArray(req.body.batchAfterArray); } catch (e) { return res.status(400).json({ success: false, error: e.message }); }
 
 
     try {
@@ -2183,6 +2187,9 @@ WHERE (@start_date IS NULL OR CAST(sc_pack_date AS DATE) >= @start_date)
         .input("production", sql.NVarChar(200), production)
         .input("name_edit_prod", sql.NVarChar(100), name_edit_prod || null)
         .query(updateQuery);
+
+      // Batch แปลงที่กรอกในฟอร์ม: แทนที่ Batch แปลงเดิมของ mapping นี้
+      if (batchList) await applyBatchAfter(() => pool.request(), mapping_id, batchList);
 
       // =====================================================
       // 6️⃣ Emit Socket

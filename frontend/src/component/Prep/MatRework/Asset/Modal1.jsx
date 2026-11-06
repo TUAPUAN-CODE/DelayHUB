@@ -1,8 +1,8 @@
-// เลือกรถเข็นของ "ใส่รถเข็น (รอแก้ไข)": สแกนอย่างเดียว (กล้องสลับได้ / เครื่องสแกน) — ดู Sheet/Asset/prep/ScanTrolleyModal.jsx
+// เลือกรถเข็นของ "ใส่รถเข็น (รอแก้ไข)": สแกนอย่างเดียว (กล้องสลับได้ / เครื่องสแกน USB); batches = Batch ตั้งต้น/แปลงเดิม ให้กรอก Batch แปลงใหม่ด้วย (ปุ่มใส่รถเข็นของแผนผลิตเหมือนกัน)
 import ScanTrolleyModal from "../../../Sheet/Asset/prep/ScanTrolleyModal";
 
-const Modal1 = ({ open, onClose, onNext, mapping_id, tro_id }) => (
-  <ScanTrolleyModal open={open} onClose={onClose} onConfirm={(value) => onNext({ inputValues: [value], mapping_id, tro_id })} />
+const Modal1 = ({ open, onClose, onNext, mapping_id, tro_id, batches }) => (
+  <ScanTrolleyModal open={open} onClose={onClose} batches={batches} onConfirm={(value, batchAfterArray) => onNext({ inputValues: [value], mapping_id, tro_id, batchAfterArray })} />
 );
 
 export default Modal1;

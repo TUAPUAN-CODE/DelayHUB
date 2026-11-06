@@ -122,6 +122,7 @@ const Modal3 = ({ open, onClose, data, onEdit, onSuccess, CookedDateTime }) => {
       userID: Number(userId),
       rm_status,
       edit_rework: combinedEditRework || null,
+      batchAfterArray: data?.batchAfterArray,   // Batch แปลงที่กรอกในขั้นเลือกรถเข็น (แทนที่ Batch แปลงเดิม)
     };
     
     console.log("=== Sending payload to API ===");
@@ -278,6 +279,9 @@ const Modal3 = ({ open, onClose, data, onEdit, onSuccess, CookedDateTime }) => {
 
             <Typography>ป้ายทะเบียนคันใหม่: {inputValues[0] || "ไม่มีข้อมูล"}</Typography>
             {/* <Typography>ป้ายทะเบียนคันเก่า: {data?.tro_id || "ข้อมูลไม่พบ"}</Typography> */}
+            {data?.batchAfterArray?.length > 0 && (
+              <Typography>{`Batch แปลง: ${data.batchAfterArray.map((b) => b.batch_after).join(", ")}`}</Typography>
+            )}
             <Typography>น้ำหนักวัตถุดิบ/รถเข็น: {input2?.weightPerCart || "ข้อมูลไม่พบ"}</Typography>
             <Typography>จำนวนถาด: {input2?.numberOfTrays || "ข้อมูลไม่พบ"}</Typography>
 

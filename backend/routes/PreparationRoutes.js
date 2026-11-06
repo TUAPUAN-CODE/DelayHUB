@@ -3,6 +3,7 @@ const { safeRollback } = require("../lib/safeRollback");
 const { ensureRemarkCsColumn, remarkCsOf, cleanRemarkCs, currentRemarkCs, logRemarkCsChange, remarkCsByBatch } = require("../lib/remarkCs");
 const { recordLineage } = require("../lib/mappingLineage");
 const { ensureFlowColumns } = require("../lib/flowDelay");
+const { cleanBatchAfterArray, applyBatchAfter } = require("../lib/batchAfter");
 // ช่วงวันที่จากหน้าเว็บ (YYYY-MM-DD): เลือกช่วงแล้วกรอง, ไม่เลือก = ไม่กรอง (ดูทั้งหมด)
 const dateRangeFromQuery = (q) => {
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
@@ -8792,6 +8793,10 @@ router.post("/prep/manage/saveTrolleyV2", async (req, res) => {
 
 router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
     const sql = require("mssql");
+    // Batch แปลงที่ผู้ใช้กรอก: ใช้แทน Batch แปลงเดิมที่คัดลอกไปผูกกับ mapping ใหม่ (ไม่ส่ง = คัดลอกตามเดิม)
+    let batchList = null;
+    try { batchList = cleanBatchAfterArray(req.body.batchAfterArray); } catch (e) { return res.status(400).json({ success: false, error: e.message }); }
+    const batchOverride = new Map((batchList || []).map((it) => [it.before.toUpperCase(), it.after]));
     const {
       license_plate,
       batch_after,
@@ -8949,13 +8954,19 @@ router.post("/prep/matimport/add/saveTrolley", async (req, res) => {
         for (const b of oldBatchData.recordset) {
           await transaction.request()
             .input("batch_before", b.batch_before)
-            .input("batch_after", b.batch_after)
+            .input("batch_after", batchOverride.get(String(b.batch_before ?? "").trim().toUpperCase()) ?? b.batch_after)
             .input("mapping_id", new_mapping_id)
             .query(`
               INSERT INTO Batch (batch_before, batch_after, mapping_id)
               VALUES (@batch_before, @batch_after, @mapping_id)
             `);
         }
+      }
+      // Batch แปลงที่กรอกสำหรับ Batch ตั้งต้นที่ mapping เดิมไม่มีแถว Batch: เพิ่มให้ mapping ใหม่
+      if (batchList) {
+        const copied = new Set(oldBatchData.recordset.map((b) => String(b.batch_before ?? "").trim().toUpperCase()));
+        const missing = batchList.filter((it) => !copied.has(it.before.toUpperCase()));
+        if (missing.length) await applyBatchAfter(() => transaction.request(), new_mapping_id, missing);
       }
 
       // ✅ ดึง mat ของ mapping_id ใหม่ แล้ว INSERT ลง Mat
@@ -10541,6 +10552,9 @@ OPTION (RECOMPILE)
     const { license_plate, ntray, weightTotal, mapping_id, dest, recorder, rm_status, edit_rework } = req.body;
     const io = req.app.get("io");
     const sql = require("mssql");
+    // Batch แปลงที่ผู้ใช้กรอกในฟอร์ม: แทนที่ Batch แปลงเดิมของ mapping นี้ (ไม่ส่ง = ไม่แก้)
+    let batchList = null;
+    try { batchList = cleanBatchAfterArray(req.body.batchAfterArray); } catch (e) { return res.status(400).json({ success: false, error: e.message }); }
 
     // 1️⃣ ตรวจสอบ input ครบ
     const requiredFields = ["license_plate", "ntray", "weightTotal", "mapping_id", "dest", "recorder", "rm_status"];
@@ -10659,6 +10673,8 @@ OPTION (RECOMPILE)
             updated_at = GETDATE()
         WHERE mapping_id = @mapping_id
       `);
+
+      if (batchList) await applyBatchAfter(() => transaction.request(), mapping_id, batchList);
 
       await transaction.commit();
 
