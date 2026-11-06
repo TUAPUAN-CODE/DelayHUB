@@ -509,10 +509,19 @@ const start = () => {
   // "ส่งเลย" จากปุ่มในหน้า Supervisor: backend ฝากคำสั่งไว้ใน Redis (CMD_KEY) — ผู้นำอ่านทุก 5 วินาที, ตรวจแล้วส่งเลยโดยไม่รอรอบ แล้วเขียนผลไว้ที่ RESULT_KEY ให้หน้าเว็บอ่าน
   const cmdRedis = createRedis("delay-alert:cmd");
   cmdRedis.connect().catch((err) => console.error("❌ [delayAlert] เชื่อม Redis (รับคำสั่งส่งเลย) ไม่ได้:", err.message));
+  let lastCmdErrorAt = 0;
   const cmdTick = async () => {
     if (!leader.isLeader() || busy || !cmdRedis.isReady) return;
     let raw = null;
-    try { raw = await cmdRedis.getDel(CMD_KEY); } catch { return; }
+    try {
+      // GET + DEL in one MULTI (GETDEL needs Redis 6.2: the Windows Redis service is often older and would refuse it)
+      const [got] = await cmdRedis.multi().get(CMD_KEY).del(CMD_KEY).exec();
+      raw = got;
+    } catch (err) {
+      const t = Date.now();
+      if (t - lastCmdErrorAt > 60000) { lastCmdErrorAt = t; console.error("❌ [delayAlert] อ่านคำสั่งส่งเลยจาก Redis ไม่ได้:", err.message); }
+      return;
+    }
     if (!raw) return;
     let cmd = {};
     try { cmd = JSON.parse(raw); } catch { /* the id below stays empty: nobody waits for this one */ }
