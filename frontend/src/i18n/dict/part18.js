@@ -807,4 +807,8 @@ export default {
   "เวลาเลิกใช้ต้องไม่ก่อนเวลาเริ่มใช้": ["The stop time must not be before the start time", "ရပ်ချိန်သည် စတင်ချိန်ထက် မစောရ", "ពេលឈប់ត្រូវមិនមុនពេលចាប់ផ្តើម"],
   "กรุณากรอกข้อมูลอย่างน้อย 1 ช่อง": ["Please fill in at least 1 field", "အနည်းဆုံး ၁ ခု ဖြည့်ပါ", "សូមបំពេញយ៉ាងហោចណាស់ 1 ប្រអប់"],
   "เพิ่มแถวสำเร็จ": ["Row added", "အတန်း ထည့်ပြီးပါပြီ", "បានបន្ថែមជួរ"],
+  "กรุณากรอก Batch แปลงให้ครบ 10 ตัวอักษร": ["Please enter the full 10-character converted Batch", "ပြောင်းထားသော Batch ကို စာလုံး 10 လုံး ပြည့်အောင် ဖြည့်ပါ", "សូមបញ្ចូល Batch ដែលបានបម្លែងឱ្យគ្រប់ 10 តួអក្សរ"],
+  "Batch ตั้งต้น: {x} · Batch แปลงเดิม: {x}": ["Starting Batch: {x} · Current converted Batch: {x}", "စတင် Batch: {x} · လက်ရှိ ပြောင်းထားသော Batch: {x}", "Batch ដើម៖ {x} · Batch បម្លែងបច្ចុប្បន្ន៖ {x}"],
+  "ไม่พบ Batch ตั้งต้นของ Batch แปลง": ["Starting Batch of the converted Batch not found", "ပြောင်းထားသော Batch ၏ စတင် Batch ကို ရှာမတွေ့ပါ", "រកមិនឃើញ Batch ដើមនៃ Batch ដែលបានបម្លែង"],
+  "Batch แปลงต้องครบ {x} ตัวอักษร ({x})": ["The converted Batch must be {x} characters ({x})", "ပြောင်းထားသော Batch သည် စာလုံး {x} လုံး ရှိရမည် ({x})", "Batch ដែលបានបម្លែងត្រូវមាន {x} តួអក្សរ ({x})"],
 };

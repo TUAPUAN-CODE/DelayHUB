@@ -13,8 +13,14 @@ import { canTypeTrolley } from "../../../../utils/userPerms";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
-const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
+// batches = [{ before, after }]: Batch ตั้งต้น + Batch แปลงเดิมของรายการนี้ — ส่งมาเมื่อต้องกรอก Batch แปลงใหม่ด้วย (เหมือนฟอร์ม "ใส่รถเข็น" ของแผนผลิต: 10 ตัวอักษร ค่าเดิมใส่ไว้ให้แก้)
+// onConfirm(tro_id, batchAfterArray) — batchAfterArray = [{ batch_before, batch_after }] (undefined เมื่อไม่มี batches)
+const BATCH_LEN = 10;
+const NO_BATCHES = [];
+
+const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) => {
   const manual = canTypeTrolley();
+  const [batchInputs, setBatchInputs] = useState([]);
   const videoRef = useRef(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
@@ -58,6 +64,11 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
     return stopCamera;
   }, [open, startCamera, stopCamera]);
 
+  // Batch แปลงใหม่: เริ่มจากค่าเดิมของรายการ (แก้ได้) — แยกจาก effect ของกล้อง เพื่อไม่ให้กล้อง/เลขรถเข็นถูกรีเซ็ตเมื่อ batches เปลี่ยน
+  useEffect(() => {
+    if (open) setBatchInputs(batches.map((b) => String(b.after || b.before || "").toUpperCase()));
+  }, [open, batches]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -89,6 +100,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
   const confirm = async () => {
     if (!value || busy) return;
     const tro = manual ? value.padStart(4, "0") : value;
+    if (batches.length && batchInputs.some((v) => v.trim().length !== BATCH_LEN)) { setError("กรุณากรอก Batch แปลงให้ครบ 10 ตัวอักษร"); return; }
     setBusy(true); setError("");
     try {
       if (!(await checkTrolley(tro))) return;
@@ -100,7 +112,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
         setError("รถเข็นถูกจองแล้ว");
         return;
       }
-      onConfirm(tro);
+      onConfirm(tro, batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: batchInputs[i].trim().toUpperCase() })) : undefined);
     } finally { setBusy(false); }
   };
 
@@ -124,10 +136,22 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm }) => {
           onChange={manual ? handleTyped : undefined} onKeyDown={manual ? (e) => { if (e.key === "Enter") void confirm(); } : undefined} inputProps={{ inputMode: "numeric", maxLength: 4 }}
           InputProps={{ readOnly: !manual }} sx={{ "& .MuiInputBase-input": { cursor: manual ? "text" : "default" } }}
         />
+        {batches.map((b, i) => (
+          <Box key={`${b.before}-${i}`} sx={{ mt: 1 }}>
+            <Typography sx={{ fontSize: 13, color: "#6B7489" }}>{`Batch ตั้งต้น: ${b.before || "-"} · Batch แปลงเดิม: ${b.after || "-"}`}</Typography>
+            <TextField
+              fullWidth margin="dense" size="small" value={batchInputs[i] ?? ""}
+              label={batches.length > 1 ? `Batch แปลง ${i + 1} (10 ตัวอักษร)` : "Batch แปลง (10 ตัวอักษร)"}
+              onChange={(e) => { const v = e.target.value.toUpperCase().slice(0, BATCH_LEN); setError(""); setBatchInputs((prev) => prev.map((x, j) => (j === i ? v : x))); }}
+              error={(batchInputs[i] ?? "").length > 0 && (batchInputs[i] ?? "").length !== BATCH_LEN}
+              inputProps={{ maxLength: BATCH_LEN }}
+            />
+          </Box>
+        ))}
         <Divider sx={{ my: 1 }} />
         <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}>
           <Button variant="contained" startIcon={<CancelIcon />} onClick={close} sx={{ bgcolor: "#E5484D", "&:hover": { bgcolor: "#c73c41" } }}>ยกเลิก</Button>
-          <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={confirm} disabled={!value || busy} sx={{ bgcolor: "#1552F0" }}>ยืนยัน</Button>
+          <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={confirm} disabled={!value || busy || (batches.length > 0 && batchInputs.some((v) => v.trim().length !== BATCH_LEN))} sx={{ bgcolor: "#1552F0" }}>ยืนยัน</Button>
         </Box>
       </Box>
     </Modal>

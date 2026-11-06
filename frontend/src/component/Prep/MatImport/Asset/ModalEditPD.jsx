@@ -24,7 +24,7 @@ import ModalAlert from "../../../../Popup/AlertSuccess";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mapping_id, selectedPlan, selectedLine, selectedGroup, rmfp_id, onSuccess,editorName,currentProdDetails  }) => {
+const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mapping_id, selectedPlan, selectedLine, selectedGroup, rmfp_id, onSuccess,editorName,currentProdDetails, batchAfterArray  }) => {
   const [showAlert, setShowAlert] = useState(false);
   
   const handleConfirm = async () => {
@@ -45,7 +45,8 @@ const ConfirmProdModal = ({ open, onClose, material, materialName, batch, mappin
       line_name: selectedLine ? selectedLine.line_name : null,
       name_edit_prod: editorName,
       before_prod: beforeProd, // Add the original production plan details
-      after_prod: afterProd     // Add the new production plan details
+      after_prod: afterProd,    // Add the new production plan details
+      batchAfterArray           // Batch แปลงที่กรอก (แทนที่ Batch แปลงเดิม); undefined = ไม่แก้
     };
 
     try {
@@ -163,7 +164,9 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
   const [lineError, setLineError] = useState(false);  
   const [editLimitReached, setEditLimitReached] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { batch, mat, mat_name, production: currentProduction, mapping_id, rmfp_id, line_name } = data || {};
+  const { batch, mat, mat_name, production: currentProduction, mapping_id, rmfp_id, line_name, batches = [] } = data || {};
+  const [batchInputs, setBatchInputs] = useState([]);   // Batch แปลงใหม่ (10 ตัวอักษร) ต่อ Batch ตั้งต้น — เฉพาะรายการที่ส่ง batches มา
+  const batchesKey = batches.map((b) => `${b.before}|${b.after}`).join(";");
 
   useEffect(() => {
     if (mat) {
@@ -255,6 +258,13 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     }
   };
 
+  useEffect(() => {
+    if (open) setBatchInputs(batches.map((b) => String(b.after || b.before || "").toUpperCase()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, batchesKey]);
+
+  const batchInvalid = batches.length > 0 && batchInputs.some((v) => v.trim().length !== 10);
+
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
     setSelectedLine(null);
@@ -304,6 +314,10 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
       hasError = true;
     } else {
       setEditorNameError(false);
+    }
+    if (batchInvalid) {
+      setErrorMessage("กรุณากรอก Batch แปลงให้ครบ 10 ตัวอักษร");
+      hasError = true;
     }
     if (hasError) {
       return;
@@ -378,6 +392,18 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
             <Typography color="rgba(0, 0, 0, 0.6)">Material: {mat}</Typography>
             <Typography color="rgba(0, 0, 0, 0.6)">Material Name: {materialName}</Typography>
             <Typography color="rgba(0, 0, 0, 0.6)">Batch: {batch}</Typography>
+            {batches.map((b, i) => (
+              <Box key={`${b.before}-${i}`}>
+                <Typography sx={{ fontSize: 13, color: "#6B7489" }}>{`Batch ตั้งต้น: ${b.before || "-"} · Batch แปลงเดิม: ${b.after || "-"}`}</Typography>
+                <TextField
+                  fullWidth margin="dense" size="small" value={batchInputs[i] ?? ""}
+                  label={batches.length > 1 ? `Batch แปลง ${i + 1} (10 ตัวอักษร)` : "Batch แปลง (10 ตัวอักษร)"}
+                  onChange={(e) => { const v = e.target.value.toUpperCase().slice(0, 10); setBatchInputs((prev) => prev.map((x, j) => (j === i ? v : x))); }}
+                  error={(batchInputs[i] ?? "").length > 0 && (batchInputs[i] ?? "").length !== 10}
+                  inputProps={{ maxLength: 10 }}
+                />
+              </Box>
+            ))}
             
             {currentProdDetails && (
               <Paper elevation={1} sx={{ p: 2, borderRadius: 1, bgcolor: "#F5F8FF" }}>
@@ -583,7 +609,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         onSuccess={handleConfirmSuccess}        
         editorName={editorName}
         currentProdDetails={currentProdDetails}
-
+        batchAfterArray={batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: (batchInputs[i] || "").trim().toUpperCase() })) : undefined}
       />
     </>
   );
