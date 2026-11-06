@@ -13,6 +13,7 @@ const metrics = require("../lib/metrics");
 const logger = require("../lib/logger");
 const { lineageOf } = require("../lib/mappingLineage");
 const { createRedis } = require("../lib/redisClient");
+const { readFeed, KINDS: ALERT_KINDS } = require("../lib/alertFeed");
 
 const router = express.Router();
 
@@ -1547,6 +1548,19 @@ router.post("/sheet/delay-alert/send-now", async (req, res) => {
     res.json({ success: true, id, message: "ส่งคำสั่งแล้ว กำลังตรวจสอบและส่งแจ้งเตือน" });
   } catch (err) {
     console.error("[Route /sheet/delay-alert/send-now] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// หน้า "การแจ้งเตือนล่าสุด": ทุกข้อความที่ตัวส่งแจ้งเตือนทำ (สีแดง / ปลาคนละ Batch / ห้องเย็นใหญ่) — ทุกคนที่ล็อกอินอ่านได้ ไม่เสียโควตา LINE
+//   GET /sheet/delay-alert/feed?limit=30&before=<ms>&kind=red|fish|transit_late|transit_arrived → { success, entries, hasMore }
+router.get("/sheet/delay-alert/feed", async (req, res) => {
+  try {
+    const redis = await alertRedisClient();
+    const kind = ALERT_KINDS.includes(req.query.kind) ? req.query.kind : "";
+    const out = await readFeed(redis, { limit: req.query.limit, before: parseInt(req.query.before, 10) || 0, kind });
+    res.json({ success: true, ...out });
+  } catch (err) {
+    console.error("[Route /sheet/delay-alert/feed] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

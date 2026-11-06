@@ -36,6 +36,7 @@ const axios = require("axios");
 const { issueServiceToken } = require("./lib/auth");
 const { createLeader } = require("./lib/leaderLock");
 const { createRedis } = require("./lib/redisClient");
+const { makeEntry, addEntry } = require("./lib/alertFeed");
 
 // keys shared with routes/SheetRoutes.js (POST /api/sheet/delay-alert/send-now)
 const CMD_KEY = "delayalert:send-now";
@@ -184,6 +185,47 @@ const push = async (messages, c) => {
   await axios.post(c.pushUrl, { to: c.group, messages }, { headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" }, timeout: 20000 });
 };
 
+/* ═══ the "การแจ้งเตือนล่าสุด" feed (web page, no LINE quota) ═══════════════ */
+let feedRedis = null;
+const recordFeed = async (entry) => {
+  try {
+    if (!feedRedis) {
+      feedRedis = createRedis("delay-alert:feed");
+      feedRedis.connect().catch((err) => console.error("❌ [delayAlert] เชื่อม Redis (หน้าการแจ้งเตือน) ไม่ได้:", err.message));
+    }
+    if (!feedRedis.isReady) await new Promise((r) => setTimeout(r, 1500));
+    if (!feedRedis.isReady) return;
+    await addEntry(feedRedis, entry);
+  } catch (err) {
+    console.error("❌ [delayAlert] บันทึกลงหน้าการแจ้งเตือนไม่สำเร็จ:", err.message);
+  }
+};
+
+/**
+ * Tell LINE (messages) AND record the alert in the feed. A LINE refusal that will not go away by waiting (HTTP 4xx, e.g. 429 monthly limit,
+ * the bot is not in the group any more) does NOT stop the alert: it is recorded as "failed <status>" and the caller moves on (the feed has it).
+ * A network error / 5xx throws: nothing is recorded and the caller retries at the next check.
+ * returns "sent" | "not-configured" | "failed <status>"
+ */
+const deliverAlert = async (c, kind, title, blocks, messages) => {
+  let line = "sent";
+  if (!c.token || !c.group) {
+    line = "not-configured";
+    console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — บันทึกลงหน้าการแจ้งเตือนอย่างเดียว");
+  } else {
+    try {
+      await pushAll(messages, c);
+    } catch (err) {
+      const st = err.response && err.response.status;
+      if (!(st >= 400 && st < 500)) throw err;
+      line = `failed ${st}`;
+      console.error(`❌ [delayAlert] LINE ปฏิเสธ (${st} ${JSON.stringify(err.response.data || {}).slice(0, 120)}) — บันทึกลงหน้าการแจ้งเตือนแล้ว`);
+    }
+  }
+  await recordFeed(makeEntry({ kind, title, blocks, line }));
+  return line;
+};
+
 /** send messages 5 per request (LINE limit); returns how many were sent before a failure (err.sent) */
 const pushAll = async (messages, c) => {
   let sent = 0;
@@ -276,16 +318,18 @@ const transitCheck = (rows, prevTransit, now, c, baseline) => {
     const took = Math.round((at - t.out) / 60000);
     if (took > c.transitMin) arrived.push({ r, out: t.out, took, at });
   });
-  const messages = [];
+  const entries = [];   // one per message: { kind, title, blocks, message } — the message goes to LINE, kind / title / blocks to the "การแจ้งเตือนล่าสุด" page
   if (late.length) {
-    messages.push(joinBlocks(`🚚 แจ้งเตือน: ออกห้องเย็นแล้วยังไม่เข้าห้องเย็นใหญ่ เกิน ${c.transitMin} นาที (${late.length} รายการ)`,
-      late.map(({ r, out }) => transitBlock(r, out, `ผ่านไปแล้ว : ${fmtMin(Math.round((now - out) / 60000))} (เกินเกณฑ์ ${c.transitMin} นาที)`)), c));
+    const title = `🚚 แจ้งเตือน: ออกห้องเย็นแล้วยังไม่เข้าห้องเย็นใหญ่ เกิน ${c.transitMin} นาที (${late.length} รายการ)`;
+    const blocks = late.map(({ r, out }) => transitBlock(r, out, `ผ่านไปแล้ว : ${fmtMin(Math.round((now - out) / 60000))} (เกินเกณฑ์ ${c.transitMin} นาที)`));
+    entries.push({ kind: "transit_late", title, blocks, message: joinBlocks(title, blocks, c) });
   }
   if (arrived.length) {
-    messages.push(joinBlocks(`✅ รับเข้าห้องเย็นใหญ่แล้ว แต่ใช้เวลาเกิน ${c.transitMin} นาที (${arrived.length} รายการ)`,
-      arrived.map(({ r, out, took, at }) => transitBlock(r, out, `ใช้เวลาออก→เข้า : ${fmtMin(took)}`, T_(r.stay_place) === "เข้าห้องเย็นใหญ่" && T_(r.dest) === "ในห้องเย็นใหญ่" ? "อยู่ในห้องเย็นใหญ่" : undefined)), c));
+    const title = `✅ รับเข้าห้องเย็นใหญ่แล้ว แต่ใช้เวลาเกิน ${c.transitMin} นาที (${arrived.length} รายการ)`;
+    const blocks = arrived.map(({ r, out, took, at }) => transitBlock(r, out, `ใช้เวลาออก→เข้า : ${fmtMin(took)}`, T_(r.stay_place) === "เข้าห้องเย็นใหญ่" && T_(r.dest) === "ในห้องเย็นใหญ่" ? "อยู่ในห้องเย็นใหญ่" : undefined));
+    entries.push({ kind: "transit_arrived", title, blocks, message: joinBlocks(title, blocks, c) });
   }
-  return { next, messages };
+  return { next, entries, messages: entries.map((e) => e.message) };
 };
 
 const STALE_STATE_MS = (parseInt(process.env.DELAY_ALERT_STALE_MIN, 10) || 30) * 60000;
@@ -321,6 +365,7 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
   const baseline = prev === null;           // first run: no immediate messages, only remember
   let redSent = 0;                          // rows told in the red message of this check
   let fishSent = 0;                         // fish Codes (same Code, different Batch) told in this check
+  let lineProblem = "";                     // the last alert that LINE did not take ("failed 429" …) — it is still on the "การแจ้งเตือนล่าสุด" page
   let fishError = "";                       // why a fish check could not run / send (told to the Supervisor button)
   const next = {};
   const changes = [];                       // rows whose colour changed since the last check
@@ -362,45 +407,38 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
   let transitNext = prev?.transit || {};
   if (c.transitMin > 0) {
     const tr = transitCheck(res.data.mappings || [], prev?.transit || {}, now, c, baseline);
-    if (tr.messages.length) {
-      if (!c.token || !c.group) {
-        console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือนห้องเย็นใหญ่");
-      } else {
-        await push(tr.messages.slice(0, 5), c);
-        console.log(`✅ [delayAlert] ส่งแจ้งเตือนออกห้องเย็น→ห้องเย็นใหญ่ ${tr.messages.length} ข้อความ`);
-        transitNext = tr.next;
-      }
-    } else transitNext = tr.next;
+    for (const e of tr.entries) {
+      const line = await deliverAlert(c, e.kind, e.title, e.blocks, [e.message]);
+      if (line !== "sent") lineProblem = line;
+      else console.log(`✅ [delayAlert] ส่งแจ้งเตือนออกห้องเย็น→ห้องเย็นใหญ่ 1 ข้อความ (${e.kind})`);
+    }
+    transitNext = tr.next;
   }
   if (c.onlyRed && (opts.force || now - redFlushAt >= c.batchMs)) {
     // still red now = still worth telling (rows that went back to a better colour in the meantime are dropped)
     const items = Object.entries(pendingRed).filter(([id]) => next[id] === "red").map(([, v]) => ({ level: "red", row: v.row, hit: v.hit }));
     if (items.length) {
-      if (!c.token || !c.group) {
-        console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
-      } else {
-        try {
-          items.sort((a, b) => a.hit.remaining - b.hit.remaining);   // the worst (least time left) first
-          await push(packBlocks(`⚠️ วัตถุดิบเปลี่ยนสถานะเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`, items.map((i) => redBlock(i.row, i.hit)), c), c);
-        } catch (err) {
-          // keep the red rows and the old window start: the same message is retried at the next check
-          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
-          throw err;
-        }
-        console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
-        sent = items.length;
-        redSent = items.length;
-        Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
-        redFlushAt = now;
+      try {
+        items.sort((a, b) => a.hit.remaining - b.hit.remaining);   // the worst (least time left) first
+        const title = `⚠️ วัตถุดิบเปลี่ยนสถานะเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`;
+        const blocks = items.map((i) => redBlock(i.row, i.hit));
+        const line = await deliverAlert(c, "red", title, blocks, packBlocks(title, blocks, c));
+        if (line !== "sent") lineProblem = line;
+        else console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
+      } catch (err) {
+        // network / 5xx: keep the red rows and the old window start: the same message is retried at the next check
+        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
+        throw err;
       }
-    } else {
-      Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
-      redFlushAt = now;
+      sent = items.length;
+      redSent = items.length;
     }
+    Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
+    redFlushAt = now;
   }
   // fish, as soon as a Code + Line is given (scan of the SAP label + plan / "ต้ม อบ เสร็จ" + plan): the work table already holds those rows (plans + trolley rows), so this
   // costs no extra query and runs at every check. Rows that are packed meanwhile stay in fishSeen. A group is told once per set of batches.
-  if (c.fishCheck && c.token && c.group) {
+  if (c.fishCheck) {
     try {
       const fish = await loadFish();
       const txt = (v) => String(v ?? "").trim();
@@ -432,8 +470,11 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
         if (!fishReported[sig]) fresh.push({ sig, sec: { day: g.day, shift: g.shift }, g: { code: g.code, mat: g.mat, mat_name: g.mat_name, batches: names.map((n) => ({ batch: n, rows: [{ hu: g.batches[n].hus.join(", "), rmm_line_name: g.batches[n].lines.join(", ") }] })) } });
       });
       if (fresh.length && !baseline) {
-        await push(packBlocks(`🐟 พบ Code เดียวกัน คนละ Batch (ปลา) ${fresh.length} Code — ได้รับ Code / Line แล้ว`, fresh.map(({ sec, g }) => fishBlock(sec, g)), c), c);
-        console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch (เพิ่งได้ Code/Line) ${fresh.length} Code`);
+        const title = `🐟 พบ Code เดียวกัน คนละ Batch (ปลา) ${fresh.length} Code — ได้รับ Code / Line แล้ว`;
+        const blocks = fresh.map(({ sec, g }) => fishBlock(sec, g));
+        const line = await deliverAlert(c, "fish", title, blocks, packBlocks(title, blocks, c));
+        if (line !== "sent") lineProblem = line;
+        else console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch (เพิ่งได้ Code/Line) ${fresh.length} Code`);
         fresh.forEach(({ sig }) => { fishReported[sig] = now; });
         fishSent += fresh.length;
       } else if (fresh.length) fresh.forEach(({ sig }) => { fishReported[sig] = now; });   // first run: remember, do not flood the group
@@ -443,7 +484,7 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
     }
   }
   // fish: same Code, different starting Batch (the Done table's check button) — checked every batch window, each finding is told once
-  if (c.fishCheck && c.token && c.group && (opts.force || now - fishAt >= Math.max(c.batchMs, 15 * 60000))) {
+  if (c.fishCheck && (opts.force || now - fishAt >= Math.max(c.batchMs, 15 * 60000))) {
     try {
       const fish = await loadFish();
       const done = await axios.get(`${c.api}/api/sheet/done`, { params: { date_from: ymd(new Date(now - 86400000)), date_to: ymd(new Date(now)), limit: 5000 }, headers: { Authorization: `Bearer ${issueServiceToken("delay-alert-worker")}` }, timeout: 120000 });
@@ -456,8 +497,10 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
       if (found.length) {
         const blocks = [];
         found.forEach(({ sec, g }) => blocks.push(fishBlock(sec, g)));
-        await push(packBlocks(`🐟 พบ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา) ${found.length} Code`, blocks, c), c);
-        console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch ${found.length} Code (${blocks.length} รายการ)`);
+        const title = `🐟 พบ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา) ${found.length} Code`;
+        const line = await deliverAlert(c, "fish", title, blocks, packBlocks(title, blocks, c));
+        if (line !== "sent") lineProblem = line;
+        else console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch ${found.length} Code (${blocks.length} รายการ)`);
         found.forEach(({ sig }) => { fishReported[sig] = now; });
         fishSent += found.length;
       }
@@ -492,7 +535,7 @@ const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send w
     }
   }
   writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
-  return { sent, summary: summaryDue && coloured.length > 0, redSent, fishSent, fishError };
+  return { sent, summary: summaryDue && coloured.length > 0, redSent, fishSent, fishError, lineProblem };
 };
 
 const start = () => {
@@ -528,8 +571,6 @@ const start = () => {
     busy = true;
     const result = { id: cmd.id, at: Date.now(), by: cmd.by, ok: true, redSent: 0, fishSent: 0, message: "" };
     try {
-      const cc = cfg();
-      if (!cc.token || !cc.group) throw new Error("ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID");
       console.log(`📨 [delayAlert] สั่งส่งเลยจาก ${cmd.by || "-"}`);
       const r = await runOnce(Date.now(), { force: true });
       result.redSent = r.redSent || 0;
@@ -538,7 +579,13 @@ const start = () => {
       if (result.redSent) parts.push(`สีแดง ${result.redSent} รายการ`);
       if (result.fishSent) parts.push(`ปลาคนละ Batch ${result.fishSent} Code`);
       if (r.fishError) { result.ok = false; parts.push(`ตรวจปลาไม่สำเร็จ: ${r.fishError}`); }
-      result.message = parts.length ? `ส่งแล้ว: ${parts.join(" · ")}` : "ตรวจแล้ว ไม่มีรายการใหม่ที่ต้องแจ้ง";
+      if (r.lineProblem) {
+        // the alerts are on the "การแจ้งเตือนล่าสุด" page; only LINE did not take them (monthly limit, bot not in the group, no token ...)
+        result.ok = false;
+        result.message = `บันทึกในหน้าการแจ้งเตือนล่าสุดแล้ว (${parts.join(" · ") || "-"}) แต่ LINE ไม่รับข้อความ: ${r.lineProblem}`;
+      } else {
+        result.message = parts.length ? `ส่งแล้ว: ${parts.join(" · ")}` : "ตรวจแล้ว ไม่มีรายการใหม่ที่ต้องแจ้ง";
+      }
     } catch (err) {
       result.ok = false;
       result.message = err.response ? `LINE ตอบ ${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 160)}` : err.message;
