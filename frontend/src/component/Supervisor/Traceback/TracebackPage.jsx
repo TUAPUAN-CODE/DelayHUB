@@ -1,30 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import Buttom from "../../Layout/Buttom";
 import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
 import SearchPanel from "./Asset/SearchPanel";
 import TracebackDetailView from "./Asset/TracebackDetailView";
-import BatchLinkSection from "./Asset/BatchLinkSection";
-import CodeFishSection from "./Asset/CodeFishSection";
-import { Card } from "./Asset/TraceAtoms";
+import BatchPairsView from "./Asset/BatchPairsView";
+import CodeFishView from "./Asset/CodeFishView";
+import { Segmented, Spinner } from "./Asset/TraceAtoms";
 import { makeForm, defaultSort, traceCodes } from "./Asset/traceForm";
 import { T } from "./Asset/tracebackUI";
 import { scopeFromParams, readRecent } from "./Asset/tracebackCore";
 
-// /sup/Traceback — ONE page, no direction to pick:
-//   1. สอบกลับ Mat วัตถุดิบเริ่มต้น ↔ 2X          (BatchLinkSection by="mat")
-//   2. สินค้าแต่ละ Code ใช้ปลากี่ Batch           (CodeFishSection)
-//   3. สอบกลับ Batch วัตถุดิบเริ่มต้น ↔ 2X        (BatchLinkSection by="batch")
-//   4. สอบกลับเอกสารการผลิต + สอบไปข้างหน้า        (one search box: the production documents that used the Batch / Lot AND where it went)
-//   ?doc_no=&code= opens that document's sheet · ?scope=1&code=&batch=&line=… the sheet of a filter · ?code=&type= runs the forward trace of a code at once
+const API_URL = import.meta.env.VITE_API_URL;
+
+// /sup/Traceback — ONE page, ONE search form (SearchPanel): put as many conditions as you like (Batch ตั้งต้น / 2X / Lot, Mat, Code, document, line, dates — all optional),
+// press ค้นหา, and read the result in the view you need (the tabs share the same conditions; a tab searches when it is opened after a new search):
+//   pairs   : Batch ตั้งต้น ↔ Batch 2X (+ the rows that used them)        · fish    : how many fish Batches each product Code used, and which
+//   docs    : the production documents that used the Batch / Lot          · forward : where the Batch / Lot went next (needs a Batch / Lot)
+//   ?doc_no=&code= opens that document's sheet · ?scope=1&code=&batch=&line=… the sheet of a filter · ?code=&type= opens the forward tab with that code
 // (the old pages "จำลองการเรียกคืน" / "รายการกักสินค้า" were already hidden; their code stays in Asset/ — MockRecall.jsx, HoldList.jsx)
+const TABS = [
+  { value: "pairs", label: "Batch ตั้งต้น ↔ 2X" },
+  { value: "fish", label: "Code ใช้ปลากี่ Batch" },
+  { value: "docs", label: "เอกสารการผลิตที่ใช้" },
+  { value: "forward", label: "ปลายทางของ Batch / Lot" },
+];
 
 const TracebackPage = () => {
   const [params, setParams] = useSearchParams();
   const docNo = params.get("doc_no");
   // ?scope=1&code=&batch=&line=... = ใบสอบกลับตามตัวกรองของหน้าค้นหา (ไม่ผูกกับเอกสารเดียว)
   const scope = scopeFromParams(params);
+  const fromForwardLink = !!(params.get("code") && (params.get("mode") === "forward" || params.get("type")));
   // ใบสอบกลับแสดงใต้ตารางผลในหน้านี้เลย (ลิงก์ ?doc_no= / ?scope=1 เปิดมาพร้อมใบนั้น)
   const [record, setRecord] = useState(() => scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null));
   const recordRef = useRef(null);
@@ -32,45 +41,65 @@ const TracebackPage = () => {
     if (record) recordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [record]);
 
-  // the one search form of section 4 (SearchPanel): the backward list and the forward trace both read it
-  const [form, setForm] = useState(() => makeForm("backward", params.get("mode") === "forward" || params.get("type") ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
+  const [form, setForm] = useState(() => makeForm("backward", fromForwardLink ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
+  const formRef = useRef(form);
+  formRef.current = form;
+  const [tab, setTab] = useState(fromForwardLink ? "forward" : "pairs");
+  const [searchVer, setSearchVer] = useState(fromForwardLink ? 1 : 0);   // +1 at every press of ค้นหา
+  const ran = useRef({});                                                // tab group -> the searchVer it was searched for
   const dashRef = useRef(null);
   const fwdRef = useRef(null);
-  const [fwdRun, setFwdRun] = useState(() => (params.get("code") && (params.get("mode") === "forward" || params.get("type")) ? 1 : 0)); // > 0: the forward trace is on the page
+  const [links, setLinks] = useState({ rows: null, loading: false, error: "", capped: false });
   const [recentTick, setRecentTick] = useState(0);
   const recent = useMemo(() => readRecent().filter((r) => r.kind === "fwd"), [recentTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // the forward trace is mounted only after the first search that has a Batch / Lot: it runs when it is there
-  const pendingFwd = useRef(null);
+  // pairs + fish share one request: the rows of every Batch that matches the conditions
+  const fetchLinks = useCallback(async () => {
+    const f = formRef.current;
+    setLinks((l) => ({ ...l, loading: true, error: "" }));
+    try {
+      const res = await axios.get(`${API_URL}/api/traceback/batch-link`, {
+        params: {
+          batch: traceCodes(f).join(","), mat: f.mat, mat_name: f.mat_name, code: f.code, doc_no: f.doc_no, line: f.rmm_line_name,
+          pack_status: f.pack_status, from: f.from, to: f.single ? f.from : f.to,
+        },
+      });
+      if (!res.data?.success) throw new Error(res.data?.error || "ค้นหาไม่สำเร็จ");
+      setLinks({ rows: res.data.data || [], loading: false, error: "", capped: !!res.data.capped });
+    } catch (e) {
+      console.error("batch-link error:", e);
+      setLinks({ rows: null, loading: false, error: e.response?.data?.error || e.message || "ค้นหาไม่สำเร็จ", capped: false });
+    }
+  }, []);
+
+  // a tab searches when it is shown and has not been searched for the current ค้นหา
   useEffect(() => {
-    if (fwdRun > 0 && pendingFwd.current) {
-      const run = pendingFwd.current;
-      pendingFwd.current = null;
-      run(fwdRef.current);
-    }
-  }, [fwdRun]);
+    if (searchVer === 0) return;
+    const group = tab === "fish" ? "pairs" : tab;
+    if (ran.current[group] === searchVer) return;
+    ran.current[group] = searchVer;
+    if (group === "pairs") fetchLinks();
+    else if (group === "docs") dashRef.current?.search();
+    else if (group === "forward" && traceCodes(formRef.current).length) fwdRef.current?.search();
+  }, [tab, searchVer, fetchLinks]);
 
-  const onSearch = () => {
-    setRecord(null);
-    dashRef.current?.search();
-    if (traceCodes(form).length) {
-      if (fwdRef.current) fwdRef.current.search();
-      else { pendingFwd.current = (f) => f?.search(); setFwdRun((n) => n + 1); }
-    }
+  const onSearch = () => { setRecord(null); ran.current = {}; setSearchVer((v) => v + 1); };
+  const onReset = () => {
+    setRecord(null); ran.current = {}; setSearchVer(0); setForm(makeForm("backward"));
+    setLinks({ rows: null, loading: false, error: "", capped: false });
+    dashRef.current?.reset(); fwdRef.current?.reset();
   };
-  const onReset = () => { setRecord(null); setForm(makeForm("backward")); dashRef.current?.reset(); fwdRef.current?.reset(); };
 
-  // a recent search: the code(s) go back into the box and both searches run at once
+  // a recent search: the code(s) go back into the box and the search runs at once
   const pickRecent = (r) => {
-    setForm((f) => ({ ...f, trace: r.code.split(",").join(" ") }));
-    dashRef.current?.run(r.code);
-    if (fwdRef.current) fwdRef.current.run(r.code);
-    else { pendingFwd.current = (f) => f?.run(r.code); setFwdRun((n) => n + 1); }
+    const trace = r.code.split(",").join(" ");
+    setForm((f) => ({ ...f, trace }));
+    formRef.current = { ...formRef.current, trace };
+    onSearch();
   };
 
   const openRecord = useCallback((doc_no, code) => setRecord({ doc_no, code }), []);
   const onSelect = useCallback((v) => setRecord(v || null), []);
-
   const onForwardQuery = useCallback(({ code, type }) => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -79,38 +108,49 @@ const TracebackPage = () => {
     }, { replace: true });
   }, [setParams]);
 
-  // the forward trace keeps its own order (day, newest first) while the backward list uses the order of the form
+  // the forward trace keeps its own order (day, newest first) and shows every status
   const fwdForm = useMemo(() => ({ ...form, sort: defaultSort("forward"), pack_status: "all" }), [form]);
+  const show = (v) => ({ display: tab === v || (v === "pairs" && tab === "fish") ? "block" : "none" });
+  const hasCodes = traceCodes(form).length > 0;
 
   return (
     <div style={{ backgroundColor: T.bg }} className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
-        <BatchLinkSection by="mat" title="1) สอบกลับ Mat วัตถุดิบเริ่มต้น ↔ 2X" />
-        <CodeFishSection title="2) สินค้าแต่ละ Code ใช้ปลากี่ Batch" />
-        <BatchLinkSection by="batch" title="3) สอบกลับ Batch วัตถุดิบเริ่มต้น ↔ 2X" />
+        <SearchPanel form={form} setForm={setForm} onSearch={onSearch} onReset={onReset} loading={links.loading} recent={recent} onPickRecent={pickRecent} />
 
-        <Card title="4) สอบกลับเอกสารการผลิต และสอบไปข้างหน้า จาก Batch / Lot" pad="0 14px 14px">
-          <SearchPanel form={form} setForm={setForm} onSearch={onSearch} onReset={onReset} recent={recent} onPickRecent={pickRecent} />
+        <div style={{ margin: "14px 0 10px" }}><Segmented value={tab} onChange={setTab} options={TABS} /></div>
 
-          <div style={{ padding: "4px 0 0" }}>
+        <div style={{ paddingBottom: 12 }}>
+          {(tab === "pairs" || tab === "fish") && (
+            <div>
+              {searchVer === 0 && <div style={{ padding: 18, fontSize: 13, color: T.text2, border: `1px dashed ${T.blueLine}`, borderRadius: 12, textAlign: "center" }}>ใส่เงื่อนไขอย่างน้อย 1 อย่าง (Batch · Mat · Code · เอกสาร · ไลน์ · วันที่ — วันที่ไม่ใส่ก็ได้) แล้วกดค้นหา</div>}
+              {links.loading && <div style={{ padding: 18, display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: T.text2 }}><Spinner size={16} />กำลังค้นหา...</div>}
+              {links.error && <div style={{ padding: "8px 2px", color: T.bad, fontSize: 13 }}>{links.error}</div>}
+              {links.capped && <div style={{ padding: "8px 2px", color: T.orange, fontSize: 12.5 }}>ผลลัพธ์ถึงเพดาน แสดงเฉพาะส่วนแรก — เพิ่มเงื่อนไขให้แคบลง</div>}
+              {links.rows && !links.loading && (tab === "pairs" ? <BatchPairsView rows={links.rows} /> : <CodeFishView rows={links.rows} />)}
+            </div>
+          )}
+
+          <div style={show("docs")}>
             <ProductionLineDelayDashboard ref={dashRef} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />
-            {fwdRun > 0 && (
-              <div style={{ paddingTop: 8 }}>
-                <ForwardTrace
-                  ref={fwdRef}
-                  initialCode={params.get("code") || ""}
-                  initialType={params.get("type") || "auto"}
-                  onOpenRecord={openRecord}
-                  onQueryChange={onForwardQuery}
-                  onRan={() => setRecentTick((n) => n + 1)}
-                  form={fwdForm}
-                />
-              </div>
-            )}
           </div>
-        </Card>
+          <div style={{ ...show("forward"), paddingTop: 8 }}>
+            {!hasCodes && <div style={{ padding: 18, fontSize: 13, color: T.text2, border: `1px dashed ${T.blueLine}`, borderRadius: 12, textAlign: "center" }}>ใส่ Batch / Lot ในช่องค้นหา เพื่อดูว่าไปที่ไหนต่อ</div>}
+            <div style={{ display: hasCodes ? "block" : "none" }}>
+              <ForwardTrace
+                ref={fwdRef}
+                initialCode={params.get("code") || ""}
+                initialType={params.get("type") || "auto"}
+                onOpenRecord={openRecord}
+                onQueryChange={onForwardQuery}
+                onRan={() => setRecentTick((n) => n + 1)}
+                form={fwdForm}
+              />
+            </div>
+          </div>
+        </div>
 
         {record && (
           <div ref={recordRef} style={{ paddingBottom: 12 }}>

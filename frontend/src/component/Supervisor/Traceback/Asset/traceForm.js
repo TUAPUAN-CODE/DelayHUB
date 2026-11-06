@@ -44,7 +44,7 @@ export const defaultStatus = (mode) => (mode === 'forward' ? 'all' : 'packed');
 export const makeForm = (mode, init = {}) => ({
   trace: '',
   doc_no: '', code: '', mat: '', mat_name: '', rmm_line_name: '', supplier: '',
-  pack_status: defaultStatus(mode), single: true, from: '', to: '',
+  pack_status: defaultStatus(mode), single: false, from: '', to: '',   // dates are optional: both empty = no date filter
   sort: defaultSort(mode),
   ...init,
 });
