@@ -13,10 +13,12 @@ import { canTypeTrolley } from "../../../../utils/userPerms";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
-// batches = [{ before, after }]: Batch ตั้งต้น + Batch แปลงเดิมของรายการนี้ — ส่งมาเมื่อต้องกรอก Batch แปลงใหม่ด้วย (เหมือนฟอร์ม "ใส่รถเข็น" ของแผนผลิต: 10 ตัวอักษร ค่าเดิมใส่ไว้ให้แก้)
+// batches = [{ before, after, required }]: Batch ตั้งต้น + Batch แปลงเดิมของรายการนี้ — ส่งมาเมื่อต้องกรอก Batch แปลงใหม่ด้วย (เหมือนฟอร์ม "ใส่รถเข็น" ของแผนผลิต: ค่าเดิมใส่ไว้ให้แก้;
+// required = บังคับครบ 10 ตัวอักษร (วัตถุดิบประเภท 3, 6, 7, 8) ไม่บังคับ = เว้นว่างได้ ใช้ค่าเดิม)
 // onConfirm(tro_id, batchAfterArray) — batchAfterArray = [{ batch_before, batch_after }] (undefined เมื่อไม่มี batches)
 const BATCH_LEN = 10;
 const NO_BATCHES = [];
+const batchOk = (b, v) => { const n = String(v ?? "").trim().length; return b.required ? n === BATCH_LEN : n <= BATCH_LEN; };
 
 const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) => {
   const manual = canTypeTrolley();
@@ -100,7 +102,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) =>
   const confirm = async () => {
     if (!value || busy) return;
     const tro = manual ? value.padStart(4, "0") : value;
-    if (batches.length && batchInputs.some((v) => v.trim().length !== BATCH_LEN)) { setError("กรุณากรอก Batch แปลงให้ครบ 10 ตัวอักษร"); return; }
+    if (batches.some((b, i) => !batchOk(b, batchInputs[i]))) { setError("กรุณากรอก Batch แปลงให้ครบ 10 ตัวอักษร"); return; }
     setBusy(true); setError("");
     try {
       if (!(await checkTrolley(tro))) return;
@@ -112,7 +114,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) =>
         setError("รถเข็นถูกจองแล้ว");
         return;
       }
-      onConfirm(tro, batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: batchInputs[i].trim().toUpperCase() })) : undefined);
+      onConfirm(tro, batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: batchInputs[i].trim().toUpperCase() || b.after || b.before })) : undefined);
     } finally { setBusy(false); }
   };
 
@@ -143,7 +145,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) =>
               fullWidth margin="dense" size="small" value={batchInputs[i] ?? ""}
               label={batches.length > 1 ? `Batch แปลง ${i + 1} (10 ตัวอักษร)` : "Batch แปลง (10 ตัวอักษร)"}
               onChange={(e) => { const v = e.target.value.toUpperCase().slice(0, BATCH_LEN); setError(""); setBatchInputs((prev) => prev.map((x, j) => (j === i ? v : x))); }}
-              error={(batchInputs[i] ?? "").length > 0 && (batchInputs[i] ?? "").length !== BATCH_LEN}
+              error={!batchOk(b, batchInputs[i])}
               inputProps={{ maxLength: BATCH_LEN }}
             />
           </Box>
@@ -151,7 +153,7 @@ const ScanTrolleyModal = ({ open, onClose, onConfirm, batches = NO_BATCHES }) =>
         <Divider sx={{ my: 1 }} />
         <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}>
           <Button variant="contained" startIcon={<CancelIcon />} onClick={close} sx={{ bgcolor: "#E5484D", "&:hover": { bgcolor: "#c73c41" } }}>ยกเลิก</Button>
-          <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={confirm} disabled={!value || busy || (batches.length > 0 && batchInputs.some((v) => v.trim().length !== BATCH_LEN))} sx={{ bgcolor: "#1552F0" }}>ยืนยัน</Button>
+          <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={confirm} disabled={!value || busy || batches.some((b, i) => !batchOk(b, batchInputs[i]))} sx={{ bgcolor: "#1552F0" }}>ยืนยัน</Button>
         </Box>
       </Box>
     </Modal>
