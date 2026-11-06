@@ -35,6 +35,7 @@ const WorkplacePage = lazy(() => import("./Workplace/WorkplacePage"));
 
 const TrackTrolleyQC = lazy(() => import("./TrackTrolley/TrackTrolleyQC.jsx"));
 const TracebackPage = lazy(() => import("./Traceback/TracebackPage"));
+const LineAlertPage = lazy(() => import("./LineAlert/LineAlertPage")); // send the LINE alerts now (no 1 hour wait)
 const ReportPage = lazy(() => import("./Report/ReportPage")); // one report: %Tie / Pareto / trend / table (replaces Delay %, Delay SC, Delay IP)
 
 
@@ -73,6 +74,7 @@ const routes = [
 { path: "/WorkplacePage", element: <WorkplacePage /> },
 { path: "/TrackTrolley", element: <TrackTrolleyQC/> },
 { path: "/Report", element: <ReportPage /> },
+{ path: "/LineAlert", element: <LineAlertPage /> },
   // // จัดการการทำงาน
   // { path: "/Table/WorkPlace", element: <TableWorkPlaceSup /> },
   // { path: "/Table/Role", element: <TableRoleSup /> },

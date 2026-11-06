@@ -224,6 +224,9 @@ const RULES = [
   { m: "GET", p: /^\/api\/traceback\/debug\//, check: adminOnly },
   // ปลดกักสินค้า: หัวหน้า (6/8) หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว
   { m: "PUT", p: /^\/api\/traceback\/holds\/\d+\/release$/, check: adminOrUnlock },
+  // ส่งแจ้งเตือน LINE ทันที (หน้า Supervisor): เฉพาะหัวหน้า (6/8)
+  { m: "POST", p: /^\/api\/sheet\/delay-alert\/send-now$/, check: adminOnly, final: true },
+  { m: "GET", p: /^\/api\/sheet\/delay-alert\/status$/, check: adminOnly, final: true },
   // Role ของตัวเอง ดูได้ แต่ดูของคนอื่นต้องเป็น admin
   { m: "GET", p: /^\/api\/user\/roles$/, check: selfOrAdmin((req) => req.query.user_id) },
   { m: "GET", p: /^\/api\/user\/permissions$/, check: selfOrAdmin((req) => req.query.user_id) },

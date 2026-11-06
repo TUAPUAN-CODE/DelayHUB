@@ -12,6 +12,7 @@ const { getAuthMode } = require("../lib/authMiddleware");
 const metrics = require("../lib/metrics");
 const logger = require("../lib/logger");
 const { lineageOf } = require("../lib/mappingLineage");
+const { createRedis } = require("../lib/redisClient");
 
 const router = express.Router();
 
@@ -1514,5 +1515,53 @@ router.get("/sheet/rows-by-ids", async (req, res) => {
 });
 
 router.__queries = { buildMappingQuery, buildHuQuery, buildPlanQuery, buildMixedQuery };
+
+// ── ส่งแจ้งเตือน LINE ทันที (หน้า Supervisor): คำสั่งฝากไว้ใน Redis ให้ตัวส่งแจ้งเตือน (delay-alert-worker, PM2) ซึ่งเป็นคนละ process ตรวจแล้วส่งเลยไม่รอรอบ 1 ชม.
+//   POST /sheet/delay-alert/send-now → { success, id } · GET /sheet/delay-alert/status?id= → { success, state: "pending" | "done", result }
+// key ต้องตรงกับ backend/delayAlertWorker.js (CMD_KEY / RESULT_KEY)
+const ALERT_CMD_KEY = "delayalert:send-now";
+const ALERT_RESULT_KEY = "delayalert:last-result";
+let alertRedis = null;
+let alertRedisReady = null;
+const alertRedisClient = async () => {
+  if (!alertRedis) {
+    alertRedis = createRedis("sheet:delay-alert");
+    alertRedisReady = alertRedis.connect().catch((err) => {
+      logger.error("delay_alert_redis_connect_failed", { error: err.message });
+      alertRedis = null; alertRedisReady = null;
+      throw err;
+    });
+  }
+  // Redis ไม่ตอบ = ไม่ค้างคำขอ (ตัว client เชื่อมต่อใหม่เองในพื้นหลัง)
+  await Promise.race([alertRedisReady, new Promise((_, reject) => setTimeout(() => reject(new Error("เชื่อมต่อ Redis ไม่ได้")), 3000))]);
+  return alertRedis;
+};
+router.post("/sheet/delay-alert/send-now", async (req, res) => {
+  try {
+    const redis = await alertRedisClient();
+    const id = crypto.randomUUID();
+    const by = req.user?.username || req.user?.name || "-";
+    // NX: ถ้ามีคำสั่งรออยู่แล้ว ไม่รับซ้ำ (กดรัวไม่ได้) — คำสั่งหมดอายุเองใน 3 นาทีถ้าไม่มีตัวส่งรับ
+    const ok = await redis.set(ALERT_CMD_KEY, JSON.stringify({ id, at: Date.now(), by }), { NX: true, EX: 180 });
+    if (!ok) return res.status(409).json({ success: false, error: "มีคำสั่งส่งแจ้งเตือนรอดำเนินการอยู่แล้ว กรุณารอสักครู่" });
+    res.json({ success: true, id, message: "ส่งคำสั่งแล้ว กำลังตรวจสอบและส่งแจ้งเตือน" });
+  } catch (err) {
+    console.error("[Route /sheet/delay-alert/send-now] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+router.get("/sheet/delay-alert/status", async (req, res) => {
+  try {
+    const redis = await alertRedisClient();
+    const id = String(req.query.id || "");
+    const raw = await redis.get(ALERT_RESULT_KEY);
+    const result = raw ? JSON.parse(raw) : null;
+    if (result && result.id === id) return res.json({ success: true, state: "done", result });
+    res.json({ success: true, state: "pending" });
+  } catch (err) {
+    console.error("[Route /sheet/delay-alert/status] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 module.exports = router;

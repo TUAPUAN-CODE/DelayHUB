@@ -35,6 +35,11 @@ const path = require("path");
 const axios = require("axios");
 const { issueServiceToken } = require("./lib/auth");
 const { createLeader } = require("./lib/leaderLock");
+const { createRedis } = require("./lib/redisClient");
+
+// keys shared with routes/SheetRoutes.js (POST /api/sheet/delay-alert/send-now)
+const CMD_KEY = "delayalert:send-now";
+const RESULT_KEY = "delayalert:last-result";
 
 const cfg = () => ({
   token: process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
@@ -293,7 +298,7 @@ const loadFish = () => { if (!fishPromise) fishPromise = import("./lib/fishBatch
  * One check; returns { sent, summary } (used by the timer and by the test).
  * state file: { levels: { mapping_id: "green"|"yellow"|"red" }, summaryAt: ms of the last summary }
  */
-const runOnce = async (now = Date.now()) => {
+const runOnce = async (now = Date.now(), opts = {}) => {   // opts.force: send what is waiting NOW (red rows, finished-rows fish check) without waiting for the batch window
   const c = cfg();
   const { getDbs, stageDbsIndex } = await loadLib();
   // only rows that moved in the last DELAY_ALERT_DAYS days: old forgotten rows are all red and would flood the group (tens of thousands of lines)
@@ -314,6 +319,9 @@ const runOnce = async (now = Date.now()) => {
   const fishSeen = { ...(prev?.fishSeen || {}) };   // fish batches seen per day / shift / Code / Mat since a Code + Line was given (kept 3 days, so a row that is packed meanwhile still counts)
   if (prev && prev.savedAt && now - prev.savedAt > STALE_STATE_MS) { console.log("ℹ️ [delayAlert] สถานะเดิมเก่าเกิน " + Math.round(STALE_STATE_MS / 60000) + " นาที — เริ่มใหม่"); prev = null; }
   const baseline = prev === null;           // first run: no immediate messages, only remember
+  let redSent = 0;                          // rows told in the red message of this check
+  let fishSent = 0;                         // fish Codes (same Code, different Batch) told in this check
+  let fishError = "";                       // why a fish check could not run / send (told to the Supervisor button)
   const next = {};
   const changes = [];                       // rows whose colour changed since the last check
   const coloured = [];                      // every yellow / red row (for the optional summary)
@@ -364,7 +372,7 @@ const runOnce = async (now = Date.now()) => {
       }
     } else transitNext = tr.next;
   }
-  if (c.onlyRed && now - redFlushAt >= c.batchMs) {
+  if (c.onlyRed && (opts.force || now - redFlushAt >= c.batchMs)) {
     // still red now = still worth telling (rows that went back to a better colour in the meantime are dropped)
     const items = Object.entries(pendingRed).filter(([id]) => next[id] === "red").map(([, v]) => ({ level: "red", row: v.row, hit: v.hit }));
     if (items.length) {
@@ -381,6 +389,7 @@ const runOnce = async (now = Date.now()) => {
         }
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
         sent = items.length;
+        redSent = items.length;
         Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
         redFlushAt = now;
       }
@@ -426,13 +435,15 @@ const runOnce = async (now = Date.now()) => {
         await push(packBlocks(`🐟 พบ Code เดียวกัน คนละ Batch (ปลา) ${fresh.length} Code — ได้รับ Code / Line แล้ว`, fresh.map(({ sec, g }) => fishBlock(sec, g)), c), c);
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch (เพิ่งได้ Code/Line) ${fresh.length} Code`);
         fresh.forEach(({ sig }) => { fishReported[sig] = now; });
+        fishSent += fresh.length;
       } else if (fresh.length) fresh.forEach(({ sig }) => { fishReported[sig] = now; });   // first run: remember, do not flood the group
     } catch (err) {
-      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch (เพิ่งได้ Code/Line) ไม่สำเร็จ:", err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 200)}` : err.message);
+      fishError = err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 120)}` : err.message;
+      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch (เพิ่งได้ Code/Line) ไม่สำเร็จ:", fishError);
     }
   }
   // fish: same Code, different starting Batch (the Done table's check button) — checked every batch window, each finding is told once
-  if (c.fishCheck && c.token && c.group && now - fishAt >= Math.max(c.batchMs, 15 * 60000)) {
+  if (c.fishCheck && c.token && c.group && (opts.force || now - fishAt >= Math.max(c.batchMs, 15 * 60000))) {
     try {
       const fish = await loadFish();
       const done = await axios.get(`${c.api}/api/sheet/done`, { params: { date_from: ymd(new Date(now - 86400000)), date_to: ymd(new Date(now)), limit: 5000 }, headers: { Authorization: `Bearer ${issueServiceToken("delay-alert-worker")}` }, timeout: 120000 });
@@ -448,9 +459,11 @@ const runOnce = async (now = Date.now()) => {
         await push(packBlocks(`🐟 พบ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา) ${found.length} Code`, blocks, c), c);
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch ${found.length} Code (${blocks.length} รายการ)`);
         found.forEach(({ sig }) => { fishReported[sig] = now; });
+        fishSent += found.length;
       }
     } catch (err) {
-      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch ไม่สำเร็จ:", err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 200)}` : err.message);
+      fishError = err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 120)}` : err.message;
+      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch ไม่สำเร็จ:", fishError);
     }
     fishAt = now;       // a failed check is tried again at the next window (not every minute)
     Object.entries(fishReported).forEach(([k, t]) => { if (now - t > 3 * 86400000) delete fishReported[k]; });
@@ -479,7 +492,7 @@ const runOnce = async (now = Date.now()) => {
     }
   }
   writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
-  return { sent, summary: summaryDue && coloured.length > 0 };
+  return { sent, summary: summaryDue && coloured.length > 0, redSent, fishSent, fishError };
 };
 
 const start = () => {
@@ -493,6 +506,38 @@ const start = () => {
   process.on("SIGINT", bye);
   process.on("SIGTERM", bye);
   let busy = false;
+  // "ส่งเลย" จากปุ่มในหน้า Supervisor: backend ฝากคำสั่งไว้ใน Redis (CMD_KEY) — ผู้นำอ่านทุก 5 วินาที, ตรวจแล้วส่งเลยโดยไม่รอรอบ แล้วเขียนผลไว้ที่ RESULT_KEY ให้หน้าเว็บอ่าน
+  const cmdRedis = createRedis("delay-alert:cmd");
+  cmdRedis.connect().catch((err) => console.error("❌ [delayAlert] เชื่อม Redis (รับคำสั่งส่งเลย) ไม่ได้:", err.message));
+  const cmdTick = async () => {
+    if (!leader.isLeader() || busy || !cmdRedis.isReady) return;
+    let raw = null;
+    try { raw = await cmdRedis.getDel(CMD_KEY); } catch { return; }
+    if (!raw) return;
+    let cmd = {};
+    try { cmd = JSON.parse(raw); } catch { /* the id below stays empty: nobody waits for this one */ }
+    busy = true;
+    const result = { id: cmd.id, at: Date.now(), by: cmd.by, ok: true, redSent: 0, fishSent: 0, message: "" };
+    try {
+      const cc = cfg();
+      if (!cc.token || !cc.group) throw new Error("ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID");
+      console.log(`📨 [delayAlert] สั่งส่งเลยจาก ${cmd.by || "-"}`);
+      const r = await runOnce(Date.now(), { force: true });
+      result.redSent = r.redSent || 0;
+      result.fishSent = r.fishSent || 0;
+      const parts = [];
+      if (result.redSent) parts.push(`สีแดง ${result.redSent} รายการ`);
+      if (result.fishSent) parts.push(`ปลาคนละ Batch ${result.fishSent} Code`);
+      if (r.fishError) { result.ok = false; parts.push(`ตรวจปลาไม่สำเร็จ: ${r.fishError}`); }
+      result.message = parts.length ? `ส่งแล้ว: ${parts.join(" · ")}` : "ตรวจแล้ว ไม่มีรายการใหม่ที่ต้องแจ้ง";
+    } catch (err) {
+      result.ok = false;
+      result.message = err.response ? `LINE ตอบ ${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 160)}` : err.message;
+      console.error("❌ [delayAlert] ส่งเลยไม่สำเร็จ:", result.message);
+    } finally { busy = false; }
+    try { await cmdRedis.set(RESULT_KEY, JSON.stringify(result), { EX: 600 }); } catch (err) { console.error("❌ [delayAlert] เขียนผลส่งเลยไม่สำเร็จ:", err.message); }
+  };
+  setInterval(cmdTick, 5000);
   const tick = async () => {
     if (!leader.isLeader()) return;
     if (busy) return;
@@ -507,4 +552,4 @@ const start = () => {
 };
 
 if (require.main === module) start();
-module.exports = { runOnce, levelOf, buildMessages, itemMessage, transitCheck, isTransit };
+module.exports = { start, runOnce, levelOf, buildMessages, itemMessage, transitCheck, isTransit };
