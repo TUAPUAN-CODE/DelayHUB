@@ -605,5 +605,105 @@ router.get('/batch/:batch_code/trace', async (req, res) => {
     }
 });
 
+// ═════════════════════════════════════════════════
+// Batch ตั้งต้น ↔ Batch 2X (หน้า Traceback ส่วนที่ 1 / 2 / 3)
+//   Batch(mapping_id, batch_before = Batch ตั้งต้น, batch_after = Batch 2X) ผูกกับรายการ (mapping) → แผนผลิต/Code/ไลน์/วันที่บรรจุ
+//   GET /batch-link?mat=&batch=&from=&to=   ส่วนที่ 1 (ใส่ Mat) และส่วนที่ 3 (ใส่ Batch ตั้งต้นหรือ 2X อย่างใดอย่างหนึ่ง)
+//   GET /code-fish?code=&from=&to=          ส่วนที่ 2: สินค้าแต่ละ Code ใช้ปลากี่ Batch (วัตถุดิบกลุ่มปลา)
+//   ทั้งสองอ่านอย่างเดียว (NOLOCK) และจำกัดจำนวนแถว — ช่วงวันที่คือวันที่บรรจุ (History.sc_pack_date)
+// ═════════════════════════════════════════════════
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// ประเภทวัตถุดิบกลุ่มปลา (RawMatType.rm_type_id) — ต้องตรงกับ FISH_TYPE_IDS ของ frontend Sheet/Asset/fishBatch.js และ backend/lib/fishBatch.mjs
+const FISH_TYPE_IDS = [3, 38, 39, 45, 67, 68, 69, 70, 71, 72, 80, 100, 112];
+
+const LINK_FROM = `
+  FROM Batch bt WITH (NOLOCK)
+  JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = bt.mapping_id
+  LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+  LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+  LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+  LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+  LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmf.rm_group_id = rmg.rm_group_id
+  OUTER APPLY (
+      SELECT TOP 1 hh.sc_pack_date
+      FROM History hh WITH (NOLOCK)
+      WHERE hh.mapping_id = rmm.mapping_id
+      ORDER BY hh.hist_id DESC
+  ) h`;
+
+const dateRange = (req) => {
+    const from = DATE_RE.test(S(req.query.from)) ? S(req.query.from) : '';
+    const to = DATE_RE.test(S(req.query.to)) ? S(req.query.to) : from;
+    return { from, to };
+};
+// ช่วงวันที่เป็น DateTime เหมือน /search (sc_pack_date เป็นวันเวลา); @has_range = 0 → ไม่กรองวันที่
+const DATE_COND = `(@has_range = 0 OR (h.sc_pack_date >= @from AND h.sc_pack_date < DATEADD(DAY, 1, @to)))`;
+const rangeInputs = (request, { from, to }) => request
+    .input('has_range', sql.Bit, from ? 1 : 0)
+    .input('from', sql.DateTime, from ? new Date(from) : new Date(0))
+    .input('to', sql.DateTime, to ? new Date(to) : new Date(0));
+
+router.get('/batch-link', async (req, res) => {
+    try {
+        const mat = S(req.query.mat);
+        const batch = S(req.query.batch).toUpperCase();
+        if (!mat && !batch) return res.status(400).json({ success: false, error: 'กรุณาระบุ Mat หรือ Batch' });
+        const { from, to } = dateRange(req);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 2000, 1), 5000);
+        const pool = await connectToDatabase();
+        if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+        const r = await rangeInputs(pool.request(), { from, to })
+            .input('mat', sql.NVarChar(50), mat)
+            .input('batch', sql.NVarChar(50), batch)
+            .input('limit', sql.Int, limit)
+            .query(`
+  SELECT TOP (@limit)
+      bt.batch_before, bt.batch_after, rmm.mapping_id, rmm.tro_id, rmm.weight_RM,
+      rm.mat, rm.mat_name, p.doc_no, p.code AS product_code, rmm.rmm_line_name AS line,
+      CONVERT(VARCHAR(16), h.sc_pack_date, 120) AS pack_date
+  ${LINK_FROM}
+  WHERE (@mat = '' OR rm.mat = @mat)
+    AND (@batch = '' OR bt.batch_before = @batch OR bt.batch_after = @batch)
+    AND ${DATE_COND}
+  ORDER BY h.sc_pack_date DESC, rmm.mapping_id DESC`);
+        const rows = r.recordset;
+        res.json({ success: true, data: rows, capped: rows.length >= limit });
+    } catch (err) {
+        console.error('❌ [traceback/batch-link]', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+router.get('/code-fish', async (req, res) => {
+    try {
+        const code = S(req.query.code);
+        const { from, to } = dateRange(req);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3000, 1), 5000);
+        const pool = await connectToDatabase();
+        if (!pool) return res.status(503).json({ success: false, error: 'เชื่อมต่อฐานข้อมูลไม่ได้' });
+        // รายการที่ยังไม่บรรจุ (ไม่มีวันที่บรรจุ) ไม่ถูกนับ: ส่วนนี้ตอบว่า "สินค้าที่ผลิตแล้ว ใช้ปลาอะไรบ้าง"
+        const r = await rangeInputs(pool.request(), { from, to })
+            .input('code', sql.NVarChar(50), code)
+            .input('limit', sql.Int, limit)
+            .query(`
+  SELECT TOP (@limit)
+      p.code AS product_code, p.doc_no, rmm.rmm_line_name AS line, rm.mat, rm.mat_name,
+      bt.batch_before, bt.batch_after,
+      COUNT(DISTINCT rmm.mapping_id) AS n_mapping, CONVERT(VARCHAR(16), MAX(h.sc_pack_date), 120) AS last_pack_date
+  ${LINK_FROM}
+  WHERE rmg.rm_type_id IN (${FISH_TYPE_IDS.join(',')})
+    AND h.sc_pack_date IS NOT NULL
+    AND (@code = '' OR p.code = @code)
+    AND ${DATE_COND}
+  GROUP BY p.code, p.doc_no, rmm.rmm_line_name, rm.mat, rm.mat_name, bt.batch_before, bt.batch_after
+  ORDER BY MAX(h.sc_pack_date) DESC`);
+        const rows = r.recordset;
+        res.json({ success: true, data: rows, capped: rows.length >= limit });
+    } catch (err) {
+        console.error('❌ [traceback/code-fish]', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;
 module.exports.decodeBatches = decodeBatches;

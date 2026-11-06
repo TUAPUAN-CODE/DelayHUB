@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import SearchableSelect from './SearchableSelect';
-import { Btn, ModeSwitch, Spinner } from './TraceAtoms';
+import { Btn, Spinner } from './TraceAtoms';
 import { T, inputCss } from './tracebackUI';
-import { PACK_STATUS_OPTIONS, BACK_SORT_OPTIONS, FWD_SORT_OPTIONS } from './traceForm';
+import { PACK_STATUS_OPTIONS, BACK_SORT_OPTIONS } from './traceForm';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const lbl = { fontSize: 11.5, fontWeight: 600, color: T.blueDeep, display: 'block', marginBottom: 4 };
@@ -14,10 +14,9 @@ const cell = (min = 130) => ({ flex: `1 1 ${min}px`, minWidth: min, maxWidth: 26
  *   backward: Batch + filters -> the list of productions · forward: Batch / Lot (+ kind, one / many) -> where it went, the filters narrow the result
  * Kept to few rows on purpose, so the data below starts as high as possible.
  */
-const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loading, recent = [], onPickRecent }) => {
+const SearchPanel = ({ form, setForm, onSearch, onReset, loading, recent = [], onPickRecent }) => {
   const [opts, setOpts] = useState({ code: [], doc_no: [], mat: [], mat_name: [], rmm_line_name: [], supplier: [], batch: [] });
   const [optsLoading, setOptsLoading] = useState(false);
-  const fwd = mode === 'forward';
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
@@ -36,14 +35,13 @@ const SearchPanel = ({ mode, onModeChange, form, setForm, onSearch, onReset, loa
     return () => { cancelled = true; };
   }, []);
 
-  const sortOptions = fwd ? FWD_SORT_OPTIONS : BACK_SORT_OPTIONS;
+  const sortOptions = BACK_SORT_OPTIONS;
   const enter = e => { if (e.key === 'Enter') onSearch(); };
 
   return (
     <div className="tb-noprint" style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: '14px 18px', marginTop: 12 }}>
       {/* แถว 1: ปุ่มทิศทาง · รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค ค้นทุกประเภทเสมอ) · ค้นหา + ล้างเงื่อนไข ติดกัน */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <ModeSwitch mode={mode} onChange={onModeChange} />
         <div style={{ flex: '1 1 320px', minWidth: 240 }}>
           <label style={lbl}>รหัสรุ่น (Batch) / Lot บรรจุภัณฑ์</label>
           <input value={form.trace} onChange={e => set('trace', e.target.value.toUpperCase())} onKeyDown={enter}
