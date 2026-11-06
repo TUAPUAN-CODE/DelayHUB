@@ -16,7 +16,7 @@
  *   DELAY_ALERT_DAYS            only rows that moved in the last N days are watched (default 7)
  *   DELAY_ALERT_ONLY_RED        1 = only rows that turn RED, collected into ONE message every DELAY_ALERT_BATCH_MIN minutes (default 1; 0 = one message per colour change, realtime)
  *   DELAY_ALERT_BATCH_MIN       minutes between the red-row messages (default 60; 0 = send at every check). Rows that are no longer red when the message is sent are dropped
- *   DELAY_ALERT_FISH_CHECK      1 = every DELAY_ALERT_BATCH_MIN minutes (at least 15) check the finished rows of the last 2 days for fish with the same Code / different starting Batch and tell the group (default 1; 0 = off)
+ *   DELAY_ALERT_FISH_CHECK      1 = tell the group when fish of the same Code (plan + line) get a different starting Batch: at EVERY check, as soon as a Code + Line is given (scan of the SAP label + plan, or the cooked button + plan; from the work table, no extra query), and every DELAY_ALERT_BATCH_MIN minutes for the finished rows of the last 2 days. A group is told once per set of batches (default 1; 0 = off)
  *   DELAY_ALERT_RECOVERY        only with DELAY_ALERT_ONLY_RED=0: 1 = also tell when a row gets a better colour (default 1; 0 = only worse)
  *   DELAY_ALERT_MAX_PER_RUN     at most this many row messages per check (default 25); the rest wait for the next check
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
@@ -311,6 +311,7 @@ const runOnce = async (now = Date.now()) => {
   const keptFishAt = prev?.fishCheckAt;
   let fishAt = keptFishAt ?? 0;
   const fishReported = { ...(prev?.fishReported || {}) };
+  const fishSeen = { ...(prev?.fishSeen || {}) };   // fish batches seen per day / shift / Code / Mat since a Code + Line was given (kept 3 days, so a row that is packed meanwhile still counts)
   if (prev && prev.savedAt && now - prev.savedAt > STALE_STATE_MS) { console.log("ℹ️ [delayAlert] สถานะเดิมเก่าเกิน " + Math.round(STALE_STATE_MS / 60000) + " นาที — เริ่มใหม่"); prev = null; }
   const baseline = prev === null;           // first run: no immediate messages, only remember
   const next = {};
@@ -375,7 +376,7 @@ const runOnce = async (now = Date.now()) => {
           await push(packBlocks(`⚠️ วัตถุดิบเปลี่ยนสถานะเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`, items.map((i) => redBlock(i.row, i.hit)), c), c);
         } catch (err) {
           // keep the red rows and the old window start: the same message is retried at the next check
-          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
+          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
           throw err;
         }
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
@@ -388,6 +389,48 @@ const runOnce = async (now = Date.now()) => {
       redFlushAt = now;
     }
   }
+  // fish, as soon as a Code + Line is given (scan of the SAP label + plan / "ต้ม อบ เสร็จ" + plan): the work table already holds those rows (plans + trolley rows), so this
+  // costs no extra query and runs at every check. Rows that are packed meanwhile stay in fishSeen. A group is told once per set of batches.
+  if (c.fishCheck && c.token && c.group) {
+    try {
+      const fish = await loadFish();
+      const txt = (v) => String(v ?? "").trim();
+      const nd = new Date(now);
+      const nowStr = `${ymd(nd)} ${String(nd.getHours()).padStart(2, "0")}:${String(nd.getMinutes()).padStart(2, "0")}:00`;
+      const addRow = (r, code, line, batch, when) => {
+        if (!fish.isFishRow(r)) return;
+        const mat = txt(r.mat).toUpperCase();
+        const b = txt(batch).toUpperCase();
+        if (!code || !mat || !b || b.includes(",")) return;      // mixed batches ("a,b") are not a single starting batch
+        // factory day / shift of the time the material was cooked / prepared (the Code + Line were given then); no time = now
+        const day = fish.workDayOf(when) || fish.workDayOf(nowStr) || "";
+        const shift = fish.shiftOf(when) || fish.shiftOf(nowStr) || "";
+        const key = `${day}|${shift}|${code}|${mat}`;
+        const g = (fishSeen[key] ||= { day, shift, code, mat, mat_name: txt(r.mat_name), seenAt: now, batches: {} });
+        g.seenAt = now;
+        const bb = (g.batches[b] ||= { hus: [], lines: [] });
+        if (txt(r.hu) && !bb.hus.includes(txt(r.hu))) bb.hus.push(txt(r.hu));
+        if (txt(line) && !bb.lines.includes(txt(line))) bb.lines.push(txt(line));
+      };
+      (res.data.plans || []).forEach((r) => addRow(r, txt(r.production), r.rmfp_line_name, r.batch, r.cooked_date));
+      (res.data.mappings || []).forEach((r) => addRow(r, txt(r.code), r.rmm_line_name, r.batch_before, r.cooked_date || r.rmit_date));
+      Object.entries(fishSeen).forEach(([k, g]) => { if (now - g.seenAt > 3 * 86400000) delete fishSeen[k]; });
+      const fresh = [];
+      Object.values(fishSeen).forEach((g) => {
+        const names = Object.keys(g.batches).sort();
+        if (names.length < 2) return;
+        const sig = `${g.day}|${g.shift}|${g.code}|${g.mat}|${names.join(",")}`;
+        if (!fishReported[sig]) fresh.push({ sig, sec: { day: g.day, shift: g.shift }, g: { code: g.code, mat: g.mat, mat_name: g.mat_name, batches: names.map((n) => ({ batch: n, rows: [{ hu: g.batches[n].hus.join(", "), rmm_line_name: g.batches[n].lines.join(", ") }] })) } });
+      });
+      if (fresh.length && !baseline) {
+        await push(packBlocks(`🐟 พบ Code เดียวกัน คนละ Batch (ปลา) ${fresh.length} Code — ได้รับ Code / Line แล้ว`, fresh.map(({ sec, g }) => fishBlock(sec, g)), c), c);
+        console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch (เพิ่งได้ Code/Line) ${fresh.length} Code`);
+        fresh.forEach(({ sig }) => { fishReported[sig] = now; });
+      } else if (fresh.length) fresh.forEach(({ sig }) => { fishReported[sig] = now; });   // first run: remember, do not flood the group
+    } catch (err) {
+      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch (เพิ่งได้ Code/Line) ไม่สำเร็จ:", err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 200)}` : err.message);
+    }
+  }
   // fish: same Code, different starting Batch (the Done table's check button) — checked every batch window, each finding is told once
   if (c.fishCheck && c.token && c.group && now - fishAt >= Math.max(c.batchMs, 15 * 60000)) {
     try {
@@ -396,7 +439,7 @@ const runOnce = async (now = Date.now()) => {
       if (!done.data?.success) throw new Error(done.data?.error || "โหลดข้อมูลรายการเสร็จสิ้นไม่สำเร็จ");
       const found = [];
       fish.findSameCodeDifferentBatch(done.data.mappings || []).forEach((sec) => sec.groups.forEach((g) => {
-        const sig = `${sec.day}|${sec.shift}|${g.code}|${g.mat}|${g.batches.map((b) => `${b.batch}:${b.rows.length}`).join(",")}`;
+        const sig = `${sec.day}|${sec.shift}|${g.code}|${g.mat}|${g.batches.map((b) => b.batch).join(",")}`;
         if (!fishReported[sig]) found.push({ sig, sec, g });
       }));
       if (found.length) {
@@ -415,7 +458,7 @@ const runOnce = async (now = Date.now()) => {
   if (toSend.length || summaryDue) {
     if (!c.token || !c.group) {
       console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
-      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
+      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
       return { sent: 0, summary: false };
     }
     if (toSend.length) {
@@ -425,7 +468,7 @@ const runOnce = async (now = Date.now()) => {
       } catch (err) {
         // what was already sent is remembered; the rest (and the error) are retried at the next check
         toSend.slice(err.sent || 0).forEach(restore);
-        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
+        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
         throw err;
       }
     }
@@ -435,7 +478,7 @@ const runOnce = async (now = Date.now()) => {
       console.log(`✅ [delayAlert] ส่งสรุป ${coloured.length} รายการ`);
     }
   }
-  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
+  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported, fishSeen });
   return { sent, summary: summaryDue && coloured.length > 0 };
 };
 
