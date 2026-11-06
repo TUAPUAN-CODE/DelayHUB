@@ -16,6 +16,7 @@
  *   DELAY_ALERT_DAYS            only rows that moved in the last N days are watched (default 7)
  *   DELAY_ALERT_ONLY_RED        1 = only rows that turn RED, collected into ONE message every DELAY_ALERT_BATCH_MIN minutes (default 1; 0 = one message per colour change, realtime)
  *   DELAY_ALERT_BATCH_MIN       minutes between the red-row messages (default 60; 0 = send at every check). Rows that are no longer red when the message is sent are dropped
+ *   DELAY_ALERT_FISH_CHECK      1 = every DELAY_ALERT_BATCH_MIN minutes (at least 15) check the finished rows of the last 2 days for fish with the same Code / different starting Batch and tell the group (default 1; 0 = off)
  *   DELAY_ALERT_RECOVERY        only with DELAY_ALERT_ONLY_RED=0: 1 = also tell when a row gets a better colour (default 1; 0 = only worse)
  *   DELAY_ALERT_MAX_PER_RUN     at most this many row messages per check (default 25); the rest wait for the next check
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
@@ -46,6 +47,8 @@ const cfg = () => ({
   recovery: process.env.DELAY_ALERT_RECOVERY !== "0",
   // ค่าเริ่มต้น: แจ้งเฉพาะรายการที่เปลี่ยนเป็นสีแดง รวมเป็น 1 ข้อความทุก DELAY_ALERT_BATCH_MIN นาที (ประหยัดโควตาข้อความ LINE) — DELAY_ALERT_ONLY_RED=0 = แจ้งทีละรายการเมื่อเปลี่ยนสีเหมือนเดิม
   onlyRed: process.env.DELAY_ALERT_ONLY_RED !== "0",
+  // ตรวจ "Code เดียวกัน คนละ Batch (ปลา)" อัตโนมัติ (เหมือนปุ่มตรวจในหน้าดำเนินการเสร็จสิ้น) แล้วแจ้งเข้ากลุ่ม — ทุก DELAY_ALERT_BATCH_MIN นาที (อย่างน้อย 15)
+  fishCheck: process.env.DELAY_ALERT_FISH_CHECK !== "0",
   batchMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_BATCH_MIN)) ? Math.max(0, parseFloat(process.env.DELAY_ALERT_BATCH_MIN)) : 60) * 60000,
   maxPerRun: Math.max(1, parseInt(process.env.DELAY_ALERT_MAX_PER_RUN, 10) || 25),
   days: Math.max(1, parseInt(process.env.DELAY_ALERT_DAYS, 10) || 7),
@@ -125,6 +128,35 @@ const buildMessages = (items, c, title = "⚠️ แจ้งเตือน Del
   if (left) text += `\n…และอีก ${left} รายการ (ดูทั้งหมดในตารางรวมวัตถุดิบ)`;
   return [{ type: "text", text: text + footer }];
 };
+
+/** blocks (one per row, every field on its own line) -> text messages of at most MAX_CHARS each; ONE message = ONE unit of the LINE quota, so rows are packed together (at most 5 per push) */
+const packBlocks = (title, blocks, c) => {
+  const footer = c.link ? `\n\nดูตาราง: ${c.link}` : "";
+  const limit = MAX_CHARS - footer.length - 80;
+  const parts = [];                                   // [{ text, n }]
+  let cur = { text: title, n: 0 };
+  blocks.forEach((b) => {
+    const add = `\n━━━━━━━━━━\n${b}`;
+    if (cur.text.length + add.length > limit && cur.n > 0) { parts.push(cur); cur = { text: `${title} (ต่อ)`, n: 0 }; }
+    cur.text += add; cur.n += 1;
+  });
+  if (cur.n > 0) parts.push(cur);
+  const sent = parts.slice(0, 5);
+  const left = blocks.length - sent.reduce((n, p) => n + p.n, 0);
+  if (left > 0) sent[sent.length - 1].text += `\n…และอีก ${left} รายการ (ดูทั้งหมดในตาราง)`;
+  return sent.map((p) => ({ type: "text", text: p.text + footer }));
+};
+
+/** one red row, the same lines as the realtime message */
+const redBlock = (r, hit) => [
+  `Mat Name : ${r.mat_name || "-"}`,
+  `Mat : ${r.mat || "-"}`,
+  `Batch : ${r.batch_after || "-"}`,
+  `Line : ${r.rmm_line_name || "-"}`,
+  `Code : ${r.code || "-"}`,
+  `เวลาที่ Delay : DBS${hit.dbsNo} ${hit.d.text} / มาตรฐาน ${fmtStd(hit.d.std)} (เหลือ ${Math.max(0, Math.round(hit.remaining))}%)`,
+  `สถานะ : ${LABEL.red}${r.before ? ` (เดิม ${LABEL[r.before]})` : " (ใหม่)"}`,
+].join("\n");
 
 const push = async (messages, c) => {
   await axios.post(c.pushUrl, { to: c.group, messages }, { headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" }, timeout: 20000 });
@@ -236,6 +268,8 @@ const transitCheck = (rows, prevTransit, now, c, baseline) => {
 const STALE_STATE_MS = (parseInt(process.env.DELAY_ALERT_STALE_MIN, 10) || 30) * 60000;
 let libPromise = null;
 const loadLib = () => { if (!libPromise) libPromise = import("./lib/dbs.mjs"); return libPromise; };
+let fishPromise = null;
+const loadFish = () => { if (!fishPromise) fishPromise = import("./lib/fishBatch.mjs"); return fishPromise; };
 
 /**
  * One check; returns { sent, summary } (used by the timer and by the test).
@@ -256,6 +290,9 @@ const runOnce = async (now = Date.now()) => {
   // สถานะเก่าเกินไป (เช่น เครื่องนี้เพิ่งรับช่วงเป็นผู้นำหลังเครื่องอื่นหยุดไปนาน, หรือ worker หยุดนาน) = เริ่มใหม่แบบ baseline กันแจ้งเตือนท่วมกลุ่ม
   const keptPending = prev?.pendingRed || {};      // red rows waiting for the next hourly message survive a stale / restarted state
   const keptFlushAt = prev?.redFlushAt;
+  const keptFishAt = prev?.fishCheckAt;
+  let fishAt = keptFishAt ?? 0;
+  const fishReported = { ...(prev?.fishReported || {}) };
   if (prev && prev.savedAt && now - prev.savedAt > STALE_STATE_MS) { console.log("ℹ️ [delayAlert] สถานะเดิมเก่าเกิน " + Math.round(STALE_STATE_MS / 60000) + " นาที — เริ่มใหม่"); prev = null; }
   const baseline = prev === null;           // first run: no immediate messages, only remember
   const next = {};
@@ -283,7 +320,7 @@ const runOnce = async (now = Date.now()) => {
     changes.filter((w) => w.level === "red").forEach((w) => {
       const r = w.row;
       pendingRed[r.mapping_id] = {
-        row: { mapping_id: r.mapping_id, mat_name: r.mat_name, mat: r.mat, batch_after: r.batch_after, tro_id: r.tro_id, hu: r.hu, code: r.code },
+        row: { mapping_id: r.mapping_id, mat_name: r.mat_name, mat: r.mat, batch_after: r.batch_after, rmm_line_name: r.rmm_line_name, code: r.code, before: w.before },
         hit: { remaining: w.hit.remaining, dbsNo: w.hit.dbsNo, d: { text: w.hit.d.text, std: w.hit.d.std } },
       };
     });
@@ -316,10 +353,11 @@ const runOnce = async (now = Date.now()) => {
         console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
       } else {
         try {
-          await push(buildMessages(items, c, `🔴 วัตถุดิบเปลี่ยนเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`), c);
+          items.sort((a, b) => a.hit.remaining - b.hit.remaining);   // the worst (least time left) first
+          await push(packBlocks(`⚠️ วัตถุดิบเปลี่ยนสถานะเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`, items.map((i) => redBlock(i.row, i.hit)), c), c);
         } catch (err) {
           // keep the red rows and the old window start: the same message is retried at the next check
-          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt });
+          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
           throw err;
         }
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
@@ -332,10 +370,41 @@ const runOnce = async (now = Date.now()) => {
       redFlushAt = now;
     }
   }
+  // fish: same Code, different starting Batch (the Done table's check button) — checked every batch window, each finding is told once
+  if (c.fishCheck && c.token && c.group && now - fishAt >= Math.max(c.batchMs, 15 * 60000)) {
+    try {
+      const fish = await loadFish();
+      const done = await axios.get(`${c.api}/api/sheet/done`, { params: { date_from: ymd(new Date(now - 86400000)), date_to: ymd(new Date(now)), limit: 5000 }, headers: { Authorization: `Bearer ${issueServiceToken("delay-alert-worker")}` }, timeout: 120000 });
+      if (!done.data?.success) throw new Error(done.data?.error || "โหลดข้อมูลรายการเสร็จสิ้นไม่สำเร็จ");
+      const found = [];
+      fish.findSameCodeDifferentBatch(done.data.mappings || []).forEach((sec) => sec.groups.forEach((g) => {
+        const sig = `${sec.day}|${sec.shift}|${g.code}|${g.mat}|${g.batches.map((b) => `${b.batch}:${b.rows.length}`).join(",")}`;
+        if (!fishReported[sig]) found.push({ sig, sec, g });
+      }));
+      if (found.length) {
+        const blocks = [];
+        found.forEach(({ sec, g }) => g.batches.forEach((b) => b.rows.forEach((r) => blocks.push([
+          `วันที่ ${sec.day.split("-").reverse().join("/")} · กะ ${sec.shift || "-"}`,
+          `Batch : ${b.batch}`,
+          `HU : ${r.hu || "-"}`,
+          `Mat : ${g.mat}${g.mat_name ? ` (${g.mat_name})` : ""}`,
+          `Line : ${r.rmm_line_name || "-"}`,
+          `Code : ${g.code}`,
+        ].join("\n")))));
+        await push(packBlocks(`🐟 พบ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา) ${found.length} Code`, blocks, c), c);
+        console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch ${found.length} Code (${blocks.length} รายการ)`);
+        found.forEach(({ sig }) => { fishReported[sig] = now; });
+      }
+    } catch (err) {
+      console.error("❌ [delayAlert] ตรวจปลาคนละ Batch ไม่สำเร็จ:", err.response ? `${err.response.status} ${JSON.stringify(err.response.data || {}).slice(0, 200)}` : err.message);
+    }
+    fishAt = now;       // a failed check is tried again at the next window (not every minute)
+    Object.entries(fishReported).forEach(([k, t]) => { if (now - t > 3 * 86400000) delete fishReported[k]; });
+  }
   if (toSend.length || summaryDue) {
     if (!c.token || !c.group) {
       console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
-      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext, pendingRed, redFlushAt });
+      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
       return { sent: 0, summary: false };
     }
     if (toSend.length) {
@@ -345,7 +414,7 @@ const runOnce = async (now = Date.now()) => {
       } catch (err) {
         // what was already sent is remembered; the rest (and the error) are retried at the next check
         toSend.slice(err.sent || 0).forEach(restore);
-        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt });
+        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
         throw err;
       }
     }
@@ -355,7 +424,7 @@ const runOnce = async (now = Date.now()) => {
       console.log(`✅ [delayAlert] ส่งสรุป ${coloured.length} รายการ`);
     }
   }
-  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt });
+  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt, fishCheckAt: fishAt, fishReported });
   return { sent, summary: summaryDue && coloured.length > 0 };
 };
 
