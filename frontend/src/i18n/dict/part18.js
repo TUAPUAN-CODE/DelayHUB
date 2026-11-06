@@ -829,4 +829,5 @@ export default {
   "สีแดง {n} รายการ": ["Red: {n} rows", "အနီရောင် {n} စာရင်း", "ពណ៌ក្រហម {n} បញ្ជី"],
   "ปลาคนละ Batch {n} Code": ["Fish with different Batches: {n} Codes", "Batch ကွဲသော ငါး {n} Code", "ត្រី Batch ខុសគ្នា {n} Code"],
   "ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID": ["LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID is not set yet", "LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID ကို မသတ်မှတ်ရသေးပါ", "មិនទាន់កំណត់ LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID ទេ"],
+  "Batch แปลงต้องไม่เกิน {x} ตัวอักษร ({x})": ["The converted Batch must be at most {x} characters ({x})", "ပြောင်းထားသော Batch သည် စာလုံး {x} လုံးထက် မပိုရပါ ({x})", "Batch ដែលបានបម្លែងត្រូវមិនលើស {x} តួអក្សរ ({x})"],
 };

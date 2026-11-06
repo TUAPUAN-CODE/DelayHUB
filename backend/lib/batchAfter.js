@@ -13,7 +13,8 @@ const cleanBatchAfterArray = (value) => {
     .filter((it) => it.before || it.after);
   list.forEach((it) => {
     if (!it.before) throw new Error("ไม่พบ Batch ตั้งต้นของ Batch แปลง " + it.after);
-    if (it.after.length !== BATCH_AFTER_LENGTH) throw new Error(`Batch แปลงต้องครบ ${BATCH_AFTER_LENGTH} ตัวอักษร (${it.after || "ว่าง"})`);
+    // the form enforces exactly 10 characters for material types 3, 6, 7, 8 (like the "ใส่รถเข็น" form of a plan); other types may keep a shorter / older value
+    if (!it.after || it.after.length > BATCH_AFTER_LENGTH) throw new Error(`Batch แปลงต้องไม่เกิน ${BATCH_AFTER_LENGTH} ตัวอักษร (${it.after || "ว่าง"})`);
   });
   return list.length ? list : null;
 };

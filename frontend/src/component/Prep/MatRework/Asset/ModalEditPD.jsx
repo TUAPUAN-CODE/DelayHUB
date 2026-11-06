@@ -294,7 +294,8 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, batchesKey]);
 
-  const batchInvalid = batches.length > 0 && batchInputs.some((v) => v.trim().length !== 10);
+  const batchOk = (b, v) => { const n = String(v ?? "").trim().length; return b.required ? n === 10 : n <= 10; };
+  const batchInvalid = batches.some((b, i) => !batchOk(b, batchInputs[i]));
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
@@ -420,7 +421,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                   fullWidth margin="dense" size="small" value={batchInputs[i] ?? ""}
                   label={batches.length > 1 ? `Batch แปลง ${i + 1} (10 ตัวอักษร)` : "Batch แปลง (10 ตัวอักษร)"}
                   onChange={(e) => { const v = e.target.value.toUpperCase().slice(0, 10); setBatchInputs((prev) => prev.map((x, j) => (j === i ? v : x))); }}
-                  error={(batchInputs[i] ?? "").length > 0 && (batchInputs[i] ?? "").length !== 10}
+                  error={!batchOk(b, batchInputs[i])}
                   inputProps={{ maxLength: 10 }}
                 />
               </Box>
@@ -623,7 +624,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
         onSuccess={handleConfirmSuccess}
         editorName={editorName}
         currentProdDetails={currentProdDetails}
-        batchAfterArray={batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: (batchInputs[i] || "").trim().toUpperCase() })) : undefined}
+        batchAfterArray={batches.length ? batches.map((b, i) => ({ batch_before: b.before, batch_after: (batchInputs[i] || "").trim().toUpperCase() || b.after || b.before })) : undefined}
       />
     </>
   );

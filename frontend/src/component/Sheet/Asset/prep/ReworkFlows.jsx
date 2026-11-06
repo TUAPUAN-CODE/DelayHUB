@@ -14,16 +14,17 @@ import { isFlowGroup } from "../dbs";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Batch แปลงที่กรอกได้ในฟอร์ม (เหมือนปุ่ม "ใส่รถเข็น" ของแผนผลิต): เฉพาะวัตถุดิบประเภท 3, 6, 7, 8 — [{ before: Batch ตั้งต้น, after: Batch แปลงเดิม }]
-const BATCH_AFTER_TYPES = [3, 6, 7, 8];
+// Batch แปลงที่กรอกได้ในฟอร์ม (เหมือนปุ่ม "ใส่รถเข็น" ของแผนผลิต: แสดงช่องทุกประเภทวัตถุดิบ ค่าเดิมใส่ไว้ให้แก้;
+// บังคับครบ 10 ตัวอักษรเฉพาะประเภท 3, 6, 7, 8 — ประเภทอื่นเว้นว่างได้ = ใช้ค่าเดิม) — [{ before: Batch ตั้งต้น, after: Batch แปลงเดิม, required }]
+const BATCH_REQUIRED_TYPES = [3, 6, 7, 8];
 const batchPairs = (row) => {
-  if (!BATCH_AFTER_TYPES.includes(Number(row?.rm_type_id))) return [];
+  const required = BATCH_REQUIRED_TYPES.includes(Number(row?.rm_type_id));
   const split = (v) => String(v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   const before = split(row.batch_before);
   const after = split(row.batch_after);
   if (!before.length && !after.length) return [];
-  if (before.length === after.length) return before.map((b, i) => ({ before: b, after: after[i] }));
-  if (before.length <= 1 && after.length <= 1) return [{ before: before[0] || after[0], after: after[0] || before[0] }];
+  if (before.length === after.length) return before.map((b, i) => ({ before: b, after: after[i], required }));
+  if (before.length <= 1 && after.length <= 1) return [{ before: before[0] || after[0], after: after[0] || before[0], required }];
   return [];   // the lists do not line up: leave Batch แปลง alone instead of guessing which is which
 };
 
