@@ -14,7 +14,9 @@
  *   DELAY_ALERT_YELLOW_PCT      yellow while the remaining time is above this %  (default 0; at or below = red)
  *   DELAY_ALERT_SUMMARY_MIN     minutes between the summaries (default 0 = no summary)
  *   DELAY_ALERT_DAYS            only rows that moved in the last N days are watched (default 7)
- *   DELAY_ALERT_RECOVERY        1 = also tell when a row gets a better colour (default 1; 0 = only worse)
+ *   DELAY_ALERT_ONLY_RED        1 = only rows that turn RED, collected into ONE message every DELAY_ALERT_BATCH_MIN minutes (default 1; 0 = one message per colour change, realtime)
+ *   DELAY_ALERT_BATCH_MIN       minutes between the red-row messages (default 60; 0 = send at every check). Rows that are no longer red when the message is sent are dropped
+ *   DELAY_ALERT_RECOVERY        only with DELAY_ALERT_ONLY_RED=0: 1 = also tell when a row gets a better colour (default 1; 0 = only worse)
  *   DELAY_ALERT_MAX_PER_RUN     at most this many row messages per check (default 25); the rest wait for the next check
  *   DELAY_ALERT_API             base URL of the backend (default http://127.0.0.1:<PORT>)
  *   DELAY_ALERT_INTERVAL_SEC    how often to check (default 60)
@@ -42,6 +44,9 @@ const cfg = () => ({
   greenPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_GREEN_PCT)) ? parseFloat(process.env.DELAY_ALERT_GREEN_PCT) : 50,
   yellowPct: Number.isFinite(parseFloat(process.env.DELAY_ALERT_YELLOW_PCT)) ? parseFloat(process.env.DELAY_ALERT_YELLOW_PCT) : 0,
   recovery: process.env.DELAY_ALERT_RECOVERY !== "0",
+  // ค่าเริ่มต้น: แจ้งเฉพาะรายการที่เปลี่ยนเป็นสีแดง รวมเป็น 1 ข้อความทุก DELAY_ALERT_BATCH_MIN นาที (ประหยัดโควตาข้อความ LINE) — DELAY_ALERT_ONLY_RED=0 = แจ้งทีละรายการเมื่อเปลี่ยนสีเหมือนเดิม
+  onlyRed: process.env.DELAY_ALERT_ONLY_RED !== "0",
+  batchMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_BATCH_MIN)) ? Math.max(0, parseFloat(process.env.DELAY_ALERT_BATCH_MIN)) : 60) * 60000,
   maxPerRun: Math.max(1, parseInt(process.env.DELAY_ALERT_MAX_PER_RUN, 10) || 25),
   days: Math.max(1, parseInt(process.env.DELAY_ALERT_DAYS, 10) || 7),
   summaryMs: (Number.isFinite(parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN)) ? parseFloat(process.env.DELAY_ALERT_SUMMARY_MIN) : 0) * 60000,
@@ -249,6 +254,8 @@ const runOnce = async (now = Date.now()) => {
 
   let prev = readState(c.stateFile);
   // สถานะเก่าเกินไป (เช่น เครื่องนี้เพิ่งรับช่วงเป็นผู้นำหลังเครื่องอื่นหยุดไปนาน, หรือ worker หยุดนาน) = เริ่มใหม่แบบ baseline กันแจ้งเตือนท่วมกลุ่ม
+  const keptPending = prev?.pendingRed || {};      // red rows waiting for the next hourly message survive a stale / restarted state
+  const keptFlushAt = prev?.redFlushAt;
   if (prev && prev.savedAt && now - prev.savedAt > STALE_STATE_MS) { console.log("ℹ️ [delayAlert] สถานะเดิมเก่าเกิน " + Math.round(STALE_STATE_MS / 60000) + " นาที — เริ่มใหม่"); prev = null; }
   const baseline = prev === null;           // first run: no immediate messages, only remember
   const next = {};
@@ -269,6 +276,19 @@ const runOnce = async (now = Date.now()) => {
 
   const summaryDue = c.summaryMs > 0 && now - (prev?.summaryAt || 0) >= c.summaryMs;   // no summaryAt yet = due now (first run)
   changes.sort((a, b) => RANK[b.level] - RANK[a.level] || a.hit.remaining - b.hit.remaining);   // red first, the worst first
+  // only-red mode: rows that turned red wait in pendingRed and go out in ONE message per batch window (no per-row messages)
+  const pendingRed = { ...keptPending };
+  let redFlushAt = keptFlushAt || now;
+  if (c.onlyRed) {
+    changes.filter((w) => w.level === "red").forEach((w) => {
+      const r = w.row;
+      pendingRed[r.mapping_id] = {
+        row: { mapping_id: r.mapping_id, mat_name: r.mat_name, mat: r.mat, batch_after: r.batch_after, tro_id: r.tro_id, hu: r.hu, code: r.code },
+        hit: { remaining: w.hit.remaining, dbsNo: w.hit.dbsNo, d: { text: w.hit.d.text, std: w.hit.d.std } },
+      };
+    });
+    changes.length = 0;
+  }
   const toSend = changes.slice(0, c.maxPerRun);
   // beyond the cap: keep the old colour in the state, so the next check reports them
   const restore = (w) => { const id = w.row.mapping_id; if (prev?.levels?.[id] === undefined) delete next[id]; else next[id] = prev.levels[id]; };
@@ -288,10 +308,34 @@ const runOnce = async (now = Date.now()) => {
       }
     } else transitNext = tr.next;
   }
+  if (c.onlyRed && now - redFlushAt >= c.batchMs) {
+    // still red now = still worth telling (rows that went back to a better colour in the meantime are dropped)
+    const items = Object.entries(pendingRed).filter(([id]) => next[id] === "red").map(([, v]) => ({ level: "red", row: v.row, hit: v.hit }));
+    if (items.length) {
+      if (!c.token || !c.group) {
+        console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
+      } else {
+        try {
+          await push(buildMessages(items, c, `🔴 วัตถุดิบเปลี่ยนเป็นสีแดง ${items.length} รายการ (ช่วง ${fmtAt(redFlushAt)} – ${fmtAt(now)})`), c);
+        } catch (err) {
+          // keep the red rows and the old window start: the same message is retried at the next check
+          writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt });
+          throw err;
+        }
+        console.log(`✅ [delayAlert] ส่งแจ้งเตือนสีแดง ${items.length} รายการ (1 ข้อความ)`);
+        sent = items.length;
+        Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
+        redFlushAt = now;
+      }
+    } else {
+      Object.keys(pendingRed).forEach((id) => delete pendingRed[id]);
+      redFlushAt = now;
+    }
+  }
   if (toSend.length || summaryDue) {
     if (!c.token || !c.group) {
       console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID — ไม่ส่งแจ้งเตือน");
-      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext });
+      writeState(c.stateFile, { ...(prev || {}), savedAt: now, levels: prev?.levels || next, transit: transitNext, pendingRed, redFlushAt });
       return { sent: 0, summary: false };
     }
     if (toSend.length) {
@@ -301,7 +345,7 @@ const runOnce = async (now = Date.now()) => {
       } catch (err) {
         // what was already sent is remembered; the rest (and the error) are retried at the next check
         toSend.slice(err.sent || 0).forEach(restore);
-        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0 });
+        writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: prev?.summaryAt || 0, pendingRed, redFlushAt });
         throw err;
       }
     }
@@ -311,14 +355,14 @@ const runOnce = async (now = Date.now()) => {
       console.log(`✅ [delayAlert] ส่งสรุป ${coloured.length} รายการ`);
     }
   }
-  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0) });
+  writeState(c.stateFile, { savedAt: now, levels: next, transit: transitNext, summaryAt: summaryDue ? now : (prev?.summaryAt || 0), pendingRed, redFlushAt });
   return { sent, summary: summaryDue && coloured.length > 0 };
 };
 
 const start = () => {
   const c = cfg();
   if (!c.token || !c.group) console.error("⚠️ [delayAlert] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN / LINE_GROUP_ID ใน .env — ตัวตรวจจับทำงานแต่จะยังไม่ส่ง LINE");
-  console.log(`🔌 [delayAlert] เริ่มทำงาน: ตรวจทุก ${c.intervalMs / 1000} วินาที ใช้ ${c.dbs === "stage" ? "DBS ตามขั้นตอนของแถว" : `DBS${c.dbs + 1}`} · แจ้งทีละรายการเมื่อเปลี่ยนสี (สรุป ${c.summaryMs ? c.summaryMs / 60000 + " นาที" : "ปิด"}) (เขียว >${c.greenPct}% · เหลือง >${c.yellowPct}%)`);
+  console.log(`🔌 [delayAlert] เริ่มทำงาน: ตรวจทุก ${c.intervalMs / 1000} วินาที ใช้ ${c.dbs === "stage" ? "DBS ตามขั้นตอนของแถว" : `DBS${c.dbs + 1}`} · ${c.onlyRed ? `แจ้งเฉพาะที่เปลี่ยนเป็นสีแดง รวม 1 ข้อความทุก ${c.batchMs / 60000} นาที` : "แจ้งทีละรายการเมื่อเปลี่ยนสี"} (สรุป ${c.summaryMs ? c.summaryMs / 60000 + " นาที" : "ปิด"}) (เขียว >${c.greenPct}% · เหลือง >${c.yellowPct}%)`);
   // มีเครื่องเดียวที่แจ้งเตือน (ล็อกผ่าน Redis, ดู lib/leaderLock.js): รันสองเครื่องจะไม่ส่งซ้ำ และอีกเครื่องรับช่วงเองเมื่อผู้นำหยุด
   const leader = createLeader({ name: "delay-alert", ttlMs: 30000 });
   leader.start();
