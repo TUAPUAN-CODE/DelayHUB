@@ -43,9 +43,9 @@ const SearchPanel = ({ form, setForm, onSearch, onReset, loading, recent = [], o
       {/* แถว 1: ปุ่มทิศทาง · รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค ค้นทุกประเภทเสมอ) · ค้นหา + ล้างเงื่อนไข ติดกัน */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ flex: '1 1 320px', minWidth: 240 }}>
-          <label style={lbl}>รหัสรุ่น (Batch) / Lot บรรจุภัณฑ์</label>
+          <label style={lbl}>Batch (ตั้งต้น หรือ 2X) / Lot บรรจุภัณฑ์</label>
           <input value={form.trace} onChange={e => set('trace', e.target.value.toUpperCase())} onKeyDown={enter}
-            placeholder="สแกนหรือพิมพ์รหัสรุ่น / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค) แล้วกด Enter"
+            placeholder="สแกนหรือพิมพ์ Batch / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค) หรือเว้นว่างแล้วใช้เงื่อนไขด้านล่าง"
             aria-label="รหัสรุ่นหรือ Lot"
             style={{ ...inputCss, fontFamily: 'ui-monospace,monospace', letterSpacing: 1, fontWeight: 600 }} />
         </div>
@@ -77,7 +77,7 @@ const SearchPanel = ({ form, setForm, onSearch, onReset, loading, recent = [], o
           ค้นหาแค่วันเดียว
         </label>
         <div style={{ width: 140 }}>
-          <label style={lbl}>{form.single ? 'วันที่บรรจุ' : 'วันที่บรรจุ (จาก)'}</label>
+          <label style={lbl}>{form.single ? 'วันที่บรรจุ (ไม่ใส่ก็ได้)' : 'วันที่บรรจุ (จาก · ไม่ใส่ก็ได้)'}</label>
           <input type="date" value={form.from} onChange={e => set('from', e.target.value)} style={inputCss} />
         </div>
         {!form.single && (
