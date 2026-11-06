@@ -3,37 +3,28 @@ import { useSearchParams } from "react-router-dom";
 import Buttom from "../../Layout/Buttom";
 import ProductionLineDelayDashboard from "./Asset/ProductionLineDelayDashboard";
 import ForwardTrace from "./Asset/ForwardTrace";
-import MockRecall from "./Asset/MockRecall";
-import HoldList from "./Asset/HoldList";
 import SearchPanel from "./Asset/SearchPanel";
 import TracebackDetailView from "./Asset/TracebackDetailView";
-import { makeForm, defaultSort, defaultStatus } from "./Asset/traceForm";
+import BatchLinkSection from "./Asset/BatchLinkSection";
+import CodeFishSection from "./Asset/CodeFishSection";
+import { Card } from "./Asset/TraceAtoms";
+import { makeForm, defaultSort, traceCodes } from "./Asset/traceForm";
 import { T } from "./Asset/tracebackUI";
 import { scopeFromParams, readRecent } from "./Asset/tracebackCore";
 
-// /sup/Traceback — ศูนย์สอบกลับการผลิต
-//   ?mode=backward (ค่าเริ่มต้น) · ?doc_no=&code= เปิดใบสอบกลับตรง · ?scope=1&code=&batch=&line=… ใบสอบกลับตามตัวกรอง
-//   ?mode=forward&code=&type=   สอบไปข้างหน้าจากรหัสรุ่น/Lot
-//   ?mode=recall                 จำลองการเรียกคืน
-//   ?mode=holds                  รายการกักสินค้า
-const MODES = [
-  { key: "backward", title: "สอบย้อนกลับ", en: "Trace Backward", desc: "จากสินค้า / เอกสารผลิต → วัตถุดิบ ส่วนผสม บรรจุภัณฑ์ ผู้ขาย" },
-  { key: "forward", title: "สอบไปข้างหน้า", en: "Trace Forward", desc: "จากรหัสรุ่น / Lot → สินค้าทุกเอกสารที่ได้รับผลกระทบ" },
-  { key: "recall", hidden: true, title: "จำลองการเรียกคืน", en: "Mock Recall", desc: "จับเวลา เช็กลิสต์ สมดุลมวล และออกโปรโตคอล PDF" },
-  { key: "holds", hidden: true, title: "รายการกักสินค้า", en: "Hold / QN", desc: "เอกสารที่ถูกกักจากผลสอบกลับ · ปลดกักพร้อมเหตุผล" },
-];
-
-// hidden = the page is not shown (no tab, the address ?mode=recall / ?mode=holds opens the default page); its code stays here and in Asset/ so it can be switched on again
-const HIDDEN_KEYS = new Set(MODES.filter((m) => m.hidden).map((m) => m.key));
+// /sup/Traceback — ONE page, no direction to pick:
+//   1. สอบกลับ Mat วัตถุดิบเริ่มต้น ↔ 2X          (BatchLinkSection by="mat")
+//   2. สินค้าแต่ละ Code ใช้ปลากี่ Batch           (CodeFishSection)
+//   3. สอบกลับ Batch วัตถุดิบเริ่มต้น ↔ 2X        (BatchLinkSection by="batch")
+//   4. สอบกลับเอกสารการผลิต + สอบไปข้างหน้า        (one search box: the production documents that used the Batch / Lot AND where it went)
+//   ?doc_no=&code= opens that document's sheet · ?scope=1&code=&batch=&line=… the sheet of a filter · ?code=&type= runs the forward trace of a code at once
+// (the old pages "จำลองการเรียกคืน" / "รายการกักสินค้า" were already hidden; their code stays in Asset/ — MockRecall.jsx, HoldList.jsx)
 
 const TracebackPage = () => {
   const [params, setParams] = useSearchParams();
-  const [recallSeed, setRecallSeed] = useState(null);
   const docNo = params.get("doc_no");
   // ?scope=1&code=&batch=&line=... = ใบสอบกลับตามตัวกรองของหน้าค้นหา (ไม่ผูกกับเอกสารเดียว)
   const scope = scopeFromParams(params);
-  const requested = params.get("mode") || "backward";
-  const mode = HIDDEN_KEYS.has(requested) ? "backward" : requested;
   // ใบสอบกลับแสดงใต้ตารางผลในหน้านี้เลย (ลิงก์ ?doc_no= / ?scope=1 เปิดมาพร้อมใบนั้น)
   const [record, setRecord] = useState(() => scope || (docNo ? { doc_no: docNo, code: params.get("code") || "" } : null));
   const recordRef = useRef(null);
@@ -41,26 +32,40 @@ const TracebackPage = () => {
     if (record) recordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [record]);
 
-  // the one search form of the page (SearchPanel) — both directions read it; the buttons of each direction are called through a ref
-  const [form, setForm] = useState(() => makeForm(mode, mode === "forward" ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
+  // the one search form of section 4 (SearchPanel): the backward list and the forward trace both read it
+  const [form, setForm] = useState(() => makeForm("backward", params.get("mode") === "forward" || params.get("type") ? { trace: (params.get("code") || "").split(",").join(" ") } : {}));
   const dashRef = useRef(null);
   const fwdRef = useRef(null);
+  const [fwdRun, setFwdRun] = useState(() => (params.get("code") && (params.get("mode") === "forward" || params.get("type")) ? 1 : 0)); // > 0: the forward trace is on the page
   const [recentTick, setRecentTick] = useState(0);
   const recent = useMemo(() => readRecent().filter((r) => r.kind === "fwd"), [recentTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setMode = (m) => {
-    setRecord(null);
-    setParams(m === "backward" ? {} : { mode: m });
-    setForm((f) => ({ ...f, sort: defaultSort(m), pack_status: defaultStatus(m) })); // each direction starts from its own order / status
-  };
-  const activeRef = () => (mode === "forward" ? fwdRef : dashRef);
-  const onSearch = () => { setRecord(null); activeRef().current?.search(); };
-  const onReset = () => { setRecord(null); setForm(makeForm(mode)); activeRef().current?.reset(); };
+  // the forward trace is mounted only after the first search that has a Batch / Lot: it runs when it is there
+  const pendingFwd = useRef(null);
+  useEffect(() => {
+    if (fwdRun > 0 && pendingFwd.current) {
+      const run = pendingFwd.current;
+      pendingFwd.current = null;
+      run(fwdRef.current);
+    }
+  }, [fwdRun]);
 
-  // a recent search: the code(s) go back into the box and the search runs at once
+  const onSearch = () => {
+    setRecord(null);
+    dashRef.current?.search();
+    if (traceCodes(form).length) {
+      if (fwdRef.current) fwdRef.current.search();
+      else { pendingFwd.current = (f) => f?.search(); setFwdRun((n) => n + 1); }
+    }
+  };
+  const onReset = () => { setRecord(null); setForm(makeForm("backward")); dashRef.current?.reset(); fwdRef.current?.reset(); };
+
+  // a recent search: the code(s) go back into the box and both searches run at once
   const pickRecent = (r) => {
     setForm((f) => ({ ...f, trace: r.code.split(",").join(" ") }));
-    activeRef().current?.run(r.code);
+    dashRef.current?.run(r.code);
+    if (fwdRef.current) fwdRef.current.run(r.code);
+    else { pendingFwd.current = (f) => f?.run(r.code); setFwdRun((n) => n + 1); }
   };
 
   const openRecord = useCallback((doc_no, code) => setRecord({ doc_no, code }), []);
@@ -69,49 +74,43 @@ const TracebackPage = () => {
   const onForwardQuery = useCallback(({ code, type }) => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set("mode", "forward"); next.set("code", code); next.set("type", type);
+      next.delete("mode"); next.set("code", code); next.set("type", type);
       return next;
     }, { replace: true });
   }, [setParams]);
 
-  const clearSeed = useCallback(() => setRecallSeed(null), []);
+  // the forward trace keeps its own order (day, newest first) while the backward list uses the order of the form
+  const fwdForm = useMemo(() => ({ ...form, sort: defaultSort("forward"), pack_status: "all" }), [form]);
 
   return (
     <div style={{ backgroundColor: T.bg }} className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <style>{`@keyframes tbSpin { to { transform: rotate(360deg) } }`}</style>
 
-        <SearchPanel
-            mode={mode} onModeChange={setMode} form={form} setForm={setForm} onSearch={onSearch} onReset={onReset}
-            recent={recent} onPickRecent={pickRecent}
-        />
+        <BatchLinkSection by="mat" title="1) สอบกลับ Mat วัตถุดิบเริ่มต้น ↔ 2X" />
+        <CodeFishSection title="2) สินค้าแต่ละ Code ใช้ปลากี่ Batch" />
+        <BatchLinkSection by="batch" title="3) สอบกลับ Batch วัตถุดิบเริ่มต้น ↔ 2X" />
 
-        <div style={{ padding: "4px 0 12px" }}>
-          {mode === "backward" && <ProductionLineDelayDashboard ref={dashRef} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />}
-          {mode === "forward" && (
-            <div style={{ paddingTop: 8 }}>
-              <ForwardTrace
-                ref={fwdRef}
-                initialCode={params.get("code") || ""}
-                initialType={params.get("type") || "auto"}
-                onOpenRecord={openRecord}
-                onQueryChange={onForwardQuery}
-                onRan={() => setRecentTick((n) => n + 1)}
-                form={form}
-              />
-            </div>
-          )}
-          {mode === "holds" && (
-            <div style={{ paddingTop: 16 }}>
-              <HoldList onOpenRecord={openRecord} />
-            </div>
-          )}
-          {mode === "recall" && (
-            <div style={{ paddingTop: 16 }}>
-              <MockRecall seed={recallSeed} onSeedUsed={clearSeed} onOpenRecord={openRecord} />
-            </div>
-          )}
-        </div>
+        <Card title="4) สอบกลับเอกสารการผลิต และสอบไปข้างหน้า จาก Batch / Lot" pad="0 14px 14px">
+          <SearchPanel form={form} setForm={setForm} onSearch={onSearch} onReset={onReset} recent={recent} onPickRecent={pickRecent} />
+
+          <div style={{ padding: "4px 0 0" }}>
+            <ProductionLineDelayDashboard ref={dashRef} onSelect={onSelect} form={form} onRan={() => setRecentTick((n) => n + 1)} />
+            {fwdRun > 0 && (
+              <div style={{ paddingTop: 8 }}>
+                <ForwardTrace
+                  ref={fwdRef}
+                  initialCode={params.get("code") || ""}
+                  initialType={params.get("type") || "auto"}
+                  onOpenRecord={openRecord}
+                  onQueryChange={onForwardQuery}
+                  onRan={() => setRecentTick((n) => n + 1)}
+                  form={fwdForm}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
 
         {record && (
           <div ref={recordRef} style={{ paddingBottom: 12 }}>
