@@ -158,6 +158,23 @@ const redBlock = (r, hit) => [
   `สถานะ : ${LABEL.red}${r.before ? ` (เดิม ${LABEL[r.before]})` : " (ใหม่)"}`,
 ].join("\n");
 
+/** one Code (+ line) that ran more than one starting batch: header with day / shift / Code, the material and line once, then one line per batch with its HU(s) */
+const fishBlock = (sec, g) => {
+  const uniq = (xs) => [...new Set(xs.filter(Boolean).map(String))];
+  const lines = uniq(g.batches.flatMap((b) => b.rows.map((r) => r.rmm_line_name)));
+  const rows = [
+    `🐟 วันที่ ${sec.day.split("-").reverse().join("/")} · กะ ${sec.shift || "-"}  Code : ${g.code}`,
+    `Mat : ${g.mat}${g.mat_name ? ` (${g.mat_name})` : ""}`,
+    `Line : ${lines.join(", ") || "-"}`,
+    `ข้อมูลวัตถุดิบ (${g.batches.length} Batch):`,
+  ];
+  g.batches.forEach((b) => {
+    const hus = uniq(b.rows.map((r) => r.hu));
+    rows.push(`  • Batch : ${b.batch} · HU : ${hus.join(", ") || "-"}${b.rows.length > 1 ? ` (${b.rows.length} รายการ)` : ""}`);
+  });
+  return rows.join("\n");
+};
+
 const push = async (messages, c) => {
   await axios.post(c.pushUrl, { to: c.group, messages }, { headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" }, timeout: 20000 });
 };
@@ -383,14 +400,7 @@ const runOnce = async (now = Date.now()) => {
       }));
       if (found.length) {
         const blocks = [];
-        found.forEach(({ sec, g }) => g.batches.forEach((b) => b.rows.forEach((r) => blocks.push([
-          `วันที่ ${sec.day.split("-").reverse().join("/")} · กะ ${sec.shift || "-"}`,
-          `Batch : ${b.batch}`,
-          `HU : ${r.hu || "-"}`,
-          `Mat : ${g.mat}${g.mat_name ? ` (${g.mat_name})` : ""}`,
-          `Line : ${r.rmm_line_name || "-"}`,
-          `Code : ${g.code}`,
-        ].join("\n")))));
+        found.forEach(({ sec, g }) => blocks.push(fishBlock(sec, g)));
         await push(packBlocks(`🐟 พบ Code เดียวกัน ไลน์เดียวกัน คนละ Batch (ปลา) ${found.length} Code`, blocks, c), c);
         console.log(`✅ [delayAlert] ส่งแจ้งเตือนปลาคนละ Batch ${found.length} Code (${blocks.length} รายการ)`);
         found.forEach(({ sig }) => { fishReported[sig] = now; });
