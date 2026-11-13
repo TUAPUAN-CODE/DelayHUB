@@ -11206,9 +11206,34 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
         const n = parseInt(v, 10);
         return Number.isNaN(n) ? null : n;
       };
+      // Material No. … HU No. ที่แก้ได้ในหน้าประวัติ (เหมือน POST /pack/pkg/details): ตัดช่องว่าง/ความยาว, ค่าว่าง = null
+      const strOrNull = (n) => (v) => {
+        const t = v === null || v === undefined ? '' : String(v).trim();
+        return t ? t.slice(0, n) : null;
+      };
+      // produce_date: "yyyy-MM-dd HH:mm:ss" หรือ "yyyy-MM-dd" · receive_date: ตัดเหลือวันที่ · รูปแบบผิด = NaN → ตอบ 400
+      const dateTimeOrNull = (v) => {
+        const t = strOrNull(40)(v);
+        if (!t) return null;
+        const m = t.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2})(?::(\d{2}))?)?/);
+        return m ? thaiStrToDbDate(`${m[1]} ${m[2] || '00:00'}:${m[3] || '00'}`) || NaN : NaN;
+      };
+      const dateOnlyOrNull = (v) => {
+        const t = strOrNull(40)(v);
+        if (!t) return null;
+        const m = t.match(/^(\d{4}-\d{2}-\d{2})/);
+        return m ? thaiStrToDbDate(`${m[1]} 00:00:00`) || NaN : NaN;
+      };
 
       const fieldMap = {
         code: { type: sql.NVarChar(100), val: (v) => v || null },
+        material_no: { type: sql.NVarChar(100), val: strOrNull(100) },
+        lot_no: { type: sql.NVarChar(100), val: strOrNull(100) },
+        box_no: { type: sql.NVarChar(50), val: strOrNull(50) },
+        batch_no: { type: sql.NVarChar(100), val: strOrNull(100) },
+        hu_no: { type: sql.NVarChar(100), val: strOrNull(100) },
+        produce_date: { type: sql.DateTime, val: dateTimeOrNull },
+        receive_date: { type: sql.Date, val: dateOnlyOrNull },
         start_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
         stop_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
         remark: { type: sql.NVarChar(500), val: (v) => v || null },
@@ -11225,7 +11250,9 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
       const request = pool.request().input('detail_id', sql.Int, detail_id);
       for (const [key, def] of Object.entries(fieldMap)) {
         if (key in req.body) {
-          request.input(key, def.type, def.val(req.body[key]));
+          const val = def.val(req.body[key]);
+          if (typeof val === 'number' && Number.isNaN(val)) return res.status(400).json({ success: false, error: `ข้อมูลไม่ถูกต้อง: ${key}` });
+          request.input(key, def.type, val);
           setClauses.push(`${key} = @${key}`);
         }
       }

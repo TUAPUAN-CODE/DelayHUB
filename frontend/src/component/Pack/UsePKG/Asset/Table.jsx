@@ -1818,7 +1818,7 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
         code: detail.code ?? '', material_no: detail.material_no ?? '',
         lot_no: detail.lot_no ?? '', box_no: detail.box_no ?? '',
         batch_no: detail.batch_no ?? '', hu_no: detail.hu_no ?? '',
-        produce_date: detail.produce_date ? fmtDate(detail.produce_date) : '',
+        produce_date: detail.produce_date ? fmtDT(detail.produce_date) : '',
         receive_date: detail.receive_date ? fmtDate(detail.receive_date) : '',
         start_time: detail.start_time ? fmtDT(detail.start_time) : '',
         stop_time: detail.stop_time ? fmtDT(detail.stop_time) : '',
@@ -1842,6 +1842,9 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
       });
       ['produce_date', 'receive_date', 'start_time', 'stop_time'].forEach(f => {
         if (payload[f] === '') payload[f] = null;
+      });
+      INLINE_DATE_FIELDS.forEach(f => {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(String(payload[f] ?? ''))) payload[f] = null; // ล้างวันที่ออก = ว่าง
       });
       if (detail.__new) await axios.post(`${API_URL}/api/pack/pkg/details`, { ...payload, report_id: reportId });
       else await axios.put(`${API_URL}/api/pack/pkg/details/${detail.detail_id}`, payload);
@@ -1917,6 +1920,8 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
 // ─── Document Detail View ──────────────────────────────────────────────────────
 // ฟิลด์ที่แก้ในตารางได้ตอนเปิดโหมดแก้ไข (ปุ่ม "แก้ไขข้อมูล" บนแถบด้านบน) — ตรงกับ PUT /api/pack/pkg/details/:id
 const INLINE_INT_FIELDS = ['qty_received', 'qty_used', 'qty_damaged', 'qty_remaining'];
+const INLINE_DT_FIELDS  = ['start_time', 'stop_time', 'produce_date']; // วันที่ + เวลา
+const INLINE_DATE_FIELDS = ['produce_date', 'receive_date'];          // ล้างวันที่ออก = ว่าง (null)
 const inlineInputSx = { '& .MuiInputBase-root': { fontSize: '12px', backgroundColor: '#FFF8E1' }, '& input': { py: 0.5, px: 0.75 } };
 
 // onToggleEdit: button "แก้ไขข้อมูล" of the document (the same edit mode / password as the button "แก้ไขข้อมูล" in the top bar)
@@ -1972,7 +1977,10 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
   const draftVal = (d, f) => (drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : d[f]);
   const setDraft = (d, f, v) => setDrafts(prev => {
     const row = { ...(prev[d.detail_id] || {}) };
-    const orig = d[f] === null || d[f] === undefined ? '' : (['start_time', 'stop_time'].includes(f) ? fmtDT(d[f]) : String(d[f]));
+    const orig = d[f] === null || d[f] === undefined ? ''
+      : INLINE_DT_FIELDS.includes(f) ? fmtDT(d[f])
+      : f === 'receive_date' ? fmtDate(d[f])
+      : String(d[f]);
     if (String(v ?? '') === orig || (orig === '-' && !v)) delete row[f]; else row[f] = v;
     const next = { ...prev };
     if (Object.keys(row).length) next[d.detail_id] = row; else delete next[d.detail_id];
@@ -1999,6 +2007,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         const payload = {};
         Object.entries(row).forEach(([f, v]) => {
           if (INLINE_INT_FIELDS.includes(f)) payload[f] = v === '' || v === null ? null : Number(v);
+          else if (INLINE_DATE_FIELDS.includes(f)) payload[f] = /^\d{4}-\d{2}-\d{2}/.test(String(v ?? '')) ? v : null;
           else payload[f] = v === '' ? null : v;
         });
         await axios.put(`${API_URL}/api/pack/pkg/details/${id}`, payload);
@@ -2022,6 +2031,10 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
   const timeEditor = (d, f) => {
     const v = drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : (d[f] ? fmtDT(d[f]) : '');
     return <Box sx={{ backgroundColor: '#FFF8E1', borderRadius: 1, p: 0.25 }}><DateTimeEditor value={v} onChange={nv => setDraft(d, f, nv)} /></Box>;
+  };
+  const dateEditor = (d, f) => {
+    const v = drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : (d[f] ? fmtDate(d[f]) : '');
+    return <input type="date" value={v} onChange={e => setDraft(d, f, e.target.value)} style={{ ...dateStyle, width: '130px', backgroundColor: '#FFF8E1' }} />;
   };
   const codeEditor = (d) => (
     <Autocomplete size="small" options={codeOptions} value={draftVal(d, 'code') || null}
@@ -2183,7 +2196,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, backgroundColor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFB74D', flexWrap: 'wrap' }}>
           <Edit sx={{ color: '#E65100' }} />
           <Typography sx={{ fontSize: '13px', fontWeight: 'bold', color: '#E65100', flex: 1 }}>
-            โหมดแก้ไข: แก้ Code / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก · เพิ่มแถวใหม่ได้ด้วยปุ่ม "เพิ่มแถวใหม่" หรือสแกนสลิป (ใช้ได้กับเอกสารในประวัติด้วย){changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
+            โหมดแก้ไข: แก้ Code / Material No. / Lot No. / Box No. / วันที่ผลิต / วันที่รับเข้า / Batch No. / HU No. / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก · เพิ่มแถวใหม่ได้ด้วยปุ่ม "เพิ่มแถวใหม่" หรือสแกนสลิป (ใช้ได้กับเอกสารในประวัติด้วย){changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
           </Typography>
           <Button size="small" variant="outlined" color="warning" startIcon={<Add />} onClick={() => setEditDetail({ __new: true })}>เพิ่มแถวใหม่</Button>
           <Button size="small" onClick={() => setDrafts({})} disabled={!changedCount || savingEdits}>ยกเลิกการแก้ไข</Button>
@@ -2247,13 +2260,13 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
                   sx={{ backgroundColor: drafts[d.detail_id] ? '#FFF3E0' : i % 2 === 0 ? '#fff' : '#f9f9f9', '&:hover': { backgroundColor: '#e3f2fd' } }}>
                   <TableCell sx={{ ...cellSx, color: '#888' }}>{i + 1}</TableCell>
                   <TableCell sx={cellSx}>{editMode ? codeEditor(d) : (d.code || '-')}</TableCell>
-                  <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{d.material_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.lot_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.box_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{fmtDT(d.produce_date)}</TableCell>
-                  <TableCell sx={cellSx}>{fmtDate(d.receive_date)}</TableCell>
-                  <TableCell sx={cellSx}>{d.batch_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.hu_no || '-'}</TableCell>
+                  <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{editMode ? textEditor(d, 'material_no', 130) : (d.material_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'lot_no', 100) : (d.lot_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'box_no', 80) : (d.box_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? timeEditor(d, 'produce_date') : fmtDT(d.produce_date)}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? dateEditor(d, 'receive_date') : fmtDate(d.receive_date)}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'batch_no', 120) : (d.batch_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'hu_no', 110) : (d.hu_no || '-')}</TableCell>
                   {pouch && POUCH_FIELDS_MID.map(f => (editMode
                     ? <TableCell key={f} sx={cellSx}>{textEditor(d, f, 90)}</TableCell>
                     : <PouchCell key={f} value={d[f]} field={f} isDate={POUCH_DATE_FIELDS.includes(f)} disabled={isDone} onClick={() => setEditDetail(d)} />
