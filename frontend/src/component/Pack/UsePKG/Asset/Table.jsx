@@ -48,8 +48,11 @@ const TRANSLATIONS = {
     'btn.saveChanges': 'บันทึกการแก้ไข',
     'btn.exportExcel': 'Export Excel',
     'btn.exportExcelAll': 'Export Excel รวม',
-    'btn.exportPdf': 'Export PDF',
     'btn.exportPdfAll': 'Export PDF รวม',
+    'msg.exportPreparing': 'กำลังเตรียมไฟล์...',
+    'msg.exportFailed': 'Export ไม่สำเร็จ: ',
+    'msg.exportConfirmMany': 'จะรวม {n} เอกสาร ใช้เวลาสักครู่ ต้องการทำต่อหรือไม่?',
+    'btn.exportPdf': 'Export PDF',
     'btn.excelShort': 'Excel',
     'btn.pdfShort': 'PDF',
     'btn.refresh': 'รีเฟรชข้อมูล',
@@ -193,8 +196,11 @@ const TRANSLATIONS = {
     'btn.saveChanges': 'Save Changes',
     'btn.exportExcel': 'Export Excel',
     'btn.exportExcelAll': 'Export All (Excel)',
-    'btn.exportPdf': 'Export PDF',
     'btn.exportPdfAll': 'Export All (PDF)',
+    'msg.exportPreparing': 'Preparing the file...',
+    'msg.exportFailed': 'Export failed: ',
+    'msg.exportConfirmMany': 'This will combine {n} documents and may take a moment. Continue?',
+    'btn.exportPdf': 'Export PDF',
     'btn.excelShort': 'Excel',
     'btn.pdfShort': 'PDF',
     'btn.refresh': 'Refresh',
@@ -1675,7 +1681,7 @@ const PlantLineSummaryTab = ({ lines, activeReports }) => {
 };
 
 // ─── PDF Export (เอกสารรายฉบับ — คงรูปแบบเดิม เป็นภาษาไทยเสมอ) ─────────────────
-const exportPDF = (report, details) => {
+const createReportPdfDoc = () => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   try {
     doc.addFileToVFS('Sarabun.ttf', thSarabunBase64);
@@ -1683,7 +1689,11 @@ const exportPDF = (report, details) => {
     doc.addFont('Sarabun.ttf', 'Sarabun', 'bold');
     doc.setFont('Sarabun', 'normal');
   } catch (e) { doc.setFont('helvetica'); }
+  return doc;
+};
 
+// draws ONE document (starting on the current page of `doc`) — used by the single export and the combined export of the history list
+const drawReportPdf = (doc, report, details) => {
   const pageW  = doc.internal.pageSize.getWidth();
   const margin = 10;
   const dateStr = fmtDate(report.report_date);
@@ -1794,8 +1804,60 @@ const exportPDF = (report, details) => {
   doc.text('รายงานโดย', leftCenterX, sigLabelY, { align: 'center' });
   doc.text('QC Section Manager', rightCenterX, sigLabelY, { align: 'center' });
   doc.setTextColor(0, 0, 0);
+};
 
-  doc.save(`รายงานบรรจุภัณฑ์_${report.report_id}_${dateStr}.pdf`);
+const exportPDF = (report, details) => {
+  const doc = createReportPdfDoc();
+  drawReportPdf(doc, report, details);
+  doc.save(`รายงานบรรจุภัณฑ์_${report.report_id}_${fmtDate(report.report_date)}.pdf`);
+};
+
+// ─── Combined export of the history list (all documents currently shown) ───────
+const fetchReportDetails = async (reportIds) => {
+  const out = new Map();
+  const LIMIT = 5; // CLAUDE.md: limit concurrent API calls
+  for (let i = 0; i < reportIds.length; i += LIMIT) {
+    await Promise.all(reportIds.slice(i, i + LIMIT).map(async (id) => {
+      const res = await axios.get(`${API_URL}/api/pack/pkg/reports/${id}`);
+      if (!res.data.success) throw new Error(res.data.error || `โหลดเอกสาร ${id} ไม่สำเร็จ`);
+      out.set(id, res.data.data);
+    }));
+  }
+  return out;
+};
+
+const exportCombinedPDF = (reports, detailMap) => {
+  const doc = createReportPdfDoc();
+  reports.forEach((r, i) => {
+    if (i > 0) doc.addPage();
+    const full = detailMap.get(r.report_id) || {};
+    drawReportPdf(doc, { ...r, ...full }, full.details || []);
+  });
+  doc.save(`รายงานการใช้บรรจุภัณฑ์_รวม_${reports.length}เอกสาร_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
+const exportCombinedExcel = (reports, detailMap) => {
+  const header = ['เลขเอกสาร', 'วันที่', 'กะ', 'โรงผลิต', 'บรรจุภัณฑ์', 'Line', 'เครื่อง', 'รายงานโดย', 'QC Section Manager',
+    'Code', 'Material No.', 'Lot No.', 'Box No.', 'วันที่ผลิต / เวลา', 'วันที่รับเข้า', 'Batch No.', 'HU No.',
+    'Ink', 'Roll No.', 'Side', 'เวลาเริ่มปล่อย', 'เวลาหยุดปล่อย', 'จำนวน', 'หมายเหตุ', 'รับ', 'ใช้', 'เสีย', 'คงเหลือ'];
+  const aoa = [header];
+  reports.forEach((r) => {
+    const full = { ...r, ...(detailMap.get(r.report_id) || {}) };
+    const head = [full.report_id, fmtDate(full.report_date), full.shift || '', full.plant || '', full.package_type || '',
+      full.line_name || '', full.machine_name || '', full.reported_by || '', full.qc_supervisor || ''];
+    const details = full.details || [];
+    if (details.length === 0) aoa.push([...head, ...Array(header.length - head.length).fill('')]);
+    details.forEach((d) => aoa.push([
+      ...head, d.code || '', d.material_no || '', d.lot_no || '', d.box_no || '', fmtDT(d.produce_date), fmtDate(d.receive_date),
+      d.batch_no || '', d.hu_no || '', d.ink || '', d.roll_no || '', d.side || '', fmtDT(d.start_time), fmtDT(d.stop_time),
+      d.qty ?? '', d.remark || '', d.qty_received ?? '', d.qty_used ?? '', d.qty_damaged ?? '', d.qty_remaining ?? '',
+    ]));
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = header.map((h) => ({ wch: Math.max(10, Math.min(28, h.length + 4)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'PKG Usage');
+  XLSX.writeFile(wb, `รายงานการใช้บรรจุภัณฑ์_รวม_${reports.length}เอกสาร_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
 // ─── Pouch/Sachet extra columns ────────────────────────────────────────────────
@@ -1833,7 +1895,7 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
         code: detail.code ?? '', material_no: detail.material_no ?? '',
         lot_no: detail.lot_no ?? '', box_no: detail.box_no ?? '',
         batch_no: detail.batch_no ?? '', hu_no: detail.hu_no ?? '',
-        produce_date: detail.produce_date ? fmtDate(detail.produce_date) : '',
+        produce_date: detail.produce_date ? fmtDT(detail.produce_date) : '',
         receive_date: detail.receive_date ? fmtDate(detail.receive_date) : '',
         start_time: detail.start_time ? fmtDT(detail.start_time) : '',
         stop_time: detail.stop_time ? fmtDT(detail.stop_time) : '',
@@ -1857,6 +1919,9 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
       });
       ['produce_date', 'receive_date', 'start_time', 'stop_time'].forEach(f => {
         if (payload[f] === '') payload[f] = null;
+      });
+      INLINE_DATE_FIELDS.forEach(f => {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(String(payload[f] ?? ''))) payload[f] = null; // ล้างวันที่ออก = ว่าง
       });
       if (detail.__new) await axios.post(`${API_URL}/api/pack/pkg/details`, { ...payload, report_id: reportId });
       else await axios.put(`${API_URL}/api/pack/pkg/details/${detail.detail_id}`, payload);
@@ -1932,6 +1997,8 @@ const EditDetailModal = ({ open, onClose, detail, onSaved, pouch, showQty, repor
 // ─── Document Detail View ──────────────────────────────────────────────────────
 // ฟิลด์ที่แก้ในตารางได้ตอนเปิดโหมดแก้ไข (ปุ่ม "แก้ไขข้อมูล" บนแถบด้านบน) — ตรงกับ PUT /api/pack/pkg/details/:id
 const INLINE_INT_FIELDS = ['qty_received', 'qty_used', 'qty_damaged', 'qty_remaining'];
+const INLINE_DT_FIELDS  = ['start_time', 'stop_time', 'produce_date']; // วันที่ + เวลา
+const INLINE_DATE_FIELDS = ['produce_date', 'receive_date'];          // ล้างวันที่ออก = ว่าง (null)
 const inlineInputSx = { '& .MuiInputBase-root': { fontSize: '12px', backgroundColor: '#FFF8E1' }, '& input': { py: 0.5, px: 0.75 } };
 
 // onToggleEdit: button "แก้ไขข้อมูล" of the document (the same edit mode / password as the button "แก้ไขข้อมูล" in the top bar)
@@ -1987,7 +2054,10 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
   const draftVal = (d, f) => (drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : d[f]);
   const setDraft = (d, f, v) => setDrafts(prev => {
     const row = { ...(prev[d.detail_id] || {}) };
-    const orig = d[f] === null || d[f] === undefined ? '' : (['start_time', 'stop_time'].includes(f) ? fmtDT(d[f]) : String(d[f]));
+    const orig = d[f] === null || d[f] === undefined ? ''
+      : INLINE_DT_FIELDS.includes(f) ? fmtDT(d[f])
+      : f === 'receive_date' ? fmtDate(d[f])
+      : String(d[f]);
     if (String(v ?? '') === orig || (orig === '-' && !v)) delete row[f]; else row[f] = v;
     const next = { ...prev };
     if (Object.keys(row).length) next[d.detail_id] = row; else delete next[d.detail_id];
@@ -2014,6 +2084,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         const payload = {};
         Object.entries(row).forEach(([f, v]) => {
           if (INLINE_INT_FIELDS.includes(f)) payload[f] = v === '' || v === null ? null : Number(v);
+          else if (INLINE_DATE_FIELDS.includes(f)) payload[f] = /^\d{4}-\d{2}-\d{2}/.test(String(v ?? '')) ? v : null;
           else payload[f] = v === '' ? null : v;
         });
         await axios.put(`${API_URL}/api/pack/pkg/details/${id}`, payload);
@@ -2037,6 +2108,10 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
   const timeEditor = (d, f) => {
     const v = drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : (d[f] ? fmtDT(d[f]) : '');
     return <Box sx={{ backgroundColor: '#FFF8E1', borderRadius: 1, p: 0.25 }}><DateTimeEditor value={v} onChange={nv => setDraft(d, f, nv)} /></Box>;
+  };
+  const dateEditor = (d, f) => {
+    const v = drafts[d.detail_id] && f in drafts[d.detail_id] ? drafts[d.detail_id][f] : (d[f] ? fmtDate(d[f]) : '');
+    return <input type="date" value={v} onChange={e => setDraft(d, f, e.target.value)} style={{ ...dateStyle, width: '130px', backgroundColor: '#FFF8E1' }} />;
   };
   const codeEditor = (d) => (
     <Autocomplete size="small" options={codeOptions} value={draftVal(d, 'code') || null}
@@ -2198,7 +2273,7 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, backgroundColor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFB74D', flexWrap: 'wrap' }}>
           <Edit sx={{ color: '#E65100' }} />
           <Typography sx={{ fontSize: '13px', fontWeight: 'bold', color: '#E65100', flex: 1 }}>
-            โหมดแก้ไข: แก้ Code / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก · เพิ่มแถวใหม่ได้ด้วยปุ่ม "เพิ่มแถวใหม่" หรือสแกนสลิป (ใช้ได้กับเอกสารในประวัติด้วย){changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
+            โหมดแก้ไข: แก้ Code / Material No. / Lot No. / Box No. / วันที่ผลิต / วันที่รับเข้า / Batch No. / HU No. / เวลาเริ่ม-เลิกใช้ / หมายเหตุ / จำนวน ได้ในตารางเลย แล้วกดบันทึก · เพิ่มแถวใหม่ได้ด้วยปุ่ม "เพิ่มแถวใหม่" หรือสแกนสลิป (ใช้ได้กับเอกสารในประวัติด้วย){changedCount ? `(แก้แล้ว ${changedCount} แถว)` : ''}
           </Typography>
           <Button size="small" variant="outlined" color="warning" startIcon={<Add />} onClick={() => setEditDetail({ __new: true })}>เพิ่มแถวใหม่</Button>
           <Button size="small" onClick={() => setDrafts({})} disabled={!changedCount || savingEdits}>ยกเลิกการแก้ไข</Button>
@@ -2262,13 +2337,13 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
                   sx={{ backgroundColor: drafts[d.detail_id] ? '#FFF3E0' : i % 2 === 0 ? '#fff' : '#f9f9f9', '&:hover': { backgroundColor: '#e3f2fd' } }}>
                   <TableCell sx={{ ...cellSx, color: '#888' }}>{i + 1}</TableCell>
                   <TableCell sx={cellSx}>{editMode ? codeEditor(d) : (d.code || '-')}</TableCell>
-                  <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{d.material_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.lot_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.box_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{fmtDT(d.produce_date)}</TableCell>
-                  <TableCell sx={cellSx}>{fmtDate(d.receive_date)}</TableCell>
-                  <TableCell sx={cellSx}>{d.batch_no || '-'}</TableCell>
-                  <TableCell sx={cellSx}>{d.hu_no || '-'}</TableCell>
+                  <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{editMode ? textEditor(d, 'material_no', 130) : (d.material_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'lot_no', 100) : (d.lot_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'box_no', 80) : (d.box_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? timeEditor(d, 'produce_date') : fmtDT(d.produce_date)}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? dateEditor(d, 'receive_date') : fmtDate(d.receive_date)}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'batch_no', 120) : (d.batch_no || '-')}</TableCell>
+                  <TableCell sx={cellSx}>{editMode ? textEditor(d, 'hu_no', 110) : (d.hu_no || '-')}</TableCell>
                   {pouch && POUCH_FIELDS_MID.map(f => (editMode
                     ? <TableCell key={f} sx={cellSx}>{textEditor(d, f, 90)}</TableCell>
                     : <PouchCell key={f} value={d[f]} field={f} isDate={POUCH_DATE_FIELDS.includes(f)} disabled={isDone} onClick={() => setEditDetail(d)} />
@@ -2338,6 +2413,7 @@ const TableMainPrep = () => {
   const [searchMat,       setSearchMat]      = useState('');
   const [searchBatch,     setSearchBatch]    = useState('');
   const [doneSearchMode,  setDoneSearchMode] = useState(false);
+  const [exporting,       setExporting]      = useState(false);
   const [lines,          setLines]          = useState([]);
   const [createOpen,     setCreateOpen]     = useState(false);
   const [editReport,     setEditReport]     = useState(null);
@@ -2544,6 +2620,24 @@ const TableMainPrep = () => {
     fetchDoneFiltered(doneFilters);
   };
 
+  // exports EVERY document of the list on screen (after the filters / search) as one Excel or one PDF
+  const handleExportDone = async (kind) => {
+    const seen = new Set();
+    const reports = [];
+    doneRows.forEach((r) => { if (!seen.has(r.report_id)) { seen.add(r.report_id); reports.push(r); } });
+    if (reports.length === 0 || exporting) return;
+    if (reports.length > 100 && !window.confirm(t('msg.exportConfirmMany').replace('{n}', reports.length))) return;
+    setExporting(true);
+    try {
+      const detailMap = await fetchReportDetails(reports.map((r) => r.report_id));
+      if (kind === 'pdf') exportCombinedPDF(reports, detailMap);
+      else exportCombinedExcel(reports, detailMap);
+    } catch (err) {
+      console.error('export combined failed:', err);
+      alert(t('msg.exportFailed') + (err.response?.data?.error || err.message));
+    } finally { setExporting(false); }
+  };
+
   const clearDoneSearch = () => { setSearchMat(''); setSearchBatch(''); };
 
   const activeFilterOptions = useMemo(() => buildFilterOptions(activeReports), [activeReports]);
@@ -2669,6 +2763,13 @@ const TableMainPrep = () => {
                   startIcon={doneLoading ? <CircularProgress size={12} color="inherit" /> : <CheckCircle />}>
                   {t('btn.confirmData')}
                 </Button>
+                {doneLoaded && doneRows.length > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, ml: 'auto' }}>
+                    {exporting && <CircularProgress size={14} />}
+                    <ExportBtn kind="excel" label={t('btn.exportExcelAll')} onClick={() => handleExportDone('excel')} sx={{ opacity: exporting ? 0.6 : 1, pointerEvents: exporting ? 'none' : 'auto' }} />
+                    <ExportBtn kind="pdf" label={t('btn.exportPdfAll')} onClick={() => handleExportDone('pdf')} sx={{ opacity: exporting ? 0.6 : 1, pointerEvents: exporting ? 'none' : 'auto' }} />
+                  </Box>
+                )}
               </Box>
               <Box sx={{ fontSize: '11px', color: '#888', mt: 0.8 }}>
                 {t('msg.searchDocHint')}
