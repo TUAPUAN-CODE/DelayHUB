@@ -893,4 +893,9 @@ export default {
   "พบ {n} เอกสาร": ["Found {n} documents", "စာရွက်စာတမ်း {n} ခု တွေ့ပါသည်", "រកឃើញ {n} ឯកសារ"],
   "รายการที่ตรง (Material / Batch)": ["Matching items (Material / Batch)", "ကိုက်ညီသော ပစ္စည်းများ (Material / Batch)", "ធាតុដែលត្រូវគ្នា (Material / Batch)"],
   "กรุณาระบุ Material No. หรือ Batch No. อย่างน้อย 1 อย่าง": ["Please enter a Material No. or a Batch No. (at least one)", "Material No. သို့မဟုတ် Batch No. အနည်းဆုံး ၁ ခု ထည့်ပါ", "សូមបញ្ចូល Material No. ឬ Batch No. យ៉ាងហោចណាស់ 1"],
+  "กำลังเตรียมไฟล์...": ["Preparing the file...", "ဖိုင်ကို ပြင်ဆင်နေသည်...", "កំពុងរៀបចំឯកសារ..."],
+  "Export ไม่สำเร็จ:": ["Export failed:", "Export မအောင်မြင်ပါ-", "Export មិនបានជោគជ័យ៖"],
+  "จะรวม {n} เอกสาร ใช้เวลาสักครู่ ต้องการทำต่อหรือไม่?": ["This will combine {n} documents and may take a moment. Continue?", "စာရွက်စာတမ်း {n} ခု ပေါင်းမည်ဖြစ်ပြီး အချိန်အနည်းငယ် ကြာနိုင်သည်။ ဆက်လုပ်မလား?", "នឹងបញ្ចូលគ្នា {n} ឯកសារ ប្រហែលចំណាយពេលបន្តិច។ បន្តទេ?"],
+  "โหลดเอกสาร {x} ไม่สำเร็จ": ["Could not load document {x}", "စာရွက်စာတမ်း {x} ကို ဖွင့်၍မရပါ", "មិនអាចផ្ទុកឯកសារ {x} បាន"],
+  "เครื่อง": ["Machine", "စက်", "ម៉ាស៊ីន"],
 };

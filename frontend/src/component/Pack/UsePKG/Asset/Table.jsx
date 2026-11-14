@@ -48,8 +48,11 @@ const TRANSLATIONS = {
     'btn.saveChanges': 'บันทึกการแก้ไข',
     'btn.exportExcel': 'Export Excel',
     'btn.exportExcelAll': 'Export Excel รวม',
-    'btn.exportPdf': 'Export PDF',
     'btn.exportPdfAll': 'Export PDF รวม',
+    'msg.exportPreparing': 'กำลังเตรียมไฟล์...',
+    'msg.exportFailed': 'Export ไม่สำเร็จ: ',
+    'msg.exportConfirmMany': 'จะรวม {n} เอกสาร ใช้เวลาสักครู่ ต้องการทำต่อหรือไม่?',
+    'btn.exportPdf': 'Export PDF',
     'btn.excelShort': 'Excel',
     'btn.pdfShort': 'PDF',
     'btn.refresh': 'รีเฟรชข้อมูล',
@@ -193,8 +196,11 @@ const TRANSLATIONS = {
     'btn.saveChanges': 'Save Changes',
     'btn.exportExcel': 'Export Excel',
     'btn.exportExcelAll': 'Export All (Excel)',
-    'btn.exportPdf': 'Export PDF',
     'btn.exportPdfAll': 'Export All (PDF)',
+    'msg.exportPreparing': 'Preparing the file...',
+    'msg.exportFailed': 'Export failed: ',
+    'msg.exportConfirmMany': 'This will combine {n} documents and may take a moment. Continue?',
+    'btn.exportPdf': 'Export PDF',
     'btn.excelShort': 'Excel',
     'btn.pdfShort': 'PDF',
     'btn.refresh': 'Refresh',
@@ -1675,7 +1681,7 @@ const PlantLineSummaryTab = ({ lines, activeReports }) => {
 };
 
 // ─── PDF Export (เอกสารรายฉบับ — คงรูปแบบเดิม เป็นภาษาไทยเสมอ) ─────────────────
-const exportPDF = (report, details) => {
+const createReportPdfDoc = () => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   try {
     doc.addFileToVFS('Sarabun.ttf', thSarabunBase64);
@@ -1683,7 +1689,11 @@ const exportPDF = (report, details) => {
     doc.addFont('Sarabun.ttf', 'Sarabun', 'bold');
     doc.setFont('Sarabun', 'normal');
   } catch (e) { doc.setFont('helvetica'); }
+  return doc;
+};
 
+// draws ONE document (starting on the current page of `doc`) — used by the single export and the combined export of the history list
+const drawReportPdf = (doc, report, details) => {
   const pageW  = doc.internal.pageSize.getWidth();
   const margin = 10;
   const dateStr = fmtDate(report.report_date);
@@ -1794,8 +1804,60 @@ const exportPDF = (report, details) => {
   doc.text('รายงานโดย', leftCenterX, sigLabelY, { align: 'center' });
   doc.text('QC Section Manager', rightCenterX, sigLabelY, { align: 'center' });
   doc.setTextColor(0, 0, 0);
+};
 
-  doc.save(`รายงานบรรจุภัณฑ์_${report.report_id}_${dateStr}.pdf`);
+const exportPDF = (report, details) => {
+  const doc = createReportPdfDoc();
+  drawReportPdf(doc, report, details);
+  doc.save(`รายงานบรรจุภัณฑ์_${report.report_id}_${fmtDate(report.report_date)}.pdf`);
+};
+
+// ─── Combined export of the history list (all documents currently shown) ───────
+const fetchReportDetails = async (reportIds) => {
+  const out = new Map();
+  const LIMIT = 5; // CLAUDE.md: limit concurrent API calls
+  for (let i = 0; i < reportIds.length; i += LIMIT) {
+    await Promise.all(reportIds.slice(i, i + LIMIT).map(async (id) => {
+      const res = await axios.get(`${API_URL}/api/pack/pkg/reports/${id}`);
+      if (!res.data.success) throw new Error(res.data.error || `โหลดเอกสาร ${id} ไม่สำเร็จ`);
+      out.set(id, res.data.data);
+    }));
+  }
+  return out;
+};
+
+const exportCombinedPDF = (reports, detailMap) => {
+  const doc = createReportPdfDoc();
+  reports.forEach((r, i) => {
+    if (i > 0) doc.addPage();
+    const full = detailMap.get(r.report_id) || {};
+    drawReportPdf(doc, { ...r, ...full }, full.details || []);
+  });
+  doc.save(`รายงานการใช้บรรจุภัณฑ์_รวม_${reports.length}เอกสาร_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
+const exportCombinedExcel = (reports, detailMap) => {
+  const header = ['เลขเอกสาร', 'วันที่', 'กะ', 'โรงผลิต', 'บรรจุภัณฑ์', 'Line', 'เครื่อง', 'รายงานโดย', 'QC Section Manager',
+    'Code', 'Material No.', 'Lot No.', 'Box No.', 'วันที่ผลิต / เวลา', 'วันที่รับเข้า', 'Batch No.', 'HU No.',
+    'Ink', 'Roll No.', 'Side', 'เวลาเริ่มปล่อย', 'เวลาหยุดปล่อย', 'จำนวน', 'หมายเหตุ', 'รับ', 'ใช้', 'เสีย', 'คงเหลือ'];
+  const aoa = [header];
+  reports.forEach((r) => {
+    const full = { ...r, ...(detailMap.get(r.report_id) || {}) };
+    const head = [full.report_id, fmtDate(full.report_date), full.shift || '', full.plant || '', full.package_type || '',
+      full.line_name || '', full.machine_name || '', full.reported_by || '', full.qc_supervisor || ''];
+    const details = full.details || [];
+    if (details.length === 0) aoa.push([...head, ...Array(header.length - head.length).fill('')]);
+    details.forEach((d) => aoa.push([
+      ...head, d.code || '', d.material_no || '', d.lot_no || '', d.box_no || '', fmtDT(d.produce_date), fmtDate(d.receive_date),
+      d.batch_no || '', d.hu_no || '', d.ink || '', d.roll_no || '', d.side || '', fmtDT(d.start_time), fmtDT(d.stop_time),
+      d.qty ?? '', d.remark || '', d.qty_received ?? '', d.qty_used ?? '', d.qty_damaged ?? '', d.qty_remaining ?? '',
+    ]));
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = header.map((h) => ({ wch: Math.max(10, Math.min(28, h.length + 4)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'PKG Usage');
+  XLSX.writeFile(wb, `รายงานการใช้บรรจุภัณฑ์_รวม_${reports.length}เอกสาร_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
 // ─── Pouch/Sachet extra columns ────────────────────────────────────────────────
@@ -2351,6 +2413,7 @@ const TableMainPrep = () => {
   const [searchMat,       setSearchMat]      = useState('');
   const [searchBatch,     setSearchBatch]    = useState('');
   const [doneSearchMode,  setDoneSearchMode] = useState(false);
+  const [exporting,       setExporting]      = useState(false);
   const [lines,          setLines]          = useState([]);
   const [createOpen,     setCreateOpen]     = useState(false);
   const [editReport,     setEditReport]     = useState(null);
@@ -2557,6 +2620,24 @@ const TableMainPrep = () => {
     fetchDoneFiltered(doneFilters);
   };
 
+  // exports EVERY document of the list on screen (after the filters / search) as one Excel or one PDF
+  const handleExportDone = async (kind) => {
+    const seen = new Set();
+    const reports = [];
+    doneRows.forEach((r) => { if (!seen.has(r.report_id)) { seen.add(r.report_id); reports.push(r); } });
+    if (reports.length === 0 || exporting) return;
+    if (reports.length > 100 && !window.confirm(t('msg.exportConfirmMany').replace('{n}', reports.length))) return;
+    setExporting(true);
+    try {
+      const detailMap = await fetchReportDetails(reports.map((r) => r.report_id));
+      if (kind === 'pdf') exportCombinedPDF(reports, detailMap);
+      else exportCombinedExcel(reports, detailMap);
+    } catch (err) {
+      console.error('export combined failed:', err);
+      alert(t('msg.exportFailed') + (err.response?.data?.error || err.message));
+    } finally { setExporting(false); }
+  };
+
   const clearDoneSearch = () => { setSearchMat(''); setSearchBatch(''); };
 
   const activeFilterOptions = useMemo(() => buildFilterOptions(activeReports), [activeReports]);
@@ -2682,6 +2763,13 @@ const TableMainPrep = () => {
                   startIcon={doneLoading ? <CircularProgress size={12} color="inherit" /> : <CheckCircle />}>
                   {t('btn.confirmData')}
                 </Button>
+                {doneLoaded && doneRows.length > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, ml: 'auto' }}>
+                    {exporting && <CircularProgress size={14} />}
+                    <ExportBtn kind="excel" label={t('btn.exportExcelAll')} onClick={() => handleExportDone('excel')} sx={{ opacity: exporting ? 0.6 : 1, pointerEvents: exporting ? 'none' : 'auto' }} />
+                    <ExportBtn kind="pdf" label={t('btn.exportPdfAll')} onClick={() => handleExportDone('pdf')} sx={{ opacity: exporting ? 0.6 : 1, pointerEvents: exporting ? 'none' : 'auto' }} />
+                  </Box>
+                )}
               </Box>
               <Box sx={{ fontSize: '11px', color: '#888', mt: 0.8 }}>
                 {t('msg.searchDocHint')}
