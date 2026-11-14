@@ -146,6 +146,9 @@ const TRANSLATIONS = {
     'msg.cameraAccessFailed': 'ไม่สามารถเข้าถึงกล้องได้',
     'msg.chooseFilterHint': 'กรุณาเลือกตัวกรองที่ต้องการ (หรือไม่เลือกเพื่อดูทั้งหมด) แล้วกด "ยืนยันข้อมูล" เพื่อแสดงรายการ',
     'msg.rowShowsCodeHint': 'แต่ละแถวแสดง 1 Code ที่ใช้ในเอกสาร — คลิกแถวเพื่อดูรายละเอียดของ Code นั้น',
+    'msg.searchDocHint': 'ค้นหาด้วย Material No. / Batch No. ได้เลย ไม่ต้องเลือกวันที่ — จะแสดงทุกเอกสารที่มีข้อมูลนี้ (ทุกวัน)',
+    'msg.searchResultCount': 'พบ {n} เอกสาร',
+    'col.matchedItems': 'รายการที่ตรง (Material / Batch)',
     'label.date': 'วันที่',
     'label.summary': 'สรุป',
     'label.summaryTitle': 'สรุปรายงานการใช้บรรจุภัณฑ์',
@@ -288,6 +291,9 @@ const TRANSLATIONS = {
     'msg.cameraAccessFailed': 'Unable to access the camera',
     'msg.chooseFilterHint': 'Please choose filters (or leave blank to see all), then click "Confirm" to show the list',
     'msg.rowShowsCodeHint': 'Each row shows 1 Code used in the document — click a row to see its details',
+    'msg.searchDocHint': 'Search by Material No. / Batch No. without choosing a date — shows every document (any date) that contains it',
+    'msg.searchResultCount': 'Found {n} documents',
+    'col.matchedItems': 'Matching items (Material / Batch)',
     'label.date': 'Date',
     'label.summary': 'Summary',
     'label.summaryTitle': 'Packaging Usage Summary Report',
@@ -953,9 +959,10 @@ const ReportListTable = ({ reports, onRowClick, onDelete, onEdit }) => {
 };
 
 // ─── Done History Table ────────────────────────────────────────────────────────
-const DoneHistoryTable = ({ rows, onRowClick, onDelete }) => {
+const DoneHistoryTable = ({ rows, onRowClick, onDelete, showMatches = false }) => {
   const { t } = useLang();
-  const cols = ['col.no', 'col.date', 'col.shift', 'col.plant', 'col.packageType', 'col.line', 'col.code', 'col.reportedBy', 'col.qcSupervisor'];
+  const cols = ['col.no', 'col.date', 'col.shift', 'col.plant', 'col.packageType', 'col.line', 'col.code', 'col.reportedBy', 'col.qcSupervisor',
+    ...(showMatches ? ['col.matchedItems'] : [])];
   return (
     <TableContainer sx={{ maxHeight: '520px' }}>
       <Table stickyHeader size="small">
@@ -988,6 +995,14 @@ const DoneHistoryTable = ({ rows, onRowClick, onDelete }) => {
               </TableCell>
               <TableCell sx={cellSx} onClick={() => onRowClick(r)}>{r.reported_by || '-'}</TableCell>
               <TableCell sx={cellSx} onClick={() => onRowClick(r)}>{r.qc_supervisor || '-'}</TableCell>
+              {showMatches && (
+                <TableCell sx={{ ...cellSx, fontFamily: 'monospace', minWidth: 200 }} onClick={() => onRowClick(r)}>
+                  {(r._matches || []).slice(0, 6).map((m, k) => (
+                    <div key={k}>{m.material_no || '-'} / {m.batch_no || '-'}</div>
+                  ))}
+                  {(r._matches || []).length > 6 && <div>… +{r._matches.length - 6}</div>}
+                </TableCell>
+              )}
               <TableCell sx={{ ...cellSx, minWidth: 60 }}>
                 <Box onClick={e => { e.stopPropagation(); onDelete(r); }}
                   sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.3, px: 1, py: 0.3, borderRadius: '4px', backgroundColor: '#ffebee', color: '#c62828', cursor: 'pointer', fontSize: '11px', '&:hover': { backgroundColor: '#ffcdd2' } }}>
@@ -2319,6 +2334,10 @@ const TableMainPrep = () => {
   const [activeReports,  setActiveReports]  = useState([]);
   const [doneRaw,        setDoneRaw]        = useState([]);
   const [doneRows,       setDoneRows]       = useState([]);
+  // search the history by Material No. / Batch No. across ALL dates (no date filter needed)
+  const [searchMat,       setSearchMat]      = useState('');
+  const [searchBatch,     setSearchBatch]    = useState('');
+  const [doneSearchMode,  setDoneSearchMode] = useState(false);
   const [lines,          setLines]          = useState([]);
   const [createOpen,     setCreateOpen]     = useState(false);
   const [editReport,     setEditReport]     = useState(null);
@@ -2476,10 +2495,56 @@ const TableMainPrep = () => {
     } finally { setDoneLoading(false); }
   };
 
+  // one row per DOCUMENT that has the typed Material No. / Batch No. (any date); the dropdown filters still narrow it when chosen
+  const fetchDoneSearch = async (filters, material, batch) => {
+    setDoneLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/pack/pkg/reports/done/search`, {
+        params: { material_no: material || undefined, batch_no: batch || undefined },
+      });
+      if (!res.data.success) throw new Error(res.data.error);
+      const byReport = new Map();
+      (res.data.data || []).forEach(m => {
+        if (!byReport.has(m.report_id)) {
+          const report = {};
+          ['report_id', 'report_date', 'shift', 'plant', 'package_type', 'reported_by', 'qc_supervisor', 'line_name', 'machine_name', 'status', 'created_at']
+            .forEach(k => { report[k] = m[k]; });
+          byReport.set(m.report_id, { ...report, _matches: [] });
+        }
+        byReport.get(m.report_id)._matches.push({ code: m.code, material_no: m.material_no, batch_no: m.batch_no });
+      });
+      const reports = Array.from(byReport.values()).filter(r => matchesFilters(r, filters));
+      const rows = reports.map(r => {
+        const codes = [...new Set(r._matches.map(x => x.code).filter(Boolean))];
+        return { ...r, _code: codes.length ? codes.join(', ') : '-' };
+      });
+      setDoneRaw(reports);
+      setDoneRows(rows);
+      setDoneSearchMode(true);
+      setDoneLoaded(true);
+    } catch (err) {
+      console.error('fetchDoneSearch failed:', err);
+      alert(t('msg.loadDataFailed') + (err.response?.data?.error || err.message));
+    } finally { setDoneLoading(false); }
+  };
+
+  const refetchDone = () => {
+    const material = searchMat.trim();
+    const batch = searchBatch.trim();
+    if (doneSearchMode && (material || batch)) fetchDoneSearch(doneAppliedFilters, material, batch);
+    else fetchDoneFiltered(doneAppliedFilters);
+  };
+
   const handleConfirmDoneFilters = () => {
     setDoneAppliedFilters(doneFilters);
+    const material = searchMat.trim();
+    const batch = searchBatch.trim();
+    if (material || batch) { fetchDoneSearch(doneFilters, material, batch); return; }
+    setDoneSearchMode(false);
     fetchDoneFiltered(doneFilters);
   };
+
+  const clearDoneSearch = () => { setSearchMat(''); setSearchBatch(''); };
 
   const activeFilterOptions = useMemo(() => buildFilterOptions(activeReports), [activeReports]);
   const filteredActiveReports = useMemo(() =>
@@ -2490,7 +2555,7 @@ const TableMainPrep = () => {
     fetchActive();
     if (refreshDone) {
       fetchDoneCount(); fetchDoneFilterOptions();
-      if (doneLoaded) fetchDoneFiltered(doneAppliedFilters);
+      if (doneLoaded) refetchDone();
     }
   };
 
@@ -2498,7 +2563,7 @@ const TableMainPrep = () => {
     try {
       await axios.delete(`${API_URL}/api/pack/pkg/reports/${report.report_id}`);
       fetchActive(); fetchDoneCount(); fetchDoneFilterOptions();
-      if (isDoneReport && doneLoaded) fetchDoneFiltered(doneAppliedFilters);
+      if (isDoneReport && doneLoaded) refetchDone();
     } catch (err) { alert(t('msg.deleteFailed') + (err.response?.data?.error || err.message)); }
   };
 
@@ -2512,7 +2577,7 @@ const TableMainPrep = () => {
 
   const handleReportEdited = () => {
     fetchActive();
-    if (doneLoaded) fetchDoneFiltered(doneAppliedFilters);
+    if (doneLoaded) refetchDone();
   };
 
   let content;
@@ -2583,8 +2648,18 @@ const TableMainPrep = () => {
                 <FilterBar filters={doneFilters} options={doneFilterOptions}
                   onChange={(field, v) => setDoneFilters(prev => ({ ...prev, [field]: v }))}
                   disabled={doneLoading || doneFilterOptionsLoading} />
-                {Object.values(doneFilters).some(Boolean) && (
-                  <Button size="small" onClick={() => setDoneFilters(EMPTY_FILTERS)} disabled={doneLoading}
+                <TextField size="small" value={searchMat} onChange={e => setSearchMat(e.target.value)}
+                  placeholder={t('col.materialNo')} disabled={doneLoading}
+                  onKeyDown={e => { if (e.key === 'Enter') handleConfirmDoneFilters(); }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 16 }} /></InputAdornment> }}
+                  sx={{ width: 190, '& input': { fontSize: '12px', py: '6px' } }} />
+                <TextField size="small" value={searchBatch} onChange={e => setSearchBatch(e.target.value)}
+                  placeholder={t('col.batchNo')} disabled={doneLoading}
+                  onKeyDown={e => { if (e.key === 'Enter') handleConfirmDoneFilters(); }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 16 }} /></InputAdornment> }}
+                  sx={{ width: 170, '& input': { fontSize: '12px', py: '6px' } }} />
+                {(Object.values(doneFilters).some(Boolean) || searchMat || searchBatch) && (
+                  <Button size="small" onClick={() => { setDoneFilters(EMPTY_FILTERS); clearDoneSearch(); }} disabled={doneLoading}
                     startIcon={<Clear sx={{ fontSize: 15 }} />} sx={{ fontSize: '12px', textTransform: 'none', color: '#c62828' }}>
                     {t('btn.clearAllFilters')}
                   </Button>
@@ -2596,7 +2671,14 @@ const TableMainPrep = () => {
                 </Button>
               </Box>
               <Box sx={{ fontSize: '11px', color: '#888', mt: 0.8 }}>
+                {t('msg.searchDocHint')}
+                {' · '}
                 {t('msg.rowShowsCodeHint')}
+                {doneLoaded && doneSearchMode && (
+                  <Box component="span" sx={{ ml: 1, fontWeight: 'bold', color: '#1565C0' }}>
+                    {t('msg.searchResultCount').replace('{n}', doneRows.length)}
+                  </Box>
+                )}
               </Box>
             </Paper>
 
@@ -2611,6 +2693,7 @@ const TableMainPrep = () => {
               ) : (
                 <DoneHistoryTable
                   rows={doneRows}
+                  showMatches={doneSearchMode}
                   onRowClick={r => { setSelectedReport(r); setView('detail'); }}
                   onDelete={r => handleDelete(r, true)}
                 />

@@ -889,4 +889,8 @@ export default {
   "สแกนหรือพิมพ์ Batch / Lot (หลายรหัสคั่นด้วย , หรือเว้นวรรค) หรือเว้นว่างแล้วใช้เงื่อนไขด้านล่าง": ["Scan or type a Batch / Lot (several codes separated by , or space) — or leave it empty and use the conditions below", "Batch / Lot ကို စကင်ဖတ် သို့မဟုတ် ရိုက်ပါ (ကုဒ်များကို , သို့မဟုတ် နေရာလွတ်ဖြင့် ခြား) — သို့မဟုတ် ဗလာထားပြီး အောက်ပါအခြေအနေများ သုံးပါ", "ស្កេន ឬវាយ Batch / Lot (កូដច្រើនបំបែកដោយ , ឬដកឃ្លា) ឬទុកទទេ ហើយប្រើលក្ខខណ្ឌខាងក្រោម"],
   "วันที่บรรจุ (ไม่ใส่ก็ได้)": ["Pack date (optional)", "ထုပ်ပိုးသည့်ရက် (မထည့်လည်းရ)", "ថ្ងៃវេចខ្ចប់ (មិនចាំបាច់)"],
   "วันที่บรรจุ (จาก · ไม่ใส่ก็ได้)": ["Pack date (from · optional)", "ထုပ်ပိုးသည့်ရက် (မှ · မထည့်လည်းရ)", "ថ្ងៃវេចខ្ចប់ (ពី · មិនចាំបាច់)"],
+  "ค้นหาด้วย Material No. / Batch No. ได้เลย ไม่ต้องเลือกวันที่ — จะแสดงทุกเอกสารที่มีข้อมูลนี้ (ทุกวัน)": ["Search by Material No. / Batch No. without choosing a date — shows every document (any date) that contains it", "ရက်စွဲမရွေးဘဲ Material No. / Batch No. ဖြင့် ရှာနိုင်သည် — ၎င်းပါဝင်သော စာရွက်စာတမ်းအားလုံး (မည်သည့်ရက်မဆို) ကို ပြသမည်", "ស្វែងរកតាម Material No. / Batch No. បានដោយមិនចាំបាច់ជ្រើសថ្ងៃ — បង្ហាញគ្រប់ឯកសារ (គ្រប់ថ្ងៃ) ដែលមានទិន្នន័យនេះ"],
+  "พบ {n} เอกสาร": ["Found {n} documents", "စာရွက်စာတမ်း {n} ခု တွေ့ပါသည်", "រកឃើញ {n} ឯកសារ"],
+  "รายการที่ตรง (Material / Batch)": ["Matching items (Material / Batch)", "ကိုက်ညီသော ပစ္စည်းများ (Material / Batch)", "ធាតុដែលត្រូវគ្នា (Material / Batch)"],
+  "กรุณาระบุ Material No. หรือ Batch No. อย่างน้อย 1 อย่าง": ["Please enter a Material No. or a Batch No. (at least one)", "Material No. သို့မဟုတ် Batch No. အနည်းဆုံး ၁ ခု ထည့်ပါ", "សូមបញ្ចូល Material No. ឬ Batch No. យ៉ាងហោចណាស់ 1"],
 };
