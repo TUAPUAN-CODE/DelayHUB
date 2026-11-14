@@ -10742,6 +10742,49 @@ FORMAT(
     }
   });
 
+  // GET /api/pack/pkg/reports/done/search?material_no=&batch_no=
+  // แท็บ "ประวัติ": หาเอกสาร (status = done) ที่มีรายการ Material No. / Batch No. ตามที่พิมพ์ — ข้ามทุกวันที่ ไม่ต้องเลือกช่วงเวลา
+  // ใส่ตัวใดตัวหนึ่งหรือทั้งสองก็ได้ (ทั้งสองต้องอยู่ในรายการเดียวกัน) · ค่าที่พิมพ์เป็น "มีคำนี้อยู่ในช่อง" (LIKE) และ escape อักขระพิเศษแล้ว
+  router.get('/pack/pkg/reports/done/search', async (req, res) => {
+    try {
+      const material = String(req.query.material_no ?? '').trim().slice(0, 100);
+      const batch = String(req.query.batch_no ?? '').trim().slice(0, 100);
+      if (!material && !batch) {
+        return res.status(400).json({ success: false, error: 'กรุณาระบุ Material No. หรือ Batch No. อย่างน้อย 1 อย่าง' });
+      }
+
+      const pool = await connectToDatabase();
+      if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
+
+      const like = (v) => `%${v.replace(/[\\%_\[]/g, (c) => `\\${c}`)}%`;
+      const request = pool.request();
+      const conditions = [`r.status = 'done'`];
+      if (material) {
+        request.input('material_no', sql.NVarChar(210), like(material));
+        conditions.push(`d.material_no LIKE @material_no ESCAPE '\\'`);
+      }
+      if (batch) {
+        request.input('batch_no', sql.NVarChar(210), like(batch));
+        conditions.push(`d.batch_no LIKE @batch_no ESCAPE '\\'`);
+      }
+
+      const result = await request.query(`
+        SELECT TOP 2000
+               r.report_id, r.report_date, r.shift, r.plant, r.package_type,
+               r.reported_by, r.qc_supervisor, r.line_name, r.machine_name, r.status, r.created_at,
+               d.detail_id, d.code, d.material_no, d.batch_no, d.lot_no, d.box_no
+        FROM PackagingUsageReport r
+        JOIN PackagingUsageDetail d ON d.report_id = r.report_id
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY r.report_date DESC, r.report_id DESC, d.detail_id ASC
+      `);
+      return res.json({ success: true, data: result.recordset });
+    } catch (err) {
+      console.error('❌ GET /pack/pkg/reports/done/search error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // 1) นับจำนวนอย่างเดียว — ใช้โชว์ตัวเลขที่ badge แท็บ "บันทึกแล้ว (n)"
   //    โดยไม่ต้องดึงข้อมูลทั้งหมดมาแค่เพื่อนับ
   router.get('/pack/pkg/reports/done/count', async (req, res) => {
