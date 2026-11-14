@@ -478,7 +478,9 @@ router.get("/sheet/done", async (req, res) => {
       return res.status(400).json({ success: false, error: "วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด" });
     }
     const useDates = !q;
-    const mlimit = Math.min(Math.max(parseInt(req.query.limit, 10) || 2000, 100), 20000);
+    // limit=0 (or "all") = "ทั้งหมด": no cut at all (TOP of the biggest int) — the user asked for every row of the range / search
+    const wantAll = String(req.query.limit) === "0" || String(req.query.limit).toLowerCase() === "all";
+    const mlimit = wantAll ? 2147483647 : Math.min(Math.max(parseInt(req.query.limit, 10) || 2000, 100), 20000);
 
     const pool = await connectToDatabase();
     if (!pool) {
@@ -493,7 +495,7 @@ router.get("/sheet/done", async (req, res) => {
       .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
       .query(buildMappingQuery("done", { dated: useDates })));
 
-    res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
+    res.json({ success: true, mappings: result.recordset, limit: wantAll ? 0 : mlimit, capped: !wantAll && result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
     console.error("[Route /sheet/done] Error:", err);
     res.status(500).json({ success: false, error: err.message });

@@ -108,8 +108,9 @@ const DonePanel = ({ gridKey, gridProps }) => {
           size="small" label="ค้นหาข้อมูลทั้งหมด" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") search(); }} sx={{ width: 330 }}
         />
-        <Select size="small" value={limit} onChange={(e) => setLimit(Number(e.target.value))} sx={{ width: 130 }}>
+        <Select size="small" value={limit} onChange={(e) => setLimit(Number(e.target.value))} sx={{ width: 190 }}>
           {[500, 2000, 5000, 10000].map((n) => <MenuItem key={n} value={n}>สูงสุด {n.toLocaleString()} แถว</MenuItem>)}
+          <MenuItem value={0}>ทั้งหมด (ไม่จำกัดแถว)</MenuItem>
         </Select>
         <Button variant="contained" onClick={search} disabled={loading || (!!from && !!to && from > to)}>{loading ? "กำลังดึง..." : "ดึงข้อมูล Done"}</Button>
         <ToggleButtonGroup size="small" exclusive value={shift} onChange={(_, v) => { if (v) setShift(v); }} sx={{ "& .MuiToggleButton-root": { textTransform: "none", px: 1.5, fontWeight: 700 } }}>
