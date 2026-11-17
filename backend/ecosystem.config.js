@@ -143,6 +143,24 @@ module.exports = {
     },
 
     {
+      name: 'pkg-auto-done-worker',
+      script: './pkgAutoDoneWorker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      restart_delay: 3000,
+      max_memory_restart: '256M',
+
+      out_file: './logs/pkg-auto-done-out.log',
+      error_file: './logs/pkg-auto-done-error.log',
+
+      env: {
+        NODE_ENV: 'production',
+      }
+    },
+
+    {
       name: 'PFCMv2-frontend',
       // รัน serve ด้วย node โดยตรง (เดิม cmd /c npm run serve-static ทำให้มีหน้าต่าง console เด้งขึ้นทุกครั้งที่ start/reload)
       // ค่าเท่ากับ script "serve-static" ใน frontend/package.json: serve -s dist -l 80

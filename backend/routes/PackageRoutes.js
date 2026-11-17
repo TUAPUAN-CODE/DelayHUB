@@ -10903,11 +10903,12 @@ router.get('/pack/pkg/reports/done', async (req, res) => {
   // POST /api/pack/pkg/reports — create new report
 router.post('/pack/pkg/reports', async (req, res) => {
   const {
-    report_date, shift, plant, package_type,
+    shift, plant, package_type,
     reported_by, qc_supervisor, line_name, machine_name,
   } = req.body;
- 
-  if (!report_date) return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่' });
+  // report_date คิดจากนาฬิกา server เสมอ (วันทำงานตามกะ: ก่อน 06:00 = เมื่อวาน)
+  // ไม่เชื่อค่าจากแท็บเล็ต เพราะนาฬิกาแท็บเล็ตอาจเพี้ยน
+  const report_date = serverBusinessDate();
  
   // ถ้าไลน์เป็น Sachet ต้องระบุเครื่องผลิตด้วย (ป้องกันกรณียิง API ตรงๆ ไม่ผ่านหน้าเว็บ)
   if (/sachet/i.test(line_name || '') && !machine_name) {
@@ -11054,9 +11055,15 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
     try {
       const pool = await connectToDatabase();
       if (!pool) return res.status(503).json({ success: false, error: 'Database unavailable' });
-      await pool.request().input('report_id', sql.Int, report_id).query(`
-        UPDATE PackagingUsageReport SET status = 'done' WHERE report_id = @report_id
-      `);
+      const hasDoneAt = await pkgHasDoneAt(pool);
+      await pool.request()
+        .input('report_id', sql.Int, report_id)
+        .input('now', sql.DateTime, nowThaiDbDate())
+        .query(`
+          UPDATE PackagingUsageReport
+          SET status = 'done'${hasDoneAt ? ', done_at = ISNULL(done_at, @now)' : ''}
+          WHERE report_id = @report_id
+        `);
       return res.json({ success: true, message: 'บันทึก done สำเร็จ' });
     } catch (err) {
       console.error('❌ PUT /pack/pkg/reports/:id/done error:', err);
@@ -11121,6 +11128,22 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
     return thaiStrToDbDate(`${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`);
   }
 
+  // วันทำงานตามกะ จากนาฬิกา server: ก่อน 06:00 นับเป็นวันก่อนหน้า (กะ NS ข้ามเที่ยงคืน) → 'YYYY-MM-DD'
+  function serverBusinessDate() {
+    const d = nowThaiDbDate(); // ตัวเลขเวลาไทยฝังเป็น UTC
+    if (d.getUTCHours() < 6) d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // มีคอลัมน์ done_at แล้วหรือยัง (รัน migrations/pkg_done_at.sql แล้ว) — ถ้ายังไม่มี ปุ่ม Done ยังใช้ได้ตามเดิม
+  let _pkgHasDoneAt = null;
+  async function pkgHasDoneAt(pool) {
+    if (_pkgHasDoneAt === true) return true;
+    const r = await pool.request().query(`SELECT COL_LENGTH('PackagingUsageReport', 'done_at') AS len`);
+    _pkgHasDoneAt = r.recordset[0]?.len != null;
+    return _pkgHasDoneAt;
+  }
+
   // POST /api/pack/pkg/scan — scan slip_id → create or update detail row
  router.post('/pack/pkg/scan', async (req, res) => {
   const { report_id, slip_id, start_time } = req.body;
@@ -11150,7 +11173,8 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
     const line_name = rptRes.recordset[0]?.line_name || null;
 
     const toStr = (v) => (v !== null && v !== undefined) ? String(v) : null;
-    const startTimeVal = start_time ? thaiStrToDbDate(start_time) : nowThaiDbDate();
+    // ใช้เวลา server เสมอ (ไม่ใช้ start_time จากแท็บเล็ต — นาฬิกาแท็บเล็ตอาจเพี้ยน)
+    const startTimeVal = nowThaiDbDate();
 
     await pool.request()
       .input('report_id',   sql.Int,          parseInt(report_id, 10))
@@ -11277,8 +11301,9 @@ router.put('/pack/pkg/put/reports/:report_id', async (req, res) => {
         hu_no: { type: sql.NVarChar(100), val: strOrNull(100) },
         produce_date: { type: sql.DateTime, val: dateTimeOrNull },
         receive_date: { type: sql.Date, val: dateOnlyOrNull },
-        start_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
-        stop_time: { type: sql.DateTime, val: (v) => thaiStrToDbDate(v) },
+        // 'now' = ใช้เวลา server (ปุ่มสแกนเลิกใช้ส่งมาแบบนี้) · ค่าอื่น = เวลาที่แก้ด้วยมือ
+        start_time: { type: sql.DateTime, val: (v) => v === 'now' ? nowThaiDbDate() : thaiStrToDbDate(v) },
+        stop_time: { type: sql.DateTime, val: (v) => v === 'now' ? nowThaiDbDate() : thaiStrToDbDate(v) },
         remark: { type: sql.NVarChar(500), val: (v) => v || null },
         ink: { type: sql.NVarChar(50), val: (v) => v || null },
         roll_no: { type: sql.NVarChar(50), val: (v) => v || null },

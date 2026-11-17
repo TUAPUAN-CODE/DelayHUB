@@ -448,34 +448,8 @@ const fmtDate = (d) => {
 };
 
 // ─── Auto-complete เอกสารที่ค้าง (ลืมกดปุ่ม Done) ──────────────────────────────
-// กะ DS (กลางวัน): ถ้าเวลาปัจจุบันถึง 18:00 น. ของ report_date แล้ว แต่ยังไม่ Done → ตัดเข้า "ประวัติ" อัตโนมัติ
-// กะ NS (กลางคืน): ถ้าเวลาปัจจุบันถึง 06:00 น. ของ "วันถัดไป" จาก report_date แล้ว แต่ยังไม่ Done → ตัดเข้า "ประวัติ" อัตโนมัติ
-// (กะ NS มักเริ่มช่วงเย็น/ค่ำและคาบเกี่ยวข้ามเที่ยงคืน จึงต้องตัดในเช้าของวันถัดไป ไม่ใช่วันเดียวกับ report_date)
-const addOneDay = (dateStr) => {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const next = new Date(Date.UTC(y, m - 1, d));
-  next.setUTCDate(next.getUTCDate() + 1);
-  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`;
-};
-
-const getShiftAutoDoneCutoff = (report) => {
-  const dateStr = fmtDate(report.report_date); // 'YYYY-MM-DD' หรือ '-'
-  if (dateStr === '-' || !report.shift) return null;
-  if (report.shift === 'DS') {
-    return `${dateStr} 18:00:00`; // ตัดกะเช้า (DS) เวลา 18:00 น. ของวันเดียวกัน
-  }
-  if (report.shift === 'NS') {
-    return `${addOneDay(dateStr)} 06:00:00`; // ตัดกะดึก (NS) เวลา 06:00 น. ของวันถัดไป
-  }
-  return null;
-};
-
-// เปรียบเทียบ string รูปแบบ 'YYYY-MM-DD HH:MM:SS' เรียงลำดับได้ตรงๆ โดยไม่ต้องแปลงเป็น Date
-const isReportOverdueForAutoDone = (report) => {
-  const cutoff = getShiftAutoDoneCutoff(report);
-  if (!cutoff) return false;
-  return nowThaiDT() >= cutoff;
-};
+// ย้ายไปทำที่ backend แล้ว (backend/pkgAutoDoneWorker.js) ใช้นาฬิกา server
+// เดิมคำนวณจากนาฬิกาแท็บเล็ต → แท็บเล็ตที่เวลาเพี้ยนตัดเอกสารกะ NS ทิ้งกลางกะ
 
 // ─── Shared styles ─────────────────────────────────────────────────────────────
 const cellSx = { fontSize: '12px', py: 0.8, px: 1, whiteSpace: 'nowrap' };
@@ -2124,8 +2098,8 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
     scanLockRef.current = true;
     setScanning(true);
     try {
-      const startTime = nowThaiDT();
-      const res = await axios.post(`${API_URL}/api/pack/pkg/scan`, { report_id: report.report_id, slip_id: slipId, start_time: startTime });
+      // เวลาเริ่มใช้ = เวลา server (ไม่ส่งเวลาจากแท็บเล็ต)
+      const res = await axios.post(`${API_URL}/api/pack/pkg/scan`, { report_id: report.report_id, slip_id: slipId });
       if (res.data.success) { await fetchDetails(); }
       else alert(res.data.error || t('msg.qrProcessFailed'));
     } catch (err) {
@@ -2142,8 +2116,8 @@ const DocumentDetailView = ({ report, onBack, isDone, editMode = false, onToggle
     stopLockRef.current = true;
     setStopping(true);
     try {
-      const stopTime = nowThaiDT();
-      await axios.put(`${API_URL}/api/pack/pkg/details/${stopScanId}`, { stop_time: stopTime });
+      // 'now' = ให้ server ใส่เวลาปัจจุบันเอง (ไม่ใช้นาฬิกาแท็บเล็ต)
+      await axios.put(`${API_URL}/api/pack/pkg/details/${stopScanId}`, { stop_time: 'now' });
       await fetchDetails();
       setStopScanId(null); setStopCamOpen(false);
     } catch (err) {
@@ -2439,33 +2413,11 @@ const TableMainPrep = () => {
 
   useEffect(() => { fetchLines(); fetchActive(); fetchDoneCount(); fetchDoneFilterOptions(); }, []);
 
-  // ─── Auto-complete เอกสารที่ค้าง (ลืมกดปุ่ม Done) ──────────────────────────
-  // เช็คเอกสารใน "กำลังดำเนินการ" ทุกใบ ถ้าเลยเวลาตัดกะของตัวเองแล้ว (DS=18:00 / NS=06:00 วันถัดไป)
-  // จะยิง API เดิมที่ปุ่ม "บันทึก (Done)" ใช้ (PUT /reports/{id}/done) ให้อัตโนมัติ แล้วรีเฟรชหน้าจอ
-  // หมายเหตุ: ทำงานเฉพาะตอนมีคนเปิดหน้านี้ค้างอยู่ หรือเข้ามาเปิดหลังเวลาตัดกะเท่านั้น
-  // (เพราะเป็น logic ฝั่ง frontend) หากต้องการให้ตัดแม่นยำแม้ไม่มีใครเปิดแอปเลย ควรทำเป็น cron job ฝั่ง backend แทน
-  const autoCompleteOverdueReports = useCallback(async () => {
-    const overdue = (activeReports || []).filter(isReportOverdueForAutoDone);
-    if (overdue.length === 0) return;
-    try {
-      await Promise.all(
-        overdue.map(r => axios.put(`${API_URL}/api/pack/pkg/reports/${r.report_id}/done`))
-      );
-    } catch (err) {
-      console.error('autoCompleteOverdueReports error:', err);
-    } finally {
-      fetchActive();
-      fetchDoneCount();
-      fetchDoneFilterOptions();
-      if (doneLoaded) fetchDoneFiltered(doneAppliedFilters);
-    }
-  }, [activeReports, doneLoaded, doneAppliedFilters]);
-
+  // เอกสารที่เลยเวลาตัดกะ backend ตัดเข้า "ประวัติ" ให้เอง (pkgAutoDoneWorker) — ฝั่งนี้แค่รีเฟรชรายการทุก 1 นาที
   useEffect(() => {
-    autoCompleteOverdueReports(); // เช็คทันทีตอนโหลดหน้า / เมื่อรายการ active เปลี่ยน
-    const intervalId = setInterval(autoCompleteOverdueReports, 60 * 1000); // เช็คซ้ำทุก 1 นาที
+    const intervalId = setInterval(() => { fetchActive(); fetchDoneCount(); }, 60 * 1000);
     return () => clearInterval(intervalId);
-  }, [autoCompleteOverdueReports]);
+  }, []);
 
   const fetchLines = async () => {
     try {
