@@ -245,6 +245,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const SheetRoutes = require("./routes/SheetRoutes");
   const OtherRoutes = require("./routes/OtherRoutes");
   const TracebackRoutes = require("./routes/traceback");
+  const RecipeRoutes = require("./routes/RecipeRoutes");
   const AuthRoutes = require("./routes/AuthRoutes");
 
   // Route registration
@@ -264,6 +265,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api", SheetRoutes);
   app.use("/api", OtherRoutes);
   app.use("/api/traceback", TracebackRoutes);
+  app.use("/api/recipe", RecipeRoutes);
   app.use("/api", AuthRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Fish, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Route as RouteIcon, Send } from "lucide-react";
+import { Fish, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Route as RouteIcon, Send, FlaskConical } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarSup = () => {
@@ -38,6 +38,7 @@ const SidebarSup = () => {
         { name: "Metal Detector", icon: ScanEye, href: "/sup/MDmanage" },
         { name: "Report", icon: Timer, href: "/sup/Report" },
         { name: "Traceback", icon: RouteIcon, href: "/sup/Traceback" },
+        { name: "สูตรการผลิต", icon: FlaskConical, href: "/sup/ProductRecipe" },
         { name: "แจ้งเตือน LINE", icon: Send, href: "/sup/LineAlert" },
         { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],
