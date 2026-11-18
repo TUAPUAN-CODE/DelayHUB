@@ -14,8 +14,7 @@ const { connectToDatabaseWC } = require("../database/db");
 const router = express.Router();
 
 const SOLUTION_SHEET_MIXTYPE = 0;
-const DEFAULT_LIMIT = 200;
-const MAX_LIMIT = 1000;
+const MAX_LIMIT = 5000; // เพดานของ ?limit= ที่ผู้เรียกขอเอง — ถ้าไม่ส่ง limit จะได้ครบทุกแถว (รหัสสินค้าหลักร้อย แถวเล็ก ส่งครั้งเดียวได้)
 
 const PRODUCT_SELECT = `
   c.Id AS codeId, c.ProductCode AS productCode, c.AlternateCode AS alternateCode, c.GroupCode AS groupCode,
@@ -34,19 +33,21 @@ const PRODUCT_FROM = `
 router.get("/fetchProducts", async (req, res) => {
   try {
     const q = String(req.query.q || "").trim().slice(0, 100);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+    const limitAsked = parseInt(req.query.limit, 10);
+    const limit = limitAsked > 0 ? Math.min(limitAsked, MAX_LIMIT) : null;
 
     const pool = await connectToDatabaseWC();
     if (!pool) return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อฐานข้อมูลสูตรได้" });
 
-    const request = pool.request().input("limit", sql.Int, limit);
+    const request = pool.request();
+    if (limit) request.input("limit", sql.Int, limit);
     let where = "";
     if (q) {
       request.input("q", sql.NVarChar(200), `%${q}%`);
       where = "WHERE c.ProductCode LIKE @q OR c.AlternateCode LIKE @q OR cu.Customer LIKE @q OR cu.Destination LIKE @q";
     }
     const result = await request.query(`
-      SELECT TOP (@limit) ${PRODUCT_SELECT}
+      SELECT ${limit ? "TOP (@limit)" : ""} ${PRODUCT_SELECT}
       ${PRODUCT_FROM}
       ${where}
       ORDER BY cu.Customer, c.ProductCode`);
