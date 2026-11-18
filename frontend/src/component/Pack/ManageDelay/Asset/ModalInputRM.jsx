@@ -137,6 +137,8 @@ const ConfirmProdModalSAP = ({
   withdraw,
   cooked_date,
   rmit_date,
+  start_mixed_date,
+  start_gravy_date,
   qc_date,
   detail,
   come_cold_date,
@@ -183,6 +185,10 @@ const ConfirmProdModalSAP = ({
       const bErr = batch2x.trim() !== "" && batch2x.trim().length !== 10;
       setQcErrors({ ...v.errors, ...(bErr ? { batch2x: true } : {}) });
       if (!v.ok || bErr) { setError(bErr ? "Batch 2x ต้องมี 10 ตัวอักษร (หรือเว้นว่าง)" : "กรุณากรอกผลการตรวจสอบ QC ให้ครบ"); return; }
+      if (start_mixed_date && start_gravy_date && dayjs(start_gravy_date).isBefore(dayjs(start_mixed_date))) {
+        setError("เวลาใส่ Gravy ต้องไม่ก่อนเวลาเริ่มผสม");
+        return;
+      }
     }
     setError(null);
     const formattedDateTime = dayjs().toISOString();
@@ -255,7 +261,7 @@ const ConfirmProdModalSAP = ({
           tray_count: tray_count,
           level_eu: formattedEuLevel,
           emu_status: status,
-          ...(planFlow ? { mat_2x: mat2x?.mat_2X || null, batch_2x: batch2x.trim().toUpperCase() || null, qc: toQcPayload(qc) } : {}),
+          ...(planFlow ? { mat_2x: mat2x?.mat_2X || null, batch_2x: batch2x.trim().toUpperCase() || null, qc: toQcPayload(qc), start_mixed_date: start_mixed_date || null, start_gravy_date: start_gravy_date || null } : {}),
         };
 
         return axios.post(url, payload);
@@ -303,6 +309,8 @@ const ConfirmProdModalSAP = ({
           <Typography>วันที่เบิก: {withdraw ? new Date(withdraw).toLocaleString('th-TH') : '-'}</Typography>
           {cooked_date && <Typography>วันที่ต้ม/อบเสร็จ: {new Date(cooked_date).toLocaleString('th-TH')}</Typography>}
           {rmit_date && <Typography>วันที่เตรียมเสร็จ: {new Date(rmit_date).toLocaleString('th-TH')}</Typography>}
+          {planFlow && start_mixed_date && <Typography>เวลาเริ่มผสม: {new Date(start_mixed_date).toLocaleString('th-TH')}</Typography>}
+          {planFlow && start_gravy_date && <Typography>เวลาใส่ Gravy: {new Date(start_gravy_date).toLocaleString('th-TH')}</Typography>}
           {qc_date && <Typography>วันที่ QC ตรวจสอบ: {new Date(qc_date).toLocaleString('th-TH')}</Typography>}
           {come_cold_date && <Typography>วันที่เข้าห้องเย็นครั้งที่ 1: {new Date(come_cold_date).toLocaleString('th-TH')}</Typography>}
           {out_cold_date && <Typography>วันที่ออกห้องเย็นครั้งที่ 1: {new Date(out_cold_date).toLocaleString('th-TH')}</Typography>}
@@ -384,6 +392,8 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
   const [withdraw, setWithdraw] = useState("");
   const [cooked_date, setCookedDate] = useState("");
   const [rmit_date, setRmitDate] = useState("");
+  const [start_mixed_date, setStartMixedDate] = useState(""); // เวลาเริ่มผสม (เพิ่ม RM ของบรรจุ — ไม่บังคับ)
+  const [start_gravy_date, setStartGravyDate] = useState(""); // เวลาใส่ Gravy (ไม่บังคับ)
   const [qc_date, setQcDate] = useState("");
   const [come_cold_date, setComeColdDate] = useState("");
   const [out_cold_date, setOutColdDate] = useState("");
@@ -836,6 +846,8 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
     setWithdraw("");
     setCookedDate("");
     setRmitDate("");
+    setStartMixedDate("");
+    setStartGravyDate("");
     setDetail("");
     setQcDate("");
     setComeColdDate("");
@@ -1417,6 +1429,79 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
                 </Box>
               </Box>
 
+              {emulsion !== "true" && batchmix !== "true" && (<>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ mb: 1 }}>เวลาเริ่มผสม</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DateTimePicker
+                      label="เวลาเริ่มผสม"
+                      value={start_mixed_date ? dayjs(start_mixed_date) : null}
+                      onChange={(newValue) => {
+                        if (newValue && newValue.isAfter(dayjs())) {
+                          alert("ไม่สามารถเลือกเวลาในอนาคตได้");
+                          return;
+                        }
+                        setStartMixedDate(newValue ? newValue.format("YYYY-MM-DD HH:mm:ss") : "");
+                      }}
+                      maxDateTime={dayjs()}
+                      ampm={false}
+                      timeSteps={{ minutes: 1 }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          size: "small"
+                        }
+                      }}
+                    />
+                  </LocalizationProvider>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setCurrentTime(setStartMixedDate)}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    เลือกเวลาตอนนี้
+                  </Button>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ mb: 1 }}>เวลาใส่ Gravy</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DateTimePicker
+                      label="เวลาใส่ Gravy"
+                      value={start_gravy_date ? dayjs(start_gravy_date) : null}
+                      onChange={(newValue) => {
+                        if (newValue && newValue.isAfter(dayjs())) {
+                          alert("ไม่สามารถเลือกเวลาในอนาคตได้");
+                          return;
+                        }
+                        setStartGravyDate(newValue ? newValue.format("YYYY-MM-DD HH:mm:ss") : "");
+                      }}
+                      maxDateTime={dayjs()}
+                      ampm={false}
+                      timeSteps={{ minutes: 1 }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          size: "small"
+                        }
+                      }}
+                    />
+                  </LocalizationProvider>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setCurrentTime(setStartGravyDate)}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    เลือกเวลาตอนนี้
+                  </Button>
+                </Box>
+              </Box>
+
+              </>)}
+
               <Box sx={{ mb: 2 }}>
                 <Typography sx={{ mb: 1 }}>วันที่เวลา QC ตรวจสอบ</Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -1719,6 +1804,8 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
         withdraw={withdraw}
         cooked_date={cooked_date}
         rmit_date={rmit_date}
+        start_mixed_date={start_mixed_date}
+        start_gravy_date={start_gravy_date}
         detail={detail}
         qc_date={qc_date}
         come_cold_date={come_cold_date}

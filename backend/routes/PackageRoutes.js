@@ -643,6 +643,9 @@ module.exports = (io) => {
       return res.status(400).json({ success: false, message: "กรุณากรอกผลการตรวจสอบ QC ให้ครบ (Sensory / MD / Defect)" });
     }
     if (!str(b.operator)) return res.status(400).json({ success: false, message: "กรุณาระบุผู้ดำเนินการ" });
+    if (toDate(b.start_mixed_date) && toDate(b.start_gravy_date) && toDate(b.start_gravy_date) < toDate(b.start_mixed_date)) {
+      return res.status(400).json({ success: false, message: "เวลาใส่ Gravy ต้องไม่ก่อนเวลาเริ่มผสม" });
+    }
     if (md === 1 && (!str(qc.md_no) || !str(qc.WorkAreaCode))) return res.status(400).json({ success: false, message: "กรุณาเลือกพื้นที่และหมายเลขเครื่อง MD" });
 
     let transaction;
@@ -725,12 +728,13 @@ module.exports = (io) => {
           .input("come_cold_date", sql.NVarChar(30), toDate(b.come_cold_date)).input("out_cold_date", sql.NVarChar(30), toDate(b.out_cold_date))
           .input("come_cold_date_two", sql.NVarChar(30), toDate(b.come_cold_date_two)).input("out_cold_date_two", sql.NVarChar(30), toDate(b.out_cold_date_two))
           .input("come_cold_date_three", sql.NVarChar(30), toDate(b.come_cold_date_three)).input("out_cold_date_three", sql.NVarChar(30), toDate(b.out_cold_date_three))
+          .input("start_mixed_date", sql.NVarChar(30), toDate(b.start_mixed_date)).input("start_gravy_date", sql.NVarChar(30), toDate(b.start_gravy_date))
           .input("first_prod", sql.NVarChar(100), first_prod)
           .input("Moisture", sql.NVarChar, str(qc.Moisture)).input("Temp", sql.NVarChar, str(qc.Temp)).input("percent_fine", sql.NVarChar, str(qc.percent_fine))
           .input("prepare_mor_night", sql.NVarChar, str(qc.prepare_mor_night))
           .query(`INSERT INTO History
                     (receiver, receiver_qc, withdraw_date, cooked_date, rmit_date, qc_date, come_cold_date, out_cold_date, come_cold_date_two, out_cold_date_two,
-                     come_cold_date_three, out_cold_date_three, first_prod, Moisture, Temp, percent_fine, prepare_mor_night, mapping_id, created_at)
+                     come_cold_date_three, out_cold_date_three, start_mixed_date, start_gravy_date, first_prod, Moisture, Temp, percent_fine, prepare_mor_night, mapping_id, created_at)
                   OUTPUT INSERTED.hist_id
                   VALUES (@receiver, @receiver,
                      CASE WHEN @withdraw_date IS NOT NULL THEN CONVERT(datetime, @withdraw_date, 120) ELSE NULL END,
@@ -743,6 +747,8 @@ module.exports = (io) => {
                      CASE WHEN @out_cold_date_two IS NOT NULL THEN CONVERT(datetime, @out_cold_date_two, 120) ELSE NULL END,
                      CASE WHEN @come_cold_date_three IS NOT NULL THEN CONVERT(datetime, @come_cold_date_three, 120) ELSE NULL END,
                      CASE WHEN @out_cold_date_three IS NOT NULL THEN CONVERT(datetime, @out_cold_date_three, 120) ELSE NULL END,
+                     CASE WHEN @start_mixed_date IS NOT NULL THEN CONVERT(datetime, @start_mixed_date, 120) ELSE NULL END,
+                     CASE WHEN @start_gravy_date IS NOT NULL THEN CONVERT(datetime, @start_gravy_date, 120) ELSE NULL END,
                      @first_prod, @Moisture, @Temp, @percent_fine, @prepare_mor_night, @mapping_id, GETDATE())`);
         await new sql.Request(transaction).input("hist_id", sql.Int, hist.recordset[0].hist_id).input("rmfp_id", sql.Int, rmfp_id)
           .query("UPDATE RMForProd SET hist_id_rmfp = @hist_id WHERE rmfp_id = @rmfp_id");
