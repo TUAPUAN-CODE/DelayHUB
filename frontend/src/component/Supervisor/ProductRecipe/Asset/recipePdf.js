@@ -123,7 +123,7 @@ function addFooters(doc, productCode) {
   }
 }
 
-const safeName = (s) => String(s).replace(/[^\w.\-]+/g, "_");
+const safeName = (s) => String(s).replace(/[^\w.-]+/g, "_");
 
 /** Export one or several documents of a product into a single PDF file. */
 export async function exportRecipePdf(detail, documents) {
