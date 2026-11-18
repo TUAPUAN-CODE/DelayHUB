@@ -1,0 +1,1 @@
+const o={เลขที่เอกสาร:["Document no."],"กำลังโหลดข้อมูลสินค้า...":["Loading product data..."],ไม่พบข้อมูลสินค้าในระบบสูตร:["Product not found in the formula system"],"จับคู่โดยประมาณ: {x}":["Approximate match: {x}"],"กรุณาระบุ code และ docNo":["Please give code and docNo"]};export{o as default};
