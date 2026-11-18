@@ -38,21 +38,26 @@ export const filterPlans = (options, { inputValue }) => {
 };
 
 const LINKED_TAG = { marginLeft: "auto", paddingLeft: 8, fontSize: 11, fontWeight: 700, color: "#15803D", whiteSpace: "nowrap" };
+const WC_TAG = { marginLeft: "auto", paddingLeft: 8, fontSize: 11, fontWeight: 700, color: "#1D4ED8", whiteSpace: "nowrap" };
+
+// a product that exists only in the recipe database (WC) has no prod_id yet (source "wc"): it is keyed by its WC id until it is created
+const isWcOnly = (p) => p.source === "wc" && (p.prod_id === null || p.prod_id === undefined);
+const planKey = (p) => (isWcOnly(p) ? `wc-${p.wc_code_id}` : String(p.prod_id));
 
 const renderPlanOption = (props, option) => {
   const { key, ...rest } = props;
   return (
     <li key={key} {...rest}>
       <span>{planLabel(option)}</span>
-      {isLinked(option) && <span style={LINKED_TAG}>ผูกกับวัตถุดิบนี้</span>}
+      {isWcOnly(option) ? <span style={WC_TAG}>ใหม่จากระบบสูตร</span> : isLinked(option) && <span style={LINKED_TAG}>ผูกกับวัตถุดิบนี้</span>}
     </li>
   );
 };
 
 export const PLAN_OPTION_PROPS = {
   getOptionLabel: planLabel,
-  getOptionKey: (o) => o.prod_id,
-  isOptionEqualToValue: (a, b) => String(a.prod_id) === String(b.prod_id),
+  getOptionKey: planKey,
+  isOptionEqualToValue: (a, b) => planKey(a) === planKey(b),
   filterOptions: filterPlans,
   renderOption: renderPlanOption,
 };

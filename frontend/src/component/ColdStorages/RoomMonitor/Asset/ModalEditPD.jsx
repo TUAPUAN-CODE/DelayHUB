@@ -24,6 +24,7 @@ import { PLAN_OPTION_PROPS, planLabel } from "../../../Layout/planOptions";
 axios.defaults.withCredentials = true;
 import ModalAlert from "../../../../Popup/AlertSuccess";
 import PlanInfo from "../../../Layout/PlanInfo";
+import { ensurePlan } from "../../../Layout/ensurePlan";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -256,7 +257,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
 
   const fetchProduction = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1 } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat, all: 1, includeWc: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});
@@ -440,7 +441,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                     options={production}
                     {...PLAN_OPTION_PROPS}
                     value={selectedPlan}
-                    onChange={(e, newValue) => handlePlanSelect(newValue)}
+                    onChange={async (e, newValue) => { const ensured = await ensurePlan(newValue); handlePlanSelect(ensured); }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
