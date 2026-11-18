@@ -30,7 +30,6 @@ export default {
   "ไม่พบสินค้า": ["No products found"],
   "ไม่ระบุลูกค้า": ["No customer"],
   "ค้นหารหัสสินค้า / ลูกค้า / ตลาด": ["Search product code / customer / market"],
-  "{x} รายการ (แสดง {x} แรก)": ["{x1} items (showing the first {x2})"],
   "โหลดรายการสินค้าไม่สำเร็จ": ["Could not load the product list"],
   "โหลดข้อมูลสินค้าไม่สำเร็จ": ["Could not load the product data"],
   "สร้าง PDF ไม่สำเร็จ": ["Could not create the PDF"],

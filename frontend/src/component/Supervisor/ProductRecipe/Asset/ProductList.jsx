@@ -3,7 +3,6 @@ import axios from "axios";
 import { Loader2, Search } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
-const LIMIT = 200;
 
 const ProductList = ({ selectedId, onSelect }) => {
   const [query, setQuery] = useState("");
@@ -18,7 +17,7 @@ const ProductList = ({ selectedId, onSelect }) => {
       setLoading(true);
       setError("");
       try {
-        const res = await axios.get(`${API_URL}/api/recipe/fetchProducts`, { params: { q: query.trim(), limit: LIMIT }, signal: ctrl.signal });
+        const res = await axios.get(`${API_URL}/api/recipe/fetchProducts`, { params: { q: query.trim() }, signal: ctrl.signal });
         setProducts(res.data.data ?? []);
       } catch (err) {
         if (axios.isCancel(err)) return;
@@ -34,11 +33,7 @@ const ProductList = ({ selectedId, onSelect }) => {
     };
   }, [query]);
 
-  const countText = loading
-    ? "กำลังค้นหา..."
-    : products.length >= LIMIT
-      ? `${products.length} รายการ (แสดง ${LIMIT} แรก)`
-      : `${products.length} รายการ`;
+  const countText = loading ? "กำลังค้นหา..." : `${products.length} รายการ`;
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white">
