@@ -84,9 +84,16 @@ const REFRESH_MS = 60000;
 const KNOWN_SET = new Set(KNOWN_STATUSES);
 const DAYS = 7; // the work table shows the last 7 days by default; the user can pick another range or load everything
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-// default range of "ดึงข้อมูล": today only (rows that are on a trolley are always shown, whatever their date)
+// default range of "ดึงข้อมูล": the current WORK day up to today (rows that are on a trolley are always shown, whatever their date).
+// A work day starts at 06:00 (the night shift runs past midnight): between 00:00 and 06:00 it is still the day before, so what was scanned before
+// midnight does not disappear when the date turns. It is worked out again every minute while the user has not picked a range (see autoRange below).
 const RANGE_DAYS = 0;
-const defaultRange = () => ({ from: ymd(new Date(Date.now() - RANGE_DAYS * 86400000)), to: ymd(new Date()), all: false });
+const WORK_DAY_START_HOUR = 6;
+const defaultRange = () => {
+  const now = new Date();
+  const back = now.getHours() < WORK_DAY_START_HOUR ? 1 : 0;
+  return { from: ymd(new Date(now.getTime() - (RANGE_DAYS + back) * 86400000)), to: ymd(now), all: false };
+};
 const prepPlan = (r) => ({ ...r, CookedDateTime: r.CookedDateTime ? formatDateTime(r.CookedDateTime) : null, withdraw_date: r.withdraw_date ? formatDateTime(r.withdraw_date) : null });
 
 /** "จัดการ" of a SAP row: one button, a menu per production-plan row → trolley / slip / complete / change plan */
@@ -143,6 +150,8 @@ const ParentComponent = ({ role, view = "work" }) => {
   const [error, setError] = useState("");
   const [range, setRange] = useState(defaultRange); // the range that is loaded (and refreshed every minute)
   const [pick, setPick] = useState(defaultRange);   // what is typed in the date boxes, loaded when the button is pressed
+  // true until the user picks a range himself: the default range then moves on with the clock (06:00 / midnight) on a tablet that stays open all night
+  const [autoRange, setAutoRange] = useState(true);
   // the line of this packing tablet (picked in the toolbar; kept on the device)
   const [lineId, setLineId] = useState(() => localStorage.getItem("line_id") || "");
   const MY_LINE = parseInt(lineId, 10);
@@ -303,6 +312,18 @@ const ParentComponent = ({ role, view = "work" }) => {
   // the work table refreshes by itself; the Done table is only read when the user presses its button
   useEffect(() => { if (view === "work") load(); }, [load, view]);
   useEffect(() => { if (view !== "work") return undefined; const t = setInterval(() => load(), REFRESH_MS); return () => clearInterval(t); }, [load, view]);
+  // the default range follows the clock: after midnight / 06:00 a tablet left open still shows the current work day (a range typed by the user is never changed)
+  useEffect(() => {
+    if (!autoRange) return undefined;
+    const roll = () => {
+      const next = defaultRange();
+      setRange((r) => (r.all || (r.from === next.from && r.to === next.to) ? r : next));
+      setPick((p) => (p.all || (p.from === next.from && p.to === next.to) ? p : next));
+    };
+    const t = setInterval(roll, 30000);
+    document.addEventListener("visibilitychange", roll);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", roll); };
+  }, [autoRange]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   // real-time: reload when another user changes data (same events as the old pages)
@@ -638,7 +659,7 @@ const ParentComponent = ({ role, view = "work" }) => {
   const closeBatch = () => { setBatch(null); setSelected(new Set()); setWeights({}); };
   const afterConfirm = () => { setSelected(new Set()); setWeights({}); reload(); };
 
-  const applyRange = (next) => { setRange(next); setPick(next); };
+  const applyRange = (next, auto = false) => { setAutoRange(auto); setRange(next); setPick(next); };
   const rangeBar = (
     <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
       <TextField size="small" type="date" value={pick.from} onChange={(e) => setPick((p) => ({ ...p, from: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
@@ -646,7 +667,7 @@ const ParentComponent = ({ role, view = "work" }) => {
       <TextField size="small" type="date" value={pick.to} onChange={(e) => setPick((p) => ({ ...p, to: e.target.value, all: false }))} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
       <Button size="small" variant="contained" color="secondary" startIcon={<CloudDownloadOutlinedIcon />} disabled={!pick.from || !pick.to || pick.from > pick.to} onClick={() => applyRange({ ...pick, all: false })}>ดึงข้อมูล</Button>
       <Button size="small" variant={range.all ? "contained" : "outlined"} startIcon={<AllInclusiveIcon />} onClick={() => applyRange({ ...pick, all: true })}>ดึงทั้งหมด</Button>
-      {range.all && <Button size="small" startIcon={<RestartAltIcon />} onClick={() => applyRange(defaultRange())}>{RANGE_DAYS === 0 ? "วันนี้" : `${RANGE_DAYS} วัน`}</Button>}
+      {range.all && <Button size="small" startIcon={<RestartAltIcon />} onClick={() => applyRange(defaultRange(), true)}>{RANGE_DAYS === 0 ? "วันนี้" : `${RANGE_DAYS} วัน`}</Button>}
     </Box>
   );
 
