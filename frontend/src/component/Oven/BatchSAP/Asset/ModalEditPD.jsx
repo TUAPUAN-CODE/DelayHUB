@@ -38,6 +38,7 @@ import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import PlanInfo from "../../../Layout/PlanInfo";
+import { ensurePlan } from "../../../Layout/ensurePlan";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -372,7 +373,7 @@ useEffect(() => {
   const fetchProduction = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: material, includeWc: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});
@@ -690,7 +691,7 @@ useEffect(() => {
                         options={production}
                         getOptionLabel={(option) => `${option.code} (${option.doc_no})`}
                         value={set.plan}
-                        onChange={(e, newValue) => updatePlanSet(index, 'plan', newValue)}
+                        onChange={async (e, newValue) => { const ensured = await ensurePlan(newValue); updatePlanSet(index, 'plan', ensured); }}
                         renderInput={(params) => (
                           <TextField
                             {...params}

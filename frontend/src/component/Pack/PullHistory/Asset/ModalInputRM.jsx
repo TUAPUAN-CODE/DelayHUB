@@ -39,6 +39,7 @@ import QrScanner from "qr-scanner";
 import axios from "axios";
 import { styled } from "@mui/system";
 import PlanInfo from "../../../Layout/PlanInfo";
+import { ensurePlan } from "../../../Layout/ensurePlan";
 
 axios.defaults.withCredentials = true;
 
@@ -633,7 +634,7 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
   const fetchProduction = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: scannedMaterial } });
+      const response = await axios.get(`${API_URL}/api/fetchProduction`, { params: { mat: scannedMaterial, includeWc: 1 } });
       if (response.data.success) {
         setProduction(response.data.data);
         setAllLinesByType(response.data.allLinesByType || {});
@@ -1206,7 +1207,7 @@ const setCurrentTime = (setter) => {
                                 options={production}
                                 getOptionLabel={(option) => `${option.code} (${option.doc_no})`}
                                 value={set.plan}
-                                onChange={(e, newValue) => updatePlanSet(index, 'plan', newValue)}
+                                onChange={async (e, newValue) => { const ensured = await ensurePlan(newValue); updatePlanSet(index, 'plan', ensured); }}
                                 renderInput={(params) => (
                                   <TextField
                                     {...params}

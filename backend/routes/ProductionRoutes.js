@@ -1,7 +1,9 @@
 const { toIntList } = require("../lib/sqlParams");
 const { ensureFlowColumns } = require("../lib/flowDelay");
 const express = require("express");
-const { connectToDatabase } = require("../database/db");
+const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
+const logger = require("../lib/logger");
+const { wcOnlyPlans, decidePlan } = require("../lib/planSync");
 const Papa = require("papaparse");
 const router = express.Router();
 // เชื่อมต่อฐานข้อมูล
@@ -109,6 +111,9 @@ router.get("/fetchProduction", async (req, res) => {
         JOIN ProdRawMat pr ON p.prod_id = pr.prod_id
         WHERE pr.mat = @mat
       `);
+    // includeWc=1 (the plan pickers of the modals): add the products that exist only in the recipe database (WC) as plans with prod_id = null;
+    // picking one creates the plan (POST /production/ensurePlan). Before step 2 so the lines of their line type come with the list.
+    if (req.query.includeWc === "1") await appendWcPlans(pool, productionResult.recordset);
     // AND l.line_name NOT IN ('CUP', 'CAN', 'POUCH','Pouch Auto')
     // 2. Get all line_type_ids
     const lineTypeIds = [...new Set(productionResult.recordset.map(item => item.line_type_id))];
@@ -180,6 +185,119 @@ router.get("/fetchProduction", async (req, res) => {
 
 const sql = require("mssql");
 const { safeRollback } = require("../lib/safeRollback");
+
+// ── plans that exist only in the recipe database (WC) ────────────────────────────────────────────────────────────────
+// TunaCodes of WC (≈900 rows) are read at most once a minute; the plans of PFCM are read on every call (the list must show a plan another user just created).
+const WC_PRODUCTS_SQL = `
+  SELECT c.Id AS codeId, c.ProductCode AS productCode, c.GroupCode AS groupCode, pk.PackageName AS packageName
+  FROM TunaCodes c
+  LEFT JOIN TunaPackages pk ON pk.Id = c.PackageId`;
+const WC_CACHE_MS = 60 * 1000;
+let wcProductsCache = { at: 0, rows: [] };
+
+async function readWcProducts() {
+  if (Date.now() - wcProductsCache.at < WC_CACHE_MS) return wcProductsCache.rows;
+  const poolWC = await connectToDatabaseWC();
+  if (!poolWC) throw new Error("WC database unavailable");
+  const rows = (await poolWC.request().query(WC_PRODUCTS_SQL)).recordset;
+  wcProductsCache = { at: Date.now(), rows };
+  return rows;
+}
+
+/** Adds the WC-only products to the plan list (rows of the route). A WC failure never breaks the list: it just has no WC rows. */
+async function appendWcPlans(pool, rows) {
+  try {
+    const wcRows = await readWcProducts();
+    const allPlans = (await pool.request().query("SELECT prod_id, code, doc_no, line_type_id FROM Production")).recordset;
+    // only plans that can be created are offered: a product whose doc no does not fit the column would fail when picked
+    // WC can hold the same code + doc no twice (e.g. "...-W465" and "...-W465 (USA)"): one row in the list is enough, picking it creates / reuses one plan
+    const seen = new Set();
+    wcOnlyPlans(wcRows, allPlans)
+      .filter((p) => p.selectable)
+      .filter((p) => {
+        const key = `${p.code}|${p.doc_no}|${p.line_type_id}`.toUpperCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .forEach((p) =>
+        rows.push({ prod_id: null, doc_no: p.doc_no, code: p.code, line_type_id: p.line_type_id, line_type_name: p.line_type_name, prod_rm_id: null, source: "wc", wc_code_id: p.wc_code_id })
+      );
+  } catch (err) {
+    console.error("[fetchProduction includeWc] WC plans skipped:", err.message);
+  }
+}
+
+// Picking a plan that exists only in WC: use the PFCM plan if it exists by now (no insert), else create it (+ link it to every material like add-production).
+// body: { wc_code_id, dry_run? } — the code / doc no / line type are read from WC here, never taken from the client. dry_run answers what would happen and writes nothing.
+router.post("/production/ensurePlan", async (req, res) => {
+  try {
+    const wcCodeId = parseInt(req.body?.wc_code_id, 10);
+    if (!Number.isInteger(wcCodeId)) {
+      return res.status(400).json({ success: false, error: "กรุณาระบุ wc_code_id เป็นตัวเลข" });
+    }
+    const dryRun = req.body?.dry_run === true;
+
+    const poolWC = await connectToDatabaseWC();
+    if (!poolWC) return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อฐานข้อมูลสูตรได้" });
+    const wcRow = (await poolWC.request().input("id", sql.Int, wcCodeId).query(`${WC_PRODUCTS_SQL} WHERE c.Id = @id`)).recordset[0];
+    if (!wcRow) return res.status(404).json({ success: false, error: "ไม่พบรหัสสินค้านี้ในระบบสูตร" });
+
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const docNo = String(wcRow.groupCode ?? "").trim();
+    const READ_PLANS = "SELECT prod_id, code, doc_no, line_type_id FROM Production";
+
+    if (dryRun) {
+      const plans = (await pool.request().input("docNo", sql.NVarChar(50), docNo).query(`${READ_PLANS} WHERE doc_no = @docNo`)).recordset;
+      return res.json({ success: true, dry_run: true, data: decidePlan(wcRow, plans) });
+    }
+
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    try {
+      // the check and the insert are one unit: two people picking the same product at once must not create the plan twice
+      const plans = (
+        await new sql.Request(transaction).input("docNo", sql.NVarChar(50), docNo).query(`${READ_PLANS} WITH (UPDLOCK, HOLDLOCK) WHERE doc_no = @docNo`)
+      ).recordset;
+      const decision = decidePlan(wcRow, plans);
+
+      if (decision.action === "reject") {
+        await safeRollback(transaction);
+        return res.status(422).json({ success: false, error: decision.reason });
+      }
+      if (decision.action === "reuse") {
+        await transaction.commit();
+        return res.json({ success: true, data: { created: false, prod_id: decision.prod_id, code: decision.code, doc_no: decision.doc_no, line_type_id: decision.line_type_id } });
+      }
+
+      const { plan } = decision;
+      const inserted = await new sql.Request(transaction)
+        .input("code", sql.VarChar(50), plan.code)
+        .input("doc_no", sql.VarChar(5), plan.doc_no)
+        .input("line_type_id", sql.Int, plan.line_type_id)
+        .query("INSERT INTO Production (code, doc_no, line_type_id) OUTPUT INSERTED.prod_id VALUES (@code, @doc_no, @line_type_id)");
+      const prodId = inserted.recordset[0].prod_id;
+      await new sql.Request(transaction)
+        .input("prod_id", sql.Int, prodId)
+        .query(`
+          INSERT INTO ProdRawMat (mat, prod_id)
+          SELECT rm.mat, @prod_id FROM RawMat rm
+          WHERE NOT EXISTS (SELECT 1 FROM ProdRawMat pr WHERE pr.mat = rm.mat AND pr.prod_id = @prod_id)
+        `);
+      await transaction.commit();
+
+      logger.info("production_plan_created_from_wc", { prod_id: prodId, code: plan.code, doc_no: plan.doc_no, line_type_id: plan.line_type_id, wc_code_id: wcCodeId, user_id: req.user?.user_id });
+      res.status(201).json({ success: true, data: { created: true, prod_id: prodId, code: plan.code, doc_no: plan.doc_no, line_type_id: plan.line_type_id } });
+    } catch (txError) {
+      await safeRollback(transaction);
+      throw txError;
+    }
+  } catch (err) {
+    console.error("[Route /production/ensurePlan] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 router.get("/fetchGroup", async (req, res) => {
   const { mat } = req.query; // Changed from req.body to req.query for GET requests
