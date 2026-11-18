@@ -487,15 +487,44 @@ router.get("/sheet/done", async (req, res) => {
       return res.status(503).json({ success: false, error: "Database unavailable" });
     }
     await ensureFlowColumns(pool); // columns of the multi-stage flows (lib/flowDelay.js)
-    const result = await timed("done", () => pool.request()
+    const bindDone = (request) => request
       .input("mlimit", sql.Int, mlimit)
       .input("date_from", sql.Date, useDates ? dateFrom : null)
       .input("date_to", sql.Date, useDates ? dateTo : null)
       .input("q", sql.NVarChar(100), q)
-      .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`)
-      .query(buildMappingQuery("done", { dated: useDates })));
+      .input("q_like", sql.NVarChar(110), `%${q.replace(/[\[%_]/g, (c) => `[${c}]`)}%`);
 
-    res.json({ success: true, mappings: result.recordset, limit: wantAll ? 0 : mlimit, capped: !wantAll && result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
+    // "ทั้งหมด": the rows are STREAMED to the browser one by one — never held as one big recordset + one big JSON string in memory
+    // (a year of rows that way ran a PM2 worker out of heap: ERR_CONNECTION_RESET, then every worker restarting)
+    if (wantAll) {
+      const request = bindDone(pool.request());
+      request.stream = true;
+      res.status(200).type("application/json");
+      res.write('{"success":true,"mappings":[');
+      let first = true;
+      let finished = false;
+      request.on("row", (row) => {
+        const ok = res.write((first ? "" : ",") + JSON.stringify(row));
+        first = false;
+        if (!ok) { request.pause(); res.once("drain", () => request.resume()); }
+      });
+      request.on("error", (err) => {
+        console.error("[Route /sheet/done] stream error:", err.message);
+        finished = true;
+        res.destroy(err); // headers are already sent: closing the connection makes the browser show the error instead of half a table
+      });
+      request.on("done", () => {
+        finished = true;
+        res.end(`],"limit":0,"capped":false,"date_from":${JSON.stringify(useDates ? dateFrom : null)},"date_to":${JSON.stringify(useDates ? dateTo : null)},"searched_all_dates":${!useDates}}`);
+      });
+      res.on("close", () => { if (!finished) { finished = true; try { request.cancel(); } catch (_) { /* the query is already gone */ } } }); // the user left / reloaded: stop reading
+      request.query(buildMappingQuery("done", { dated: useDates }));
+      return;
+    }
+
+    const result = await timed("done", () => bindDone(pool.request()).query(buildMappingQuery("done", { dated: useDates })));
+
+    res.json({ success: true, mappings: result.recordset, limit: mlimit, capped: result.recordset.length >= mlimit, date_from: useDates ? dateFrom : null, date_to: useDates ? dateTo : null, searched_all_dates: !useDates });
   } catch (err) {
     console.error("[Route /sheet/done] Error:", err);
     res.status(500).json({ success: false, error: err.message });
