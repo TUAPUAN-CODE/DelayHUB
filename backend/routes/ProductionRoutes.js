@@ -3,7 +3,7 @@ const { ensureFlowColumns } = require("../lib/flowDelay");
 const express = require("express");
 const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
 const logger = require("../lib/logger");
-const { wcOnlyPlans, decidePlan } = require("../lib/planSync");
+const { wcOnlyPlans, decidePlan, DEFAULT_LIMITS } = require("../lib/planSync");
 const Papa = require("papaparse");
 const router = express.Router();
 // เชื่อมต่อฐานข้อมูล
@@ -204,6 +204,13 @@ async function readWcProducts() {
   return rows;
 }
 
+/** Widths of Production.doc_no / Production.code as the database has them now (COL_LENGTH = bytes = characters of a varchar): widening the column in SSMS needs no deploy. */
+async function readColumnLimits(poolOrTransaction) {
+  const request = poolOrTransaction.request ? poolOrTransaction.request() : new sql.Request(poolOrTransaction);
+  const row = (await request.query("SELECT COL_LENGTH('Production', 'doc_no') AS docNoMax, COL_LENGTH('Production', 'code') AS codeMax")).recordset[0];
+  return { docNoMax: row.docNoMax > 0 ? row.docNoMax : DEFAULT_LIMITS.docNoMax, codeMax: row.codeMax > 0 ? row.codeMax : DEFAULT_LIMITS.codeMax };
+}
+
 /** Adds the WC-only products to the plan list (rows of the route). A WC failure never breaks the list: it just has no WC rows. */
 async function appendWcPlans(pool, rows) {
   try {
@@ -212,7 +219,7 @@ async function appendWcPlans(pool, rows) {
     // only plans that can be created are offered: a product whose doc no does not fit the column would fail when picked
     // WC can hold the same code + doc no twice (e.g. "...-W465" and "...-W465 (USA)"): one row in the list is enough, picking it creates / reuses one plan
     const seen = new Set();
-    wcOnlyPlans(wcRows, allPlans)
+    wcOnlyPlans(wcRows, allPlans, await readColumnLimits(pool))
       .filter((p) => p.selectable)
       .filter((p) => {
         const key = `${p.code}|${p.doc_no}|${p.line_type_id}`.toUpperCase();
@@ -228,8 +235,22 @@ async function appendWcPlans(pool, rows) {
   }
 }
 
+// The line types a new plan can have (the dialog that opens when a plan from WC is picked lists them by name).
+router.get("/production/fetchLineTypes", async (req, res) => {
+  try {
+    const pool = await getPool();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const result = await pool.request().query("SELECT line_type_id, line_type_name FROM LineType ORDER BY line_type_id");
+    res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error("[Route /production/fetchLineTypes] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Picking a plan that exists only in WC: use the PFCM plan if it exists by now (no insert), else create it (+ link it to every material like add-production).
-// body: { wc_code_id, dry_run? } — the code / doc no / line type are read from WC here, never taken from the client. dry_run answers what would happen and writes nothing.
+// body: { wc_code_id, line_type_id?, dry_run? } — the code / doc no are read from WC here, never taken from the client; the line type is the user's pick
+// (checked against LineType). dry_run answers what would happen (and which line type is suggested) and writes nothing.
 router.post("/production/ensurePlan", async (req, res) => {
   try {
     const wcCodeId = parseInt(req.body?.wc_code_id, 10);
@@ -237,6 +258,12 @@ router.post("/production/ensurePlan", async (req, res) => {
       return res.status(400).json({ success: false, error: "กรุณาระบุ wc_code_id เป็นตัวเลข" });
     }
     const dryRun = req.body?.dry_run === true;
+    // line_type_id = the line type the user picked for a NEW plan (an existing plan keeps its own); without it the type is suggested from the package
+    const lineTypeRaw = req.body?.line_type_id;
+    const lineTypeId = lineTypeRaw === undefined || lineTypeRaw === null ? null : parseInt(lineTypeRaw, 10);
+    if (lineTypeId !== null && !Number.isInteger(lineTypeId)) {
+      return res.status(400).json({ success: false, error: "ประเภทไลน์ไม่ถูกต้อง" });
+    }
 
     const poolWC = await connectToDatabaseWC();
     if (!poolWC) return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อฐานข้อมูลสูตรได้" });
@@ -247,10 +274,15 @@ router.post("/production/ensurePlan", async (req, res) => {
     if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
     const docNo = String(wcRow.groupCode ?? "").trim();
     const READ_PLANS = "SELECT prod_id, code, doc_no, line_type_id FROM Production";
+    if (lineTypeId !== null) {
+      const known = await pool.request().input("lt", sql.Int, lineTypeId).query("SELECT 1 AS ok FROM LineType WHERE line_type_id = @lt");
+      if (!known.recordset.length) return res.status(400).json({ success: false, error: "ประเภทไลน์ไม่ถูกต้อง" });
+    }
+    const limits = await readColumnLimits(pool);
 
     if (dryRun) {
       const plans = (await pool.request().input("docNo", sql.NVarChar(50), docNo).query(`${READ_PLANS} WHERE doc_no = @docNo`)).recordset;
-      return res.json({ success: true, dry_run: true, data: decidePlan(wcRow, plans) });
+      return res.json({ success: true, dry_run: true, data: decidePlan(wcRow, plans, { limits, lineTypeId }) });
     }
 
     const transaction = new sql.Transaction(pool);
@@ -260,7 +292,7 @@ router.post("/production/ensurePlan", async (req, res) => {
       const plans = (
         await new sql.Request(transaction).input("docNo", sql.NVarChar(50), docNo).query(`${READ_PLANS} WITH (UPDLOCK, HOLDLOCK) WHERE doc_no = @docNo`)
       ).recordset;
-      const decision = decidePlan(wcRow, plans);
+      const decision = decidePlan(wcRow, plans, { limits, lineTypeId });
 
       if (decision.action === "reject") {
         await safeRollback(transaction);
@@ -273,8 +305,8 @@ router.post("/production/ensurePlan", async (req, res) => {
 
       const { plan } = decision;
       const inserted = await new sql.Request(transaction)
-        .input("code", sql.VarChar(50), plan.code)
-        .input("doc_no", sql.VarChar(5), plan.doc_no)
+        .input("code", sql.VarChar(limits.codeMax), plan.code)
+        .input("doc_no", sql.VarChar(limits.docNoMax), plan.doc_no)
         .input("line_type_id", sql.Int, plan.line_type_id)
         .query("INSERT INTO Production (code, doc_no, line_type_id) OUTPUT INSERTED.prod_id VALUES (@code, @doc_no, @line_type_id)");
       const prodId = inserted.recordset[0].prod_id;
