@@ -48,6 +48,23 @@ test("picking: reuse the existing plan (no insert), create a new one, or refuse 
   assert.equal(decidePlan(wc("AAA BBB-TOOLONG1", "TOOLONG1"), plans).action, "reject");
 });
 
+test("widening the doc_no column makes the long doc nos creatable (the limit is the database's, not a constant)", () => {
+  const long = wc("AAA BBB-WXYZ1234567", "WXYZ1234567");
+  assert.equal(planFromWc(long).selectable, false);                                   // varchar(5)
+  assert.equal(planFromWc(long, { docNoMax: 20, codeMax: 50 }).selectable, true);       // after ALTER COLUMN doc_no varchar(20)
+  assert.equal(planFromWc(long, { docNoMax: 10, codeMax: 50 }).selectable, false);      // still too long for varchar(10)
+  assert.equal(decidePlan(long, [], { limits: { docNoMax: 20, codeMax: 50 } }).action, "create");
+  assert.equal(wcOnlyPlans([long], [], { docNoMax: 20, codeMax: 50 }).filter((p) => p.selectable).length, 1);
+});
+
+test("the line type the user picked wins over the suggestion; an existing plan keeps its own", () => {
+  const can = wc("I8HPTD RCC822L2L - T087", "T087", "Can"); // suggestion would be 2
+  assert.equal(decidePlan(can, []).plan.line_type_id, 2);
+  assert.equal(decidePlan(can, [], { lineTypeId: 12 }).plan.line_type_id, 12);
+  const existing = [plan(7, "I8HPTD RCC822L2L", "T087", 3)];
+  assert.equal(decidePlan(can, existing, { lineTypeId: 12 }).line_type_id, 3);
+});
+
 test("the same code with another doc no is a different plan", () => {
   const plans = [plan(10, "I8HPTD RCC822L2L", "C175", 2)];
   assert.equal(decidePlan(wc("I8HPTD RCC822L2L - T087", "T087", "Can"), plans).action, "create");
