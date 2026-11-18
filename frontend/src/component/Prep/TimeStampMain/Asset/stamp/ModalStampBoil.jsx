@@ -40,6 +40,7 @@ import { height, styled } from "@mui/system";
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import PlanInfo from "../../../../Layout/PlanInfo";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -940,6 +941,7 @@ const ModalEditPD = ({ open, onClose, material, batch, sap_re_id, withdraw_date,
                             disabled={!set.plan}
                           />
                         </Box>
+                        <PlanInfo plan={set.plan} />
 
                         <Autocomplete
                           options={group}

@@ -40,6 +40,7 @@ import axios from "axios";
 import { styled } from "@mui/system";
 import QcFormFields from "../../../Sheet/Asset/pack/QcFormFields";
 import { emptyQc, validateQc, toQcPayload } from "../../../Sheet/Asset/pack/qcForm";
+import PlanInfo from "../../../Layout/PlanInfo";
 
 axios.defaults.withCredentials = true;
 
@@ -1288,6 +1289,7 @@ const ModalInputRM = ({ open, onClose, data, onSuccess }) => {
                                 disabled={!set.plan}
                               />
                             </Box>
+                            <PlanInfo plan={set.plan} />
 
                             <Autocomplete
                               options={group}

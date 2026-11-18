@@ -39,6 +39,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import PlanInfo from "../../../Layout/PlanInfo";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -725,6 +726,7 @@ const DataReviewSAP = ({ open, onClose, material, batch }) => {
                         disabled={!set.plan}
                       />
                     </Box>
+                    <PlanInfo plan={set.plan} />
 
                     <Autocomplete
                       options={group}

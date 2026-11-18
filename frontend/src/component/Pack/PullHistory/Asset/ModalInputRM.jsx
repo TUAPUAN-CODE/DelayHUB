@@ -38,6 +38,7 @@ import dayjs from 'dayjs';
 import QrScanner from "qr-scanner";
 import axios from "axios";
 import { styled } from "@mui/system";
+import PlanInfo from "../../../Layout/PlanInfo";
 
 axios.defaults.withCredentials = true;
 
@@ -1229,6 +1230,7 @@ const setCurrentTime = (setter) => {
                                 disabled={!set.plan}
                               />
                             </Box>
+                            <PlanInfo plan={set.plan} />
 
                             <Autocomplete
                               options={group}

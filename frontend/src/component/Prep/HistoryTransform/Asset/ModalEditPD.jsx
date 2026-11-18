@@ -20,6 +20,7 @@ import { FaCheck } from "react-icons/fa";
 import axios from "axios";
 axios.defaults.withCredentials = true; 
 import ModalAlert from "../../../../Popup/AlertSuccess";
+import PlanInfo from "../../../Layout/PlanInfo";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -210,6 +211,7 @@ const ModalEditPD = ({ open, onClose, data, onSuccess }) => {
                 ))}
               </Select>
             </FormControl>
+            <PlanInfo plan={selectedPlan} />
 
 
             <Divider />

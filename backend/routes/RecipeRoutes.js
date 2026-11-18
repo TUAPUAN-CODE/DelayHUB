@@ -10,6 +10,7 @@
 const express = require("express");
 const sql = require("mssql");
 const { connectToDatabaseWC } = require("../database/db");
+const { pickBest } = require("../lib/planMatch");
 
 const router = express.Router();
 
@@ -131,6 +132,36 @@ router.get("/fetchProductDetail", async (req, res) => {
     res.json({ success: true, data: { header: header[0], ingredients, mixSequences, solutions, toppings, documents } });
   } catch (err) {
     console.error("[Route /recipe/fetchProductDetail] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ข้อมูลสินค้า (ลูกค้า / ตลาด / น้ำหนัก) ของแผนการผลิตของ PFCM: จับคู่ code + doc_no ของแผนกับรหัสสินค้าใน WC (ดู lib/planMatch.js)
+// data = null เมื่อไม่พบ (แผนเก่าหรือรหัสที่ WC ไม่มีแล้ว) — ไม่ใช่ error
+router.get("/fetchPlanInfo", async (req, res) => {
+  try {
+    const code = String(req.query.code || "").trim().slice(0, 100);
+    const docNo = String(req.query.docNo || "").trim().slice(0, 50);
+    if (!code || !docNo) {
+      return res.status(400).json({ success: false, error: "กรุณาระบุ code และ docNo" });
+    }
+
+    const pool = await connectToDatabaseWC();
+    if (!pool) return res.status(503).json({ success: false, error: "ไม่สามารถเชื่อมต่อฐานข้อมูลสูตรได้" });
+
+    const result = await pool.request().input("docNo", sql.NVarChar(50), docNo).query(`
+      SELECT c.Id AS codeId, c.ProductCode AS productCode, c.GroupCode AS groupCode,
+             cu.Customer AS customer, cu.Destination AS market, pk.Package AS package,
+             c.TargetNW AS targetNW, c.TargetFW AS targetFW, c.LabelNW AS labelNW, c.MaxNW AS maxNW, c.MaxFW AS maxFW
+      FROM TunaCodes c
+      LEFT JOIN TunaCustomers cu ON cu.Id = c.CustomerId
+      LEFT JOIN TunaPackages pk  ON pk.Id = c.PackageId
+      WHERE c.GroupCode = @docNo`);
+
+    const best = pickBest(code, result.recordset);
+    res.json({ success: true, data: best ? { ...best.row, match: best.match } : null });
+  } catch (err) {
+    console.error("[Route /recipe/fetchPlanInfo] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
