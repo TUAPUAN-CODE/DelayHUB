@@ -22,6 +22,7 @@ import axios from "axios";
 import { PLAN_OPTION_PROPS, planLabel } from "../../../Layout/planOptions";
 axios.defaults.withCredentials = true; 
 import ModalAlert from "../../../../Popup/AlertSuccess";
+import PlanInfo from "../../../Layout/PlanInfo";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -477,6 +478,7 @@ const ModalEditLine = ({ open, onClose, data, onSuccess }) => {
                     )}
                   />
                 </Box>
+                <PlanInfo plan={selectedPlan} />
 
                 <TextField
                   label="ชื่อผู้อนุมัติ"
