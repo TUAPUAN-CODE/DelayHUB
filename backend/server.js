@@ -264,6 +264,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api", Routes);
   app.use("/api", QualityControlRoutes);
   app.use("/api", SheetRoutes);
+  app.use("/api", require("./routes/ExportRoutes")); // อ่านอย่างเดียว ด้วยกุญแจ EXPORT_API_KEY (DocHUB ดึงรายงาน Delay F3PFPF67)
   app.use("/api", OtherRoutes);
   app.use("/api/traceback", TracebackRoutes);
   app.use("/api/recipe", RecipeRoutes);
