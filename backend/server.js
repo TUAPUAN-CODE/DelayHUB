@@ -247,6 +247,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const TracebackRoutes = require("./routes/traceback");
   const RecipeRoutes = require("./routes/RecipeRoutes");
   const WorkOrderRoutes = require("./routes/WorkOrderRoutes");
+  const SupplierRoutes = require("./routes/SupplierRoutes");
   const AuthRoutes = require("./routes/AuthRoutes");
 
   // Route registration
@@ -269,6 +270,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api/traceback", TracebackRoutes);
   app.use("/api/recipe", RecipeRoutes);
   app.use("/api/wo", WorkOrderRoutes);
+  app.use("/api/supplier", SupplierRoutes); // อ่านอย่างเดียว จาก WISEUP: ผู้ขาย / รับเข้า / ผลตรวจรับเข้า / ลูกค้า
   app.use("/api", AuthRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);
