@@ -21,7 +21,7 @@ const READER_NO = Number(process.env.READER_NO) || 1;
 let READER_IP = process.env.READER_IP || "";
 let READER_PORT = Number(process.env.READER_PORT) || 49152;
 let READER_NAME = process.env.READER_NAME || `RFID_READER_${READER_NO}`;
-const READER_DELAY_MINUTES = Number(process.env.READER_DELAY_MINUTES) || 1;
+const READER_DELAY_MINUTES = Number(process.env.READER_DELAY_MINUTES) || 10;
 // ถ้าไม่ได้รับข้อมูลจาก reader เลยนานเท่านี้ (ms) ให้ตัดแล้วต่อใหม่ กันกรณีสายหลุดแบบเงียบ (half-open)
 // 0 = ปิด; ค่าเริ่มต้น 10 นาที (reader จะเงียบเมื่อไม่มีรถเข็นผ่าน การต่อใหม่ไม่เสียหาย)
 const SILENCE_RECONNECT_MS = process.env.RFID_SILENCE_RECONNECT_MS === undefined
