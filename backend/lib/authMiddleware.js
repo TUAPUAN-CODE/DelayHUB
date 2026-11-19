@@ -45,6 +45,7 @@ const PUBLIC_ROUTES = [
   ["GET", /^\/health(\/|$)/],
   ["GET", /^\/metrics$/], // ตรวจกุญแจ METRICS_KEY / IP ภายในเองใน route
   ["GET", /^\/api-docs/],
+  ["GET", /^\/api\/export\/f3pfpf67(\/template\.xlsx)?$/], // DocHUB: ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
 ];
 const isPublic = (req) => PUBLIC_ROUTES.some(([m, re]) => m === req.method && re.test(req.path));
 
