@@ -230,7 +230,10 @@ module.exports = {
       error_file: './logs/print-agent-error.log',
 
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        // backend ที่ print-agent ดึงประวัติห้องเย็น/ข้อมูลรถเข็น — ต้องเป็นพอร์ตที่ backend ฟังจริง (PORT ใน backend/.env)
+        // เดิมไม่ได้ตั้ง → agent ใช้ค่า default :3000 ซึ่งไม่มีอะไรฟัง (ECONNREFUSED)
+        WEB_SERVER_URL: process.env.WEB_SERVER_URL || 'http://127.0.0.1:' + (process.env.PORT || 3001)
       }
     }
 

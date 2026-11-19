@@ -27,6 +27,18 @@ const QRCode = require("qrcode");
 const { printHtmlToNetworkPrinter } = require("./escposNetworkPrint");
 const WEB_SERVER_URL = process.env.WEB_SERVER_URL || "http://172.48.0.115:3000";
 
+// backend เปิดระบบยืนยันตัวตน (AUTH_REQUIRED) → agent ออก service token เองด้วยความลับเดียวกับ backend (อ่านจาก backend/.env)
+// เหมือนที่ RFIDc1.js ทำ — ถ้าโหลดไม่ได้ จะยิงแบบไม่มี token (ใช้ได้เฉพาะตอน AUTH_MODE ไม่ enforce)
+const BACKEND_DIR = path.join(__dirname, "..", "..", "backend");
+let issueServiceToken = null;
+try {
+  try { require(path.join(BACKEND_DIR, "node_modules", "dotenv")).config({ path: path.join(BACKEND_DIR, ".env") }); } catch {}
+  ({ issueServiceToken } = require(path.join(BACKEND_DIR, "lib", "auth")));
+} catch (err) {
+  console.error("โหลด backend/lib/auth ไม่สำเร็จ — จะเรียก backend โดยไม่มี token:", err.message);
+}
+const authHeaders = () => (issueServiceToken ? { Authorization: `Bearer ${issueServiceToken("print-agent")}` } : {});
+
 // เซิร์ฟเวอร์ backend ใช้ self-signed cert เลยต้องปิดการเช็ค cert ตอนยิง request หากัน
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
@@ -133,8 +145,8 @@ app.post("/print", (req, res) => {
 // (fallback เท่านั้น — ใช้เมื่อ frontend ไม่ได้แนบ trolleyData มาด้วย)
 async function fetchTrolleyData(identifier) {
   const [regularRes, mixedRes] = await Promise.all([
-    axios.get(`${WEB_SERVER_URL}/api/coldstorage/export/fetchSlotRawMat`, { httpsAgent }),
-    axios.get(`${WEB_SERVER_URL}/api/coldstorage/mix/export/fetchSlotRawMat`, { httpsAgent }),
+    axios.get(`${WEB_SERVER_URL}/api/coldstorage/export/fetchSlotRawMat`, { httpsAgent, headers: authHeaders() }),
+    axios.get(`${WEB_SERVER_URL}/api/coldstorage/mix/export/fetchSlotRawMat`, { httpsAgent, headers: authHeaders() }),
   ]);
 
   const regular = (regularRes.data.success ? regularRes.data.data : []).map((d) => ({
@@ -160,6 +172,7 @@ async function fetchColdHistoryFor(mappingId) {
   try {
     const res = await axios.get(`${WEB_SERVER_URL}/api/coldstorage/history/${mappingId}`, {
       httpsAgent,
+      headers: authHeaders(),
     });
     return res.data || {};
   } catch (err) {
