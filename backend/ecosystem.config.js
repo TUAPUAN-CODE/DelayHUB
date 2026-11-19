@@ -187,6 +187,7 @@ module.exports = {
         READER_IP: '10.246.145.182',
         READER_PORT: '49152',
         READER_NAME: 'RFID_READER_1',
+        READER_DELAY_MINUTES: '10',
       }
     },
 
