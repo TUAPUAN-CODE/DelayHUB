@@ -26,3 +26,8 @@ DocHUB ดึงแถวที่ **บรรจุเสร็จ** ของ 
 แต่ละแถว: `mapping_id` (คีย์) · `work_day` · `shift` · `line` · `code` · `production` · `mat` · `mat_name` · `batch` · `weight` · `group_no` ·
 `prep_date` · `hist` · `color` / `odor` / `texture` · `time_a` … `time_f` (เตรียมเสร็จ / เข้า–ออกห้องเย็น 1, 2 / บรรจุเสร็จ) · `special` ·
 `dbs1`…`dbs4` (ข้อความแบบ PDF) · `dbs1_h`…`dbs4_h` (ชั่วโมง แบบ Excel) · `std1_h`…`std4_h` (มาตรฐาน) · `over1`…`over4`, `over_any` (เกินมาตรฐาน) · `remark`
+
+
+## ข้อมูลรายการตามสลีป (สำหรับ DocHUB ใบตรวจ F3QCPF06)
+
+`GET /api/export/mapping/:mapping_id` (header `x-export-key` เดียวกัน, อ่านอย่างเดียว) → `{ success, data: { mapping_id, code, mat, mat_name, mat_2x, batch, batch_2x } }` · `code` = โค้ดสินค้าของแผน (Production.code) · `batch` = Batch ตั้งต้น · `batch_2x` = Batch 2X · ไม่พบ → 404 · DocHUB เรียกตอนผู้ตรวจสแกน QR สลีป (ช่อง 4 ของ QR = mapping_id)
