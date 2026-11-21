@@ -112,7 +112,7 @@ const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
     const look = EMPTY_LOOK[kind];
     return (
       <div
-        className="rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[92px]"
+        className="min-w-0 rounded-lg px-1 py-1 flex flex-col justify-center min-h-[96px]"
         style={{ backgroundColor: look.bg, border: `1px dashed ${look.border}`, color: look.color }}
       >
         <span className="text-[11px]">{slot.slot_id}</span>
@@ -130,7 +130,7 @@ const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
       <button
         type="button"
         onClick={() => onOpen(trolley, slot)}
-        className="w-full text-left rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[92px] leading-tight hover:shadow-md"
+        className="w-full min-w-0 text-left rounded-lg px-1 py-1 flex flex-col justify-center min-h-[96px] leading-tight hover:shadow-md"
         style={{ backgroundColor: meta.bg, border: `2px solid ${meta.color}`, opacity: dimmed ? 0.3 : 1 }}
       >
         <span className="flex justify-between text-[11px] text-slate-500">
@@ -139,9 +139,9 @@ const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
         </span>
         <span className="text-sm font-semibold text-slate-800 truncate">{trolley.tro_id}</span>
         <span className="text-[11px] text-slate-700 truncate">{first.mat_name || first.mat}</span>
-        <span className="text-[11px] text-slate-500 tabular-nums">{formatKg(weight)} kg</span>
-        {stay !== null && <span className="text-[11px] text-slate-500">{`อยู่ ${formatTime(stay)}`}</span>}
-        <span className="text-[11px] font-semibold" style={{ color: meta.color }}>{shortText(trolley.delay)}</span>
+        <span className="text-[11px] text-slate-500 tabular-nums truncate">{formatKg(weight)} kg</span>
+        {stay !== null && <span className="text-[11px] text-slate-500 truncate">{`อยู่ ${formatTime(stay)}`}</span>}
+        <span className="text-[11px] font-semibold truncate" style={{ color: meta.color }}>{shortText(trolley.delay)}</span>
       </button>
     </Tooltip>
   );
@@ -243,17 +243,17 @@ const RoomGrid = ({ room, onOpen }) => {
   const open = (trolley, slot) => onOpen(trolley, slot, room.cs_name);
   if (!grid) {
     return (
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
+      <div className="grid gap-1 max-h-[640px] overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}>
         {room.tiles.map((t) => <SlotTile key={t.slot.slot_id} slot={t.slot} trolley={t.trolley} dimmed={t.dimmed} onOpen={open} />)}
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <div className="grid gap-1.5 min-w-[900px]" style={{ gridTemplateColumns: `44px repeat(${grid.maxCol}, minmax(0, 1fr))` }}>
+    <div className="overflow-auto max-h-[640px]">
+      <div className="grid gap-1 min-w-[640px]" style={{ gridTemplateColumns: `28px repeat(${grid.maxCol}, minmax(0, 1fr))` }}>
         {grid.lines.map((line) => (
           <React.Fragment key={line.key}>
-            <div className="flex items-center justify-center text-xs font-semibold text-slate-400 uppercase">{line.key}</div>
+            <div className="flex items-center justify-center text-[10px] font-semibold text-slate-400 uppercase [writing-mode:vertical-rl] rotate-180">{line.key}</div>
             {Array.from({ length: grid.maxCol }, (_, i) => {
               const t = line.cells.find((c) => c.col === i + 1);
               return t
@@ -399,7 +399,7 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
       {!show ? null : shown.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-slate-500">{choosable.length === 0 ? "ไม่มีรถเข็นจอดในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}</div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
           {shown.map((room) => (
             <div key={room.cs_id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-3">
               <div className="mb-2 flex flex-wrap items-center gap-2">
