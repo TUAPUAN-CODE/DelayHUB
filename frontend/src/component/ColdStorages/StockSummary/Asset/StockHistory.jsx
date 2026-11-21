@@ -92,8 +92,9 @@ const TodayStat = ({ label, value, color, before, note }) => (
  * Trolleys that came into / were cleared from the large cold rooms per day, and the cleared ones that were late
  * (GET /api/coldstorages/stock/fetchHistory). overdueNow = trolleys in a room over their limit right now (from the page).
  * reloadKey: changes when the page reloads its data. className: placement in the page grid.
+ * onData(rows, days): the loaded days, for the other charts of the page (same range).
  */
-const StockHistory = ({ overdueNow, reloadKey, className = "" }) => {
+const StockHistory = ({ overdueNow, reloadKey, className = "", onData }) => {
   const [days, setDays] = useState(7);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -107,7 +108,9 @@ const StockHistory = ({ overdueNow, reloadKey, className = "" }) => {
       setLoading(true);
       setError("");
       const res = await axios.get(`${API_URL}/api/coldstorages/stock/fetchHistory`, { params: { days } });
-      setData(res.data?.data ?? []);
+      const rows = res.data?.data ?? [];
+      setData(rows);
+      onData?.(rows, days);
     } catch (err) {
       console.error("StockHistory fetch error:", err);
       setError("โหลดประวัติห้องเย็นใหญ่ไม่สำเร็จ");
@@ -115,7 +118,7 @@ const StockHistory = ({ overdueNow, reloadKey, className = "" }) => {
       busy.current = false;
       setLoading(false);
     }
-  }, [days]);
+  }, [days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     load();
@@ -200,4 +203,5 @@ const StockHistory = ({ overdueNow, reloadKey, className = "" }) => {
   );
 };
 
+export { tickLabel, fullLabel };
 export default StockHistory;

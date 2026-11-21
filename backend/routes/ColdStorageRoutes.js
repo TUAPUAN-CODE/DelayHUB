@@ -4758,6 +4758,8 @@ ORDER BY rmm.mapping_id DESC
     //   raw material), counted once per day
     // - late = went out that day with TrolleyRMMapping.cold_time < 0: the large-room check-out saves the cold time left (negative = over the limit),
     //   and does not save it for the rooms without DCS (cs_id 10,14,21,25,26,37,38), so those never count as late
+    // - in_late_items = raw materials that came in that day and are delayed: cold_time < 0 (left late), or still parked in a large room with DCS
+    //   longer than their cold time (cold_time is H.MM: 1.30 = 1 h 30 min)
     router.get("/coldstorages/stock/fetchHistory", async (req, res) => {
         try {
             const days = Math.min(31, Math.max(1, parseInt(req.query.days, 10) || 7));
@@ -4775,6 +4777,7 @@ WITH ev AS (
     SELECT h.mapping_id,
            COALESCE(CAST(h.tro_id AS NVARCHAR(50)), CONCAT(N'm', h.mapping_id)) AS tro_key,
            v.kind,
+           v.at,
            CAST(v.at AS DATE) AS d
     FROM History h WITH (NOLOCK)
     CROSS APPLY (VALUES
@@ -4793,9 +4796,15 @@ SELECT CONVERT(CHAR(10), ev.d, 23) AS day,
        COUNT(DISTINCT ev.tro_key) AS trolleys,
        COUNT(DISTINCT ev.mapping_id) AS items,
        COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.tro_key END) AS late_trolleys,
-       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.mapping_id END) AS late_items
+       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.mapping_id END) AS late_items,
+       COUNT(DISTINCT CASE WHEN ev.kind = 'in' AND (
+                rmm.cold_time < 0
+                OR (s.cs_id IS NOT NULL AND s.cs_id NOT IN (10, 14, 21, 25, 26, 37, 38) AND rmm.cold_time IS NOT NULL
+                    AND DATEDIFF(MINUTE, ev.at, GETDATE()) > FLOOR(rmm.cold_time) * 60 + (rmm.cold_time - FLOOR(rmm.cold_time)) * 100)
+           ) THEN ev.mapping_id END) AS in_late_items
 FROM ev
 LEFT JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = ev.mapping_id
+LEFT JOIN Slot s WITH (NOLOCK) ON s.tro_id = rmm.tro_id AND s.cs_id BETWEEN 10 AND 46
 GROUP BY ev.d, ev.kind
 ORDER BY ev.d;
 `);
@@ -4811,7 +4820,7 @@ ORDER BY ev.d;
                 const d = new Date(start);
                 d.setDate(start.getDate() + i);
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                byDay.set(key, { day: key, in_trolleys: 0, in_items: 0, out_trolleys: 0, out_items: 0, late_trolleys: 0, late_items: 0 });
+                byDay.set(key, { day: key, in_trolleys: 0, in_items: 0, in_late_items: 0, out_trolleys: 0, out_items: 0, late_trolleys: 0, late_items: 0 });
             }
             rows.forEach((r) => {
                 const e = byDay.get(r.day);
@@ -4819,6 +4828,7 @@ ORDER BY ev.d;
                 if (r.kind === "in") {
                     e.in_trolleys = r.trolleys;
                     e.in_items = r.items;
+                    e.in_late_items = r.in_late_items;
                 } else {
                     e.out_trolleys = r.trolleys;
                     e.out_items = r.items;
