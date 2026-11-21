@@ -9,7 +9,7 @@ import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURC
 import { MaterialTable, RoomTable } from "./Asset/SummaryParts";
 import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
 import TrolleyBoard from "./Asset/TrolleyBoard";
-import DwellChart from "./Asset/DwellChart";
+import RoomAgeRanking from "./Asset/RoomAgeRanking";
 import DelayShareChart from "./Asset/DelayShareChart";
 import { calculateCSDelayTime } from "../RoomMonitor/Asset/csDelay";
 
@@ -170,7 +170,7 @@ const StockSummaryPage = () => {
           <>
             {/* history (2/3) beside the time status (1/3), the two cards the same height */}
             <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-              <DwellChart className="lg:col-span-2" overdueNow={overdueNow} reloadKey={historyKey} />
+              <RoomAgeRanking className="lg:col-span-2" rows={layoutRows} tick={tick} overdueNow={overdueNow} />
               <section className="flex flex-col gap-3">
                 <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
                 <div className="flex-1">

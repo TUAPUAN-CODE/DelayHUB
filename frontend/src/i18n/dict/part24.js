@@ -68,6 +68,17 @@ export default {
   "{x} จากเมื่อวาน": ["{x} vs yesterday"],
   // share of delayed raw materials per day (DelayShareChart.jsx)
   "ไม่ delay": ["Not delayed"],
+  // longest stays right now (RoomAgeRanking.jsx)
+  "วัตถุดิบที่อยู่ในห้องเย็นใหญ่นานสุด": ["Raw materials in the large cold rooms the longest"],
+  "เฉพาะที่ยังอยู่ในห้อง (เคลียร์ออกแล้วไม่แสดง) · เรียงจากนานสุด": ["Only those still in a room (cleared ones not shown) · longest first"],
+  "อยู่ในห้องตอนนี้": ["In the rooms now"],
+  "รวมห้องที่ไม่คำนวณ DCS": ["Rooms without DCS included"],
+  "เฉพาะห้องที่คำนวณ DCS": ["Rooms with DCS only"],
+  "นานสุด": ["Longest"],
+  "ของที่อยู่ในห้องตอนนี้": ["Of what is in the rooms now"],
+  "รวมห้องที่ไม่คำนวณ DCS ({x})": ["Include rooms without DCS ({x})"],
+  "เข้า {x} · {x}": ["In {x} · {x}"],
+  "แสดง {x} จาก {x} รายการ": ["Showing {x} of {x} items"],
   // time in the large cold rooms (DwellChart.jsx, GET /api/coldstorages/stock/fetchDwell)
   "นานสุดของวัน": ["Longest of the day"],
   "เฉลี่ยเกินมาตรฐาน": ["Average over the standard"],
