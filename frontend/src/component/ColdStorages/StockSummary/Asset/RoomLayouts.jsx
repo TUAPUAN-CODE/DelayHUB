@@ -6,6 +6,8 @@ import {
 import { ROOM_CONFIG } from "../../RoomMonitor/Asset/flow/largeRooms";
 import { calculateCSDelayTime, formatTime, getLatestCsComeCold } from "../../RoomMonitor/Asset/csDelay";
 import { STATUS_META, SOURCE_LABEL, formatKg } from "./buildStockSummary";
+import { Activity, Snowflake, TriangleAlert } from "lucide-react";
+import { INK, SectionTitle } from "./StockTheme";
 
 // what this viewer chose to see (this browser only): show the layout at all, rooms hidden, only rooms with trolleys
 const PREFS_KEY = "stockSummary.layoutPrefs";
@@ -81,7 +83,7 @@ const toGrid = (tiles) => {
 };
 
 const EMPTY_LOOK = {
-  free: { bg: "#FFFFFF", border: "#E2E8F0", color: "#94A3B8", text: "ว่าง" },
+  free: { bg: "#F8FAFC", border: "#E2E8F0", color: "#A3B1C6", text: "ว่าง" },
   reserved: { bg: "#FFF8E6", border: "#FDE2A7", color: "#B45309", text: "จองอยู่" },
   off: { bg: "#F1F5F9", border: "#E2E8F0", color: "#CBD5E1", text: "ปิดใช้งาน" },
   unknown: { bg: "#F8FAFC", border: "#CBD5E1", color: "#64748B", text: "ไม่มีข้อมูลวัตถุดิบ" },
@@ -112,7 +114,7 @@ const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
     const look = EMPTY_LOOK[kind];
     return (
       <div
-        className="min-w-0 rounded-lg px-1 py-1 flex flex-col justify-center min-h-[96px]"
+        className="min-w-0 rounded-xl px-1.5 py-1 flex flex-col justify-center min-h-[96px]"
         style={{ backgroundColor: look.bg, border: `1px dashed ${look.border}`, color: look.color }}
       >
         <span className="text-[11px]">{slot.slot_id}</span>
@@ -130,18 +132,29 @@ const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
       <button
         type="button"
         onClick={() => onOpen(trolley, slot)}
-        className="w-full min-w-0 text-left rounded-lg px-1 py-1 flex flex-col justify-center min-h-[96px] leading-tight hover:shadow-md"
-        style={{ backgroundColor: meta.bg, border: `2px solid ${meta.color}`, opacity: dimmed ? 0.3 : 1 }}
+        className={`relative w-full min-w-0 overflow-hidden text-left rounded-xl pl-2 pr-1 py-1 flex flex-col justify-center min-h-[96px] leading-tight transition hover:-translate-y-0.5 hover:shadow-lg ${trolley.delay.key === "red" && !dimmed ? "ss-glow" : ""}`}
+        style={{
+          background: `linear-gradient(160deg, #FFFFFF 0%, ${meta.bg} 100%)`,
+          border: `1px solid ${meta.color}55`,
+          boxShadow: `0 1px 2px rgba(15,23,42,0.06)`,
+          opacity: dimmed ? 0.3 : 1,
+        }}
       >
-        <span className="flex justify-between text-[11px] text-slate-500">
-          <span>{slot.slot_id}</span>
-          {trolley.items.length > 1 && <span>{trolley.items.length} รายการ</span>}
+        <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: meta.color }} />
+        <span className="flex items-center justify-between text-[10px] text-slate-400">
+          <span className="tracking-wide">{slot.slot_id}</span>
+          {trolley.delay.key === "red" && !dimmed ? (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ backgroundColor: meta.color }} />
+              <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: meta.color }} />
+            </span>
+          ) : trolley.items.length > 1 ? <span>{trolley.items.length} รายการ</span> : null}
         </span>
-        <span className="text-sm font-semibold text-slate-800 truncate">{trolley.tro_id}</span>
+        <span className="text-sm font-semibold truncate tabular-nums" style={{ color: INK }}>{trolley.tro_id}</span>
         <span className="text-[11px] text-slate-700 truncate">{first.mat_name || first.mat}</span>
         <span className="text-[11px] text-slate-500 tabular-nums truncate">{formatKg(weight)} kg</span>
         {stay !== null && <span className="text-[11px] text-slate-500 truncate">{`อยู่ ${formatTime(stay)}`}</span>}
-        <span className="text-[11px] font-semibold truncate" style={{ color: meta.color }}>{shortText(trolley.delay)}</span>
+        <span className="mt-0.5 self-stretch rounded-md px-1 py-px text-center text-[10px] font-semibold leading-tight text-white" style={{ backgroundColor: meta.color }}>{shortText(trolley.delay)}</span>
       </button>
     </Tooltip>
   );
@@ -201,14 +214,18 @@ const TrolleyDialog = ({ open, data, onClose }) => {
 // trolleys that need action first: overdue, then near the limit, the least time left first
 const UrgentList = ({ items, onOpen }) => {
   if (items.length === 0) return null;
-  const head = { ...FONT, fontWeight: 600, whiteSpace: "nowrap", backgroundColor: "#FEF2F2", py: 0.75 };
+  const head = { ...FONT, fontWeight: 500, whiteSpace: "nowrap", py: 0.75 };
+  const headRow = { "& .MuiTableCell-root": { backgroundColor: "#FFF1F2", color: "#9F1239", borderBottom: "1px solid #FECDD3" } };
   const cell = { ...FONT, py: 0.5 };
   return (
-    <div className="rounded-xl border border-red-200 bg-white shadow-sm p-3">
-      <div className="mb-2 font-semibold text-slate-800">{`รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด ${items.length} คัน`}</div>
+    <div className="ss-rise overflow-hidden rounded-2xl border border-rose-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 px-4 py-2.5 text-white" style={{ background: "linear-gradient(90deg, #DC2626, #F97316)" }}>
+        <TriangleAlert size={18} />
+        <span className="font-semibold">{`รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด ${items.length} คัน`}</span>
+      </div>
       <TableContainer sx={{ maxHeight: 300 }}>
         <Table size="small" stickyHeader>
-          <TableHead>
+          <TableHead sx={headRow}>
             <TableRow>
               {["สถานะ", "ห้อง", "ช่อง", "รถเข็น", "วัตถุดิบ", "น้ำหนัก (kg)", "เข้าห้องเย็นใหญ่"].map((h) => (
                 <TableCell key={h} sx={head}>{h}</TableCell>
@@ -352,7 +369,7 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-slate-800">Layout แต่ละห้อง</h2>
+          <SectionTitle icon={Activity} title="Layout แต่ละห้อง" />
           <FormControlLabel
             control={<Switch size="small" checked={show} onChange={setShow} />}
             label={<span className="text-sm">แสดง Layout</span>}
@@ -361,7 +378,7 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
         {show && <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
           {["red", "orange", "green"].map((k) => (
             <span key={k} className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: STATUS_META[k].bg, border: `2px solid ${STATUS_META[k].color}` }} />
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_META[k].color }} />
               {STATUS_META[k].label}
             </span>
           ))}
@@ -382,10 +399,13 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
                 key={r.cs_id}
                 size="small"
                 label={r.count.red > 0 ? `${r.cs_name} (${r.count.red})` : r.cs_name}
-                color={on ? "primary" : "default"}
                 variant={on ? "filled" : "outlined"}
                 onClick={() => toggleRoom(r.cs_id)}
-                sx={{ fontFamily: "Prompt, Kanit, sans-serif", ...(r.count.red > 0 && !on ? { borderColor: STATUS_META.red.color, color: STATUS_META.red.color } : {}) }}
+                sx={{
+                  fontFamily: "Prompt, Kanit, sans-serif",
+                  ...(on ? { background: `linear-gradient(135deg, ${INK}, #1D4ED8)`, color: "#fff", "&:hover": { background: `linear-gradient(135deg, ${INK}, #2563EB)` } } : { backgroundColor: "#fff" }),
+                  ...(r.count.red > 0 && !on ? { borderColor: STATUS_META.red.color, color: STATUS_META.red.color } : {}),
+                }}
               />
             );
           })}
@@ -397,21 +417,31 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
       {show && <UrgentList items={urgent} onOpen={openDetail} />}
 
       {!show ? null : shown.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-slate-500">{choosable.length === 0 ? "ไม่มีรถเข็นจอดในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}</div>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-10 text-center text-slate-500">{choosable.length === 0 ? "ไม่มีรถเข็นจอดในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}</div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
           {shown.map((room) => (
-            <div key={room.cs_id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-3">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-slate-800">{room.cs_name}</span>
-                <span className="text-xs text-slate-500">ใช้ {room.used} / {room.tiles.length} ช่อง · {formatKg(room.weight)} kg</span>
+            <div key={room.cs_id} className="ss-rise overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2.5" style={{ background: "linear-gradient(90deg, #F1F5FF, #FFFFFF)" }}>
+                <span className="grid h-8 w-8 place-items-center rounded-lg text-white" style={{ background: `linear-gradient(135deg, ${INK}, #0EA5E9)` }}>
+                  <Snowflake size={16} />
+                </span>
+                <div className="min-w-0">
+                  <div className="font-semibold leading-tight" style={{ color: INK }}>{room.cs_name}</div>
+                  <div className="text-xs text-slate-500">ใช้ {room.used} / {room.tiles.length} ช่อง · {formatKg(room.weight)} kg</div>
+                </div>
                 <span className="ml-auto flex flex-wrap gap-1">
                   <CountPill k="red" n={room.count.red} />
                   <CountPill k="orange" n={room.count.orange} />
                   <CountPill k="green" n={room.count.green} />
                 </span>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
+                  <div className="h-full rounded-full" style={{ width: `${room.tiles.length ? (room.used / room.tiles.length) * 100 : 0}%`, background: "linear-gradient(90deg, #22D3EE, #1D4ED8)" }} />
+                </div>
               </div>
-              <RoomGrid room={room} onOpen={openDetail} />
+              <div className="p-2.5">
+                <RoomGrid room={room} onOpen={openDetail} />
+              </div>
             </div>
           ))}
         </div>
