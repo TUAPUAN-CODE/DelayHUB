@@ -114,7 +114,7 @@ const StockSummaryPage = () => {
             โหลดข้อมูลใหม่
           </button>
           {updatedAt && (
-            <span className="text-sm" style={{ color: TOKENS.muted }}>
+            <span className="ml-auto text-sm" style={{ color: TOKENS.muted }}>
               อัปเดตล่าสุด {updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </span>
           )}

@@ -314,9 +314,14 @@ const TrolleyBoard = ({ rows, slots, source, tick }) => {
           {rooms.length === 0 ? "ไม่มีรถเข็นในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}
         </div>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
+        // rooms side by side, each as wide as its trolleys need (a room with one trolley takes one card's width, not half the page)
+        <div className="flex flex-wrap items-start gap-3">
           {shown.map((room) => (
-            <div key={room.key} className="overflow-hidden" style={CARD}>
+            <div
+              key={room.key}
+              className="min-w-0 max-w-full overflow-hidden"
+              style={{ ...CARD, flexGrow: room.trolleys.length, flexBasis: `${Math.min(room.trolleys.length, 4) * 206 + 26}px` }}
+            >
               <div className="flex flex-wrap items-center gap-2 px-3 py-2.5" style={{ borderBottom: `1px solid ${TOKENS.border}` }}>
                 <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ backgroundColor: TOKENS.primarySoft, color: TOKENS.primary }}>
                   <Snowflake size={16} />
@@ -331,7 +336,7 @@ const TrolleyBoard = ({ rows, slots, source, tick }) => {
                   <CountPill k="green" n={room.count.green} />
                 </span>
               </div>
-              <div className="grid max-h-[560px] gap-2 overflow-y-auto p-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
+              <div className="grid max-h-[560px] gap-2 overflow-y-auto p-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
                 {room.trolleys.map((t) => <TrolleyCard key={t.tro_id} trolley={t} onOpen={setDetail} />)}
               </div>
             </div>

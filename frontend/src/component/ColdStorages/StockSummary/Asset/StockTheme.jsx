@@ -65,10 +65,10 @@ export const StatusDonut = ({ status, title }) => {
   const C = 2 * Math.PI * R;
   let offset = 0;
   return (
-    <div className="p-4" style={CARD}>
-      <div className="mb-3 text-sm" style={{ color: TOKENS.muted }}>{title}</div>
-      <div className="flex flex-col items-center gap-5 sm:flex-row">
-        <svg viewBox="0 0 140 140" className="h-32 w-32 shrink-0">
+    <div className="px-4 py-3" style={CARD}>
+      <div className="mb-2 text-sm" style={{ color: TOKENS.muted }}>{title}</div>
+      <div className="flex flex-col items-center gap-4 sm:flex-row">
+        <svg viewBox="0 0 140 140" className="h-24 w-24 shrink-0">
           <g transform="rotate(-90 70 70)">
             <circle cx="70" cy="70" r={R} fill="none" stroke="#EEF2F7" strokeWidth="14" />
             {total > 0 && STATUS_KEYS.map((k) => {
@@ -86,7 +86,7 @@ export const StatusDonut = ({ status, title }) => {
           <text x="70" y="70" textAnchor="middle" className="tabular-nums" style={{ ...FONT, fontSize: 28, fontWeight: 600, fill: STATUS_META.red.color }}>{status.red}</text>
           <text x="70" y="90" textAnchor="middle" style={{ ...FONT, fontSize: 11, fill: TOKENS.muted }}>{STATUS_META.red.label}</text>
         </svg>
-        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {STATUS_KEYS.map((k) => {
             const pct = total ? Math.round((status[k] / total) * 100) : 0;
             return (
