@@ -224,6 +224,8 @@ const RULES = [
   // Traceback: ล้าง cache และ debug เฉพาะผู้ดูแล
   { m: "POST", p: /^\/api\/traceback\/refs\/reload$/, check: adminOnly },
   { m: "GET", p: /^\/api\/traceback\/debug\//, check: adminOnly },
+  // หน้า /sup/Ingredient: บันทึกชื่อเรียก / หมายเหตุของส่วนผสม — เฉพาะหัวหน้า (6/8)
+  { m: "PUT", p: /^\/api\/ingredient\/update-ingredient-note$/, check: adminOnly, final: true },
   // ปลดกักสินค้า: หัวหน้า (6/8) หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว
   { m: "PUT", p: /^\/api\/traceback\/holds\/\d+\/release$/, check: adminOrUnlock },
   // ส่งแจ้งเตือน LINE ทันที (หน้า Supervisor): เฉพาะหัวหน้า (6/8)

@@ -248,6 +248,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   const RecipeRoutes = require("./routes/RecipeRoutes");
   const WorkOrderRoutes = require("./routes/WorkOrderRoutes");
   const SupplierRoutes = require("./routes/SupplierRoutes");
+  const IngredientRoutes = require("./routes/IngredientRoutes");
   const AuthRoutes = require("./routes/AuthRoutes");
 
   // Route registration
@@ -271,6 +272,7 @@ if (process.env.NODE_ENV === "production" && cluster.isPrimary) {
   app.use("/api/recipe", RecipeRoutes);
   app.use("/api/wo", WorkOrderRoutes);
   app.use("/api/supplier", SupplierRoutes); // อ่านอย่างเดียว จาก WISEUP: ผู้ขาย / รับเข้า / ผลตรวจรับเข้า / ลูกค้า
+  app.use("/api/ingredient", IngredientRoutes); // ส่วนผสมจาก WC (อ่านอย่างเดียว) + ชื่อเรียก/หมายเหตุที่เก็บใน PFCMv2.IngredientNote
   app.use("/api", AuthRoutes);
   app.use(rfidScanTriggerRoutes);
   app.use(rfidReaderConfigRoutes);
