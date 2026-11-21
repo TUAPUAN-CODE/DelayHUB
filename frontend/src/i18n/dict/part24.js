@@ -65,6 +65,7 @@ export default {
   "({x} รายการ)": ["({x} items)"],
   "โหลดประวัติห้องเย็นใหญ่ไม่สำเร็จ": ["Could not load the large cold room history"],
   "เข้าวันนี้": ["In today"],
+  "{x} จากเมื่อวาน": ["{x} vs yesterday"],
   "เคลียร์วันนี้": ["Cleared today"],
   "Delay วันนี้": ["Delay today"],
   "ออกจากห้องเกินเวลา": ["Left the room late"],

@@ -14,6 +14,11 @@ import { calculateCSDelayTime } from "../RoomMonitor/Asset/csDelay";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const TABLE_TABS = [
+  { value: "mat", label: "แยกตามวัตถุดิบ" },
+  { value: "room", label: "แยกตามห้อง" },
+];
+
 // Stock summary of the large cold rooms: every trolley sent to / parked in a room with cs_id >= 10,
 // split by where it came from (cold room or preparation), by material, by room and by time status.
 const StockSummaryPage = () => {
@@ -90,6 +95,7 @@ const StockSummaryPage = () => {
     return set.size;
   }, [rows, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const [historyKey, setHistoryKey] = useState(0);
+  const [tableTab, setTableTab] = useState("mat");
   const handleRefresh = () => {
     fetchData();
     setHistoryKey((k) => k + 1);
@@ -161,12 +167,16 @@ const StockSummaryPage = () => {
           <div className="flex justify-center py-16"><CircularProgress /></div>
         ) : (
           <>
-            <section className="space-y-3">
-              <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
-              <StatusDonut status={total.status} />
-            </section>
-
-            <StockHistory overdueNow={overdueNow} reloadKey={historyKey} />
+            {/* history (2/3) beside the time status (1/3), the two cards the same height */}
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+              <StockHistory className="lg:col-span-2" overdueNow={overdueNow} reloadKey={historyKey} />
+              <section className="flex flex-col gap-3">
+                <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
+                <div className="flex-1">
+                  <StatusDonut status={total.status} />
+                </div>
+              </section>
+            </div>
 
             {slotError ? (
               <Alert severity="warning" sx={FONT}>โหลดข้อมูลช่องจอดไม่สำเร็จ</Alert>
@@ -174,23 +184,26 @@ const StockSummaryPage = () => {
               <TrolleyBoard rows={layoutRows} slots={slots} source={source} tick={tick} />
             )}
 
+            {/* the two summary tables in one card with tabs (shorter page) */}
             <section className="space-y-3">
-              <SectionTitle icon={Package} title="แยกตามวัตถุดิบ">
-                <TextField
-                  size="small"
-                  value={search}
-                  onChange={handleSearchChange}
-                  placeholder="ค้นหารหัส / ชื่อวัตถุดิบ"
-                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>, sx: FONT }}
-                />
+              <SectionTitle icon={tableTab === "room" ? Warehouse : Package} title={tableTab === "room" ? "แยกตามห้อง" : "แยกตามวัตถุดิบ"}>
+                <div className="flex flex-wrap items-center gap-2">
+                  {tableTab === "mat" && (
+                    <TextField
+                      size="small"
+                      value={search}
+                      onChange={handleSearchChange}
+                      placeholder="ค้นหารหัส / ชื่อวัตถุดิบ"
+                      sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
+                      InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>, sx: FONT }}
+                    />
+                  )}
+                  <SegmentSwitch value={tableTab} options={TABLE_TABS} onChange={setTableTab} />
+                </div>
               </SectionTitle>
-              <MaterialTable materials={materials} showSource={showSource} />
-            </section>
-
-            <section className="space-y-3">
-              <SectionTitle icon={Warehouse} title="แยกตามห้อง" />
-              <RoomTable rooms={summary.rooms} showSource={showSource} />
+              {tableTab === "room"
+                ? <RoomTable rooms={summary.rooms} showSource={showSource} />
+                : <MaterialTable materials={materials} showSource={showSource} />}
             </section>
           </>
         )}
