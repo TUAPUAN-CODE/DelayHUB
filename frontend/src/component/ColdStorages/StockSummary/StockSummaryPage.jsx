@@ -9,6 +9,8 @@ import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURC
 import { MaterialTable, RoomTable } from "./Asset/SummaryParts";
 import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
 import TrolleyBoard from "./Asset/TrolleyBoard";
+import StockHistory from "./Asset/StockHistory";
+import { calculateCSDelayTime } from "../RoomMonitor/Asset/csDelay";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -77,6 +79,21 @@ const StockSummaryPage = () => {
   // tick: the time status is recalculated every minute
   const summary = useMemo(() => buildStockSummary(rows, source), [rows, source, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const layoutRows = useMemo(() => rows.map((r) => ({ ...r, source: getSource(r) })), [rows]);
+  // trolleys in a large room over their limit right now (same rule as the red trolleys on the page)
+  const overdueNow = useMemo(() => {
+    const set = new Set();
+    rows.forEach((r) => {
+      if (!r.tro_id || r.isPending) return;
+      const d = calculateCSDelayTime(r);
+      if (!d.noDcs && d.color === "red") set.add(String(r.tro_id));
+    });
+    return set.size;
+  }, [rows, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [historyKey, setHistoryKey] = useState(0);
+  const handleRefresh = () => {
+    fetchData();
+    setHistoryKey((k) => k + 1);
+  };
 
   const materials = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -105,7 +122,7 @@ const StockSummaryPage = () => {
           <SegmentSwitch value={source} options={sourceOptions} onChange={setSource} />
           <button
             type="button"
-            onClick={fetchData}
+            onClick={handleRefresh}
             disabled={loading}
             className="inline-flex items-center gap-2 rounded-xl px-4 py-1.5 text-sm transition disabled:opacity-60"
             style={{ border: `1px solid ${TOKENS.primary}`, color: TOKENS.primary, backgroundColor: "#fff" }}
@@ -148,6 +165,8 @@ const StockSummaryPage = () => {
               <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
               <StatusDonut status={total.status} />
             </section>
+
+            <StockHistory overdueNow={overdueNow} reloadKey={historyKey} />
 
             {slotError ? (
               <Alert severity="warning" sx={FONT}>โหลดข้อมูลช่องจอดไม่สำเร็จ</Alert>

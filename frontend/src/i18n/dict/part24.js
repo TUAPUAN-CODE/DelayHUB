@@ -57,4 +57,18 @@ export default {
   "โหลดข้อมูลช่องจอดไม่สำเร็จ": ["Could not load the slots"],
   "สถานะเวลาในห้องเย็นใหญ่": ["Time status in the large cold rooms"],
   "นับตามรายการวัตถุดิบ": ["Counted per raw material"],
+  // daily history (StockHistory.jsx, GET /api/coldstorages/stock/fetchHistory)
+  "ประวัติเข้า-ออกห้องเย็นใหญ่": ["Large cold room in / out history"],
+  "รายวัน · นับเป็นคัน": ["Per day · in trolleys"],
+  "เคลียร์ออก": ["Cleared"],
+  "Delay (ออกเกินเวลา)": ["Delay (left late)"],
+  "({x} รายการ)": ["({x} items)"],
+  "โหลดประวัติห้องเย็นใหญ่ไม่สำเร็จ": ["Could not load the large cold room history"],
+  "เข้าวันนี้": ["In today"],
+  "เคลียร์วันนี้": ["Cleared today"],
+  "Delay วันนี้": ["Delay today"],
+  "ออกจากห้องเกินเวลา": ["Left the room late"],
+  "ค้างเกินเวลาอยู่ตอนนี้": ["Overdue now"],
+  "ยังอยู่ในห้องและเลยกำหนด": ["Still in a room, over the limit"],
+  "Delay = รถเข็นที่ออกจากห้องเย็นใหญ่ในวันนั้นแล้วเวลาเย็นคงเหลือติดลบ (ห้องที่ไม่คำนวณ DCS ไม่นับ) · นับตามวันปฏิทิน": ["Delay = trolleys that left a large cold room that day with negative cold time left (rooms without DCS not counted) · calendar days"],
 };

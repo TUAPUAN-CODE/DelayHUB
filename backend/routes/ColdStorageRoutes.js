@@ -4752,6 +4752,88 @@ ORDER BY rmm.mapping_id DESC
         }
     });
 
+    // History of the large cold rooms per day (page /ColdStorages/StockSummary): trolleys that came in, trolleys that were cleared (went out),
+    // and cleared trolleys that were late. Read only.
+    // - in / out = History.cs_come_cold_date* / cs_out_cold_date* (rounds 1-10) on that calendar day; a trolley = History.tro_id (the trolley of the
+    //   raw material), counted once per day
+    // - late = went out that day with TrolleyRMMapping.cold_time < 0: the large-room check-out saves the cold time left (negative = over the limit),
+    //   and does not save it for the rooms without DCS (cs_id 10,14,21,25,26,37,38), so those never count as late
+    router.get("/coldstorages/stock/fetchHistory", async (req, res) => {
+        try {
+            const days = Math.min(31, Math.max(1, parseInt(req.query.days, 10) || 7));
+            const pool = await connectToDatabase();
+            if (!pool) {
+                return res.status(503).json({ success: false, error: "Database unavailable" });
+            }
+            const { cached } = require("../lib/sheetCache");
+            const rows = await cached(`coldstorages:stock-history:${days}`, async () => {
+                const result = await pool.request()
+                    .input("days", sql.Int, days)
+                    .query(`
+DECLARE @from DATETIME = DATEADD(DAY, 1 - @days, CAST(CAST(GETDATE() AS DATE) AS DATETIME));
+WITH ev AS (
+    SELECT h.mapping_id,
+           COALESCE(CAST(h.tro_id AS NVARCHAR(50)), CONCAT(N'm', h.mapping_id)) AS tro_key,
+           v.kind,
+           CAST(v.at AS DATE) AS d
+    FROM History h WITH (NOLOCK)
+    CROSS APPLY (VALUES
+        ('in', h.cs_come_cold_date), ('in', h.cs_come_cold_date_two), ('in', h.cs_come_cold_date_three), ('in', h.cs_come_cold_date_four),
+        ('in', h.cs_come_cold_date_five), ('in', h.cs_come_cold_date_six), ('in', h.cs_come_cold_date_seven), ('in', h.cs_come_cold_date_eight),
+        ('in', h.cs_come_cold_date_nine), ('in', h.cs_come_cold_date_ten),
+        ('out', h.cs_out_cold_date), ('out', h.cs_out_cold_date_two), ('out', h.cs_out_cold_date_three), ('out', h.cs_out_cold_date_four),
+        ('out', h.cs_out_out_date_five), ('out', h.cs_out_cold_date_six), ('out', h.cs_out_cold_date_seven), ('out', h.cs_out_cold_date_eight),
+        ('out', h.cs_out_cold_date_nine), ('out', h.cs_out_cold_date_ten)
+    ) v(kind, at)
+    WHERE h.cs_come_cold_date IS NOT NULL
+      AND v.at >= @from
+)
+SELECT CONVERT(CHAR(10), ev.d, 23) AS day,
+       ev.kind,
+       COUNT(DISTINCT ev.tro_key) AS trolleys,
+       COUNT(DISTINCT ev.mapping_id) AS items,
+       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.tro_key END) AS late_trolleys,
+       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.mapping_id END) AS late_items
+FROM ev
+LEFT JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = ev.mapping_id
+GROUP BY ev.d, ev.kind
+ORDER BY ev.d;
+`);
+                return result.recordset;
+            });
+
+            // one entry per day, also the days without any movement
+            const byDay = new Map();
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
+            start.setDate(start.getDate() - (days - 1));
+            for (let i = 0; i < days; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                byDay.set(key, { day: key, in_trolleys: 0, in_items: 0, out_trolleys: 0, out_items: 0, late_trolleys: 0, late_items: 0 });
+            }
+            rows.forEach((r) => {
+                const e = byDay.get(r.day);
+                if (!e) return;
+                if (r.kind === "in") {
+                    e.in_trolleys = r.trolleys;
+                    e.in_items = r.items;
+                } else {
+                    e.out_trolleys = r.trolleys;
+                    e.out_items = r.items;
+                    e.late_trolleys = r.late_trolleys;
+                    e.late_items = r.late_items;
+                }
+            });
+
+            res.json({ success: true, data: [...byDay.values()] });
+        } catch (err) {
+            console.error("[Route /coldstorages/stock/fetchHistory] Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
     router.get("/coldstorages/cs2", async (req, res) => {
         try {
             const { start_defrost_from, start_defrost_to, withdraw_from, withdraw_to } = req.query;
