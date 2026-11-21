@@ -4858,6 +4858,79 @@ ORDER BY ev.d;
         }
     });
 
+    // Stock left in the large cold rooms at the end of each day (page /ColdStorages/StockSummary). Read only.
+    // A stay = round n of History.cs_come_cold_date_n -> cs_out_cold_date_n (round 5 out = cs_out_out_date_five). A stay counts on day D when it
+    // began before the end of D and ended after it; a stay without an end counts only when it is the latest entry of the raw material and the
+    // trolley is still parked in a large room (cs_id 10-46) now — an old round left without an out time is not stock forever.
+    // The end of today = now. Trolley = History.tro_id (once per day), item = mapping_id.
+    router.get("/coldstorages/stock/fetchLevel", async (req, res) => {
+        try {
+            const days = Math.min(31, Math.max(1, parseInt(req.query.days, 10) || 7));
+            const pool = await connectToDatabase();
+            if (!pool) {
+                return res.status(503).json({ success: false, error: "Database unavailable" });
+            }
+            const { cached } = require("../lib/sheetCache");
+            const rows = await cached(`coldstorages:stock-level:${days}`, async () => {
+                const result = await pool.request()
+                    .input("days", sql.Int, days)
+                    .query(`
+DECLARE @today DATE = CAST(GETDATE() AS DATE);
+DECLARE @from DATETIME = DATEADD(DAY, 1 - @days, CAST(@today AS DATETIME));
+WITH stay AS (
+    SELECT h.mapping_id,
+           COALESCE(CAST(h.tro_id AS NVARCHAR(50)), CONCAT(N'm', h.mapping_id)) AS tro_key,
+           v.come,
+           v.out_at,
+           (SELECT MAX(x) FROM (VALUES (h.cs_come_cold_date), (h.cs_come_cold_date_two), (h.cs_come_cold_date_three), (h.cs_come_cold_date_four),
+               (h.cs_come_cold_date_five), (h.cs_come_cold_date_six), (h.cs_come_cold_date_seven), (h.cs_come_cold_date_eight),
+               (h.cs_come_cold_date_nine), (h.cs_come_cold_date_ten)) t(x)) AS last_in
+    FROM History h WITH (NOLOCK)
+    CROSS APPLY (VALUES
+        (h.cs_come_cold_date, h.cs_out_cold_date), (h.cs_come_cold_date_two, h.cs_out_cold_date_two),
+        (h.cs_come_cold_date_three, h.cs_out_cold_date_three), (h.cs_come_cold_date_four, h.cs_out_cold_date_four),
+        (h.cs_come_cold_date_five, h.cs_out_out_date_five), (h.cs_come_cold_date_six, h.cs_out_cold_date_six),
+        (h.cs_come_cold_date_seven, h.cs_out_cold_date_seven), (h.cs_come_cold_date_eight, h.cs_out_cold_date_eight),
+        (h.cs_come_cold_date_nine, h.cs_out_cold_date_nine), (h.cs_come_cold_date_ten, h.cs_out_cold_date_ten)
+    ) v(come, out_at)
+    WHERE h.cs_come_cold_date IS NOT NULL
+      AND v.come IS NOT NULL
+      AND (v.out_at IS NULL OR v.out_at >= @from)
+),
+open_stay AS (
+    SELECT st.mapping_id, st.tro_key, st.come, st.out_at,
+           CASE WHEN st.out_at IS NULL AND st.come = st.last_in AND EXISTS (
+                SELECT 1 FROM TrolleyRMMapping rmm WITH (NOLOCK)
+                JOIN Slot s WITH (NOLOCK) ON s.tro_id = rmm.tro_id AND s.cs_id BETWEEN 10 AND 46
+                WHERE rmm.mapping_id = st.mapping_id) THEN 1 ELSE 0 END AS still_in
+    FROM stay st
+),
+n AS (
+    SELECT TOP (@days) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS i FROM sys.all_objects
+),
+dd AS (
+    SELECT DATEADD(DAY, n.i, CAST(@from AS DATE)) AS d FROM n
+)
+SELECT CONVERT(CHAR(10), dd.d, 23) AS day,
+       COUNT(DISTINCT os.tro_key) AS trolleys,
+       COUNT(DISTINCT os.mapping_id) AS items
+FROM dd
+CROSS APPLY (SELECT CASE WHEN dd.d = @today THEN GETDATE() ELSE DATEADD(DAY, 1, CAST(dd.d AS DATETIME)) END AS cut) c
+LEFT JOIN open_stay os
+    ON os.come < c.cut
+   AND (os.out_at >= c.cut OR (os.out_at IS NULL AND os.still_in = 1))
+GROUP BY dd.d
+ORDER BY dd.d;
+`);
+                return result.recordset;
+            });
+            res.json({ success: true, data: rows.map((r) => ({ day: r.day, trolleys: r.trolleys, items: r.items })) });
+        } catch (err) {
+            console.error("[Route /coldstorages/stock/fetchLevel] Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
     router.get("/coldstorages/cs2", async (req, res) => {
         try {
             const { start_defrost_from, start_defrost_to, withdraw_from, withdraw_to } = req.query;
