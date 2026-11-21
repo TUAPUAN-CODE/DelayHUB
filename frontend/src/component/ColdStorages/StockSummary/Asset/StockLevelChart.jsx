@@ -18,7 +18,7 @@ const VIEWS = [
   { value: "table", label: <Table2 size={16} /> },
 ];
 
-const LevelTip = ({ active, payload, unitLabel }) => {
+const LevelTip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const r = payload[0].payload;
   return (
@@ -30,12 +30,6 @@ const LevelTip = ({ active, payload, unitLabel }) => {
         <span className="ml-auto pl-3 font-semibold tabular-nums" style={{ color: TOKENS.text }}>{`${r.trolleys} คัน`}</span>
         <span className="text-xs tabular-nums" style={{ color: TOKENS.muted }}>{`(${r.items} รายการ)`}</span>
       </div>
-      {r.change != null && (
-        <div className="mt-1 flex items-center gap-2 border-t pt-1" style={{ borderColor: TOKENS.border }}>
-          <span style={{ color: TOKENS.muted }}>จากวันก่อน</span>
-          <span className="ml-auto pl-3 font-semibold tabular-nums" style={{ color: TOKENS.text }}>{`${signedNum(r.change)} ${unitLabel}`}</span>
-        </div>
-      )}
     </div>
   );
 };
@@ -207,7 +201,7 @@ const StockLevelChart = ({ overdueNow, reloadKey, className = "" }) => {
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} interval={dense ? 3 : days > 7 ? 1 : 0} tickMargin={8}
                 />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={44} tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} />
-                <ChartTip content={<LevelTip unitLabel={uLabel} />} cursor={{ stroke: TOKENS.border, strokeWidth: 1.5 }} />
+                <ChartTip content={<LevelTip />} cursor={{ stroke: TOKENS.border, strokeWidth: 1.5 }} />
                 <ReferenceLine y={avg} stroke="#64748B" strokeDasharray="5 5" strokeWidth={1.5} />
                 <Area
                   type="monotone" dataKey="v" stroke={COLOR} strokeWidth={3} fill="url(#ssLevel)"
