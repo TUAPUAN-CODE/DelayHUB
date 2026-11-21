@@ -66,6 +66,13 @@ export default {
   "โหลดประวัติห้องเย็นใหญ่ไม่สำเร็จ": ["Could not load the large cold room history"],
   "เข้าวันนี้": ["In today"],
   "{x} จากเมื่อวาน": ["{x} vs yesterday"],
+  // share of delayed raw materials per day (DelayShareChart.jsx)
+  "ไม่ delay": ["Not delayed"],
+  "เข้าห้องเย็นใหญ่ {x} รายการ": ["{x} items came into the large cold rooms"],
+  "สัดส่วนวัตถุดิบ Delay ที่เข้าห้องเย็นใหญ่": ["Share of delayed raw materials in the large cold rooms"],
+  "รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%": ["Per day · all items that came in that day = 100%"],
+  "{x} วัน: Delay {x}% ({x} จาก {x} รายการ)": ["{x} days: Delay {x}% ({x} of {x} items)"],
+  "Delay = ออกจากห้องเกินเวลา หรือยังจอดอยู่ในห้องที่คำนวณ DCS เกินเวลาเย็นของรายการ · วันที่ไม่มีรายการเข้า แท่งว่าง": ["Delay = left late, or still parked in a room with DCS longer than the item's cold time · days without items have no bar"],
   "เคลียร์วันนี้": ["Cleared today"],
   "Delay วันนี้": ["Delay today"],
   "ออกจากห้องเกินเวลา": ["Left the room late"],
