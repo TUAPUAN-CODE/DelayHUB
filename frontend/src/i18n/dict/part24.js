@@ -55,4 +55,6 @@ export default {
   "รถเข็น {x} คัน · {x} kg": ["{x} trolleys · {x} kg"],
   "· อยู่ {x}": ["· in for {x}"],
   "โหลดข้อมูลช่องจอดไม่สำเร็จ": ["Could not load the slots"],
+  "สถานะเวลาในห้องเย็นใหญ่": ["Time status in the large cold rooms"],
+  "นับตามรายการวัตถุดิบ": ["Counted per raw material"],
 };
