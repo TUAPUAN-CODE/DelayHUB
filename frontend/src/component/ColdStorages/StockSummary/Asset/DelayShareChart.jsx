@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "@mui/material";
 import { ChartColumnStacked } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import { CARD, FONT, TOKENS, SectionTitle } from "./StockTheme";
@@ -103,10 +104,15 @@ const DelayShareChart = ({ rows, days }) => {
   const worst = withItems.reduce((a, r) => (!a || r.late_pct > a.late_pct ? r : a), null);
   const best = withItems.reduce((a, r) => (!a || r.late_pct < a.late_pct ? r : a), null);
   const dense = days > 14;
+  // the backend before the Delay share (PR #63) does not send in_late_items: every bar would read 0 %
+  const noLateData = rows.length > 0 && rows.every((r) => r.in_late_items === undefined);
 
   return (
     <section className="space-y-3">
       <SectionTitle icon={ChartColumnStacked} title="สัดส่วนวัตถุดิบ Delay ที่เข้าห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%" />
+      {noLateData && (
+        <Alert severity="warning" sx={FONT}>ยังไม่มีข้อมูล Delay จากเซิร์ฟเวอร์ (backend ยังไม่ได้ reload) กราฟนี้จึงยังไม่ถูกต้อง</Alert>
+      )}
       <div className="grid grid-cols-1 gap-4 overflow-hidden p-4 lg:grid-cols-[280px_1fr]" style={CARD}>
         {/* summary of the range */}
         <div className="flex flex-col items-center gap-3 rounded-2xl p-4" style={{ background: "linear-gradient(160deg, #FFF5F5 0%, #F7F9FE 60%)", border: `1px solid ${TOKENS.border}` }}>

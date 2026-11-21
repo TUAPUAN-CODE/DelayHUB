@@ -4758,8 +4758,10 @@ ORDER BY rmm.mapping_id DESC
     //   raw material), counted once per day
     // - late = went out that day with TrolleyRMMapping.cold_time < 0: the large-room check-out saves the cold time left (negative = over the limit),
     //   and does not save it for the rooms without DCS (cs_id 10,14,21,25,26,37,38), so those never count as late
-    // - in_late_items = raw materials that came in that day and are delayed: cold_time < 0 (left late), or still parked in a large room with DCS
-    //   longer than their cold time (cold_time is H.MM: 1.30 = 1 h 30 min)
+    // - in_late_items = raw materials that came in that day and are delayed: cold_time < 0 (left late), or still parked (this stay = their
+    //   latest entry) in a large room with DCS and red by the same rule as the LargeRooms table (RoomMonitor/Asset/csDelay.js):
+    //   cold = COALESCE(cold_time, group cold) <= 0, or the time in the room > cold, or >= the group standard (120 min when the group has none).
+    //   Hours are H.MM: 1.30 = 1 h 30 min
     router.get("/coldstorages/stock/fetchHistory", async (req, res) => {
         try {
             const days = Math.min(31, Math.max(1, parseInt(req.query.days, 10) || 7));
@@ -4778,7 +4780,10 @@ WITH ev AS (
            COALESCE(CAST(h.tro_id AS NVARCHAR(50)), CONCAT(N'm', h.mapping_id)) AS tro_key,
            v.kind,
            v.at,
-           CAST(v.at AS DATE) AS d
+           CAST(v.at AS DATE) AS d,
+           (SELECT MAX(x) FROM (VALUES (h.cs_come_cold_date), (h.cs_come_cold_date_two), (h.cs_come_cold_date_three), (h.cs_come_cold_date_four),
+               (h.cs_come_cold_date_five), (h.cs_come_cold_date_six), (h.cs_come_cold_date_seven), (h.cs_come_cold_date_eight),
+               (h.cs_come_cold_date_nine), (h.cs_come_cold_date_ten)) t(x)) AS last_in
     FROM History h WITH (NOLOCK)
     CROSS APPLY (VALUES
         ('in', h.cs_come_cold_date), ('in', h.cs_come_cold_date_two), ('in', h.cs_come_cold_date_three), ('in', h.cs_come_cold_date_four),
@@ -4797,14 +4802,23 @@ SELECT CONVERT(CHAR(10), ev.d, 23) AS day,
        COUNT(DISTINCT ev.mapping_id) AS items,
        COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.tro_key END) AS late_trolleys,
        COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.mapping_id END) AS late_items,
-       COUNT(DISTINCT CASE WHEN ev.kind = 'in' AND (
-                rmm.cold_time < 0
-                OR (s.cs_id IS NOT NULL AND s.cs_id NOT IN (10, 14, 21, 25, 26, 37, 38) AND rmm.cold_time IS NOT NULL
-                    AND DATEDIFF(MINUTE, ev.at, GETDATE()) > FLOOR(rmm.cold_time) * 60 + (rmm.cold_time - FLOOR(rmm.cold_time)) * 100)
-           ) THEN ev.mapping_id END) AS in_late_items
+       COUNT(DISTINCT CASE WHEN ev.kind = 'in' AND z.is_late = 1 THEN ev.mapping_id END) AS in_late_items
 FROM ev
 LEFT JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = ev.mapping_id
+LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
 LEFT JOIN Slot s WITH (NOLOCK) ON s.tro_id = rmm.tro_id AND s.cs_id BETWEEN 10 AND 46
+CROSS APPLY (SELECT
+    COALESCE(rmm.cold_time, rmg.cold) AS ct,
+    CASE WHEN rmg.cold > 0 THEN FLOOR(rmg.cold) * 60 + (rmg.cold - FLOOR(rmg.cold)) * 100 ELSE 120 END AS std_min,
+    DATEDIFF(MINUTE, ev.at, GETDATE()) AS elapsed
+) c
+CROSS APPLY (SELECT CASE
+    WHEN rmm.cold_time < 0 THEN 1
+    WHEN ev.kind = 'in' AND ev.at = ev.last_in AND s.cs_id IS NOT NULL AND s.cs_id NOT IN (10, 14, 21, 25, 26, 37, 38)
+         AND (c.ct <= 0 OR c.elapsed > FLOOR(c.ct) * 60 + (c.ct - FLOOR(c.ct)) * 100 OR c.elapsed >= c.std_min) THEN 1
+    ELSE 0 END AS is_late
+) z
 GROUP BY ev.d, ev.kind
 ORDER BY ev.d;
 `);
