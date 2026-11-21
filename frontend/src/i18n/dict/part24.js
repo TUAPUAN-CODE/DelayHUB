@@ -70,6 +70,8 @@ export default {
   "ไม่ delay": ["Not delayed"],
   // time in the large cold rooms (DwellChart.jsx, GET /api/coldstorages/stock/fetchDwell)
   "นานสุดของวัน": ["Longest of the day"],
+  "เฉลี่ยเกินมาตรฐาน": ["Average over the standard"],
+  "มาตรฐาน {x}": ["Standard {x}"],
   "มาตรฐาน (เฉลี่ยของกลุ่ม)": ["Standard (group average)"],
   "ออกจากห้อง {x} รายการ": ["{x} items went out"],
   "นานสุด: {x} · รถเข็น {x}": ["Longest: {x} · trolley {x}"],

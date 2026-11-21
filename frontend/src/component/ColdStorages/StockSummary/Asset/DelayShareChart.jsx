@@ -146,9 +146,10 @@ const DelayShareChart = ({ reloadKey }) => {
       {noLateData && (
         <Alert severity="warning" sx={FONT}>ยังไม่มีข้อมูล Delay จากเซิร์ฟเวอร์ (backend ยังไม่ได้ reload) กราฟนี้จึงยังไม่ถูกต้อง</Alert>
       )}
-      <div className="grid grid-cols-1 gap-4 overflow-hidden p-4 lg:grid-cols-[280px_1fr]" style={CARD}>
+      {/* chart 2/3 + summary 1/3: the same columns as the row above (time in the rooms | time status) */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         {/* summary of the range */}
-        <div className="flex flex-col items-center gap-3 rounded-2xl p-4" style={{ background: "linear-gradient(160deg, #FFF5F5 0%, #F7F9FE 60%)", border: `1px solid ${TOKENS.border}` }}>
+        <div className="order-2 flex flex-col items-center justify-center gap-3 p-5" style={{ ...CARD, background: "linear-gradient(160deg, #FFF5F5 0%, #FFFFFF 55%)" }}>
           <div className="text-sm font-semibold" style={{ color: TOKENS.text }}>{`ภาพรวม ${days} วัน`}</div>
           <Gauge value={avg} />
           <div className="text-center text-sm" style={{ color: TOKENS.muted }}>{`${sumLate} จาก ${sumIn} รายการ`}</div>
@@ -159,7 +160,7 @@ const DelayShareChart = ({ reloadKey }) => {
         </div>
 
         {/* one bar per day */}
-        <div className="min-w-0">
+        <div className="order-1 min-w-0 p-4 lg:col-span-2" style={CARD}>
           <div className="mb-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm" style={{ color: TOKENS.text }}>
             {[LATE, OK].map((s) => (
               <span key={s.key} className="flex items-center gap-2">
