@@ -42,4 +42,10 @@ export default {
   "แสดงทุกห้อง": ["Show all rooms"],
   "ซ่อนทุกห้อง": ["Hide all rooms"],
   "ไม่ได้เลือกห้องที่จะแสดง": ["No room selected"],
+  "กดเพื่อดูรายละเอียด": ["Click for details"],
+  "อยู่ {x}": ["In for {x}"],
+  "สถานะเวลา": ["Time status"],
+  "อยู่มาแล้ว": ["Time in room"],
+  "มาตรฐาน (ชม.)": ["Standard (h)"],
+  "รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด {x} คัน": ["Overdue / near-limit trolleys: {x}"],
 };

@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Chip, FormControlLabel, Switch, Tooltip } from "@mui/material";
+import {
+  Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, Tooltip,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+} from "@mui/material";
 import { ROOM_CONFIG } from "../../RoomMonitor/Asset/flow/largeRooms";
-import { calculateCSDelayTime, formatTime } from "../../RoomMonitor/Asset/csDelay";
+import { calculateCSDelayTime, formatTime, getLatestCsComeCold } from "../../RoomMonitor/Asset/csDelay";
 import { STATUS_META, SOURCE_LABEL, formatKg } from "./buildStockSummary";
 
 // what this viewer chose to see (this browser only): show the layout at all, rooms hidden, only rooms with trolleys
@@ -51,6 +54,32 @@ const shortText = (delay) => {
   return `เหลือ ${formatTime(delay.minutes)}`;
 };
 
+const FONT = { fontFamily: "Prompt, Kanit, sans-serif" };
+
+// minutes since the trolley came into the large room (latest cs_come_cold_date*), null when unknown
+const minutesInRoom = (row) => {
+  const t = getLatestCsComeCold(row);
+  return t ? (Date.now() - t.getTime()) / 60000 : null;
+};
+const formatDateTime = (d) => (d ? d.toLocaleString("th-TH", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-");
+
+// slot ids of the large rooms are "<row letters><number>" (aaa1 ... aaa10, aab1 ...): one line per row like the room itself
+const SLOT_RE = /^([^\d]+)(\d+)$/;
+const toGrid = (tiles) => {
+  const rowsByKey = new Map();
+  let maxCol = 0;
+  for (const t of tiles) {
+    const m = SLOT_RE.exec(String(t.slot.slot_id));
+    if (!m) return null; // another naming: plain grid
+    const col = Number(m[2]);
+    maxCol = Math.max(maxCol, col);
+    if (!rowsByKey.has(m[1])) rowsByKey.set(m[1], []);
+    rowsByKey.get(m[1]).push({ ...t, col });
+  }
+  if (maxCol > 20) return null;
+  return { maxCol, lines: [...rowsByKey.entries()].map(([key, cells]) => ({ key, cells })) };
+};
+
 const EMPTY_LOOK = {
   free: { bg: "#FFFFFF", border: "#E2E8F0", color: "#94A3B8", text: "ว่าง" },
   reserved: { bg: "#FFF8E6", border: "#FDE2A7", color: "#B45309", text: "จองอยู่" },
@@ -66,8 +95,9 @@ const slotKind = (s, trolley) => {
 };
 
 const TrolleyTip = ({ trolley }) => (
-  <div style={{ fontFamily: "Prompt, Kanit, sans-serif", fontSize: 12 }}>
-    <div style={{ fontWeight: 600, marginBottom: 4 }}>รถเข็น {trolley.tro_id}</div>
+  <div style={{ ...FONT, fontSize: 12 }}>
+    <div style={{ fontWeight: 600 }}>รถเข็น {trolley.tro_id}</div>
+    <div style={{ marginBottom: 4, opacity: 0.8 }}>กดเพื่อดูรายละเอียด</div>
     {trolley.items.map((it) => (
       <div key={it.row.mapping_id} style={{ marginBottom: 2 }}>
         {it.row.mat_name || it.row.mat} · {formatKg(it.row.weight_RM)} kg · {SOURCE_LABEL[it.row.source]} · {it.delay.message}
@@ -76,13 +106,13 @@ const TrolleyTip = ({ trolley }) => (
   </div>
 );
 
-const SlotTile = ({ slot, trolley, dimmed }) => {
+const SlotTile = ({ slot, trolley, dimmed, onOpen }) => {
   const kind = slotKind(slot, trolley);
   if (kind !== "trolley") {
     const look = EMPTY_LOOK[kind];
     return (
       <div
-        className="rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[64px]"
+        className="rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[92px]"
         style={{ backgroundColor: look.bg, border: `1px dashed ${look.border}`, color: look.color }}
       >
         <span className="text-[11px]">{slot.slot_id}</span>
@@ -92,17 +122,148 @@ const SlotTile = ({ slot, trolley, dimmed }) => {
     );
   }
   const meta = STATUS_META[trolley.delay.key];
+  const first = trolley.items[0].row;
+  const weight = trolley.items.reduce((sum, it) => sum + (Number.parseFloat(it.row.weight_RM) || 0), 0);
+  const stay = minutesInRoom(first);
   return (
     <Tooltip title={<TrolleyTip trolley={trolley} />} arrow>
-      <div
-        className="rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[64px] cursor-default"
+      <button
+        type="button"
+        onClick={() => onOpen(trolley, slot)}
+        className="w-full text-left rounded-lg px-1.5 py-1 flex flex-col justify-center min-h-[92px] leading-tight hover:shadow-md"
         style={{ backgroundColor: meta.bg, border: `2px solid ${meta.color}`, opacity: dimmed ? 0.3 : 1 }}
       >
-        <span className="text-[11px] text-slate-500">{slot.slot_id}</span>
+        <span className="flex justify-between text-[11px] text-slate-500">
+          <span>{slot.slot_id}</span>
+          {trolley.items.length > 1 && <span>{trolley.items.length} รายการ</span>}
+        </span>
         <span className="text-sm font-semibold text-slate-800 truncate">{trolley.tro_id}</span>
-        <span className="text-[11px] font-semibold leading-tight" style={{ color: meta.color }}>{shortText(trolley.delay)}</span>
-      </div>
+        <span className="text-[11px] text-slate-700 truncate">{first.mat_name || first.mat}</span>
+        <span className="text-[11px] text-slate-500 tabular-nums">{formatKg(weight)} kg</span>
+        {stay !== null && <span className="text-[11px] text-slate-500">{`อยู่ ${formatTime(stay)}`}</span>}
+        <span className="text-[11px] font-semibold" style={{ color: meta.color }}>{shortText(trolley.delay)}</span>
+      </button>
     </Tooltip>
+  );
+};
+
+// every raw material on one trolley (closes from its own button only, as every dialog of the system)
+const TrolleyDialog = ({ open, data, onClose }) => {
+  if (!data) return null;
+  const { trolley, slot, roomName } = data;
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={FONT}>รถเข็น {trolley.tro_id} · {roomName} ช่อง {slot.slot_id}</DialogTitle>
+      <DialogContent dividers sx={{ ...FONT, display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {trolley.items.map(({ row, delay }) => {
+          const meta = STATUS_META[delay.key];
+          const stay = minutesInRoom(row);
+          const fields = [
+            ["รหัสวัตถุดิบ", row.mat],
+            ["Batch", row.batch],
+            ["แผนการผลิต", row.production],
+            ["กลุ่ม", row.rm_group_name],
+            ["น้ำหนัก (kg)", formatKg(row.weight_RM)],
+            ["ถาด", row.tray_count],
+            ["แหล่งที่มา", SOURCE_LABEL[row.source]],
+            ["เข้าห้องเย็นใหญ่", formatDateTime(getLatestCsComeCold(row))],
+            ["อยู่มาแล้ว", stay !== null ? formatTime(stay) : null],
+            ["มาตรฐาน (ชม.)", row.standard_cold],
+            ["สถานะ", row.rm_status],
+            ["หมายเหตุ", row.remark],
+            ["mapping_id", row.mapping_id],
+          ];
+          return (
+            <div key={row.mapping_id} className="rounded-lg p-3" style={{ border: `2px solid ${meta.color}`, backgroundColor: meta.bg }}>
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-semibold text-slate-800">{row.mat_name || row.mat || "-"}</span>
+                <span className="font-semibold" style={{ color: meta.color }}>{delay.message}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+                {fields.map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <div className="text-[11px] text-slate-500">{label}</div>
+                    <div className="text-sm text-slate-800 break-words">{value === null || value === undefined || value === "" ? "-" : value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} sx={FONT}>ปิด</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// trolleys that need action first: overdue, then near the limit, the least time left first
+const UrgentList = ({ items, onOpen }) => {
+  if (items.length === 0) return null;
+  const head = { ...FONT, fontWeight: 600, whiteSpace: "nowrap", backgroundColor: "#FEF2F2", py: 0.75 };
+  const cell = { ...FONT, py: 0.5 };
+  return (
+    <div className="rounded-xl border border-red-200 bg-white shadow-sm p-3">
+      <div className="mb-2 font-semibold text-slate-800">{`รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด ${items.length} คัน`}</div>
+      <TableContainer sx={{ maxHeight: 300 }}>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              {["สถานะ", "ห้อง", "ช่อง", "รถเข็น", "วัตถุดิบ", "น้ำหนัก (kg)", "เข้าห้องเย็นใหญ่"].map((h) => (
+                <TableCell key={h} sx={head}>{h}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((u) => {
+              const meta = STATUS_META[u.trolley.delay.key];
+              const weight = u.trolley.items.reduce((sum, it) => sum + (Number.parseFloat(it.row.weight_RM) || 0), 0);
+              return (
+                <TableRow key={`${u.roomName}-${u.slot.slot_id}`} hover sx={{ cursor: "pointer" }} onClick={() => onOpen(u.trolley, u.slot, u.roomName)}>
+                  <TableCell sx={{ ...cell, color: meta.color, fontWeight: 600, whiteSpace: "nowrap" }}>{shortText(u.trolley.delay)}</TableCell>
+                  <TableCell sx={cell}>{u.roomName}</TableCell>
+                  <TableCell sx={cell}>{u.slot.slot_id}</TableCell>
+                  <TableCell sx={{ ...cell, fontWeight: 600 }}>{u.trolley.tro_id}</TableCell>
+                  <TableCell sx={cell}>{u.trolley.items.map((it) => it.row.mat_name || it.row.mat).join(", ")}</TableCell>
+                  <TableCell sx={{ ...cell, textAlign: "right" }}>{formatKg(weight)}</TableCell>
+                  <TableCell sx={{ ...cell, whiteSpace: "nowrap" }}>{formatDateTime(getLatestCsComeCold(u.trolley.items[0].row))}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </div>
+  );
+};
+
+const RoomGrid = ({ room, onOpen }) => {
+  const grid = toGrid(room.tiles);
+  const open = (trolley, slot) => onOpen(trolley, slot, room.cs_name);
+  if (!grid) {
+    return (
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
+        {room.tiles.map((t) => <SlotTile key={t.slot.slot_id} slot={t.slot} trolley={t.trolley} dimmed={t.dimmed} onOpen={open} />)}
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <div className="grid gap-1.5 min-w-[900px]" style={{ gridTemplateColumns: `44px repeat(${grid.maxCol}, minmax(0, 1fr))` }}>
+        {grid.lines.map((line) => (
+          <React.Fragment key={line.key}>
+            <div className="flex items-center justify-center text-xs font-semibold text-slate-400 uppercase">{line.key}</div>
+            {Array.from({ length: grid.maxCol }, (_, i) => {
+              const t = line.cells.find((c) => c.col === i + 1);
+              return t
+                ? <SlotTile key={t.slot.slot_id} slot={t.slot} trolley={t.trolley} dimmed={t.dimmed} onOpen={open} />
+                : <div key={`${line.key}${i + 1}`} />;
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -130,6 +291,9 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
     ...p,
     hidden: p.hidden.includes(csId) ? p.hidden.filter((id) => id !== csId) : [...p.hidden, csId],
   }));
+  const [detail, setDetail] = useState(null);
+  const openDetail = (trolley, slot, roomName) => setDetail({ trolley, slot, roomName });
+  const closeDetail = () => setDetail(null);
   const showAllRooms = () => setPrefs((p) => ({ ...p, hidden: [] }));
   const hideAllRooms = (ids) => () => setPrefs((p) => ({ ...p, hidden: [...new Set([...p.hidden, ...ids])] }));
 
@@ -164,13 +328,25 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
         const dimmed = !!trolley && source !== "all" && !trolley.sources.has(source);
         return { slot: s, trolley, dimmed };
       });
-      return { ...r, tiles, used, count };
+      const weight = tiles.reduce((sum, t) => sum + (t.trolley ? t.trolley.items.reduce((w, it) => w + (Number.parseFloat(it.row.weight_RM) || 0), 0) : 0), 0);
+      return { ...r, tiles, used, count, weight };
     });
     // tick: the delay is recalculated every minute
   }, [rows, slots, source, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choosable = onlyUsed ? rooms.filter((r) => r.used > 0) : rooms;
   const shown = choosable.filter((r) => !hidden.has(r.cs_id));
+
+  // every overdue / near-limit trolley of every room (also the hidden ones: a hidden room must not hide a late trolley)
+  const urgent = useMemo(() => {
+    const list = [];
+    rooms.forEach((r) => r.tiles.forEach((t) => {
+      if (t.trolley && !t.dimmed && (t.trolley.delay.key === "red" || t.trolley.delay.key === "orange")) {
+        list.push({ trolley: t.trolley, slot: t.slot, roomName: r.cs_name });
+      }
+    }));
+    return list.sort((a, b) => RANK[a.trolley.delay.key] - RANK[b.trolley.delay.key] || (a.trolley.delay.minutes ?? 0) - (b.trolley.delay.minutes ?? 0));
+  }, [rooms]);
 
   return (
     <section className="space-y-3">
@@ -218,30 +394,30 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
         </div>
       )}
 
+      {show && <UrgentList items={urgent} onOpen={openDetail} />}
+
       {!show ? null : shown.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-slate-500">{choosable.length === 0 ? "ไม่มีรถเข็นจอดในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}</div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {shown.map((room) => (
             <div key={room.cs_id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-3">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-slate-800">{room.cs_name}</span>
-                <span className="text-xs text-slate-500">ใช้ {room.used} / {room.tiles.length} ช่อง</span>
+                <span className="text-xs text-slate-500">ใช้ {room.used} / {room.tiles.length} ช่อง · {formatKg(room.weight)} kg</span>
                 <span className="ml-auto flex flex-wrap gap-1">
                   <CountPill k="red" n={room.count.red} />
                   <CountPill k="orange" n={room.count.orange} />
                   <CountPill k="green" n={room.count.green} />
                 </span>
               </div>
-              <div className="grid gap-1.5 max-h-[420px] overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))" }}>
-                {room.tiles.map((t) => (
-                  <SlotTile key={t.slot.slot_id} slot={t.slot} trolley={t.trolley} dimmed={t.dimmed} />
-                ))}
-              </div>
+              <RoomGrid room={room} onOpen={openDetail} />
             </div>
           ))}
         </div>
       )}
+
+      <TrolleyDialog open={!!detail} data={detail} onClose={closeDetail} />
     </section>
   );
 };
