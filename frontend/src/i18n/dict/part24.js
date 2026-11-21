@@ -68,6 +68,7 @@ export default {
   "{x} จากเมื่อวาน": ["{x} vs yesterday"],
   // share of delayed raw materials per day (DelayShareChart.jsx)
   "ไม่ delay": ["Not delayed"],
+  "ยังไม่มีข้อมูล Delay จากเซิร์ฟเวอร์ (backend ยังไม่ได้ reload) กราฟนี้จึงยังไม่ถูกต้อง": ["No Delay data from the server yet (backend not reloaded): this chart is not correct yet"],
   "ภาพรวม {x} วัน": ["Overview of {x} days"],
   "{x} จาก {x} รายการ": ["{x} of {x} items"],
   "Delay มากสุด": ["Most delay"],
