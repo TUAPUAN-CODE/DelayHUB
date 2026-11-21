@@ -37,4 +37,9 @@ export default {
   "ไม่มีข้อมูลวัตถุดิบ": ["No raw material data"],
   "เลย {x}": ["Over {x}"],
   "เหลือ {x}": ["{x} left"],
+  "แสดง Layout": ["Show layout"],
+  "ห้องที่แสดง:": ["Rooms shown:"],
+  "แสดงทุกห้อง": ["Show all rooms"],
+  "ซ่อนทุกห้อง": ["Hide all rooms"],
+  "ไม่ได้เลือกห้องที่จะแสดง": ["No room selected"],
 };

@@ -1,8 +1,29 @@
-import React, { useMemo, useState } from "react";
-import { FormControlLabel, Switch, Tooltip } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, Chip, FormControlLabel, Switch, Tooltip } from "@mui/material";
 import { ROOM_CONFIG } from "../../RoomMonitor/Asset/flow/largeRooms";
 import { calculateCSDelayTime, formatTime } from "../../RoomMonitor/Asset/csDelay";
 import { STATUS_META, SOURCE_LABEL, formatKg } from "./buildStockSummary";
+
+// what this viewer chose to see (this browser only): show the layout at all, rooms hidden, only rooms with trolleys
+const PREFS_KEY = "stockSummary.layoutPrefs";
+const DEFAULT_PREFS = { show: true, hidden: [], onlyUsed: true };
+const loadPrefs = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "null");
+    if (!p || typeof p !== "object") return DEFAULT_PREFS;
+    return {
+      show: p.show !== false,
+      hidden: Array.isArray(p.hidden) ? p.hidden.map(Number).filter(Number.isFinite) : [],
+      onlyUsed: p.onlyUsed !== false,
+    };
+  } catch (err) {
+    console.error("StockSummary layout prefs read error:", err);
+    return DEFAULT_PREFS;
+  }
+};
+const savePrefs = (prefs) => {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (err) { console.error("StockSummary layout prefs save error:", err); }
+};
 
 const LARGE_ROOM_IDS = new Set(ROOM_CONFIG.map((r) => r.cs_id));
 const naturalSort = (a, b) => String(a.slot_id).localeCompare(String(b.slot_id), "en", { numeric: true });
@@ -97,7 +118,20 @@ const CountPill = ({ k, n }) => (n > 0 ? (
  * rows: the rows of the page (with .source); slots: GET /api/coldstorage/room; source: the source filter of the page.
  */
 const RoomLayouts = ({ rows, slots, source, tick }) => {
-  const [onlyUsed, setOnlyUsed] = useState(true);
+  const [prefs, setPrefs] = useState(loadPrefs);
+  const { show, onlyUsed } = prefs;
+  const hidden = useMemo(() => new Set(prefs.hidden), [prefs.hidden]);
+
+  useEffect(() => { savePrefs(prefs); }, [prefs]);
+
+  const setShow = (e) => setPrefs((p) => ({ ...p, show: e.target.checked }));
+  const setOnlyUsed = (e) => setPrefs((p) => ({ ...p, onlyUsed: e.target.checked }));
+  const toggleRoom = (csId) => setPrefs((p) => ({
+    ...p,
+    hidden: p.hidden.includes(csId) ? p.hidden.filter((id) => id !== csId) : [...p.hidden, csId],
+  }));
+  const showAllRooms = () => setPrefs((p) => ({ ...p, hidden: [] }));
+  const hideAllRooms = (ids) => () => setPrefs((p) => ({ ...p, hidden: [...new Set([...p.hidden, ...ids])] }));
 
   const rooms = useMemo(() => {
     const trolleys = new Map();
@@ -135,13 +169,20 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
     // tick: the delay is recalculated every minute
   }, [rows, slots, source, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shown = onlyUsed ? rooms.filter((r) => r.used > 0) : rooms;
+  const choosable = onlyUsed ? rooms.filter((r) => r.used > 0) : rooms;
+  const shown = choosable.filter((r) => !hidden.has(r.cs_id));
 
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-slate-800">Layout แต่ละห้อง</h2>
-        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-slate-800">Layout แต่ละห้อง</h2>
+          <FormControlLabel
+            control={<Switch size="small" checked={show} onChange={setShow} />}
+            label={<span className="text-sm">แสดง Layout</span>}
+          />
+        </div>
+        {show && <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
           {["red", "orange", "green"].map((k) => (
             <span key={k} className="flex items-center gap-1.5">
               <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: STATUS_META[k].bg, border: `2px solid ${STATUS_META[k].color}` }} />
@@ -149,14 +190,36 @@ const RoomLayouts = ({ rows, slots, source, tick }) => {
             </span>
           ))}
           <FormControlLabel
-            control={<Switch size="small" checked={onlyUsed} onChange={(e) => setOnlyUsed(e.target.checked)} />}
+            control={<Switch size="small" checked={onlyUsed} onChange={setOnlyUsed} />}
             label={<span className="text-sm">เฉพาะห้องที่มีรถเข็น</span>}
           />
-        </div>
+        </div>}
       </div>
 
-      {shown.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-slate-500">ไม่มีรถเข็นจอดในห้องเย็นใหญ่</div>
+      {show && choosable.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-sm text-slate-500 mr-1">ห้องที่แสดง:</span>
+          {choosable.map((r) => {
+            const on = !hidden.has(r.cs_id);
+            return (
+              <Chip
+                key={r.cs_id}
+                size="small"
+                label={r.count.red > 0 ? `${r.cs_name} (${r.count.red})` : r.cs_name}
+                color={on ? "primary" : "default"}
+                variant={on ? "filled" : "outlined"}
+                onClick={() => toggleRoom(r.cs_id)}
+                sx={{ fontFamily: "Prompt, Kanit, sans-serif", ...(r.count.red > 0 && !on ? { borderColor: STATUS_META.red.color, color: STATUS_META.red.color } : {}) }}
+              />
+            );
+          })}
+          <Button size="small" onClick={showAllRooms} sx={{ fontFamily: "Prompt, Kanit, sans-serif" }}>แสดงทุกห้อง</Button>
+          <Button size="small" onClick={hideAllRooms(choosable.map((r) => r.cs_id))} sx={{ fontFamily: "Prompt, Kanit, sans-serif" }}>ซ่อนทุกห้อง</Button>
+        </div>
+      )}
+
+      {!show ? null : shown.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-slate-500">{choosable.length === 0 ? "ไม่มีรถเข็นจอดในห้องเย็นใหญ่" : "ไม่ได้เลือกห้องที่จะแสดง"}</div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           {shown.map((room) => (
