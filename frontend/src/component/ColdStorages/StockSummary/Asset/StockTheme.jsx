@@ -66,52 +66,52 @@ export const SectionTitle = ({ icon: Icon, title, subtitle, children }) => (
   </div>
 );
 
-// ring of the five time statuses + a legend with share bars
+// ring of the five time statuses + one line per status (count, share bar, %). Tall card: sits beside the history chart.
 export const StatusDonut = ({ status }) => {
   const total = STATUS_KEYS.reduce((s, k) => s + status[k], 0);
-  const R = 52;
+  const R = 54;
   const C = 2 * Math.PI * R;
+  const GAP = total > 1 ? 2 : 0; // a thin white gap between two segments
   let offset = 0;
   return (
-    <div className="px-4 py-3" style={CARD}>
-      <div className="flex flex-col items-center gap-4 sm:flex-row">
-        <svg viewBox="0 0 140 140" className="h-24 w-24 shrink-0">
+    <div className="flex h-full flex-col justify-center px-5 py-5" style={CARD}>
+      <div className="flex justify-center">
+        <svg viewBox="0 0 140 140" className="h-40 w-40">
           <g transform="rotate(-90 70 70)">
-            <circle cx="70" cy="70" r={R} fill="none" stroke="#EEF2F7" strokeWidth="14" />
+            <circle cx="70" cy="70" r={R} fill="none" stroke="#EEF2F7" strokeWidth="16" />
             {total > 0 && STATUS_KEYS.map((k) => {
               const len = (status[k] / total) * C;
               const seg = (
                 <circle
-                  key={k} cx="70" cy="70" r={R} fill="none" stroke={STATUS_META[k].color} strokeWidth="14"
-                  strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset}
+                  key={k} cx="70" cy="70" r={R} fill="none" stroke={STATUS_META[k].color} strokeWidth="16"
+                  strokeDasharray={`${Math.max(0, len - GAP)} ${C - Math.max(0, len - GAP)}`} strokeDashoffset={-offset}
                 />
               );
               offset += len;
               return status[k] > 0 ? seg : null;
             })}
           </g>
-          <text x="70" y="70" textAnchor="middle" className="tabular-nums" style={{ ...FONT, fontSize: 28, fontWeight: 600, fill: STATUS_META.red.color }}>{status.red}</text>
-          <text x="70" y="90" textAnchor="middle" style={{ ...FONT, fontSize: 11, fill: TOKENS.muted }}>{STATUS_META.red.label}</text>
+          <text x="70" y="70" textAnchor="middle" className="tabular-nums" style={{ ...FONT, fontSize: 34, fontWeight: 700, fill: STATUS_META.red.color }}>{status.red}</text>
+          <text x="70" y="90" textAnchor="middle" style={{ ...FONT, fontSize: 12, fill: TOKENS.muted }}>{STATUS_META.red.label}</text>
         </svg>
-        <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {STATUS_KEYS.map((k) => {
-            const pct = total ? Math.round((status[k] / total) * 100) : 0;
-            return (
-              <div key={k} className="rounded-xl px-3 py-2" style={{ backgroundColor: "#F7F9FE", border: `1px solid ${TOKENS.border}` }}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2" style={{ color: TOKENS.muted }}>
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_META[k].color }} />
-                    {STATUS_META[k].label}
-                  </span>
-                  <span className="font-semibold tabular-nums" style={{ color: TOKENS.text }}>{status[k]}</span>
-                </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200/70">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: STATUS_META[k].color }} />
-                </div>
+      </div>
+      <div className="mt-6 flex flex-col gap-3">
+        {STATUS_KEYS.map((k) => {
+          const pct = total ? Math.round((status[k] / total) * 100) : 0;
+          return (
+            <div key={k}>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: STATUS_META[k].color }} />
+                <span className="truncate" style={{ color: TOKENS.muted }}>{STATUS_META[k].label}</span>
+                <span className="ml-auto font-semibold tabular-nums" style={{ color: TOKENS.text }}>{status[k]}</span>
+                <span className="w-10 text-right text-xs tabular-nums" style={{ color: TOKENS.muted }}>{pct}%</span>
               </div>
-            );
-          })}
-        </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: "#EEF2F7" }}>
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: STATUS_META[k].color }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
