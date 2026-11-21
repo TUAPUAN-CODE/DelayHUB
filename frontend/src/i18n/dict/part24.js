@@ -68,6 +68,11 @@ export default {
   "{x} จากเมื่อวาน": ["{x} vs yesterday"],
   // share of delayed raw materials per day (DelayShareChart.jsx)
   "ไม่ delay": ["Not delayed"],
+  "ภาพรวม {x} วัน": ["Overview of {x} days"],
+  "{x} จาก {x} รายการ": ["{x} of {x} items"],
+  "Delay มากสุด": ["Most delay"],
+  "Delay น้อยสุด": ["Least delay"],
+  "เฉลี่ย {x}%": ["Average {x}%"],
   "เข้าห้องเย็นใหญ่ {x} รายการ": ["{x} items came into the large cold rooms"],
   "สัดส่วนวัตถุดิบ Delay ที่เข้าห้องเย็นใหญ่": ["Share of delayed raw materials in the large cold rooms"],
   "รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%": ["Per day · all items that came in that day = 100%"],
