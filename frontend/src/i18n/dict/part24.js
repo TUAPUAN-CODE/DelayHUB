@@ -68,6 +68,8 @@ export default {
   "{x} จากเมื่อวาน": ["{x} vs yesterday"],
   // share of delayed raw materials per day (DelayShareChart.jsx)
   "ไม่ delay": ["Not delayed"],
+  "Delay เฉลี่ย {x}%": ["Average Delay {x}%"],
+  "รายวัน · ความสูง = จำนวนรายการที่เข้า · ตัวเลขบนแท่ง = % Delay": ["Per day · height = items that came in · number on the bar = % Delay"],
   // stock left at the end of each day (StockLevelChart.jsx, GET /api/coldstorages/stock/fetchLevel)
   "โหลดข้อมูลวัตถุดิบ delay ไม่สำเร็จ": ["Could not load the delayed raw materials"],
   "{x} (ตอนนี้)": ["{x} (now)"],

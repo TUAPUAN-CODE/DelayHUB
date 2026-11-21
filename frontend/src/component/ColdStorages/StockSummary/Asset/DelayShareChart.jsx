@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, CircularProgress } from "@mui/material";
 import { ChartColumnStacked } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import { CARD, FONT, TOKENS, SectionTitle, SegmentSwitch } from "./StockTheme";
 import { RANGES, fullLabel, shortDay, tickLabel } from "./historyFormat";
 
@@ -138,7 +138,7 @@ const DelayShareChart = ({ reloadKey }) => {
 
   return (
     <section className="space-y-3">
-      <SectionTitle icon={ChartColumnStacked} title="วัตถุดิบ delay ที่ห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%">
+      <SectionTitle icon={ChartColumnStacked} title="วัตถุดิบ delay ที่ห้องเย็นใหญ่" subtitle="รายวัน · ความสูง = จำนวนรายการที่เข้า · ตัวเลขบนแท่ง = % Delay">
         <SegmentSwitch value={days} options={RANGES} onChange={setDays} />
       </SectionTitle>
       {error && <Alert severity="error" sx={FONT}>{error}</Alert>}
@@ -168,8 +168,7 @@ const DelayShareChart = ({ reloadKey }) => {
               </span>
             ))}
             <span className="flex items-center gap-2" style={{ color: TOKENS.muted }}>
-              <span className="w-5 border-t-2 border-dashed" style={{ borderColor: "#64748B" }} />
-              {`เฉลี่ย ${avg}%`}
+              {`Delay เฉลี่ย ${avg}%`}
             </span>
           </div>
           <div className="h-[320px]">
@@ -190,17 +189,15 @@ const DelayShareChart = ({ reloadKey }) => {
                   dataKey="day" tickFormatter={tickLabel(days)} tickLine={false} axisLine={false}
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} interval={dense ? 3 : days > 7 ? 1 : 0} tickMargin={10}
                 />
-                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} width={48}
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48}
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} />
                 <ChartTip content={<ShareTip />} cursor={{ fill: "rgba(21,82,240,.05)", radius: 8 }} />
-                <ReferenceLine y={avg} stroke="#64748B" strokeDasharray="5 5" strokeWidth={1.5} ifOverflow="extendDomain" />
                 {/* red at the bottom (the part to watch), green on top, on a light track; a thin white line between the two */}
                 <Bar
-                  dataKey={LATE.key} stackId="share" fill={`url(#${LATE.grad})`} stroke="#fff" strokeWidth={1.5}
+                  dataKey="late" stackId="share" fill={`url(#${LATE.grad})`} stroke="#fff" strokeWidth={1.5}
                   radius={[0, 0, 6, 6]} maxBarSize={dense ? 18 : 44}
-                  background={{ fill: "#F1F5F9", radius: 6 }}
                 />
-                <Bar dataKey={OK.key} stackId="share" fill={`url(#${OK.grad})`} stroke="#fff" strokeWidth={1.5} radius={[6, 6, 0, 0]} maxBarSize={dense ? 18 : 44}>
+                <Bar dataKey="ok" stackId="share" fill={`url(#${OK.grad})`} stroke="#fff" strokeWidth={1.5} radius={[6, 6, 0, 0]} maxBarSize={dense ? 18 : 44}>
                   {!dense && <LabelList dataKey={LATE.key} position="top" content={pillLabel(avg)} />}
                 </Bar>
               </BarChart>
