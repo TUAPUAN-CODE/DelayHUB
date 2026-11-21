@@ -7,12 +7,10 @@ import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
 import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURCE_LABEL } from "./Asset/buildStockSummary";
 import { MaterialTable, RoomTable } from "./Asset/SummaryParts";
-import { FONT, GRID_BG, HERO_BG, GlassKpi, LiveClock, PageKeyframes, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
-import RoomLayouts from "./Asset/RoomLayouts";
+import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
+import TrolleyBoard from "./Asset/TrolleyBoard";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-const KG = (v) => formatKg(Math.round(v * 100) / 100);
 
 // Stock summary of the large cold rooms: every trolley sent to / parked in a room with cs_id >= 10,
 // split by where it came from (cold room or preparation), by material, by room and by time status.
@@ -97,63 +95,45 @@ const StockSummaryPage = () => {
   const showSource = source === "all";
 
   return (
-    <div style={{ backgroundColor: "#F4F7FC" }} className="flex-1 overflow-auto relative z-10">
-      <PageKeyframes />
+    <div className="flex-1 overflow-auto relative z-10">
       <main className="max-w-8xl mx-auto py-1 px-1 lg:px-8">
         <Header title="สรุป Stock ห้องเย็นใหญ่" />
       </main>
 
-      <main className="max-w-8xl mx-auto py-2 px-2 lg:px-8 space-y-5" style={FONT}>
-        {/* control-room band: clock, source switch, counters */}
-        <section className="relative overflow-hidden rounded-3xl p-4 sm:p-6 text-white shadow-xl" style={HERO_BG}>
-          <div className="pointer-events-none absolute inset-0" style={GRID_BG} />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-cyan-200">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-300" />
-                </span>
-                Large Cold Room · Live
-              </div>
-              <h1 className="mt-2 text-2xl sm:text-3xl font-semibold">สรุป Stock ห้องเย็นใหญ่</h1>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <SegmentSwitch value={source} options={sourceOptions} onChange={setSource} />
-                <button
-                  type="button"
-                  onClick={fetchData}
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur transition hover:bg-white/20 disabled:opacity-60"
-                >
-                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                  โหลดข้อมูลใหม่
-                </button>
-                {updatedAt && (
-                  <span className="text-xs text-white/70">
-                    อัปเดตล่าสุด {updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </span>
-                )}
-              </div>
-            </div>
-            <LiveClock />
-          </div>
+      <main className="max-w-8xl mx-auto py-2 px-2 lg:px-8 space-y-4" style={FONT}>
+        <div className="flex flex-wrap items-center gap-3 px-3 py-2.5" style={CARD}>
+          <SegmentSwitch value={source} options={sourceOptions} onChange={setSource} />
+          <button
+            type="button"
+            onClick={fetchData}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-1.5 text-sm transition disabled:opacity-60"
+            style={{ border: `1px solid ${TOKENS.primary}`, color: TOKENS.primary, backgroundColor: "#fff" }}
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            โหลดข้อมูลใหม่
+          </button>
+          {updatedAt && (
+            <span className="text-sm" style={{ color: TOKENS.muted }}>
+              อัปเดตล่าสุด {updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+        </div>
 
-          <div className="relative mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <GlassKpi icon={Truck} label="รถเข็นทั้งหมด" value={total.trolleys} unit="คัน" sub={`วัตถุดิบ ${total.rows} รายการ`} accent="#22D3EE" />
-            <GlassKpi icon={Scale} label="น้ำหนักรวม" value={total.weight} format={KG} unit="kg" sub={`ถาด ${formatKg(total.trays)}`} accent="#60A5FA" delay={60} />
-            <GlassKpi icon={ArrowRightLeft} label="กำลังส่ง / รอรับเข้า" value={total.transitTrolleys} unit="คัน" accent="#FDBA74" delay={120} />
-            <GlassKpi icon={Warehouse} label="อยู่ในห้องแล้ว" value={total.roomTrolleys} unit="คัน" accent="#4ADE80" delay={180} />
-            <GlassKpi
-              icon={Layers}
-              label="แหล่งที่มา"
-              display={`${trolleysBySource[SOURCE_COLD]} / ${trolleysBySource[SOURCE_PREP]}`}
-              unit="คัน"
-              sub={`ห้องเย็น ${formatKg(total.bySource[SOURCE_COLD])} kg · จุดเตรียม ${formatKg(total.bySource[SOURCE_PREP])} kg`}
-              accent="#C4B5FD"
-              delay={240}
-            />
-          </div>
-        </section>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <KpiCard icon={Truck} label="รถเข็นทั้งหมด" value={total.trolleys} unit="คัน" sub={`วัตถุดิบ ${total.rows} รายการ`} />
+          <KpiCard icon={Scale} label="น้ำหนักรวม" value={formatKg(total.weight)} unit="kg" sub={`ถาด ${formatKg(total.trays)}`} accent="#0EA5E9" />
+          <KpiCard icon={ArrowRightLeft} label="กำลังส่ง / รอรับเข้า" value={total.transitTrolleys} unit="คัน" accent={TOKENS.accent} />
+          <KpiCard icon={Warehouse} label="อยู่ในห้องแล้ว" value={total.roomTrolleys} unit="คัน" accent={TOKENS.success} />
+          <KpiCard
+            icon={Layers}
+            label="แหล่งที่มา"
+            value={`${trolleysBySource[SOURCE_COLD]} / ${trolleysBySource[SOURCE_PREP]}`}
+            unit="คัน"
+            sub={`ห้องเย็น ${formatKg(total.bySource[SOURCE_COLD])} kg · จุดเตรียม ${formatKg(total.bySource[SOURCE_PREP])} kg`}
+            accent="#7C3AED"
+          />
+        </div>
 
         {error && <Alert severity="error" sx={FONT}>{error}</Alert>}
         {pendingError && (
@@ -167,9 +147,9 @@ const StockSummaryPage = () => {
             <StatusDonut status={total.status} title="สถานะเวลาในห้องเย็นใหญ่ (นับตามรายการวัตถุดิบ)" />
 
             {slotError ? (
-              <Alert severity="warning" sx={FONT}>โหลด Layout ช่องจอดไม่สำเร็จ</Alert>
+              <Alert severity="warning" sx={FONT}>โหลดข้อมูลช่องจอดไม่สำเร็จ</Alert>
             ) : (
-              <RoomLayouts rows={layoutRows} slots={slots} source={source} tick={tick} />
+              <TrolleyBoard rows={layoutRows} slots={slots} source={source} tick={tick} />
             )}
 
             <section className="space-y-3">
@@ -179,7 +159,7 @@ const StockSummaryPage = () => {
                   value={search}
                   onChange={handleSearchChange}
                   placeholder="ค้นหารหัส / ชื่อวัตถุดิบ"
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 999, backgroundColor: "#fff" } }}
+                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
                   InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>, sx: FONT }}
                 />
               </SectionTitle>

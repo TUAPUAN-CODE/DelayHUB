@@ -3,7 +3,7 @@ import {
   Paper, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Tooltip,
 } from "@mui/material";
 import { STATUS_META, SOURCE_COLD, SOURCE_PREP, formatKg } from "./buildStockSummary";
-import { INK } from "./StockTheme";
+import { CARD } from "./StockTheme";
 
 const FONT = { fontFamily: "Prompt, Kanit, sans-serif" };
 
@@ -22,10 +22,8 @@ const StatusChips = ({ status }) => (
   </div>
 );
 
-const headSx = { ...FONT, fontWeight: 500, backgroundColor: INK, color: "#E0F2FE", whiteSpace: "nowrap", py: 1.1, borderBottom: "none", letterSpacing: 0.2 };
+const headSx = { ...FONT, whiteSpace: "nowrap", py: 1 };
 const cellSx = { ...FONT, py: 0.85, borderBottomColor: "#EEF2F7" };
-// the app theme paints every table head in the primary blue: this page uses its own dark head
-const HEAD = { "& .MuiTableCell-root": { backgroundColor: INK, color: "#E0F2FE", fontWeight: 500, borderBottom: "none" } };
 const numSx = { ...cellSx, textAlign: "right", fontVariantNumeric: "tabular-nums" };
 
 // columns shared by the material and the room table
@@ -56,9 +54,9 @@ const NumberHeads = ({ showSource }) => (
 );
 
 export const MaterialTable = ({ materials, showSource }) => (
-  <TableContainer component={Paper} elevation={0} sx={{ maxHeight: 520, borderRadius: 4, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
+  <TableContainer component={Paper} elevation={0} sx={{ ...CARD, borderRadius: "16px", maxHeight: 520 }}>
     <Table stickyHeader size="small">
-      <TableHead sx={HEAD}>
+      <TableHead>
         <TableRow>
           <TableCell sx={headSx}>รหัสวัตถุดิบ</TableCell>
           <TableCell sx={headSx}>ชื่อวัตถุดิบ</TableCell>
@@ -81,9 +79,9 @@ export const MaterialTable = ({ materials, showSource }) => (
 );
 
 export const RoomTable = ({ rooms, showSource }) => (
-  <TableContainer component={Paper} elevation={0} sx={{ maxHeight: 520, borderRadius: 4, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
+  <TableContainer component={Paper} elevation={0} sx={{ ...CARD, borderRadius: "16px", maxHeight: 520 }}>
     <Table stickyHeader size="small">
-      <TableHead sx={HEAD}>
+      <TableHead>
         <TableRow>
           <TableCell sx={headSx}>ห้อง</TableCell>
           <TableCell sx={{ ...headSx, textAlign: "right" }}>จำนวนวัตถุดิบ</TableCell>

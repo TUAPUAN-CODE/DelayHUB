@@ -48,4 +48,11 @@ export default {
   "อยู่มาแล้ว": ["Time in room"],
   "มาตรฐาน (ชม.)": ["Standard (h)"],
   "รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด {x} คัน": ["Overdue / near-limit trolleys: {x}"],
+  // trolley board (the trolleys in the large rooms, by room)
+  "รถเข็นในห้องเย็นใหญ่": ["Trolleys in the large cold rooms"],
+  "แสดงรถเข็น": ["Show trolleys"],
+  "ไม่มีรถเข็นในห้องเย็นใหญ่": ["No trolley in the large cold rooms"],
+  "รถเข็น {x} คัน · {x} kg": ["{x} trolleys · {x} kg"],
+  "· อยู่ {x}": ["· in for {x}"],
+  "โหลดข้อมูลช่องจอดไม่สำเร็จ": ["Could not load the slots"],
 };
