@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { ArrowDownRight, ArrowUpRight, ChartColumn, Hourglass, Minus, Table2 } from "lucide-react";
-import { Bar, CartesianGrid, Cell, ComposedChart, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
+import { ArrowDownRight, ArrowUpRight, ChartLine, Hourglass, Minus, Table2 } from "lucide-react";
+import { Area, CartesianGrid, ComposedChart, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import { CARD, FONT, TOKENS, SectionTitle, SegmentSwitch } from "./StockTheme";
 import { RANGES, fullLabel, shortDay, tickLabel } from "./historyFormat";
 import { formatTime } from "../../RoomMonitor/Asset/csDelay";
@@ -17,9 +17,17 @@ const MAX = { label: "นานสุดของวัน", color: "#334155" };
 const STD = { label: "มาตรฐาน (เฉลี่ยของกลุ่ม)", color: "#64748B" };
 
 const VIEWS = [
-  { value: "chart", label: <ChartColumn size={16} /> },
+  { value: "chart", label: <ChartLine size={16} /> },
   { value: "table", label: <Table2 size={16} /> },
 ];
+
+// the point of each day: orange when the average of the day is over its standard
+const dwellDot = (dense) => function DwellDot({ cx, cy, payload, index }) { // eslint-disable-line react/display-name
+  if (cx == null || cy == null || payload?.avg_h == null) return <g key={index} />;
+  const over = payload.over;
+  if (dense && !over) return <g key={index} />;
+  return <circle key={index} cx={cx} cy={cy} r={over ? 5.5 : 4} fill={over ? OVER.color : "#fff"} stroke={over ? "#fff" : AVG.color} strokeWidth={2} />;
+};
 
 const hrs = (min) => (min == null ? null : Math.round((min / 60) * 10) / 10);
 const t = (min) => (min == null ? "-" : formatTime(min));
@@ -183,8 +191,8 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
 
         <div className="mt-4 mb-1 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm" style={{ color: TOKENS.text }}>
-            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ backgroundColor: AVG.color }} />{AVG.label}</span>
-            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ backgroundColor: OVER.color }} />{OVER.label}</span>
+            <span className="flex items-center gap-2"><span className="h-[3px] w-5 rounded-full" style={{ backgroundColor: AVG.color }} />{AVG.label}</span>
+            <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: OVER.color }} />วันที่เฉลี่ยเกินมาตรฐาน</span>
             <span className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed" style={{ borderColor: STD.color }} />{`มาตรฐาน ${t(rangeStd)}`}</span>
           </div>
           <SegmentSwitch value={view} options={VIEWS} onChange={setView} />
@@ -197,14 +205,12 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
             <div className="absolute inset-0 flex items-center justify-center"><CircularProgress size={28} /></div>
           ) : (
             <ResponsiveContainer width="100%" height="100%" minHeight={280}>
-              <ComposedChart data={rows} margin={{ top: 10, right: 28, left: -6, bottom: 0 }} barCategoryGap={dense ? "25%" : "38%"}>
+              <ComposedChart data={rows} margin={{ top: 10, right: 28, left: -6, bottom: 0 }}>
                 <defs>
-                  {[AVG, OVER].map((c, i) => (
-                    <linearGradient key={c.label} id={`ssDwell${i}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={c.light} />
-                      <stop offset="100%" stopColor={c.color} />
-                    </linearGradient>
-                  ))}
+                  <linearGradient id="ssDwellArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={AVG.color} stopOpacity={0.22} />
+                    <stop offset="100%" stopColor={AVG.color} stopOpacity={0.02} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="#EEF2F7" />
                 <XAxis
@@ -215,10 +221,13 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} />
                 <ChartTip content={<DwellTip />} cursor={{ fill: "rgba(21,82,240,.05)" }} />
                 {rangeStd != null && <ReferenceLine y={hrs(rangeStd)} stroke={STD.color} strokeDasharray="6 5" strokeWidth={1.5} />}
-                <Bar dataKey="avg_h" name={AVG.label} radius={[6, 6, 0, 0]} maxBarSize={dense ? 16 : 44}>
-                  {rows.map((r) => <Cell key={r.day} fill={`url(#ssDwell${r.over ? 1 : 0})`} />)}
-                  {!dense && <LabelList dataKey="avg_h" position="top" formatter={(v) => (v == null ? "" : `${v}`)} style={{ ...FONT, fontSize: 11, fontWeight: 600, fill: TOKENS.text }} />}
-                </Bar>
+                {/* a line of the average; the point of a day over its standard is orange */}
+                <Area
+                  type="monotone" dataKey="avg_h" name={AVG.label} stroke={AVG.color} strokeWidth={3} fill="url(#ssDwellArea)" connectNulls
+                  dot={dwellDot(dense)} activeDot={{ r: 6, fill: AVG.color, stroke: "#fff", strokeWidth: 2 }}
+                >
+                  {!dense && <LabelList dataKey="avg_h" position="top" offset={10} formatter={(v) => (v == null ? "" : `${v}`)} style={{ ...FONT, fontSize: 11, fontWeight: 600, fill: TOKENS.text }} />}
+                </Area>
               </ComposedChart>
             </ResponsiveContainer>
           )}
