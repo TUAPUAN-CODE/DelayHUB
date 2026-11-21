@@ -2,53 +2,17 @@ import React from "react";
 import {
   Paper, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Tooltip,
 } from "@mui/material";
-import { STATUS_KEYS, STATUS_META, SOURCE_COLD, SOURCE_PREP, formatKg } from "./buildStockSummary";
+import { STATUS_META, SOURCE_COLD, SOURCE_PREP, formatKg } from "./buildStockSummary";
+import { INK } from "./StockTheme";
 
 const FONT = { fontFamily: "Prompt, Kanit, sans-serif" };
-
-export const KpiCard = ({ label, value, unit, sub, accent = "#2563EB" }) => (
-  <div className="rounded-xl bg-white border border-slate-200 shadow-sm px-4 py-3" style={{ borderTop: `4px solid ${accent}` }}>
-    <div className="text-sm text-slate-500">{label}</div>
-    <div className="mt-1 flex items-baseline gap-1">
-      <span className="text-3xl font-semibold text-slate-800 tabular-nums">{value}</span>
-      {unit && <span className="text-sm text-slate-500">{unit}</span>}
-    </div>
-    {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
-  </div>
-);
-
-// one horizontal bar of the five time statuses (counted per raw-material row, as the LargeRooms table)
-export const StatusBar = ({ status }) => {
-  const total = STATUS_KEYS.reduce((s, k) => s + status[k], 0);
-  return (
-    <div className="rounded-xl bg-white border border-slate-200 shadow-sm px-4 py-3">
-      <div className="text-sm text-slate-500 mb-2">สถานะเวลาในห้องเย็นใหญ่ (นับตามรายการวัตถุดิบ)</div>
-      <div className="flex h-4 w-full overflow-hidden rounded-full bg-slate-100">
-        {total > 0 && STATUS_KEYS.map((k) => (status[k] > 0 ? (
-          <Tooltip key={k} title={`${STATUS_META[k].label}: ${status[k]}`}>
-            <div style={{ width: `${(status[k] / total) * 100}%`, backgroundColor: STATUS_META[k].color }} />
-          </Tooltip>
-        ) : null))}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-        {STATUS_KEYS.map((k) => (
-          <span key={k} className="flex items-center gap-1.5 text-sm text-slate-700">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_META[k].color }} />
-            {STATUS_META[k].label}
-            <span className="font-semibold tabular-nums">{status[k]}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 const StatusChips = ({ status }) => (
   <div className="flex flex-wrap justify-center gap-1">
     {["red", "orange", "green"].map((k) => (status[k] > 0 ? (
       <Tooltip key={k} title={STATUS_META[k].label}>
         <span
-          className="rounded px-1.5 text-xs font-semibold tabular-nums"
+          className="rounded-full px-2 text-xs font-semibold tabular-nums"
           style={{ color: STATUS_META[k].color, backgroundColor: STATUS_META[k].bg }}
         >
           {status[k]}
@@ -58,8 +22,10 @@ const StatusChips = ({ status }) => (
   </div>
 );
 
-const headSx = { ...FONT, fontWeight: 600, backgroundColor: "#EFF6FF", color: "#1E3A8A", whiteSpace: "nowrap", py: 1 };
-const cellSx = { ...FONT, py: 0.75 };
+const headSx = { ...FONT, fontWeight: 500, backgroundColor: INK, color: "#E0F2FE", whiteSpace: "nowrap", py: 1.1, borderBottom: "none", letterSpacing: 0.2 };
+const cellSx = { ...FONT, py: 0.85, borderBottomColor: "#EEF2F7" };
+// the app theme paints every table head in the primary blue: this page uses its own dark head
+const HEAD = { "& .MuiTableCell-root": { backgroundColor: INK, color: "#E0F2FE", fontWeight: 500, borderBottom: "none" } };
 const numSx = { ...cellSx, textAlign: "right", fontVariantNumeric: "tabular-nums" };
 
 // columns shared by the material and the room table
@@ -90,9 +56,9 @@ const NumberHeads = ({ showSource }) => (
 );
 
 export const MaterialTable = ({ materials, showSource }) => (
-  <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 520, borderRadius: 3 }}>
+  <TableContainer component={Paper} elevation={0} sx={{ maxHeight: 520, borderRadius: 4, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
     <Table stickyHeader size="small">
-      <TableHead>
+      <TableHead sx={HEAD}>
         <TableRow>
           <TableCell sx={headSx}>รหัสวัตถุดิบ</TableCell>
           <TableCell sx={headSx}>ชื่อวัตถุดิบ</TableCell>
@@ -115,9 +81,9 @@ export const MaterialTable = ({ materials, showSource }) => (
 );
 
 export const RoomTable = ({ rooms, showSource }) => (
-  <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 520, borderRadius: 3 }}>
+  <TableContainer component={Paper} elevation={0} sx={{ maxHeight: 520, borderRadius: 4, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
     <Table stickyHeader size="small">
-      <TableHead>
+      <TableHead sx={HEAD}>
         <TableRow>
           <TableCell sx={headSx}>ห้อง</TableCell>
           <TableCell sx={{ ...headSx, textAlign: "right" }}>จำนวนวัตถุดิบ</TableCell>
