@@ -29,4 +29,12 @@ export default {
   "ใกล้ครบกำหนด": ["Near the limit"],
   "ไม่คำนวณ DCS": ["DCS not calculated"],
   "กำลังส่ง (ยังไม่เข้าช่องจอด)": ["On the way (not in a slot yet)"],
+  // slot layout of each room
+  "Layout แต่ละห้อง": ["Layout of each room"],
+  "เฉพาะห้องที่มีรถเข็น": ["Only rooms with trolleys"],
+  "ไม่มีรถเข็นจอดในห้องเย็นใหญ่": ["No trolley parked in the large cold rooms"],
+  "โหลด Layout ช่องจอดไม่สำเร็จ": ["Could not load the slot layout"],
+  "ไม่มีข้อมูลวัตถุดิบ": ["No raw material data"],
+  "เลย {x}": ["Over {x}"],
+  "เหลือ {x}": ["{x} left"],
 };

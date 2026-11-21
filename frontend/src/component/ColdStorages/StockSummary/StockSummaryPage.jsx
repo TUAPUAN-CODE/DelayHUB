@@ -5,8 +5,9 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
-import { buildStockSummary, formatKg, SOURCE_COLD, SOURCE_PREP, SOURCE_LABEL } from "./Asset/buildStockSummary";
+import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURCE_LABEL } from "./Asset/buildStockSummary";
 import { KpiCard, StatusBar, MaterialTable, RoomTable } from "./Asset/SummaryParts";
+import RoomLayouts from "./Asset/RoomLayouts";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -22,15 +23,26 @@ const StockSummaryPage = () => {
   const [updatedAt, setUpdatedAt] = useState(null);
   const [source, setSource] = useState("all");
   const [search, setSearch] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [slotError, setSlotError] = useState(false);
+  const [tick, setTick] = useState(0); // the time left / over moves every minute without reloading
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const [inCold, pending] = await Promise.allSettled([
+      const [inCold, pending, room] = await Promise.allSettled([
         axios.get(`${API_URL}/api/coldstorages/incold/fetchSlotRawMatsend`),
         axios.get(`${API_URL}/api/coldstorages/pending/checkin`),
+        axios.get(`${API_URL}/api/coldstorage/room`),
       ]);
+      if (room.status === "fulfilled") {
+        setSlots(room.value.data?.slot || []);
+        setSlotError(false);
+      } else {
+        console.error("StockSummary slot layout error:", room.reason);
+        setSlotError(true);
+      }
       if (inCold.status === "rejected") throw inCold.reason;
       const inRoom = Array.isArray(inCold.value.data) ? inCold.value.data : (inCold.value.data?.data ?? []);
       let pendingRows = [];
@@ -58,7 +70,14 @@ const StockSummaryPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const summary = useMemo(() => buildStockSummary(rows, source), [rows, source]);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // tick: the time status is recalculated every minute
+  const summary = useMemo(() => buildStockSummary(rows, source), [rows, source, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const layoutRows = useMemo(() => rows.map((r) => ({ ...r, source: getSource(r) })), [rows]);
 
   const materials = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -128,6 +147,12 @@ const StockSummaryPage = () => {
             </div>
 
             <StatusBar status={total.status} />
+
+            {slotError ? (
+              <Alert severity="warning" sx={FONT}>โหลด Layout ช่องจอดไม่สำเร็จ</Alert>
+            ) : (
+              <RoomLayouts rows={layoutRows} slots={slots} source={source} tick={tick} />
+            )}
 
             <section className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">

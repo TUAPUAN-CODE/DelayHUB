@@ -28,6 +28,7 @@ export const getLatestCsComeCold = (row) => {
 // ✅ ตรวจสอบ cs_id ว่าอยู่ในกลุ่ม temp <18 หรือไม่
 export const isNoDcsRoom = (row) => NO_DCS_CS_IDS.includes(Number(row.cs_id));
 
+// minutes: > 0 = minutes left, < 0 = minutes over the limit (absent when there is no time: no DCS / not in a room yet)
 export const calculateCSDelayTime = (row) => {
   // ✅ ถ้าเป็นห้องที่ไม่คำนวณ DCS ให้ return ข้อความพิเศษ
   if (isNoDcsRoom(row)) {
@@ -52,28 +53,28 @@ export const calculateCSDelayTime = (row) => {
     if (rawCold < 0) {
       const excMin   = Math.floor(Math.abs(rawCold)) * 60 + (Math.abs(rawCold) % 1) * 100;
       const totalExc = excMin + timePassed;
-      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(totalExc)}`, percentage: ((standardMinutes + totalExc) / standardMinutes) * 100 };
+      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(totalExc)}`, percentage: ((standardMinutes + totalExc) / standardMinutes) * 100, minutes: -totalExc };
     }
     if (rawCold === 0) {
-      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(timePassed)}`, percentage: ((standardMinutes + timePassed) / standardMinutes) * 100 };
+      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(timePassed)}`, percentage: ((standardMinutes + timePassed) / standardMinutes) * 100, minutes: -timePassed };
     }
     const coldMin = Math.floor(rawCold) * 60 + (rawCold % 1) * 100;
     if (timePassed > coldMin) {
       const exc = timePassed - coldMin;
-      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(exc)}`, percentage: ((standardMinutes + exc) / standardMinutes) * 100 };
+      return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(exc)}`, percentage: ((standardMinutes + exc) / standardMinutes) * 100, minutes: -exc };
     }
     const remaining = coldMin - timePassed;
     const pct   = Math.min(100, (timePassed / standardMinutes) * 100);
     const color = pct >= 100 ? 'red' : pct >= 70 ? 'orange' : 'green';
-    return { color, statusMessage: `เหลืออีก ${formatTime(remaining)}`, percentage: pct };
+    return { color, statusMessage: `เหลืออีก ${formatTime(remaining)}`, percentage: pct, minutes: remaining };
   }
 
   const pct = Math.min(100, (timePassed / standardMinutes) * 100);
   if (pct >= 100) {
     const exc = timePassed - standardMinutes;
-    return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(exc)}`, percentage: pct };
+    return { color: 'red', statusMessage: `เลยกำหนด ${formatTime(exc)}`, percentage: pct, minutes: -exc };
   }
   const remaining = standardMinutes - timePassed;
   const color = pct >= 70 ? 'orange' : 'green';
-  return { color, statusMessage: `เหลืออีก ${formatTime(remaining)}`, percentage: pct };
+  return { color, statusMessage: `เหลืออีก ${formatTime(remaining)}`, percentage: pct, minutes: remaining };
 };
