@@ -46,27 +46,34 @@ export const SegmentSwitch = ({ value, options, onChange }) => (
   </div>
 );
 
-export const SectionTitle = ({ icon: Icon, title, children }) => (
-  <div className="flex flex-wrap items-center justify-between gap-2">
-    <div className="flex items-center gap-2.5">
-      <span className="grid h-9 w-9 place-items-center rounded-xl" style={{ backgroundColor: TOKENS.primarySoft, color: TOKENS.primary }}>
-        <Icon size={18} strokeWidth={2.2} />
+// heading of a section: solid blue icon, big bold title, the orange accent of the page header under it
+export const SectionTitle = ({ icon: Icon, title, subtitle, children }) => (
+  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+    <div className="flex items-center gap-3">
+      <span
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white"
+        style={{ background: "linear-gradient(135deg, #3B7BFF, #1552F0)", boxShadow: "0 4px 12px rgba(21,82,240,.28)" }}
+      >
+        <Icon size={22} strokeWidth={2.2} />
       </span>
-      <h2 className="text-lg font-semibold" style={{ color: TOKENS.text }}>{title}</h2>
+      <div>
+        <h2 className="text-xl font-bold leading-tight" style={{ color: TOKENS.text }}>{title}</h2>
+        <span className="mt-1 block h-1 w-12 rounded-full" style={{ background: "linear-gradient(90deg, #FF9A4D, #F26B1D)" }} />
+        {subtitle && <div className="mt-1 text-sm" style={{ color: TOKENS.muted }}>{subtitle}</div>}
+      </div>
     </div>
     {children}
   </div>
 );
 
 // ring of the five time statuses + a legend with share bars
-export const StatusDonut = ({ status, title }) => {
+export const StatusDonut = ({ status }) => {
   const total = STATUS_KEYS.reduce((s, k) => s + status[k], 0);
   const R = 52;
   const C = 2 * Math.PI * R;
   let offset = 0;
   return (
     <div className="px-4 py-3" style={CARD}>
-      <div className="mb-2 text-sm" style={{ color: TOKENS.muted }}>{title}</div>
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         <svg viewBox="0 0 140 140" className="h-24 w-24 shrink-0">
           <g transform="rotate(-90 70 70)">

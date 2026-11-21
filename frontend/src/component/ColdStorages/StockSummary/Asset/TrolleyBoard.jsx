@@ -159,7 +159,7 @@ const UrgentList = ({ items, onOpen }) => {
     <div className="overflow-hidden" style={CARD}>
       <div className="flex items-center gap-2 px-4 py-2.5" style={{ color: STATUS_META.red.color, borderBottom: `1px solid ${TOKENS.border}` }}>
         <TriangleAlert size={18} />
-        <span className="font-semibold">{`รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด ${items.length} คัน`}</span>
+        <span className="text-base font-bold">{`รถเข็นที่เลยกำหนด / ใกล้ครบกำหนด ${items.length} คัน`}</span>
       </div>
       <TableContainer sx={{ maxHeight: 300 }}>
         <Table size="small" stickyHeader>
@@ -327,7 +327,7 @@ const TrolleyBoard = ({ rows, slots, source, tick }) => {
                   <Snowflake size={16} />
                 </span>
                 <div className="min-w-0">
-                  <div className="font-semibold leading-tight" style={{ color: TOKENS.text }}>{room.name}</div>
+                  <div className="text-base font-bold leading-tight" style={{ color: TOKENS.text }}>{room.name}</div>
                   <div className="text-xs" style={{ color: TOKENS.muted }}>{`รถเข็น ${room.trolleys.length} คัน · ${formatKg(room.weight)} kg`}</div>
                 </div>
                 <span className="ml-auto flex flex-wrap gap-1">

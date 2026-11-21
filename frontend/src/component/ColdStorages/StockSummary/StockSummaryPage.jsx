@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { CircularProgress, InputAdornment, TextField, Alert } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { ArrowRightLeft, Layers, Package, RefreshCw, Scale, Truck, Warehouse } from "lucide-react";
+import { ArrowRightLeft, Gauge, Layers, Package, RefreshCw, Scale, Truck, Warehouse } from "lucide-react";
 import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
 import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURCE_LABEL } from "./Asset/buildStockSummary";
@@ -144,7 +144,10 @@ const StockSummaryPage = () => {
           <div className="flex justify-center py-16"><CircularProgress /></div>
         ) : (
           <>
-            <StatusDonut status={total.status} title="สถานะเวลาในห้องเย็นใหญ่ (นับตามรายการวัตถุดิบ)" />
+            <section className="space-y-3">
+              <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
+              <StatusDonut status={total.status} />
+            </section>
 
             {slotError ? (
               <Alert severity="warning" sx={FONT}>โหลดข้อมูลช่องจอดไม่สำเร็จ</Alert>
