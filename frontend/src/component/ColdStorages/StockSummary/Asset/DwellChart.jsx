@@ -2,16 +2,18 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { ArrowDownRight, ArrowUpRight, ChartColumn, Hourglass, Minus, Table2 } from "lucide-react";
-import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
+import { Bar, CartesianGrid, Cell, ComposedChart, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
 import { CARD, FONT, TOKENS, SectionTitle, SegmentSwitch } from "./StockTheme";
 import { RANGES, fullLabel, shortDay, tickLabel } from "./historyFormat";
 import { formatTime } from "../../RoomMonitor/Asset/csDelay";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// one axis (hours). Colours checked with the dataviz validator.
-const AVG = { label: "เวลาเฉลี่ย", color: TOKENS.primary };
-const MAX = { label: "นานสุดของวัน", color: "#EB6834" };
+// one axis (hours): a bar per day = the average time, blue when within the standard of that day, orange when over it.
+// Colours checked with the dataviz validator.
+const AVG = { label: "เวลาเฉลี่ย", color: TOKENS.primary, light: "#4D7BF5" };
+const OVER = { label: "เฉลี่ยเกินมาตรฐาน", color: "#EB6834", light: "#F59E6B" };
+const MAX = { label: "นานสุดของวัน", color: "#334155" };
 const STD = { label: "มาตรฐาน (เฉลี่ยของกลุ่ม)", color: "#64748B" };
 
 const VIEWS = [
@@ -149,7 +151,7 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
     load();
   }, [load, reloadKey]);
 
-  const rows = data.map((r) => ({ ...r, avg_h: hrs(r.avg_min), max_h: hrs(r.max_min), std_h: hrs(r.std_min) }));
+  const rows = data.map((r) => ({ ...r, avg_h: hrs(r.avg_min), over: r.avg_min != null && r.std_min != null && r.avg_min > r.std_min }));
   const today = rows[rows.length - 1];
   const yesterday = rows[rows.length - 2];
   const sumItems = rows.reduce((a, r) => a + r.items, 0);
@@ -158,6 +160,8 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
   const sumLong = rows.reduce((a, r) => a + r.long_items, 0);
   const longestDay = rows.reduce((a, r) => (r.max_min != null && (!a || r.max_min > a.max_min) ? r : a), null);
   const dense = days > 14;
+  // one standard line for the range: the standards of the items that went out, weighted by the items of each day
+  const rangeStd = sumItems ? Math.round(rows.reduce((a, r) => a + (r.std_min || 0) * r.items, 0) / sumItems) : null;
 
   return (
     <section className={`flex flex-col gap-3 ${className}`}>
@@ -180,8 +184,8 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
         <div className="mt-4 mb-1 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm" style={{ color: TOKENS.text }}>
             <span className="flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ backgroundColor: AVG.color }} />{AVG.label}</span>
-            <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: MAX.color }} />{MAX.label}</span>
-            <span className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed" style={{ borderColor: STD.color }} />{STD.label}</span>
+            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ backgroundColor: OVER.color }} />{OVER.label}</span>
+            <span className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed" style={{ borderColor: STD.color }} />{`มาตรฐาน ${t(rangeStd)}`}</span>
           </div>
           <SegmentSwitch value={view} options={VIEWS} onChange={setView} />
         </div>
@@ -195,22 +199,26 @@ const DwellChart = ({ overdueNow, reloadKey, className = "" }) => {
             <ResponsiveContainer width="100%" height="100%" minHeight={280}>
               <ComposedChart data={rows} margin={{ top: 10, right: 28, left: -6, bottom: 0 }} barCategoryGap={dense ? "25%" : "38%"}>
                 <defs>
-                  <linearGradient id="ssDwell" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4D7BF5" />
-                    <stop offset="100%" stopColor={AVG.color} />
-                  </linearGradient>
+                  {[AVG, OVER].map((c, i) => (
+                    <linearGradient key={c.label} id={`ssDwell${i}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={c.light} />
+                      <stop offset="100%" stopColor={c.color} />
+                    </linearGradient>
+                  ))}
                 </defs>
                 <CartesianGrid vertical={false} stroke="#EEF2F7" />
                 <XAxis
                   dataKey="day" tickFormatter={tickLabel(days)} tickLine={false} axisLine={{ stroke: TOKENS.border }}
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} interval={dense ? 3 : days > 7 ? 1 : 0} tickMargin={8}
                 />
-                <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => `${v} ชม.`}
+                <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => `${v} ชม.`} domain={[0, (max) => Math.ceil(Math.max(max, (rangeStd || 0) / 60) * 1.15)]}
                   tick={{ fill: TOKENS.muted, fontSize: 12, fontFamily: FONT.fontFamily }} />
                 <ChartTip content={<DwellTip />} cursor={{ fill: "rgba(21,82,240,.05)" }} />
-                <Bar dataKey="avg_h" name={AVG.label} fill="url(#ssDwell)" radius={[6, 6, 0, 0]} maxBarSize={dense ? 16 : 40} />
-                <Line dataKey="std_h" name={STD.label} stroke={STD.color} strokeWidth={2} strokeDasharray="6 5" dot={false} activeDot={false} connectNulls type="monotone" />
-                <Scatter dataKey="max_h" name={MAX.label} fill={MAX.color} shape="circle" />
+                {rangeStd != null && <ReferenceLine y={hrs(rangeStd)} stroke={STD.color} strokeDasharray="6 5" strokeWidth={1.5} />}
+                <Bar dataKey="avg_h" name={AVG.label} radius={[6, 6, 0, 0]} maxBarSize={dense ? 16 : 44}>
+                  {rows.map((r) => <Cell key={r.day} fill={`url(#ssDwell${r.over ? 1 : 0})`} />)}
+                  {!dense && <LabelList dataKey="avg_h" position="top" formatter={(v) => (v == null ? "" : `${v}`)} style={{ ...FONT, fontSize: 11, fontWeight: 600, fill: TOKENS.text }} />}
+                </Bar>
               </ComposedChart>
             </ResponsiveContainer>
           )}
