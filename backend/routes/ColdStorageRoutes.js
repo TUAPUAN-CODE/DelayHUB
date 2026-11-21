@@ -4450,6 +4450,7 @@ SELECT TOP (2000)
 
 
     htr.qccheck_cold,
+    htr.cold_dest,
     htr.remark_rework_cold,
     htr.receiver_out_cold,
     htr.receiver_out_cold_two,
@@ -4618,6 +4619,7 @@ SELECT
 
 
     htr.qccheck_cold,
+    htr.cold_dest,
     htr.remark_rework_cold,
     htr.receiver_out_cold,
     htr.receiver_out_cold_two,
