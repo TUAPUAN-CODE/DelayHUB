@@ -1,16 +1,18 @@
-import React from "react";
-import { Alert } from "@mui/material";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { Alert, CircularProgress } from "@mui/material";
 import { ChartColumnStacked } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Tooltip as ChartTip, XAxis, YAxis } from "recharts";
-import { CARD, FONT, TOKENS, SectionTitle } from "./StockTheme";
-import { fullLabel, tickLabel } from "./StockHistory";
+import { CARD, FONT, TOKENS, SectionTitle, SegmentSwitch } from "./StockTheme";
+import { RANGES, fullLabel, shortDay, tickLabel } from "./historyFormat";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 // status colours (good / critical): the share of delayed raw materials among those that came in that day
 const OK = { key: "ok_pct", label: "ไม่ delay", color: "#16A34A", light: "#4ADE80", grad: "ssShareOk" };
 const LATE = { key: "late_pct", label: "Delay", color: "#DC2626", light: "#F87171", grad: "ssShareLate" };
 
 const pct = (n, total) => (total ? Math.round((n / total) * 1000) / 10 : 0);
-const shortDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 
 const ShareTip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -81,9 +83,36 @@ const MiniStat = ({ label, value, sub }) => (
 /**
  * Raw materials that came into the large cold rooms per day, one 100 % bar per day: delayed (red) / not delayed (green),
  * with a summary panel (the share over the range, the best and the worst day).
- * rows: GET /api/coldstorages/stock/fetchHistory (in_items, in_late_items), days: the range chosen on the history chart.
+ * Data: GET /api/coldstorages/stock/fetchHistory (in_items, in_late_items); its own 7 / 14 / 30 day switch. reloadKey: the page reloaded.
  */
-const DelayShareChart = ({ rows, days }) => {
+const DelayShareChart = ({ reloadKey }) => {
+  const [days, setDays] = useState(7);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const busy = useRef(false);
+
+  const load = useCallback(async () => {
+    if (busy.current) return; // heavy query: no second request while one runs
+    busy.current = true;
+    try {
+      setLoading(true);
+      setError("");
+      const res = await axios.get(`${API_URL}/api/coldstorages/stock/fetchHistory`, { params: { days } });
+      setRows(res.data?.data ?? []);
+    } catch (err) {
+      console.error("DelayShareChart fetch error:", err);
+      setError("โหลดข้อมูลวัตถุดิบ delay ไม่สำเร็จ");
+    } finally {
+      busy.current = false;
+      setLoading(false);
+    }
+  }, [days]);
+
+  useEffect(() => {
+    load();
+  }, [load, reloadKey]);
+
   const data = rows.map((r) => {
     const total = r.in_items || 0;
     const late = Math.min(r.in_late_items || 0, total);
@@ -109,7 +138,11 @@ const DelayShareChart = ({ rows, days }) => {
 
   return (
     <section className="space-y-3">
-      <SectionTitle icon={ChartColumnStacked} title="วัตถุดิบ delay ที่ห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%" />
+      <SectionTitle icon={ChartColumnStacked} title="วัตถุดิบ delay ที่ห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%">
+        <SegmentSwitch value={days} options={RANGES} onChange={setDays} />
+      </SectionTitle>
+      {error && <Alert severity="error" sx={FONT}>{error}</Alert>}
+      {loading && rows.length === 0 && <div className="flex justify-center py-6"><CircularProgress size={28} /></div>}
       {noLateData && (
         <Alert severity="warning" sx={FONT}>ยังไม่มีข้อมูล Delay จากเซิร์ฟเวอร์ (backend ยังไม่ได้ reload) กราฟนี้จึงยังไม่ถูกต้อง</Alert>
       )}

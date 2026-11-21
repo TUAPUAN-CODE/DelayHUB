@@ -9,7 +9,7 @@ import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURC
 import { MaterialTable, RoomTable } from "./Asset/SummaryParts";
 import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
 import TrolleyBoard from "./Asset/TrolleyBoard";
-import StockHistory from "./Asset/StockHistory";
+import StockLevelChart from "./Asset/StockLevelChart";
 import DelayShareChart from "./Asset/DelayShareChart";
 import { calculateCSDelayTime } from "../RoomMonitor/Asset/csDelay";
 
@@ -97,8 +97,6 @@ const StockSummaryPage = () => {
   }, [rows, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const [historyKey, setHistoryKey] = useState(0);
   const [tableTab, setTableTab] = useState("mat");
-  const [history, setHistory] = useState({ rows: [], days: 7 });
-  const handleHistory = useCallback((rows, days) => setHistory({ rows, days }), []);
   const handleRefresh = () => {
     fetchData();
     setHistoryKey((k) => k + 1);
@@ -172,7 +170,7 @@ const StockSummaryPage = () => {
           <>
             {/* history (2/3) beside the time status (1/3), the two cards the same height */}
             <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-              <StockHistory className="lg:col-span-2" overdueNow={overdueNow} reloadKey={historyKey} onData={handleHistory} />
+              <StockLevelChart className="lg:col-span-2" overdueNow={overdueNow} reloadKey={historyKey} />
               <section className="flex flex-col gap-3">
                 <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
                 <div className="flex-1">
@@ -181,7 +179,7 @@ const StockSummaryPage = () => {
               </section>
             </div>
 
-            {history.rows.length > 0 && <DelayShareChart rows={history.rows} days={history.days} />}
+            <DelayShareChart reloadKey={historyKey} />
 
             {slotError ? (
               <Alert severity="warning" sx={FONT}>โหลดข้อมูลช่องจอดไม่สำเร็จ</Alert>
