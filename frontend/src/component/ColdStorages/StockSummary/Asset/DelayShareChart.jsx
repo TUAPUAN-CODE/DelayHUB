@@ -109,7 +109,7 @@ const DelayShareChart = ({ rows, days }) => {
 
   return (
     <section className="space-y-3">
-      <SectionTitle icon={ChartColumnStacked} title="สัดส่วนวัตถุดิบ Delay ที่เข้าห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%" />
+      <SectionTitle icon={ChartColumnStacked} title="วัตถุดิบ delay ที่ห้องเย็นใหญ่" subtitle="รายวัน · ทุกรายการที่เข้าในวันนั้น = 100%" />
       {noLateData && (
         <Alert severity="warning" sx={FONT}>ยังไม่มีข้อมูล Delay จากเซิร์ฟเวอร์ (backend ยังไม่ได้ reload) กราฟนี้จึงยังไม่ถูกต้อง</Alert>
       )}
