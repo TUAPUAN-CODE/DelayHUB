@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { CircularProgress, InputAdornment, TextField, Alert } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { ArrowRightLeft, Gauge, Layers, Package, RefreshCw, Scale, Truck, Warehouse } from "lucide-react";
+import { ArrowRightLeft, Layers, Package, RefreshCw, Scale, Truck, Warehouse } from "lucide-react";
 import Header from "../../Layout/Header";
 import Buttom from "../../Layout/Buttom";
 import { buildStockSummary, formatKg, getSource, SOURCE_COLD, SOURCE_PREP, SOURCE_LABEL } from "./Asset/buildStockSummary";
 import { MaterialTable, RoomTable } from "./Asset/SummaryParts";
-import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch, StatusDonut } from "./Asset/StockTheme";
+import { CARD, FONT, TOKENS, KpiCard, SectionTitle, SegmentSwitch } from "./Asset/StockTheme";
 import TrolleyBoard from "./Asset/TrolleyBoard";
 import RoomAgeRanking from "./Asset/RoomAgeRanking";
 import DelayShareChart from "./Asset/DelayShareChart";
@@ -168,16 +168,7 @@ const StockSummaryPage = () => {
           <div className="flex justify-center py-16"><CircularProgress /></div>
         ) : (
           <>
-            {/* history (2/3) beside the time status (1/3), the two cards the same height */}
-            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-              <RoomAgeRanking className="lg:col-span-2" rows={layoutRows} tick={tick} overdueNow={overdueNow} />
-              <section className="flex flex-col gap-3">
-                <SectionTitle icon={Gauge} title="สถานะเวลาในห้องเย็นใหญ่" subtitle="นับตามรายการวัตถุดิบ" />
-                <div className="flex-1">
-                  <StatusDonut status={total.status} />
-                </div>
-              </section>
-            </div>
+            <RoomAgeRanking rows={layoutRows} tick={tick} overdueNow={overdueNow} />
 
             <DelayShareChart reloadKey={historyKey} />
 
