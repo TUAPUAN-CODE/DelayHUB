@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>วิเคราะห์ปัญหา Metal Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens (light) ---------- */
+  :root{
+    color-scheme: light;
+    --page:#f4f4f1; --surface:#fcfcfb; --surface-2:#efeee9;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --s1:#2a78d6; --s2:#eb6834; --deemph:#b4b3ab;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --up-good:#006300; --up-bad:#b42318;
+    --accent-soft:#e6effb;
+    --ramp-blue:#cde2fb,#b7d3f6,#9ec5f4,#86b6ef,#6da7ec,#5598e7,#3987e5,#2a78d6,#256abf,#1c5cab,#184f95,#104281;
+    --ramp-orange:#fde4d8,#f9c4ab,#f4a07b,#ee7f4f,#eb6834,#cf5424,#ad4319,#8a3512;
+    --shadow:0 8px 28px rgba(0,0,0,.14);
+  }
+  /* ---------- Tokens (dark: OS setting, unless the page is stamped light) ---------- */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#262624;
+      --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --s1:#3987e5; --s2:#d95926; --deemph:#4e4d49;
+      --up-good:#0ca30c; --up-bad:#ff8a80;
+      --accent-soft:#172a44;
+      --ramp-blue:#13325c,#184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
+      --ramp-orange:#6b2f16,#8a3a18,#ad451d,#d95926,#e7774a,#f09a75,#f6bea2;
+      --shadow:0 8px 28px rgba(0,0,0,.5);
+    }
+  }
+  /* ---------- Tokens (dark: viewer's toggle) ---------- */
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#262624;
+    --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --deemph:#4e4d49;
+    --up-good:#0ca30c; --up-bad:#ff8a80;
+    --accent-soft:#172a44;
+    --ramp-blue:#13325c,#184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
+    --ramp-orange:#6b2f16,#8a3a18,#ad451d,#d95926,#e7774a,#f09a75,#f6bea2;
+    --shadow:0 8px 28px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--page);color:var(--ink);
+    font:14px/1.6 "Prompt","Noto Sans Thai","Sarabun",system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 16px}
+
+  /* ---------- Header + filters ---------- */
+  header.top{background:var(--surface);border-bottom:1px solid var(--border)}
+  .titlebar{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:20px 0 14px}
+  .eyebrow{font-size:12px;color:var(--ink-2)}
+  h1{font-size:clamp(20px,3vw,28px);line-height:1.3;margin:2px 0 4px;font-weight:600}
+  .sub{margin:0;color:var(--ink-2);font-size:13px}
+  .mock{display:inline-block;font-size:12px;padding:0 8px;border-radius:99px;background:var(--accent-soft);color:var(--ink);margin-left:4px;white-space:nowrap}
+  .iconbtn{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+  .iconbtn:hover{background:var(--surface-2)}
+  .filterbar{position:sticky;top:0;z-index:6;background:var(--surface);border-bottom:1px solid var(--border)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 16px}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)}
+  .seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink-2);padding:5px 12px;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--border)}
+  .seg button:hover{background:var(--surface-2)}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:500}
+  .fsel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
+  select{font:inherit;font-size:13px;color:var(--ink);background-color:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 28px 5px 10px;
+    appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-2) 50%),linear-gradient(135deg,var(--ink-2) 50%,transparent 50%);
+    background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+  .asof{margin-left:auto;font-size:12px;color:var(--ink-2)}
+  @media (max-width:640px){ .filterbar{position:static} .asof{margin-left:0;width:100%} }
+
+  /* ---------- KPI row ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:0}
+  .kpi.hero{grid-column:span 2;display:flex;gap:16px;justify-content:space-between;align-items:flex-end}
+  .kpi .lab{font-size:13px;color:var(--ink-2)}
+  .kpi .val{font-size:28px;font-weight:600;line-height:1.25;margin-top:4px}
+  .kpi .val small{font-size:14px;font-weight:400;color:var(--ink-2);margin-left:6px}
+  .kpi.hero .val{font-size:52px;line-height:1.1}
+  .kpi .foot{font-size:12px;color:var(--ink-2);margin-top:4px}
+  .kpi .foot .sev{white-space:normal;align-items:flex-start}
+  .kpi .foot .sev i{flex:none;margin-top:2px}
+  .hero-r{flex:none;text-align:right}
+  .hero-r .cap{font-size:11px;color:var(--muted)}
+  .delta{font-size:12px;margin-top:4px}
+  .delta.bad{color:var(--up-bad)} .delta.good{color:var(--up-good)} .delta.flat{color:var(--ink-2)}
+  @media (max-width:900px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (max-width:480px){ .kpi.hero{flex-direction:column;align-items:flex-start} .hero-r{text-align:left} .kpi .val{font-size:24px} .kpi.hero .val{font-size:48px} }
+
+  /* ---------- Cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+  .card{grid-column:span 12;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;min-width:0;display:flex;flex-direction:column}
+  .span-8{grid-column:span 8} .span-6{grid-column:span 6} .span-4{grid-column:span 4}
+  @media (max-width:1080px){ .span-8,.span-4{grid-column:span 12} }
+  @media (max-width:820px){ .span-6{grid-column:span 12} }
+  .card-h{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+  .card h2{font-size:15px;font-weight:600;margin:0;line-height:1.45}
+  .n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 4px;border-radius:6px;background:var(--accent-soft);font-size:12px;font-weight:600;margin-right:8px;vertical-align:1px}
+  .q{margin:2px 0 0;font-size:12.5px;color:var(--ink-2)}
+  .tbtn{font:inherit;font-size:12px;color:var(--ink-2);background:transparent;border:1px solid var(--border);border-radius:8px;padding:2px 10px;cursor:pointer;flex:none}
+  .tbtn:hover{background:var(--surface-2);color:var(--ink)}
+  .note{font-size:12.5px;color:var(--ink-2);margin:8px 0 0}
+  .note b{color:var(--ink);font-weight:500}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 0 2px;font-size:12px;color:var(--ink-2)}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+  .sw.ln{width:14px;height:2px;border-radius:2px}
+  .sw.ic{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-size:10px;line-height:1;color:#fff;font-weight:700}
+  .sw.ic.dark{color:#0b0b0b}
+  .grad{width:96px;height:10px;border-radius:3px;display:inline-block}
+  .viz{margin:6px 0 12px;position:relative}
+  .viz svg{display:block;overflow:visible;max-width:100%}
+  .tbl{margin:10px 0 12px}
+  .card.as-table .viz,.card.as-table .legend{display:none}
+  .card:not(.as-table) .tbl{display:none}
+  .src{margin-top:auto;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12px;color:var(--ink-2)}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:0 8px;border-radius:99px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink);font-size:11.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:11.5px;background:var(--surface-2);padding:0 5px;border-radius:4px}
+
+  /* ---------- Chart marks (SVG) ---------- */
+  .viz text{font-family:inherit;font-size:11px;fill:var(--ink-2)}
+  .viz text.tick{fill:var(--muted);font-variant-numeric:tabular-nums}
+  .viz text.lbl{fill:var(--ink);font-size:12px}
+  .viz text.val{fill:var(--ink);font-size:11.5px;font-weight:500;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}
+  .viz text.cell{font-size:11px;font-weight:500;pointer-events:none}
+  .viz text.ref-t{fill:var(--ink-2);font-size:11px}
+  .grid-l{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
+  .axis-l{stroke:var(--axis);stroke-width:1;shape-rendering:crispEdges}
+  .ref{stroke:var(--ink-2);stroke-width:1;shape-rendering:crispEdges}
+  .ref-crit{stroke:var(--critical);stroke-width:1;shape-rendering:crispEdges}
+  .ref-warn{stroke:var(--warning);stroke-width:1;shape-rendering:crispEdges}
+  .f-s1{fill:var(--s1)} .f-s2{fill:var(--s2)} .f-de{fill:var(--deemph)}
+  .f-good{fill:var(--good)} .f-warning{fill:var(--warning)} .f-serious{fill:var(--serious)} .f-critical{fill:var(--critical)} .f-off{fill:var(--surface-2)}
+  .line{fill:none;stroke:var(--s1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .spark{fill:none;stroke:var(--deemph);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .dot{fill:var(--s1);stroke:var(--surface);stroke-width:2}
+  .xh{stroke:var(--axis);stroke-width:1;shape-rendering:crispEdges}
+  .hb{fill:transparent}
+  .hit{outline:none}
+  .hit.hot .mk{filter:brightness(1.14)}
+  .hit:focus-visible .hb{stroke:var(--ink);stroke-width:1.5}
+  .cellr{outline:none}
+  .cellr.hot{stroke:var(--ink);stroke-width:1.5}
+
+  /* ---------- Tooltip ---------- */
+  #tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;font-size:12px;min-width:150px;max-width:290px}
+  #tip[hidden]{display:none}
+  .tip-t{color:var(--ink-2);margin-bottom:4px}
+  .tip-r{display:flex;align-items:center;gap:8px;margin-top:2px}
+  .tip-r .k{width:12px;height:3px;border-radius:2px;flex:none}
+  .tip-r .k.none{background:transparent}
+  .tip-r b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tip-r .l{color:var(--ink-2)}
+  .k-s1{background:var(--s1)} .k-s2{background:var(--s2)} .k-de{background:var(--deemph)}
+  .k-good{background:var(--good)} .k-warning{background:var(--warning)} .k-serious{background:var(--serious)} .k-critical{background:var(--critical)} .k-off{background:var(--axis)}
+
+  /* ---------- Tables ---------- */
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .dt th,.dt td{padding:6px 10px;border-bottom:1px solid var(--grid);text-align:left;white-space:nowrap;vertical-align:top}
+  .dt th{font-weight:500;color:var(--ink-2);background:var(--surface-2)}
+  .dt td.num,.dt th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .dt td.wrap{white-space:normal;min-width:220px}
+  .sev{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+  .sev i{font-style:normal;width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-size:10px;font-weight:700;color:#fff;line-height:1}
+  .sev.crit i{background:var(--critical)} .sev.ser i{background:var(--serious)} .sev.warn i{background:var(--warning);color:#0b0b0b}
+
+  /* ---------- Insights ---------- */
+  .ins{list-style:none;margin:12px 0 4px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 20px}
+  .ins li{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
+  .ins .no{width:22px;height:22px;border-radius:6px;background:var(--accent-soft);display:grid;place-items:center;font-size:12px;font-weight:600;margin-top:1px}
+  .ins b{display:block;font-weight:600;font-size:13.5px;line-height:1.45}
+  .ins span{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px}
+
+  /* ---------- Spec section ---------- */
+  .spec{margin:28px 0 8px}
+  .spec h2{font-size:20px;font-weight:600;margin:0 0 4px}
+  .spec h3{font-size:15px;font-weight:600;margin:22px 0 6px}
+  .spec p{margin:4px 0;color:var(--ink-2)}
+  .spec .card{margin-top:12px}
+  .spec ul{margin:6px 0;padding-left:20px} .spec li{margin:3px 0}
+  .phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}
+  .phase{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .phase b{display:block;font-weight:600}
+  .phase span{color:var(--ink-2);font-size:13px}
+  footer.foot{padding:24px 16px 32px;text-align:center;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap titlebar">
+    <div>
+      <div class="eyebrow">PFCM · Quality Control · Metal Detector</div>
+      <h1>วิเคราะห์ปัญหาเครื่อง Metal Detector</h1>
+      <p class="sub">แบบร่าง dashboard สำหรับหัวหน้างาน / QC / ซ่อมบำรุง — ดูว่าเครื่องไหนมีปัญหา ปัญหาเกิดจากอะไร เกิดตอนไหน และกระทบการผลิตเท่าไร
+        <span class="mock">ข้อมูลจำลอง</span></p>
+    </div>
+    <button class="iconbtn" id="themeBtn" type="button">โหมดมืด</button>
+  </div>
+</header>
+
+<div class="filterbar">
+  <div class="wrap filters" role="group" aria-label="ตัวกรองข้อมูล">
+    <div class="seg" id="fDays" role="group" aria-label="ช่วงเวลา">
+      <button type="button" data-v="7" aria-pressed="false">7 วัน</button>
+      <button type="button" data-v="30" aria-pressed="true">30 วัน</button>
+      <button type="button" data-v="90" aria-pressed="false">90 วัน</button>
+    </div>
+    <label class="fsel">พื้นที่ <select id="fArea"></select></label>
+    <label class="fsel">เครื่อง <select id="fMachine"></select></label>
+    <label class="fsel">กะ
+      <select id="fShift">
+        <option value="all">ทั้งหมด</option>
+        <option value="day">กะเช้า 08:00–19:59</option>
+        <option value="night">กะดึก 20:00–07:59</option>
+      </select>
+    </label>
+    <span class="asof" id="asof"></span>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="kpis" id="kpis" aria-label="ตัวเลขสรุป"></section>
+
+  <section class="grid">
+    <!-- Insights -->
+    <article class="card" data-chart="insights">
+      <div class="card-h"><div>
+        <h2>ประเด็นที่ต้องดูก่อน</h2>
+        <p class="q">สรุปอัตโนมัติจากกราฟด้านล่าง ตามตัวกรองที่เลือก</p>
+      </div></div>
+      <ol class="ins" id="insights"></ol>
+    </article>
+
+    <!-- 1 Trend -->
+    <article class="card span-8" data-chart="trend">
+      <div class="card-h"><div>
+        <h2><span class="n">1</span>แนวโน้มการคัดออก (Reject)</h2>
+        <p class="q">ปัญหาเพิ่มหรือลดลง? คัดออกหลอก (ตรวจซ้ำไม่พบโลหะ) มากกว่าพบโลหะจริงแค่ไหน?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">✓ มีใน PFCM</span> รายการที่ผ่าน MD (<code>md</code>, <code>md_no</code>, <code>md_time</code>) <span class="chip">+ ต้องเก็บเพิ่ม</span> บันทึก Reject + ผลตรวจซ้ำ</div>
+    </article>
+
+    <!-- 2 Pareto -->
+    <article class="card span-4" data-chart="pareto">
+      <div class="card-h"><div>
+        <h2><span class="n">2</span>Pareto สาเหตุปัญหา</h2>
+        <p class="q">แก้สาเหตุไหนก่อนแล้วปัญหาหายมากที่สุด?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">+ ต้องเก็บเพิ่ม</span> สาเหตุจากรายการมาตรฐาน (dropdown)</div>
+    </article>
+
+    <!-- 4 Test piece grid -->
+    <article class="card" data-chart="tp">
+      <div class="card-h"><div>
+        <h2><span class="n">3</span>ผลตรวจ Test piece รายชั่วโมง (Fe 1.5 · Non-Fe 2.0 · SUS 2.5 mm)</h2>
+        <p class="q">ทุกเครื่องตรวจครบทุกรอบไหม? รอบไหนไม่ผ่าน และต้องกักสินค้าย้อนไปถึงรอบไหน?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <p class="note" id="tpNote"></p>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">+ ต้องเก็บเพิ่ม</span> ผล Test piece ทุกรอบ (หรือดึงจากใบตรวจ F3QCPF06 ใน DocHUB ถ้ามีช่องนี้)</div>
+    </article>
+
+    <!-- 3 Cause x machine -->
+    <article class="card span-6" data-chart="causeMachine">
+      <div class="card-h"><div>
+        <h2><span class="n">4</span>สาเหตุ × เครื่อง</h2>
+        <p class="q">แต่ละเครื่องมีปัญหาเรื่องอะไร? (เครื่องเฉพาะ vs ปัญหาร่วมทุกเครื่อง)</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">✓ มีใน PFCM</span> Master <code>MetalDetectors</code> / <code>WorkAreas</code> <span class="chip">+ ต้องเก็บเพิ่ม</span> สาเหตุ</div>
+    </article>
+
+    <!-- 5 Time heatmap -->
+    <article class="card span-6" data-chart="time">
+      <div class="card-h"><div>
+        <h2><span class="n">5</span>ช่วงเวลาที่เกิดปัญหา (วัน × ชั่วโมง)</h2>
+        <p class="q">ปัญหากระจุกตอนไหน? หลังล้างเครื่อง, ตอนเปลี่ยนรุ่นสินค้า หรือกะดึก?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">+ ต้องเก็บเพิ่ม</span> เวลาเกิดเหตุจากบันทึกเหตุการณ์</div>
+    </article>
+
+    <!-- 6 Downtime -->
+    <article class="card span-6" data-chart="down">
+      <div class="card-h"><div>
+        <h2><span class="n">6</span>Downtime ต่อเครื่อง</h2>
+        <p class="q">เครื่องไหนหยุดนานสุด? เสียบ่อย (MTBF ต่ำ) หรือซ่อมนาน (MTTR สูง)?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">+ ต้องเก็บเพิ่ม</span> เวลาเริ่ม–จบที่เครื่องหยุด (หรือจากระบบแจ้งซ่อม)</div>
+    </article>
+
+    <!-- 7 Product -->
+    <article class="card span-6" data-chart="product">
+      <div class="card-h"><div>
+        <h2><span class="n">7</span>อัตราคัดออกหลอกตามสินค้า</h2>
+        <p class="q">สินค้าไหนทำให้เครื่องคัดออกหลอกบ่อย (Product effect) จนต้องปรับค่าโปรแกรมสินค้า?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">✓ มีใน PFCM</span> สินค้าของรายการ (<code>mapping_id</code> → <code>Production.code</code>) <span class="chip">+ ต้องเก็บเพิ่ม</span> Reject</div>
+    </article>
+
+    <!-- 8 Wait -->
+    <article class="card span-6" data-chart="wait">
+      <div class="card-h"><div>
+        <h2><span class="n">8</span>เวลารอผ่าน MD</h2>
+        <p class="q">รถเข็นรอผ่าน MD นานแค่ไหน? กี่ % เกินมาตรฐานจนเป็น Delay?</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <p class="note" id="waitNote"></p>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">✓ มีใน PFCM</span> <code>qc_datetime</code> ตอน QC บันทึก "รอผ่าน MD" → <code>md_time</code> ตอนผ่าน MD</div>
+    </article>
+
+    <!-- 9 Drift -->
+    <article class="card span-6" data-chart="drift">
+      <div class="card-h"><div>
+        <h2><span class="n">9</span>ค่าสัญญาณ Test piece Fe — <span id="driftM">MD-03</span></h2>
+        <p class="q">ความไวของเครื่องลดลงเรื่อย ๆ ก่อนจะตรวจไม่เจอไหม? (เตือนล่วงหน้าเพื่อนัด Calibrate)</p>
+      </div><button class="tbtn" type="button" aria-pressed="false">ตาราง</button></div>
+      <p class="note" id="driftNote"></p>
+      <div class="legend"></div><div class="viz"></div><div class="tbl"></div>
+      <div class="src">ข้อมูล: <span class="chip">⚙ ต่อข้อมูลจากเครื่อง</span> ค่าสัญญาณที่เครื่องส่งออก (Phase 3)</div>
+    </article>
+
+    <!-- Log -->
+    <article class="card" data-chart="log">
+      <div class="card-h"><div>
+        <h2>บันทึกเหตุการณ์ล่าสุด</h2>
+        <p class="q" id="logQ">เหตุการณ์ที่เกิดขึ้นจริงพร้อมการแก้ไข — ใช้ตามงานต่อและเป็นหลักฐาน audit</p>
+      </div></div>
+      <div class="tbl" style="display:block"></div>
+    </article>
+  </section>
+
+  <!-- Data requirements -->
+  <section class="spec">
+    <h2>ข้อมูลที่ต้องใช้ในแต่ละกราฟ</h2>
+    <p>PFCM บันทึกแค่ว่ารายการ "ผ่าน MD" หรือ "รอผ่าน MD" (ตาราง QC: <code>md</code>, <code>mdcheck</code>, <code>md_no</code>, <code>WorkAreaCode</code>, <code>md_time</code>, <code>md_remark</code>) ยังไม่มีบันทึกว่าเครื่องมีปัญหาอะไร กราฟส่วนใหญ่จึงต้องมีฟอร์มบันทึกเหตุการณ์ MD เพิ่มอีก 1 ฟอร์ม</p>
+    <div class="card">
+      <div class="tscroll">
+        <table class="dt">
+          <thead><tr><th>#</th><th>กราฟ</th><th>รูปแบบ</th><th>ข้อมูลที่ต้องใช้</th><th>สถานะข้อมูล</th></tr></thead>
+          <tbody>
+            <tr><td>—</td><td>ตัวเลขสรุป (KPI)</td><td>Stat tile + เทียบช่วงก่อนหน้า</td><td class="wrap">จำนวนรายการที่ผ่าน MD, Reject, Test piece, downtime, เวลารอ</td><td class="wrap">บางส่วนมีแล้ว / ที่เหลือต้องมีฟอร์มบันทึก</td></tr>
+            <tr><td>1</td><td>แนวโน้มการคัดออก</td><td>แท่งซ้อน รายวัน/สัปดาห์</td><td class="wrap">Reject แต่ละครั้ง + ผลตรวจซ้ำ (พบ / ไม่พบโลหะ), จำนวนรายการที่ผ่าน MD</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span></td></tr>
+            <tr><td>2</td><td>Pareto สาเหตุ</td><td>แท่งแนวนอนเรียงมาก→น้อย + % สะสม</td><td class="wrap">สาเหตุ (เลือกจากรายการมาตรฐาน)</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span></td></tr>
+            <tr><td>3</td><td>ผล Test piece รายชั่วโมง</td><td>ตารางสถานะ เครื่อง × ชั่วโมง</td><td class="wrap">ผล Fe / Non-Fe / SUS ทุกรอบ, ผู้ตรวจ, เวลา</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span> หรือดึงจาก F3QCPF06 (DocHUB)</td></tr>
+            <tr><td>4</td><td>สาเหตุ × เครื่อง</td><td>Heatmap</td><td class="wrap"><code>md_no</code> + สาเหตุ</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span></td></tr>
+            <tr><td>5</td><td>ช่วงเวลาที่เกิดปัญหา</td><td>Heatmap วัน × ชั่วโมง</td><td class="wrap">เวลาเกิดเหตุ</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span></td></tr>
+            <tr><td>6</td><td>Downtime ต่อเครื่อง</td><td>แท่งแนวนอน + MTBF/MTTR</td><td class="wrap">เวลาเริ่ม–จบที่เครื่องหยุด, สาเหตุ</td><td class="wrap"><span class="chip">+ ต้องเก็บเพิ่ม</span> หรือระบบแจ้งซ่อม</td></tr>
+            <tr><td>7</td><td>คัดออกหลอกตามสินค้า</td><td>แท่งแนวนอน + เส้นเป้า</td><td class="wrap">สินค้าของรายการ (<code>mapping_id</code> → <code>Production.code</code>) + Reject</td><td class="wrap"><span class="chip">✓ มีใน PFCM</span> + Reject</td></tr>
+            <tr><td>8</td><td>เวลารอผ่าน MD</td><td>Histogram + เส้นมาตรฐาน</td><td class="wrap"><code>qc_datetime</code> (บันทึก "รอผ่าน MD") → <code>md_time</code></td><td class="wrap"><span class="chip">✓ มีใน PFCM</span></td></tr>
+            <tr><td>9</td><td>ค่าสัญญาณ Test piece</td><td>เส้น + ระดับตัดสิน/เตือน</td><td class="wrap">ค่าสัญญาณที่เครื่องส่งออก (export / Modbus / OPC-UA แล้วแต่รุ่น)</td><td class="wrap"><span class="chip">⚙ ต่อข้อมูลจากเครื่อง</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>ฟอร์มบันทึกเหตุการณ์ MD (ข้อมูลที่ต้องเก็บเพิ่ม)</h3>
+    <ul>
+      <li><b>วันเวลา, เครื่อง, พื้นที่</b> — เลือกจาก master <code>MetalDetectors</code> / <code>WorkAreas</code> ที่มีอยู่แล้ว (หน้า MDmanage)</li>
+      <li><b>ประเภท</b> — คัดออก (Reject) · Test piece ไม่ผ่าน · เครื่องหยุด · ไม่ได้ตรวจตามรอบ</li>
+      <li><b>ผลตรวจซ้ำหลังคัดออก</b> — พบโลหะ (Fe / Non-Fe / SUS, ขนาด mm) หรือไม่พบ (= คัดออกหลอก)</li>
+      <li><b>สาเหตุ</b> — เลือกจากรายการมาตรฐาน 9 ข้อ (พิมพ์เพิ่มได้ใน "หมายเหตุ") เพื่อให้นับเป็น Pareto ได้ ถ้าพิมพ์อิสระอย่างเดียวจะนับไม่ได้</li>
+      <li><b>สินค้า</b> — สแกน QR สลีป → code / batch ผ่าน <code>/api/export/mapping/:mapping_id</code> ที่มีอยู่แล้ว</li>
+      <li><b>เวลาเริ่ม–จบที่เครื่องหยุด, การแก้ไข, ผู้บันทึก</b> — ผู้บันทึกได้จาก token ของผู้ใช้ (<code>req.user</code>)</li>
+      <li><b>ผล Test piece รายชั่วโมง</b> — Fe / Non-Fe / SUS ผ่านหรือไม่ผ่าน, ผู้ตรวจ</li>
+    </ul>
+
+    <h3>ทำทีละขั้น</h3>
+    <div class="phases">
+      <div class="phase"><b>Phase 1 · ใช้ข้อมูลที่มีอยู่</b><span>KPI จำนวนรายการผ่าน MD, เวลารอผ่าน MD (กราฟ 8), จำนวนรายการต่อสินค้า/เครื่อง — ทำได้เลยจากตาราง QC</span></div>
+      <div class="phase"><b>Phase 2 · เพิ่มฟอร์มบันทึกเหตุการณ์</b><span>กราฟ 1–7 + บันทึกเหตุการณ์ — ฟอร์มสั้น ๆ ข้างเครื่อง MD (แท็บเล็ต / สแกน QR สลีป)</span></div>
+      <div class="phase"><b>Phase 3 · ต่อข้อมูลจากเครื่อง</b><span>กราฟ 9 ค่าสัญญาณ / ความไว — ต้องตรวจก่อนว่ารุ่นเครื่องส่งข้อมูลออกได้ทางไหน</span></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">Copyright © 2026 i-Tail Corporation · PFCM — แบบร่างเพื่อออกแบบ ตัวเลขทั้งหมดเป็นข้อมูลจำลอง</footer>
+<div id="tip" role="tooltip" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* =====================================================================
+   1) MOCK DATA — seeded, so the same numbers appear on every open.
+      Shape follows what a real feed would give: one row per running hour
+      per machine (checks, waits, test-piece result) + one row per event.
+   ===================================================================== */
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+const rnd = mulberry32(20261123);
+const randn = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+function pickW(items, w){ let s = 0; for (const x of w) s += x; let r = rnd() * s; for (let i = 0; i < items.length; i++){ r -= w[i]; if (r <= 0) return items[i]; } return items[items.length - 1]; }
+
+// work day 0 = 22 Nov 2026 08:00 → 23 Nov 2026 07:59 (data as of 23 Nov 08:00)
+const WORKDAY0 = new Date(2026, 10, 22);
+const HORIZON = 180;
+const dateOf = d => { const x = new Date(WORKDAY0); x.setDate(x.getDate() - d); return x; };
+const TH_M = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const TH_DOW = ["จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์","อาทิตย์"];
+const TH_DOW_S = ["จ.","อ.","พ.","พฤ.","ศ.","ส.","อา."];
+const fmtD = x => `${x.getDate()} ${TH_M[x.getMonth()]}`;
+const fmtDY = x => `${x.getDate()} ${TH_M[x.getMonth()]} ${x.getFullYear() + 543}`;
+const hh = h => String(h).padStart(2, "0");
+const HOURS = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7];
+const isDay = h => h >= 8 && h < 20;
+const CLEAN = new Set([6, 7]);          // ล้างเครื่องก่อนเปลี่ยนกะเช้า
+const CHANGE = new Set([8, 14, 20, 2]); // เปลี่ยนรุ่นสินค้า
+
+const AREAS = [{code:"PK1",name:"บรรจุ 1"},{code:"PK2",name:"บรรจุ 2"},{code:"PK3",name:"บรรจุ 3"},{code:"PR1",name:"เตรียม 1"}];
+const AREA_NAME = Object.fromEntries(AREAS.map(a => [a.code, a.name]));
+const M = [
+  {id:"MD-01", area:"PK1", vib:1,   noise:1,   prod:1.3, rej:1},
+  {id:"MD-02", area:"PK1", vib:1,   noise:1,   prod:1,   rej:1},
+  {id:"MD-03", area:"PK2", vib:2.5, noise:1,   prod:1,   rej:1, drift:true},
+  {id:"MD-04", area:"PK2", vib:1,   noise:1,   prod:0.9, rej:1},
+  {id:"MD-05", area:"PK3", vib:1,   noise:1,   prod:1,   rej:4},
+  {id:"MD-06", area:"PK3", vib:1,   noise:4,   prod:1,   rej:1},
+  {id:"MD-07", area:"PR1", vib:0.8, noise:1,   prod:0.8, rej:1},
+  {id:"MD-08", area:"PR1", vib:1,   noise:1.2, prod:1,   rej:1},
+];
+const PRODUCTS = [
+  {name:"ทูน่าในเกรวี่", eff:1.9, w:3},
+  {name:"ปลาซาร์ดีนในซอส", eff:1.6, w:2},
+  {name:"ทูน่าในเยลลี่", eff:1.15, w:3},
+  {name:"ไก่ในน้ำซุป", eff:0.9, w:2},
+  {name:"ทูน่ามูส", eff:0.75, w:2},
+  {name:"ขนมแมวเลีย (Puree)", eff:0.6, w:1.5},
+];
+const CAUSES = [
+  {key:"product",   label:"Product effect (สินค้าชื้น / เกลือสูง)", short:"Product effect", act:"ปรับ Phase / Sensitivity ของโปรแกรมสินค้า"},
+  {key:"setting",   label:"เลือกโปรแกรมสินค้าผิดตอนเปลี่ยนรุ่น",     short:"ตั้งโปรแกรมผิด",  act:"เลือกโปรแกรมให้ตรง code แล้วทดสอบ test piece"},
+  {key:"wet",       label:"เครื่องยังเปียกหลังล้าง",                 short:"เปียกหลังล้าง",   act:"เช็ดช่องตรวจให้แห้งก่อนเดินสินค้า"},
+  {key:"vibration", label:"สั่นสะเทือน / สายพานหลวม",               short:"สั่น / สายพาน",   act:"ขันสายพาน / ยึดฐานเครื่อง"},
+  {key:"noise",     label:"สัญญาณไฟฟ้ารบกวน (VFD, วิทยุ)",         short:"ไฟฟ้ารบกวน",    act:"ตรวจกราวด์ / แยกสายไฟกำลังออกจากเครื่อง"},
+  {key:"temp",      label:"อุณหภูมิสินค้าเปลี่ยน",                   short:"อุณหภูมิสินค้า",  act:"พักสินค้าให้อุณหภูมิคงที่ก่อนเข้าเครื่อง"},
+  {key:"reject",    label:"ชุดคัดออก (Reject) ขัดข้อง",              short:"ชุด Reject",     act:"ซ่อมกระบอกลม / เซนเซอร์ชุดคัดออก"},
+  {key:"drift",     label:"ความไวเลื่อน (Sensitivity drift)",        short:"ความไวเลื่อน",   act:"Calibrate ใหม่"},
+  {key:"other",     label:"อื่น ๆ",                                  short:"อื่น ๆ",         act:"ตรวจสอบเพิ่มเติม"},
+];
+const CAUSE = Object.fromEntries(CAUSES.map(c => [c.key, c]));
+const PIECES = ["Fe 1.5 mm", "Non-Fe 2.0 mm", "SUS 2.5 mm"];
+const TYPE_TH = {fr:"คัดออกหลอก", metal:"พบโลหะจริง", tp:"Test piece ไม่ผ่าน", down:"เครื่องหยุด"};
+const PROBLEM = new Set(["fr", "tp", "down"]);
+const TARGET_FR = 1.0;   // % คัดออกหลอกต่อรายการ
+const WAIT_STD = 30;     // นาที
+const SIG_THR = 50, SIG_WARN = 65;
+
+const slotsByDay = Array.from({length: HORIZON}, () => []);
+const eventsByDay = Array.from({length: HORIZON}, () => []);
+const signal = M.map(() => new Array(HORIZON));
+function mkEvent(d, h, mi, type, o){
+  const e = Object.assign({d, h, mi, min: Math.floor(rnd() * 60), type, shift: isDay(h) ? "day" : "night", cause: null, prod: null, piece: null, down: 0}, o);
+  eventsByDay[d].push(e);
+  return e;
+}
+const blockOf = h => (h >= 8 && h < 14) ? 0 : (h >= 14 && h < 20) ? 1 : (h >= 20 || h < 2) ? 2 : 3;
+
+for (let d = HORIZON - 1; d >= 0; d--){
+  const dow = (dateOf(d).getDay() + 6) % 7;
+  M.forEach((m, mi) => {
+    const blocks = [0,1,2,3].map(() => pickW(PRODUCTS, PRODUCTS.map(p => p.w)));
+    const driftOn = m.drift && d < 40;
+    const driftF = driftOn ? 1 + (40 - d) / 6 : 1;
+    let sig = 100 + randn() * (m.noise > 2 ? 6 : 2.5);
+    if (driftOn) sig -= (40 - d) * 1.15;
+    signal[mi][d] = Math.round(sig * 10) / 10;
+
+    for (const h of HOURS){
+      const shift = isDay(h) ? "day" : "night";
+      const s = {d, dow, h, mi, shift, run: !CLEAN.has(h), checks: 0, waits: [], tp: "off", piece: null, prod: null};
+      slotsByDay[d].push(s);
+      if (!s.run) continue;
+      const p = blocks[blockOf(h)]; s.prod = p.name;
+      const n = 2 + Math.floor(rnd() * 3); s.checks = n;
+      const rates = {
+        product:   0.0022 * p.eff * p.eff * m.prod,
+        setting:   0.0008 * (CHANGE.has(h) ? 5 : 0.3),
+        wet:       0.0007 * (h === 8 || h === 9 ? 6 : 0.2),
+        vibration: 0.0006 * m.vib,
+        noise:     0.0005 * m.noise * (shift === "day" ? 1.3 : 0.8),
+        temp:      0.0004 * (h === 8 || h === 9 || h === 20 || h === 21 ? 2 : 1),
+        drift:     0.0003 * driftF,
+        other:     0.0003,
+      };
+      const keys = Object.keys(rates), wts = keys.map(k => rates[k]);
+      const pTot = wts.reduce((a, b) => a + b, 0);
+      const med = (shift === "day" ? 12 : 16) * (m.area === "PR1" ? 0.85 : 1);
+      for (let i = 0; i < n; i++){
+        s.waits.push(Math.max(1, Math.round(med * Math.exp(randn() * 0.62))));
+        if (rnd() < pTot) mkEvent(d, h, mi, "fr", {cause: pickW(keys, wts), prod: p.name});
+        if (rnd() < 0.0004) mkEvent(d, h, mi, "metal", {prod: p.name, piece: pickW(["Fe","SUS","Non-Fe"], [55,25,20])});
+      }
+      const miss = shift === "night" ? 0.045 : 0.018;
+      const fail = 0.0008 + (driftOn ? 0.012 * (40 - d) / 40 : 0);
+      const r = rnd();
+      if (r < miss) s.tp = "miss";
+      else if (r < miss + fail){
+        s.tp = "fail"; s.piece = pickW(PIECES, [2, 3, 5]);
+        mkEvent(d, h, mi, "tp", {cause: driftOn ? pickW(["drift","vibration"], [8,2]) : pickW(["vibration","noise","other"], [4,3,3]), prod: p.name, piece: s.piece, down: 30 + Math.round(rnd() * 45)});
+      } else s.tp = "pass";
+    }
+    const pDown = 0.035 * (m.rej > 1 ? 2.2 : 1) * (m.vib > 1 ? 1.5 : 1) * (m.noise > 2 ? 1.4 : 1);
+    if (rnd() < pDown){
+      const runH = HOURS.filter(h => !CLEAN.has(h));
+      const h = runH[Math.floor(rnd() * runH.length)];
+      const cause = pickW(["reject","vibration","noise","drift","other"], [3 * m.rej, 2 * m.vib, m.noise, m.drift ? 3 : 0.5, 1.5]);
+      mkEvent(d, h, mi, "down", {cause, down: 20 + Math.round(rnd() * 140)});
+    }
+  });
+}
+// a fixed story for the latest day so the hourly grid shows each state
+(() => {
+  const at = (mi, h) => slotsByDay[0].find(s => s.mi === mi && s.h === h);
+  const s14 = at(2, 14);
+  if (s14.tp !== "fail"){ s14.tp = "fail"; s14.piece = "SUS 2.5 mm"; mkEvent(0, 14, 2, "tp", {cause: "drift", prod: s14.prod, piece: s14.piece, down: 55}); }
+  const s3 = at(5, 3); if (s3.tp === "pass") s3.tp = "miss";
+})();
+
+/* =====================================================================
+   2) FILTERS + SLICING
+   ===================================================================== */
+const F = {days: 30, area: "all", machine: "all", shift: "all"};
+const mOk = mi => (F.area === "all" || M[mi].area === F.area) && (F.machine === "all" || M[mi].id === F.machine);
+const shOk = sh => F.shift === "all" || F.shift === sh;
+const hrsInScope = () => HOURS.filter(h => F.shift === "all" || (F.shift === "day") === isDay(h));
+const machinesInScope = () => M.map((m, i) => i).filter(mOk);
+
+function slice(d0, d1){
+  const S = {slots: [], events: []};
+  for (let d = d0; d <= d1 && d < HORIZON; d++){
+    for (const s of slotsByDay[d]) if (mOk(s.mi) && shOk(s.shift)) S.slots.push(s);
+    for (const e of eventsByDay[d]) if (mOk(e.mi) && shOk(e.shift)) S.events.push(e);
+  }
+  return S;
+}
+function quant(sorted, q){ if (!sorted.length) return 0; const i = (sorted.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo); }
+function stats(S){
+  const st = {checks:0, fr:0, metal:0, tp:0, down:0, downMin:0, downN:0, due:0, miss:0, waits:[], metalBy:{Fe:0, SUS:0, "Non-Fe":0}};
+  for (const s of S.slots){ if (!s.run) continue; st.checks += s.checks; st.due++; if (s.tp === "miss") st.miss++; for (const w of s.waits) st.waits.push(w); }
+  for (const e of S.events){
+    if (e.type === "fr") st.fr++;
+    else if (e.type === "metal"){ st.metal++; st.metalBy[e.piece]++; }
+    else if (e.type === "tp") st.tp++;
+    else if (e.type === "down") st.down++;
+    if (e.down){ st.downMin += e.down; st.downN++; }
+  }
+  st.problems = st.fr + st.tp + st.down;
+  st.frRate = st.checks ? st.fr / st.checks * 100 : 0;
+  st.comp = st.due ? (st.due - st.miss) / st.due * 100 : 100;
+  st.mttr = st.downN ? st.downMin / st.downN : 0;
+  st.waits.sort((a, b) => a - b);
+  st.waitAvg = st.waits.length ? st.waits.reduce((a, b) => a + b, 0) / st.waits.length : 0;
+  st.p50 = quant(st.waits, 0.5); st.p90 = quant(st.waits, 0.9);
+  st.over30 = st.waits.length ? st.waits.filter(w => w > WAIT_STD).length / st.waits.length * 100 : 0;
+  return st;
+}
+
+/* =====================================================================
+   3) HELPERS — DOM, SVG, colour, tooltip
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const C = k => document.querySelector(`[data-chart="${k}"]`);
+const NS = "http://www.w3.org/2000/svg";
+const nf = new Intl.NumberFormat("th-TH");
+const fmt = n => nf.format(Math.round(n));
+const fx = (n, d = 1) => n.toLocaleString("th-TH", {minimumFractionDigits: d, maximumFractionDigits: d});
+function svgEl(tag, attrs, parent){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function svgText(parent, x, y, str, cls, attrs){ const t = svgEl("text", Object.assign({x, y}, attrs || {}), parent); if (cls) t.setAttribute("class", cls); if (attrs && attrs.fill) t.style.fill = attrs.fill; t.textContent = str; return t; }
+function htmlEl(tag, cls, parent, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+function newSvg(viz, W, H, label){ viz.replaceChildren(); const s = svgEl("svg", {width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": label}); viz.appendChild(s); return s; }
+const vizW = card => Math.max(280, Math.floor(card.querySelector(".viz").clientWidth || 0));
+function fitText(t, maxW, alt){
+  if (t.getComputedTextLength() <= maxW) return;
+  if (alt){ t.textContent = alt; if (t.getComputedTextLength() <= maxW) return; }
+  let s = t.textContent;
+  while (s.length > 2 && t.getComputedTextLength() > maxW){ s = s.slice(0, -1); t.textContent = s + "…"; }
+}
+function niceTicks(max, count, integer){
+  if (!(max > 0)) return [0, 1];
+  const raw = max / count, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+  let step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  if (integer) step = Math.max(1, Math.round(step));
+  const out = []; for (let v = 0; v <= max + step - 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+function colPath(x, w, yTop, yBase, r){
+  const h = yBase - yTop; if (h <= 0.3) return "";
+  r = Math.max(0, Math.min(r, w / 2, h));
+  return `M${x},${yBase}V${yTop + r}` + (r ? `A${r},${r} 0 0 1 ${x + r},${yTop}` : "") + `H${x + w - r}` + (r ? `A${r},${r} 0 0 1 ${x + w},${yTop + r}` : "") + `V${yBase}Z`;
+}
+function barPath(x0, x1, y, h, r){
+  const w = x1 - x0; if (w <= 0.3) return "";
+  r = Math.max(0, Math.min(r, h / 2, w));
+  return `M${x0},${y}H${x1 - r}` + (r ? `A${r},${r} 0 0 1 ${x1},${y + r}` : "") + `V${y + h - r}` + (r ? `A${r},${r} 0 0 1 ${x1 - r},${y + h}` : "") + `H${x0}Z`;
+}
+const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const ramp = name => cssVar(name).split(",").map(s => s.trim()).filter(Boolean);
+function hex2rgb(h){ const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function rgb2hex(c){ return "#" + c.map(v => Math.round(v).toString(16).padStart(2, "0")).join(""); }
+function rampAt(stops, t){
+  t = Math.max(0, Math.min(1, t));
+  const i = t * (stops.length - 1), lo = Math.floor(i), hi = Math.min(stops.length - 1, lo + 1), f = i - lo;
+  const a = hex2rgb(stops[lo]), b = hex2rgb(stops[hi]);
+  return rgb2hex(a.map((v, k) => v + (b[k] - v) * f));
+}
+function onFill(hex){
+  const c = hex2rgb(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) > 0.36 ? "#0b0b0b" : "#ffffff";
+}
+
+// tooltip — values lead, labels follow; text set with textContent only
+const tip = $("#tip");
+function tipShow(x, y, c){
+  tip.replaceChildren();
+  htmlEl("div", "tip-t", tip, c.title);
+  for (const r of c.rows){
+    const row = htmlEl("div", "tip-r", tip);
+    const k = htmlEl("span", "k " + (r.k ? "k-" + r.k : "none"), row);
+    if (r.color) k.style.background = r.color;
+    htmlEl("b", null, row, r.v);
+    htmlEl("span", "l", row, r.l);
+  }
+  tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = x + 14, top = y + 14;
+  if (left + tw > innerWidth - 8) left = Math.max(8, x - 14 - tw);
+  if (top + th > innerHeight - 8) top = Math.max(8, y - 14 - th);
+  tip.style.left = left + "px"; tip.style.top = top + "px";
+}
+function tipHide(){ tip.hidden = true; }
+let hotNode = null;
+function hover(node, get, focusable){
+  const on = () => { if (hotNode && hotNode !== node) hotNode.classList.remove("hot"); hotNode = node; node.classList.add("hot"); };
+  node.addEventListener("pointermove", e => { on(); tipShow(e.clientX, e.clientY, get()); });
+  node.addEventListener("pointerdown", e => { on(); tipShow(e.clientX, e.clientY, get()); });
+  node.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" || e.pointerType === "pen"){ node.classList.remove("hot"); tipHide(); } });
+  if (focusable){
+    node.setAttribute("tabindex", "0");
+    node.addEventListener("focus", () => { on(); const r = node.getBoundingClientRect(); tipShow(r.left + r.width / 2, r.top, get()); });
+    node.addEventListener("blur", () => { node.classList.remove("hot"); tipHide(); });
+  }
+}
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".hit,.cellr")){ tipHide(); if (hotNode) hotNode.classList.remove("hot"); } });
+addEventListener("scroll", tipHide, {passive: true});
+
+function legend(card, items){
+  const L = card.querySelector(".legend"); L.replaceChildren();
+  for (const it of items){
+    const li = htmlEl("span", "lg", L);
+    if (it.grad){
+      htmlEl("span", null, li, it.lo);
+      const g = htmlEl("span", "grad", li); g.style.background = `linear-gradient(90deg, ${it.grad.join(",")})`;
+      htmlEl("span", null, li, it.hi);
+      continue;
+    }
+    const sw = htmlEl("span", "sw " + (it.cls || ""), li);
+    if (it.bg) sw.style.background = it.bg;
+    if (it.icon){ sw.textContent = it.icon; sw.classList.add("ic"); }
+    htmlEl("span", null, li, it.label);
+  }
+}
+function table(card, head, rows, numCols){
+  const T = card.querySelector(".tbl"); T.replaceChildren();
+  const wrap = htmlEl("div", "tscroll", T), t = htmlEl("table", "dt", wrap);
+  const tr = htmlEl("tr", null, htmlEl("thead", null, t));
+  head.forEach((h, i) => htmlEl("th", numCols && numCols.includes(i) ? "num" : null, tr, h));
+  const tb = htmlEl("tbody", null, t);
+  rows.forEach(r => { const row = htmlEl("tr", null, tb); r.forEach((c, i) => {
+    const td = htmlEl("td", numCols && numCols.includes(i) ? "num" : null, row);
+    if (c instanceof Node) td.appendChild(c); else td.textContent = c;
+  }); });
+  return t;
+}
+const pct = (v, d = 1) => fx(v, d) + "%";
+const shiftLabel = () => F.shift === "day" ? "กะเช้า" : F.shift === "night" ? "กะดึก" : "ทุกกะ";
+function topKey(obj){ let best = null, bv = -1; for (const k in obj) if (obj[k] > bv){ bv = obj[k]; best = k; } return best; }
+
+/* =====================================================================
+   4) KPI ROW
+   ===================================================================== */
+function deltaEl(parent, c, p, o){
+  o = o || {};
+  const el = htmlEl("div", "delta", parent);
+  const dec = o.pp ? (o.dec ?? 1) : 0;
+  if (!o.pp && !(p > 0)){ el.classList.add("flat"); el.textContent = c > 0 ? `ช่วง ${F.days} วันก่อนหน้าไม่มี` : `เท่ากับ ${F.days} วันก่อนหน้า`; return; }
+  const diff = o.pp ? c - p : (c - p) / p * 100;
+  if (Math.abs(diff) < (o.pp ? Math.pow(10, -dec) / 2 : 0.5)){ el.classList.add("flat"); el.textContent = `เท่ากับ ${F.days} วันก่อนหน้า`; return; }
+  const up = diff > 0, good = o.upGood ? up : !up;
+  el.classList.add(good ? "good" : "bad");
+  el.textContent = `${up ? "▲" : "▼"} ${fx(Math.abs(diff), dec)}${o.pp ? " จุด" : "%"} เทียบ ${F.days} วันก่อนหน้า`;
+}
+function sparkline(parent, cur){
+  const weekly = F.days > 30, nb = weekly ? Math.ceil(F.days / 7) : F.days;
+  const v = new Array(nb).fill(0);
+  for (const e of cur.events) if (PROBLEM.has(e.type)) v[weekly ? nb - 1 - Math.floor(e.d / 7) : nb - 1 - e.d]++;
+  const W = 168, H = 52, max = Math.max(1, ...v);
+  const x = i => 5 + (nb === 1 ? 0 : i / (nb - 1) * (W - 10)), y = val => H - 6 - val / max * (H - 14);
+  const s = svgEl("svg", {width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true"}, parent);
+  svgEl("polyline", {points: v.map((val, i) => `${x(i)},${y(val)}`).join(" "), class: "spark"}, s);
+  svgEl("circle", {cx: x(nb - 1), cy: y(v[nb - 1]), r: 4, class: "dot"}, s);
+  htmlEl("div", "cap", parent, weekly ? "รายสัปดาห์ · จุดสีฟ้า = ล่าสุด" : "รายวัน · จุดสีฟ้า = ล่าสุด");
+}
+function renderKpis(st, pv, cur){
+  const box = $("#kpis"); box.replaceChildren();
+  const h = htmlEl("article", "kpi hero", box);
+  const left = htmlEl("div", null, h);
+  htmlEl("div", "lab", left, "ปัญหาเครื่อง MD ทั้งหมด");
+  const v = htmlEl("div", "val", left, fmt(st.problems)); htmlEl("small", null, v, "ครั้ง");
+  deltaEl(left, st.problems, pv.problems);
+  htmlEl("div", "foot", left, `คัดออกหลอก ${fmt(st.fr)} · เครื่องหยุด ${fmt(st.down)} · Test piece ไม่ผ่าน ${fmt(st.tp)}`);
+  sparkline(htmlEl("div", "hero-r", h), cur);
+
+  const tiles = [
+    {lab: "อัตราคัดออกหลอก (False reject)", val: fx(st.frRate, 2), unit: "%", d: [st.frRate, pv.frRate, {pp: true, dec: 2}], foot: `${fmt(st.fr)} จาก ${fmt(st.checks)} รายการที่ผ่าน MD`},
+    {lab: "Test piece ไม่ผ่าน", val: fmt(st.tp), unit: "ครั้ง", d: [st.tp, pv.tp], foot: st.tp > 0 ? "crit" : "ไม่มีรอบที่ไม่ผ่าน"},
+    {lab: "ตรวจ Test piece ครบรอบ", val: fx(st.comp, 1), unit: "%", d: [st.comp, pv.comp, {pp: true, upGood: true, dec: 1}], foot: `ขาด ${fmt(st.miss)} จาก ${fmt(st.due)} รอบ (ตรวจทุก 1 ชม.)`},
+    {lab: "Downtime รวม", val: fx(st.downMin / 60, 1), unit: "ชม.", d: [st.downMin, pv.downMin], foot: `${fmt(st.downN)} ครั้ง · ซ่อมเฉลี่ย (MTTR) ${fmt(st.mttr)} นาที`},
+    {lab: "พบโลหะจริง", val: fmt(st.metal), unit: "ครั้ง", d: [st.metal, pv.metal], foot: `Fe ${st.metalBy.Fe} · SUS ${st.metalBy.SUS} · Non-Fe ${st.metalBy["Non-Fe"]}`},
+    {lab: "เวลารอผ่าน MD เฉลี่ย", val: fmt(st.waitAvg), unit: "นาที", d: [st.waitAvg, pv.waitAvg], foot: `P90 ${fmt(st.p90)} นาที · เกิน ${WAIT_STD} นาที ${pct(st.over30)}`},
+  ];
+  for (const t of tiles){
+    const k = htmlEl("article", "kpi", box);
+    htmlEl("div", "lab", k, t.lab);
+    const v = htmlEl("div", "val", k, t.val); htmlEl("small", null, v, t.unit);
+    if (t.d) deltaEl(k, t.d[0], t.d[1], t.d[2]);
+    const f = htmlEl("div", "foot", k);
+    if (t.foot === "crit"){ const s = htmlEl("span", "sev crit", f); htmlEl("i", null, s, "✕"); htmlEl("span", null, s, "วิกฤต — ต้องกักสินค้าย้อนรอบ"); }
+    else f.textContent = t.foot;
+  }
+}
+
+/* =====================================================================
+   5) CHARTS
+   ===================================================================== */
+
+// ---- 1. Trend: stacked columns (false reject | metal found) ----
+function drawTrend(card, cur){
+  const W = vizW(card), H = W > 640 ? 330 : 250, m = {l: 36, r: 8, t: 22, b: 26};
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const weekly = F.days > 30, nb = weekly ? Math.ceil(F.days / 7) : F.days;
+  const bi = d => weekly ? nb - 1 - Math.floor(d / 7) : nb - 1 - d;
+  const B = Array.from({length: nb}, (_, i) => {
+    const dHi = weekly ? (nb - 1 - i) * 7 : nb - 1 - i, dLo = weekly ? Math.min(F.days - 1, dHi + 6) : dHi;
+    return {fr: 0, mt: 0, checks: 0, from: dateOf(dLo), to: dateOf(dHi)};
+  });
+  for (const s of cur.slots) B[bi(s.d)].checks += s.checks;
+  for (const e of cur.events){ if (e.type === "fr") B[bi(e.d)].fr++; else if (e.type === "metal") B[bi(e.d)].mt++; }
+  const lab = b => weekly ? `${fmtD(b.from)} – ${fmtD(b.to)}` : fmtDY(b.to);
+
+  legend(card, [{cls: "f", bg: "var(--s1)", label: "คัดออกหลอก (ตรวจซ้ำไม่พบโลหะ)"}, {bg: "var(--s2)", label: "พบโลหะจริง"}]);
+  const svg = newSvg(card.querySelector(".viz"), W, H, "แนวโน้มการคัดออก");
+  const maxV = Math.max(1, ...B.map(b => b.fr + b.mt));
+  const ticks = niceTicks(maxV, 4, true), top = ticks[ticks.length - 1];
+  const y = v => m.t + ph - v / top * ph;
+  for (const t of ticks){
+    svgEl("line", {x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: t === 0 ? "axis-l" : "grid-l"}, svg);
+    svgText(svg, m.l - 6, y(t), fmt(t), "tick", {"text-anchor": "end", dy: "0.35em"});
+  }
+  const band = pw / nb, bw = Math.max(2, Math.min(24, band * 0.7));
+  let iMax = 0; B.forEach((b, i) => { if (b.fr + b.mt > B[iMax].fr + B[iMax].mt) iMax = i; });
+  B.forEach((b, i) => {
+    const x = m.l + i * band + (band - bw) / 2;
+    const g = svgEl("g", {class: "hit"}, svg);
+    const y0 = y(0), y1 = y(b.fr), y2 = y(b.fr + b.mt);
+    if (b.fr > 0){ const d = colPath(x, bw, y1, y0, b.mt > 0 ? 0 : 4); if (d) svgEl("path", {d, class: "mk f-s1"}, g); }
+    if (b.mt > 0){ const base = b.fr > 0 ? y1 - 2 : y0; const d = colPath(x, bw, y2, base, 4); if (d) svgEl("path", {d, class: "mk f-s2"}, g); }
+    svgEl("rect", {x: m.l + i * band, y: m.t, width: band, height: ph, class: "hb"}, g);
+    hover(g, () => ({title: lab(b), rows: [
+      {k: "s1", v: fmt(b.fr), l: "คัดออกหลอก"},
+      {k: "s2", v: fmt(b.mt), l: "พบโลหะจริง"},
+      {v: b.checks ? pct(b.fr / b.checks * 100, 2) : "–", l: "คัดออกหลอกต่อรายการผ่าน MD"},
+    ]}), nb <= 31);
+  });
+  const bm = B[iMax], tot = bm.fr + bm.mt;
+  if (tot > 0){
+    const cx = m.l + iMax * band + band / 2;
+    const t = svgText(svg, cx, y(tot) - 7, `สูงสุด ${fmt(tot)}`, "val", {"text-anchor": "middle"});
+    if (cx < m.l + 30) t.setAttribute("text-anchor", "start"); else if (cx > W - m.r - 30) t.setAttribute("text-anchor", "end");
+  }
+  const every = Math.max(1, Math.ceil(nb / Math.max(2, Math.floor(pw / 68))));
+  B.forEach((b, i) => {
+    if ((nb - 1 - i) % every) return;
+    const cx = m.l + i * band + band / 2;
+    const t = svgText(svg, cx, H - 8, fmtD(weekly ? b.from : b.to), "tick", {"text-anchor": "middle"});
+    if (cx < m.l + 22) t.setAttribute("text-anchor", "start"); else if (cx > W - m.r - 22) t.setAttribute("text-anchor", "end");
+  });
+  table(card, [weekly ? "สัปดาห์" : "วันที่", "คัดออกหลอก", "พบโลหะจริง", "รายการผ่าน MD", "% คัดออกหลอก"],
+    B.slice().reverse().map(b => [lab(b), fmt(b.fr), fmt(b.mt), fmt(b.checks), b.checks ? pct(b.fr / b.checks * 100, 2) : "–"]), [1,2,3,4]);
+}
+
+// ---- 2. Pareto: ranked bars, vital few emphasised, cumulative % column ----
+function causeCounts(cur){
+  const cnt = {}; CAUSES.forEach(c => cnt[c.key] = {n: 0, fr: 0, down: 0, tp: 0});
+  for (const e of cur.events) if (PROBLEM.has(e.type) && e.cause){ const c = cnt[e.cause]; c.n++; c[e.type]++; }
+  return cnt;
+}
+function drawPareto(card, cur){
+  const W = vizW(card), cnt = causeCounts(cur);
+  let rows = CAUSES.map(c => Object.assign({c}, cnt[c.key])).filter(r => r.n > 0);
+  rows.sort((a, b) => (a.c.key === "other") - (b.c.key === "other") || b.n - a.n);
+  const total = rows.reduce((a, r) => a + r.n, 0) || 1;
+  let cum = 0;
+  rows.forEach(r => { r.before = cum / total * 100; cum += r.n; r.cum = cum / total * 100; r.share = r.n / total * 100; r.vital = r.before < 80 && r.c.key !== "other"; });
+  legend(card, [{bg: "var(--s1)", label: "สาเหตุหลัก (รวมกันถึง 80% ของปัญหา)"}, {bg: "var(--deemph)", label: "สาเหตุรอง"}]);
+
+  const narrow = W < 520, rowH = narrow ? 42 : 30, bh = 14, head = 18;
+  const H = head + Math.max(1, rows.length) * rowH + 4;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "Pareto สาเหตุปัญหา");
+  const labelW = narrow ? 0 : Math.min(230, Math.max(130, W * 0.36)), cumW = 48, valW = 34;
+  const x0 = narrow ? 0 : labelW, x1 = W - cumW - valW;
+  const max = Math.max(1, ...rows.map(r => r.n));
+  svgText(svg, W, 11, "% สะสม", "tick", {"text-anchor": "end"});
+  if (!rows.length) svgText(svg, 0, head + 16, "ไม่มีปัญหาในช่วงที่เลือก", "lbl");
+  svgEl("line", {x1: x0, x2: x0, y1: head, y2: H - 2, class: "axis-l"}, svg);
+  rows.forEach((r, i) => {
+    const yTop = head + i * rowH, by = narrow ? yTop + 20 : yTop + (rowH - bh) / 2;
+    const g = svgEl("g", {class: "hit"}, svg);
+    const lt = narrow ? svgText(g, 0, yTop + 13, r.c.label, "lbl") : svgText(g, labelW - 10, by + bh / 2, r.c.label, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    fitText(lt, narrow ? x1 - 4 : labelW - 14, r.c.short);
+    const xe = x0 + (x1 - x0) * r.n / max;
+    const d = barPath(x0, xe, by, bh, 4); if (d) svgEl("path", {d, class: "mk " + (r.vital ? "f-s1" : "f-de")}, g);
+    svgText(g, xe + 6, by + bh / 2, fmt(r.n), "val", {dy: "0.35em"});
+    svgText(g, W, by + bh / 2, pct(r.cum, 0), "tick", {"text-anchor": "end", dy: "0.35em"});
+    svgEl("rect", {x: 0, y: yTop, width: W, height: rowH, class: "hb"}, g);
+    hover(g, () => ({title: r.c.label, rows: [
+      {k: r.vital ? "s1" : "de", v: fmt(r.n), l: `ครั้ง (${pct(r.share)} ของทั้งหมด)`},
+      {v: pct(r.cum), l: "สะสม"},
+      {v: `${r.fr} / ${r.down} / ${r.tp}`, l: "คัดออกหลอก / เครื่องหยุด / TP ไม่ผ่าน"},
+    ]}), true);
+  });
+  table(card, ["สาเหตุ", "ครั้ง", "%", "% สะสม", "คัดออกหลอก", "เครื่องหยุด", "TP ไม่ผ่าน"],
+    rows.map(r => [r.c.label, fmt(r.n), pct(r.share), pct(r.cum), fmt(r.fr), fmt(r.down), fmt(r.tp)]), [1,2,3,4,5,6]);
+}
+
+// ---- 4. Heatmap: cause (rows) × machine (cols) — sequential blue ----
+function drawCauseMachine(card, cur){
+  const W = vizW(card), mis = machinesInScope();
+  const mat = CAUSES.map(() => mis.map(() => 0)), col = {}; mis.forEach((mi, j) => col[mi] = j);
+  for (const e of cur.events) if (PROBLEM.has(e.type) && e.cause && col[e.mi] != null) mat[CAUSES.findIndex(c => c.key === e.cause)][col[e.mi]]++;
+  const max = Math.max(1, ...mat.flat()), stops = ramp("--ramp-blue"), zero = cssVar("--surface-2");
+  const mTot = mis.map((_, j) => mat.reduce((a, r) => a + r[j], 0));
+  legend(card, [{grad: stops, lo: "น้อย", hi: `มาก (${fmt(max)} ครั้ง)`}, {bg: zero, label: "ไม่มี"}]);
+
+  const narrow = W < 520, labelW = narrow ? 100 : 150, head = 22, ch = 28;
+  const cw = Math.min(72, (W - labelW) / Math.max(1, mis.length));
+  const H = head + CAUSES.length * ch + 2;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "สาเหตุ × เครื่อง");
+  mis.forEach((mi, j) => svgText(svg, labelW + j * cw + cw / 2, 13, cw < 46 ? M[mi].id.slice(3) : M[mi].id, "tick", {"text-anchor": "middle"}));
+  if (cw < 46) svgText(svg, labelW - 8, 13, "MD-", "tick", {"text-anchor": "end"});
+  CAUSES.forEach((c, i) => {
+    const t = svgText(svg, labelW - 8, head + i * ch + ch / 2, c.short, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    fitText(t, labelW - 12);
+    mis.forEach((mi, j) => {
+      const v = mat[i][j], fill = v ? rampAt(stops, v / max) : zero;
+      const r = svgEl("rect", {x: labelW + j * cw + 1, y: head + i * ch + 1, width: cw - 2, height: ch - 2, rx: 3, class: "cellr"}, svg);
+      r.style.fill = fill;
+      if (v && v >= max * 0.5 && cw >= 22) svgText(svg, labelW + j * cw + cw / 2, head + i * ch + ch / 2, fmt(v), "cell", {"text-anchor": "middle", dy: "0.35em", fill: onFill(fill)});
+      hover(r, () => ({title: `${M[mi].id} · ${c.label}`, rows: [
+        {color: v ? fill : zero, v: fmt(v), l: "ครั้ง"},
+        {v: mTot[j] ? pct(v / mTot[j] * 100, 0) : "–", l: `ของปัญหาทั้งหมดของ ${M[mi].id}`},
+      ]}), false);
+    });
+  });
+  table(card, ["สาเหตุ", ...mis.map(mi => M[mi].id), "รวม"],
+    CAUSES.map((c, i) => [c.short, ...mat[i].map(fmt), fmt(mat[i].reduce((a, b) => a + b, 0))]), mis.map((_, j) => j + 1).concat([mis.length + 1]));
+}
+
+// shared: column positions for 24-hour grids with a gap between shifts
+function hourCols(hrs, x0, W, maxCw){
+  const split = hrs.length === 24 ? 12 : -1, gap = split > 0 ? 6 : 0;
+  const cw = Math.min(maxCw, (W - x0 - gap) / hrs.length);
+  return {cw, x: j => x0 + j * cw + (split > 0 && j >= split ? gap : 0), split};
+}
+function hourHeader(svg, hrs, cols, yShift, yHour){
+  const step = cols.cw >= 22 ? 1 : cols.cw >= 13 ? 2 : 3;
+  hrs.forEach((h, j) => { if (j % step === 0) svgText(svg, cols.x(j) + cols.cw / 2, yHour, hh(h), "tick", {"text-anchor": "middle"}); });
+  const groups = [];
+  if (cols.split > 0) groups.push([0, 11, "กะเช้า"], [12, 23, "กะดึก"]);
+  else groups.push([0, hrs.length - 1, isDay(hrs[0]) ? "กะเช้า" : "กะดึก"]);
+  for (const [a, b, name] of groups){
+    const xa = cols.x(a) + 1, xb = cols.x(b) + cols.cw - 1;
+    svgEl("line", {x1: xa, x2: xb, y1: yShift + 4, y2: yShift + 4, class: "axis-l"}, svg);
+    svgText(svg, xa, yShift, name, "tick");
+  }
+}
+
+// ---- 3. Test-piece status grid: machine × hour, latest work day ----
+function drawTP(card){
+  const W = vizW(card), mis = machinesInScope(), hrs = hrsInScope();
+  const S = {}; for (const s of slotsByDay[0]) S[s.mi + ":" + s.h] = s;
+  const ST = {
+    pass: {cls: "f-good", k: "good", icon: "✓", ink: "#ffffff", label: "ผ่าน"},
+    fail: {cls: "f-critical", k: "critical", icon: "✕", ink: "#ffffff", label: "ไม่ผ่าน"},
+    miss: {cls: "f-warning", k: "warning", icon: "!", ink: "#0b0b0b", label: "ไม่ได้ตรวจตามรอบ"},
+    off:  {cls: "f-off", k: "off", icon: "", ink: "", label: "ล้างเครื่อง / ไม่เดินเครื่อง"},
+  };
+  legend(card, [
+    {icon: "✓", bg: "var(--good)", label: "ผ่านครบ 3 ชิ้น"},
+    {icon: "✕", bg: "var(--critical)", label: "ไม่ผ่าน — กักสินค้า"},
+    {icon: "!", bg: "var(--warning)", cls: "dark", label: "ไม่ได้ตรวจตามรอบ"},
+    {bg: "var(--surface-2)", label: "ล้างเครื่อง / ไม่เดิน"},
+  ]);
+  const labelW = 58, head = 36, ch = 28;
+  const cols = hourCols(hrs, labelW, W, 36);
+  const H = head + mis.length * ch + 2;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "ผลตรวจ Test piece รายชั่วโมง");
+  hourHeader(svg, hrs, cols, 11, 30);
+  let cnt = {pass: 0, fail: 0, miss: 0};
+  mis.forEach((mi, i) => {
+    svgText(svg, labelW - 8, head + i * ch + ch / 2, M[mi].id, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    hrs.forEach((h, j) => {
+      const s = S[mi + ":" + h], st = ST[s.tp];
+      if (cnt[s.tp] != null) cnt[s.tp]++;
+      const x = cols.x(j), y = head + i * ch;
+      const r = svgEl("rect", {x: x + 1, y: y + 1, width: cols.cw - 2, height: ch - 2, rx: 3, class: "cellr " + st.cls}, svg);
+      if (st.icon && cols.cw >= 16) svgText(svg, x + cols.cw / 2, y + ch / 2, st.icon, "cell", {"text-anchor": "middle", dy: "0.35em", fill: st.ink});
+      hover(r, () => {
+        const rows = [{k: st.k, v: st.label, l: ""}];
+        if (s.tp === "pass") rows.push({v: "Fe 1.5 · Non-Fe 2.0 · SUS 2.5", l: "ตรวจพบครบ"});
+        if (s.tp === "fail"){
+          rows.push({v: s.piece, l: "ตรวจไม่พบ"});
+          const idx = HOURS.indexOf(h); let back = null;
+          for (let q = idx - 1; q >= 0; q--){ const p = S[mi + ":" + HOURS[q]]; if (p.tp === "pass"){ back = HOURS[q]; break; } }
+          rows.push({v: back != null ? `${hh(back)}:00` : "ต้นวัน", l: "กักสินค้าย้อนถึงรอบที่ผ่านล่าสุด"});
+        }
+        if (s.tp === "miss") rows.push({v: "–", l: "ไม่มีบันทึกผลรอบนี้"});
+        if (s.prod) rows.push({v: s.prod, l: ""});
+        return {title: `${M[mi].id} · ${hh(h)}:00`, rows};
+      }, false);
+    });
+  });
+  const note = $("#tpNote"); note.replaceChildren();
+  note.append(`วันทำงาน ${fmtDY(dateOf(0))} (08:00 – 07:59) · ${shiftLabel()} · `);
+  htmlEl("b", null, note, `ผ่าน ${fmt(cnt.pass)}`); note.append(" · ");
+  htmlEl("b", null, note, `ไม่ผ่าน ${fmt(cnt.fail)}`); note.append(" · ");
+  htmlEl("b", null, note, `ขาดรอบ ${fmt(cnt.miss)}`); note.append(` จาก ${fmt(cnt.pass + cnt.fail + cnt.miss)} รอบ`);
+  table(card, ["เครื่อง", "ผ่าน", "ไม่ผ่าน", "ขาดรอบ", "ไม่เดิน", "รอบที่ไม่ผ่าน / ขาด"],
+    mis.map(mi => {
+      const c = {pass: 0, fail: 0, miss: 0, off: 0}, bad = [];
+      for (const h of hrs){ const s = S[mi + ":" + h]; c[s.tp]++; if (s.tp === "fail") bad.push(`${hh(h)}:00 ไม่ผ่าน (${s.piece})`); if (s.tp === "miss") bad.push(`${hh(h)}:00 ขาดรอบ`); }
+      return [M[mi].id, fmt(c.pass), fmt(c.fail), fmt(c.miss), fmt(c.off), bad.join(", ") || "–"];
+    }), [1,2,3,4]);
+}
+
+// ---- 5. Heatmap: day-of-week × hour — sequential orange ----
+function drawTime(card, cur){
+  const W = vizW(card), hrs = hrsInScope();
+  const mat = TH_DOW.map(() => ({})), causeAt = {};
+  for (const e of cur.events) if (PROBLEM.has(e.type)){
+    const dow = (dateOf(e.d).getDay() + 6) % 7;
+    mat[dow][e.h] = (mat[dow][e.h] || 0) + 1;
+    const k = dow + ":" + e.h; (causeAt[k] = causeAt[k] || {})[e.cause] = ((causeAt[k] || {})[e.cause] || 0) + 1;
+  }
+  const max = Math.max(1, ...mat.flatMap(r => Object.values(r))), stops = ramp("--ramp-orange"), zero = cssVar("--surface-2");
+  legend(card, [{grad: stops, lo: "น้อย", hi: `มาก (${fmt(max)} ครั้ง)`}, {bg: zero, label: "ไม่มี / ล้างเครื่อง 06–08 น."}]);
+  const narrow = W < 520, labelW = narrow ? 34 : 60, head = 36, ch = 26;
+  const cols = hourCols(hrs, labelW, W, 34);
+  const H = head + 7 * ch + 2;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "ช่วงเวลาที่เกิดปัญหา");
+  hourHeader(svg, hrs, cols, 11, 30);
+  TH_DOW.forEach((dn, i) => {
+    svgText(svg, labelW - 8, head + i * ch + ch / 2, narrow ? TH_DOW_S[i] : dn, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    hrs.forEach((h, j) => {
+      const v = mat[i][h] || 0, fill = v ? rampAt(stops, v / max) : zero;
+      const r = svgEl("rect", {x: cols.x(j) + 1, y: head + i * ch + 1, width: cols.cw - 2, height: ch - 2, rx: 3, class: "cellr"}, svg);
+      r.style.fill = fill;
+      hover(r, () => {
+        const rows = [{color: v ? fill : zero, v: fmt(v), l: "ครั้ง"}];
+        if (CLEAN.has(h)) rows.push({v: "–", l: "ช่วงล้างเครื่อง ไม่เดินเครื่อง"});
+        const ca = causeAt[i + ":" + h]; if (ca){ const tk = topKey(ca); rows.push({v: CAUSE[tk].short, l: "สาเหตุที่พบมากสุด"}); }
+        return {title: `${dn} · ${hh(h)}:00–${hh(h)}:59`, rows};
+      }, false);
+    });
+  });
+  table(card, ["วัน", ...hrs.map(h => hh(h))], TH_DOW.map((dn, i) => [dn, ...hrs.map(h => fmt(mat[i][h] || 0))]), hrs.map((_, j) => j + 1));
+}
+
+// ---- 6. Downtime per machine: ranked bars ----
+function drawDowntime(card, cur){
+  const W = vizW(card), mis = machinesInScope();
+  const R = mis.map(mi => ({mi, min: 0, n: 0, causes: {}, runH: 0}));
+  const by = {}; R.forEach(r => by[r.mi] = r);
+  for (const s of cur.slots) if (s.run && by[s.mi]) by[s.mi].runH++;
+  for (const e of cur.events) if (e.down && by[e.mi]){ const r = by[e.mi]; r.min += e.down; r.n++; r.causes[e.cause] = (r.causes[e.cause] || 0) + e.down; }
+  R.sort((a, b) => b.min - a.min);
+  legend(card, []);
+  const narrow = W < 520, labelW = narrow ? 64 : 120, valW = narrow ? 86 : 104, rowH = 30, bh = 14;
+  const H = R.length * rowH + 4, x0 = labelW, x1 = W - valW;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "Downtime ต่อเครื่อง");
+  const max = Math.max(1, ...R.map(r => r.min));
+  svgEl("line", {x1: x0, x2: x0, y1: 0, y2: H, class: "axis-l"}, svg);
+  R.forEach((r, i) => {
+    const yTop = i * rowH, yb = yTop + (rowH - bh) / 2, g = svgEl("g", {class: "hit"}, svg);
+    const t = svgText(g, labelW - 10, yb + bh / 2, narrow ? M[r.mi].id : `${M[r.mi].id} · ${AREA_NAME[M[r.mi].area]}`, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    fitText(t, labelW - 14, M[r.mi].id);
+    const xe = x0 + (x1 - x0) * r.min / max;
+    const d = barPath(x0, xe, yb, bh, 4); if (d) svgEl("path", {d, class: "mk f-s1"}, g);
+    svgText(g, Math.max(x0, xe) + 6, yb + bh / 2, `${fx(r.min / 60, 1)} ชม. · ${r.n} ครั้ง`, "val", {dy: "0.35em"});
+    svgEl("rect", {x: 0, y: yTop, width: W, height: rowH, class: "hb"}, g);
+    const tk = topKey(r.causes);
+    hover(g, () => ({title: `${M[r.mi].id} · ${AREA_NAME[M[r.mi].area]}`, rows: [
+      {k: "s1", v: `${fx(r.min / 60, 1)} ชม.`, l: `หยุด ${r.n} ครั้ง`},
+      {v: r.n ? `${fmt(r.min / r.n)} นาที` : "–", l: "MTTR ซ่อมเฉลี่ย"},
+      {v: r.n ? `${fmt(r.runH / r.n)} ชม.` : "–", l: "MTBF เดินได้เฉลี่ยก่อนเสีย"},
+      {v: tk ? CAUSE[tk].short : "–", l: "สาเหตุที่หยุดนานสุด"},
+    ]}), true);
+  });
+  table(card, ["เครื่อง", "พื้นที่", "หยุด (ครั้ง)", "รวม (ชม.)", "MTTR (นาที)", "MTBF (ชม.)", "สาเหตุหลัก"],
+    R.map(r => { const tk = topKey(r.causes); return [M[r.mi].id, AREA_NAME[M[r.mi].area], fmt(r.n), fx(r.min / 60, 1), r.n ? fmt(r.min / r.n) : "–", r.n ? fmt(r.runH / r.n) : "–", tk ? CAUSE[tk].short : "–"]; }), [2,3,4,5]);
+}
+
+// ---- 7. False-reject rate by product: ranked bars + target line ----
+function drawProduct(card, cur){
+  const W = vizW(card);
+  const P = {}; PRODUCTS.forEach(p => P[p.name] = {name: p.name, checks: 0, fr: 0, causes: {}});
+  for (const s of cur.slots) if (s.run && s.prod) P[s.prod].checks += s.checks;
+  for (const e of cur.events) if (e.type === "fr" && e.prod){ P[e.prod].fr++; P[e.prod].causes[e.cause] = (P[e.prod].causes[e.cause] || 0) + 1; }
+  const R = Object.values(P).filter(r => r.checks > 0).map(r => Object.assign(r, {rate: r.fr / r.checks * 100})).sort((a, b) => b.rate - a.rate);
+  legend(card, [{bg: "var(--s1)", label: `เกินเป้า ${fx(TARGET_FR, 1)}% — ควรปรับโปรแกรมสินค้า`}, {bg: "var(--deemph)", label: "ไม่เกินเป้า"}, {cls: "ln", bg: "var(--ink-2)", label: "เป้า"}]);
+  const narrow = W < 520, labelW = narrow ? 112 : 150, valW = 52, rowH = 30, bh = 14, head = 18;
+  const H = head + R.length * rowH + 4, x0 = labelW, x1 = W - valW;
+  const svg = newSvg(card.querySelector(".viz"), W, H, "อัตราคัดออกหลอกตามสินค้า");
+  const maxR = Math.max(TARGET_FR * 1.25, ...R.map(r => r.rate));
+  const x = v => x0 + (x1 - x0) * v / maxR;
+  svgEl("line", {x1: x0, x2: x0, y1: head, y2: H, class: "axis-l"}, svg);
+  R.forEach((r, i) => {
+    const yTop = head + i * rowH, yb = yTop + (rowH - bh) / 2, g = svgEl("g", {class: "hit"}, svg);
+    const t = svgText(g, labelW - 10, yb + bh / 2, r.name, "lbl", {"text-anchor": "end", dy: "0.35em"});
+    fitText(t, labelW - 14);
+    const d = barPath(x0, x(r.rate), yb, bh, 4); if (d) svgEl("path", {d, class: "mk " + (r.rate > TARGET_FR ? "f-s1" : "f-de")}, g);
+    svgText(g, x(r.rate) + 6, yb + bh / 2, pct(r.rate, 2), "val", {dy: "0.35em"});
+    svgEl("rect", {x: 0, y: yTop, width: W, height: rowH, class: "hb"}, g);
+    const tk = topKey(r.causes);
+    hover(g, () => ({title: r.name, rows: [
+      {k: r.rate > TARGET_FR ? "s1" : "de", v: pct(r.rate, 2), l: "คัดออกหลอกต่อรายการ"},
+      {v: `${fmt(r.fr)} / ${fmt(r.checks)}`, l: "คัดออกหลอก / รายการผ่าน MD"},
+      {v: tk ? CAUSE[tk].short : "–", l: "สาเหตุหลัก"},
+    ]}), true);
+  });
+  const xt = x(TARGET_FR);
+  svgEl("line", {x1: xt, x2: xt, y1: head - 2, y2: H, class: "ref"}, svg);
+  svgText(svg, xt, 11, `เป้า ≤ ${fx(TARGET_FR, 1)}%`, "ref-t", {"text-anchor": "middle"});
+  table(card, ["สินค้า", "รายการผ่าน MD", "คัดออกหลอก", "%", "สาเหตุหลัก"],
+    R.map(r => { const tk = topKey(r.causes); return [r.name, fmt(r.checks), fmt(r.fr), pct(r.rate, 2), tk ? CAUSE[tk].short : "–"]; }), [1,2,3]);
+}
+
+// ---- 8. Wait for MD: histogram + standard line ----
+function drawWait(card, cur, st){
+  const W = vizW(card), H = 230, m = {l: 44, r: 8, t: 22, b: 26};
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const BINS = [[0,10,"0–10"],[10,20,"10–20"],[20,30,"20–30"],[30,45,"30–45"],[45,60,"45–60"],[60,90,"60–90"],[90,Infinity,"90+"]];
+  const cnt = BINS.map(() => 0);
+  for (const w of st.waits){ const i = BINS.findIndex(b => w > b[0] - (b[0] === 0 ? 1 : 0) && w <= b[1]); cnt[i < 0 ? BINS.length - 1 : i]++; }
+  const n = st.waits.length || 1;
+  const note = $("#waitNote"); note.replaceChildren();
+  note.append("ค่ากลาง "); htmlEl("b", null, note, `${fmt(st.p50)} นาที`);
+  note.append(" · P90 "); htmlEl("b", null, note, `${fmt(st.p90)} นาที`);
+  note.append(` · เกิน ${WAIT_STD} นาที `); htmlEl("b", null, note, pct(st.over30));
+  note.append(` ของ ${fmt(st.waits.length)} รายการ`);
+  legend(card, [{bg: "var(--s1)", label: `ไม่เกิน ${WAIT_STD} นาที`}, {icon: "▲", bg: "var(--serious)", label: `เกินมาตรฐาน ${WAIT_STD} นาที`}]);
+  const svg = newSvg(card.querySelector(".viz"), W, H, "เวลารอผ่าน MD");
+  const ticks = niceTicks(Math.max(1, ...cnt), 4, true), top = ticks[ticks.length - 1];
+  const y = v => m.t + ph - v / top * ph;
+  for (const t of ticks){
+    svgEl("line", {x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: t === 0 ? "axis-l" : "grid-l"}, svg);
+    svgText(svg, m.l - 6, y(t), fmt(t), "tick", {"text-anchor": "end", dy: "0.35em"});
+  }
+  const band = pw / BINS.length, bw = Math.min(24, band * 0.6);
+  BINS.forEach((b, i) => {
+    const over = b[0] >= WAIT_STD, x = m.l + i * band + (band - bw) / 2, g = svgEl("g", {class: "hit"}, svg);
+    const d = colPath(x, bw, y(cnt[i]), y(0), 4); if (d) svgEl("path", {d, class: "mk " + (over ? "f-serious" : "f-s1")}, g);
+    svgText(svg, m.l + i * band + band / 2, H - 8, b[2], "tick", {"text-anchor": "middle"});
+    svgEl("rect", {x: m.l + i * band, y: m.t, width: band, height: ph, class: "hb"}, g);
+    hover(g, () => ({title: `รอ ${b[2]} นาที`, rows: [{k: over ? "serious" : "s1", v: fmt(cnt[i]), l: `รายการ (${pct(cnt[i] / n * 100)})`}].concat(over ? [{v: "▲", l: "เกินมาตรฐาน"}] : [])}), true);
+  });
+  const xs = m.l + 3 * band;
+  svgEl("line", {x1: xs, x2: xs, y1: m.t - 6, y2: y(0), class: "ref"}, svg);
+  svgText(svg, xs + 4, m.t - 8, `มาตรฐาน ${WAIT_STD} นาที`, "ref-t");
+  svgText(svg, m.l - 6, m.t - 10, "รายการ", "tick", {"text-anchor": "end"});
+  table(card, ["รอ (นาที)", "รายการ", "%"], BINS.map((b, i) => [b[2], fmt(cnt[i]), pct(cnt[i] / n * 100)]), [1,2]);
+}
+
+// ---- 9. Test-piece signal drift: line vs threshold, crosshair ----
+function drawDrift(card){
+  const W = vizW(card), H = 230, m = {l: 36, r: 40, t: 14, b: 26};
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  let mi = F.machine !== "all" ? M.findIndex(x => x.id === F.machine) : -1;
+  if (mi < 0){ const cand = machinesInScope(); mi = cand.reduce((b, i) => signal[i][0] < signal[b][0] ? i : b, cand[0]); }
+  $("#driftM").textContent = M[mi].id;
+  const n = F.days, pts = Array.from({length: n}, (_, i) => ({d: n - 1 - i, v: signal[mi][n - 1 - i]}));
+  const last = pts[n - 1].v;
+  const note = $("#driftNote"); note.replaceChildren();
+  note.append(`ล่าสุด `); htmlEl("b", null, note, fx(last, 1));
+  note.append(` · ห่างจากระดับตัดสิน ${fx(last - SIG_THR, 1)} หน่วย — `);
+  htmlEl("b", null, note, last < SIG_WARN ? "ต่ำกว่าเกณฑ์เตือน ควรนัด Calibrate" : "ปกติ");
+  if (F.machine === "all") note.append(" (แสดงเครื่องที่สัญญาณต่ำสุดในตัวกรอง)");
+  legend(card, [{cls: "ln", bg: "var(--s1)", label: "ค่าสัญญาณ Fe 1.5 mm (หน่วยสัมพัทธ์)"}, {cls: "ln", bg: "var(--warning)", label: `เกณฑ์เตือน ${SIG_WARN}`}, {cls: "ln", bg: "var(--critical)", label: `ระดับตัดสิน ${SIG_THR} (ต่ำกว่านี้ = ตรวจไม่เจอ)`}]);
+  const svg = newSvg(card.querySelector(".viz"), W, H, `ค่าสัญญาณ Test piece ${M[mi].id}`);
+  const vmax = Math.max(120, Math.ceil(Math.max(...pts.map(p => p.v)) / 20) * 20), vmin = 20;
+  const y = v => m.t + ph - (v - vmin) / (vmax - vmin) * ph;
+  const x = i => m.l + (n === 1 ? pw / 2 : i / (n - 1) * pw);
+  for (let t = vmin; t <= vmax; t += 20){
+    svgEl("line", {x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: t === vmin ? "axis-l" : "grid-l"}, svg);
+    svgText(svg, m.l - 6, y(t), fmt(t), "tick", {"text-anchor": "end", dy: "0.35em"});
+  }
+  svgEl("line", {x1: m.l, x2: W - m.r, y1: y(SIG_WARN), y2: y(SIG_WARN), class: "ref-warn"}, svg);
+  svgEl("line", {x1: m.l, x2: W - m.r, y1: y(SIG_THR), y2: y(SIG_THR), class: "ref-crit"}, svg);
+  svgText(svg, m.l + 4, y(SIG_WARN) - 5, `เตือน ${SIG_WARN}`, "ref-t");
+  svgText(svg, m.l + 4, y(SIG_THR) - 5, `ระดับตัดสิน ${SIG_THR}`, "ref-t");
+  svgEl("path", {d: pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.v)}`).join(""), class: "line"}, svg);
+  svgEl("circle", {cx: x(n - 1), cy: y(last), r: 4, class: "dot"}, svg);
+  svgText(svg, x(n - 1) + 8, y(last), fx(last, 0), "val", {dy: "0.35em"});
+  const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / 68))));
+  pts.forEach((p, i) => { if ((n - 1 - i) % every) return; const t = svgText(svg, x(i), H - 8, fmtD(dateOf(p.d)), "tick", {"text-anchor": "middle"}); if (x(i) > W - m.r - 22) t.setAttribute("text-anchor", "end"); if (x(i) < m.l + 22) t.setAttribute("text-anchor", "start"); });
+  // crosshair layer
+  const g = svgEl("g", {class: "hit"}, svg);
+  const xh = svgEl("line", {x1: 0, x2: 0, y1: m.t, y2: m.t + ph, class: "xh", visibility: "hidden"}, g);
+  const fd = svgEl("circle", {cx: 0, cy: 0, r: 4, class: "dot", visibility: "hidden"}, g);
+  const ov = svgEl("rect", {x: m.l, y: m.t, width: pw, height: ph, class: "hb"}, g);
+  let idx = n - 1;
+  const content = () => ({title: fmtDY(dateOf(pts[idx].d)), rows: [
+    {k: "s1", v: fx(pts[idx].v, 1), l: "ค่าสัญญาณ"},
+    {v: fx(pts[idx].v - SIG_THR, 1), l: "ห่างจากระดับตัดสิน"},
+  ]});
+  const place = () => { xh.setAttribute("x1", x(idx)); xh.setAttribute("x2", x(idx)); fd.setAttribute("cx", x(idx)); fd.setAttribute("cy", y(pts[idx].v)); xh.setAttribute("visibility", "visible"); fd.setAttribute("visibility", "visible"); };
+  const fromEvt = e => { const r = svg.getBoundingClientRect(); idx = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left - m.l) / (n === 1 ? 1 : pw / (n - 1))))); };
+  const hide = () => { xh.setAttribute("visibility", "hidden"); fd.setAttribute("visibility", "hidden"); tipHide(); };
+  ov.addEventListener("pointermove", e => { fromEvt(e); place(); tipShow(e.clientX, e.clientY, content()); });
+  ov.addEventListener("pointerdown", e => { fromEvt(e); place(); tipShow(e.clientX, e.clientY, content()); });
+  ov.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" || e.pointerType === "pen") hide(); });
+  g.setAttribute("tabindex", "0"); g.setAttribute("aria-label", "เลื่อนดูค่ารายวันด้วยปุ่มลูกศร");
+  const kshow = () => { place(); const r = svg.getBoundingClientRect(); tipShow(r.left + x(idx), r.top + y(pts[idx].v), content()); };
+  g.addEventListener("focus", kshow);
+  g.addEventListener("blur", hide);
+  g.addEventListener("keydown", e => { if (e.key === "ArrowLeft"){ idx = Math.max(0, idx - 1); kshow(); e.preventDefault(); } if (e.key === "ArrowRight"){ idx = Math.min(n - 1, idx + 1); kshow(); e.preventDefault(); } });
+  table(card, ["วันที่", "ค่าสัญญาณ", "ห่างจากระดับตัดสิน"], pts.slice().reverse().map(p => [fmtDY(dateOf(p.d)), fx(p.v, 1), fx(p.v - SIG_THR, 1)]), [1,2]);
+}
+
+// ---- Event log ----
+function sevNode(e){
+  const s = document.createElement("span");
+  let cls = "warn", icon = "!", label = "ปานกลาง";
+  if (e.type === "tp"){ cls = "crit"; icon = "✕"; label = "วิกฤต"; }
+  else if (e.type === "metal" || (e.type === "down" && e.down >= 60)){ cls = "ser"; icon = "▲"; label = "สูง"; }
+  s.className = "sev " + cls; htmlEl("i", null, s, icon); htmlEl("span", null, s, label);
+  return s;
+}
+function drawLog(card, cur){
+  const key = e => (HORIZON - e.d) * 1440 + HOURS.indexOf(e.h) * 60 + e.min;
+  const list = cur.events.slice().sort((a, b) => key(b) - key(a));
+  const rows = list.slice(0, 12).map(e => {
+    const cal = dateOf(e.d); if (e.h < 8) cal.setDate(cal.getDate() + 1);
+    let detail, action;
+    if (e.type === "fr"){ detail = CAUSE[e.cause].label; action = `ตรวจซ้ำไม่พบโลหะ ปล่อยสินค้า · ${CAUSE[e.cause].act}`; }
+    else if (e.type === "metal"){ detail = `พบ ${e.piece}`; action = "กักสินค้า · ส่ง QC ตรวจชิ้นโลหะ · หาแหล่งที่มา"; }
+    else if (e.type === "tp"){ detail = `ตรวจไม่พบ ${e.piece} · ${CAUSE[e.cause].short}`; action = "หยุดเครื่อง · กักสินค้าย้อนถึงรอบที่ผ่านล่าสุด · Calibrate ใหม่"; }
+    else { detail = CAUSE[e.cause].label; action = `แจ้งช่างซ่อมบำรุง · ${CAUSE[e.cause].act}`; }
+    const open = e.d <= 1 && (e.type === "tp" || e.type === "down" || e.type === "metal");
+    return [`${fmtD(cal)} ${hh(e.h)}:${hh(e.min)}`, M[e.mi].id, TYPE_TH[e.type], detail, e.prod || "–", e.down ? `${e.down} นาที` : "–", sevNode(e), action, open ? "กำลังติดตาม" : "ปิดแล้ว"];
+  });
+  $("#logQ").textContent = `${fmt(Math.min(12, list.length))} รายการล่าสุดจาก ${fmt(list.length)} เหตุการณ์ในช่วงที่เลือก — ใช้ตามงานต่อและเป็นหลักฐาน audit`;
+  const t = table(card, ["วันเวลา", "เครื่อง", "ประเภท", "รายละเอียด / สาเหตุ", "สินค้า", "Downtime", "ความรุนแรง", "การแก้ไข", "สถานะ"], rows, [5]);
+  t.querySelectorAll("tbody tr").forEach(tr => { tr.children[3].classList.add("wrap"); tr.children[7].classList.add("wrap"); });
+}
+
+// ---- Insights ----
+function drawInsights(cur, st){
+  const box = $("#insights"); box.replaceChildren();
+  const items = [];
+  const cc = causeCounts(cur), tot = Object.values(cc).reduce((a, c) => a + c.n, 0);
+  const tc = Object.keys(cc).filter(k => k !== "other").sort((a, b) => cc[b].n - cc[a].n)[0];
+  const prodRate = {}; const prodChk = {};
+  for (const s of cur.slots) if (s.run && s.prod) prodChk[s.prod] = (prodChk[s.prod] || 0) + s.checks;
+  for (const e of cur.events) if (e.type === "fr" && e.prod) prodRate[e.prod] = (prodRate[e.prod] || 0) + 1;
+  const topProd = Object.keys(prodChk).sort((a, b) => (prodRate[b] || 0) / prodChk[b] - (prodRate[a] || 0) / prodChk[a])[0];
+  if (tc && tot){
+    items.push([`สาเหตุอันดับ 1: ${CAUSE[tc].short} — ${pct(cc[tc].n / tot * 100, 0)} ของปัญหา`,
+      tc === "product" && topProd ? `คัดออกหลอกสูงสุดที่ ${topProd} (${pct((prodRate[topProd] || 0) / prodChk[topProd] * 100, 2)}) → ${CAUSE[tc].act}` : `→ ${CAUSE[tc].act}`]);
+  }
+  const mis = machinesInScope();
+  if (mis.length > 1){
+    const per = {}; mis.forEach(mi => per[mi] = {n: 0, down: 0, c: {}});
+    for (const e of cur.events) if (PROBLEM.has(e.type)){ const p = per[e.mi]; p.n++; p.down += e.down; p.c[e.cause] = (p.c[e.cause] || 0) + 1; }
+    const wm = +Object.keys(per).sort((a, b) => per[b].n - per[a].n)[0], p = per[wm];
+    const sig = signal[wm][0];
+    items.push([`เครื่องที่ต้องดูก่อน: ${M[wm].id} (${AREA_NAME[M[wm].area]}) — ${fmt(p.n)} ครั้ง, หยุด ${fx(p.down / 60, 1)} ชม.`,
+      sig < SIG_WARN ? `สัญญาณ test piece ลดเหลือ ${fx(sig, 0)} (เตือนที่ ${SIG_WARN}) และสาเหตุหลักคือ ${CAUSE[topKey(p.c)].short} → นัด Calibrate / ตรวจสายพานก่อนตรวจไม่เจอ` : `สาเหตุหลักของเครื่องนี้: ${CAUSE[topKey(p.c)].short} → ${CAUSE[topKey(p.c)].act}`]);
+  }
+  const byH = {}, byHc = {};
+  for (const e of cur.events) if (PROBLEM.has(e.type)){ byH[e.h] = (byH[e.h] || 0) + 1; (byHc[e.h] = byHc[e.h] || {})[e.cause] = ((byHc[e.h] || {})[e.cause] || 0) + 1; }
+  const ph = topKey(byH);
+  if (ph != null){
+    const pc = topKey(byHc[ph]);
+    const why = pc === "wet" ? "หลังล้างเครื่อง → เช็ดแห้ง + ทดสอบ test piece ก่อนเดินสินค้ารอบแรก" : pc === "setting" ? "ตอนเปลี่ยนรุ่นสินค้า → ทำ checklist เลือกโปรแกรมให้ตรง code" : `สาเหตุหลักช่วงนี้: ${CAUSE[pc].short}`;
+    items.push([`ช่วงที่เกิดบ่อยสุด: ${hh(ph)}:00–${hh(ph)}:59 (${fmt(byH[ph])} ครั้ง)`, why]);
+  }
+  const failM = [...new Set(cur.events.filter(e => e.type === "tp").map(e => M[e.mi].id))];
+  const missN = cur.slots.filter(s => s.tp === "miss"), missNight = missN.filter(s => s.shift === "night").length;
+  items.push([st.tp ? `Test piece ไม่ผ่าน ${fmt(st.tp)} ครั้ง (${failM.join(", ")})` : "Test piece ผ่านทุกรอบที่ตรวจ",
+    `ทุกครั้งที่ไม่ผ่านต้องกักสินค้าย้อนถึงรอบที่ผ่านล่าสุด · ขาดรอบ ${pct(100 - st.comp)}` + (missN.length ? ` (กะดึก ${pct(missNight / missN.length * 100, 0)} ของรอบที่ขาด)` : "")]);
+  const wd = cur.slots.filter(s => s.shift === "day").flatMap(s => s.waits), wn = cur.slots.filter(s => s.shift === "night").flatMap(s => s.waits);
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  items.push([`รอผ่าน MD เกิน ${WAIT_STD} นาที: ${pct(st.over30)} ของรายการ`,
+    wd.length && wn.length ? `กะดึกรอเฉลี่ย ${fmt(avg(wn))} นาที · กะเช้า ${fmt(avg(wd))} นาที` + (avg(wn) > avg(wd) * 1.15 ? " → เพิ่มคนตรวจ MD ช่วงกะดึก" : "") : `ค่าเฉลี่ย ${fmt(st.waitAvg)} นาที`]);
+  items.forEach((it, i) => { const li = htmlEl("li", null, box); htmlEl("span", "no", li, String(i + 1)); const d = htmlEl("div", null, li); htmlEl("b", null, d, it[0]); htmlEl("span", null, d, it[1]); });
+}
+
+/* =====================================================================
+   6) WIRING
+   ===================================================================== */
+function renderAll(){
+  tipHide();
+  const cur = slice(0, F.days - 1), prev = slice(F.days, 2 * F.days - 1);
+  const st = stats(cur), pv = stats(prev);
+  renderKpis(st, pv, cur);
+  drawInsights(cur, st);
+  drawTrend(C("trend"), cur);
+  drawPareto(C("pareto"), cur);
+  drawTP(C("tp"));
+  drawCauseMachine(C("causeMachine"), cur);
+  drawTime(C("time"), cur);
+  drawDowntime(C("down"), cur);
+  drawProduct(C("product"), cur);
+  drawWait(C("wait"), cur, st);
+  drawDrift(C("drift"));
+  drawLog(C("log"), cur);
+  $("#asof").textContent = `ข้อมูลถึง ${fmtDY(new Date(2026, 10, 23))} 08:00 · ${F.days} วันทำงาน (${fmtD(dateOf(F.days - 1))} – ${fmtD(dateOf(0))})`;
+}
+
+const fArea = $("#fArea"), fMachine = $("#fMachine"), fShift = $("#fShift");
+function opt(sel, v, label){ const o = document.createElement("option"); o.value = v; o.textContent = label; sel.appendChild(o); }
+opt(fArea, "all", "ทุกพื้นที่"); AREAS.forEach(a => opt(fArea, a.code, `${a.code} · ${a.name}`));
+function fillMachines(){
+  fMachine.replaceChildren(); opt(fMachine, "all", "ทุกเครื่อง");
+  M.filter(m => F.area === "all" || m.area === F.area).forEach(m => opt(fMachine, m.id, m.id));
+  if (![...fMachine.options].some(o => o.value === F.machine)) F.machine = "all";
+  fMachine.value = F.machine;
+}
+fillMachines();
+document.querySelectorAll("#fDays button").forEach(b => b.addEventListener("click", () => {
+  F.days = +b.dataset.v;
+  document.querySelectorAll("#fDays button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderAll();
+}));
+fArea.addEventListener("change", () => { F.area = fArea.value; fillMachines(); renderAll(); });
+fMachine.addEventListener("change", () => { F.machine = fMachine.value; renderAll(); });
+fShift.addEventListener("change", () => { F.shift = fShift.value; renderAll(); });
+document.querySelectorAll(".tbtn").forEach(b => b.addEventListener("click", () => {
+  const card = b.closest(".card"), on = card.classList.toggle("as-table");
+  b.textContent = on ? "กราฟ" : "ตาราง"; b.setAttribute("aria-pressed", String(on));
+  renderAll();
+}));
+
+// theme: follows the OS until the viewer picks one
+const themeBtn = $("#themeBtn"), mq = matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : mq.matches; };
+const syncTheme = () => { themeBtn.textContent = isDark() ? "โหมดสว่าง" : "โหมดมืด"; };
+try { const t = localStorage.getItem("md-dash-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) { /* storage unavailable */ }
+themeBtn.addEventListener("click", () => {
+  const next = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("md-dash-theme", next); } catch (e) { /* storage unavailable */ }
+  syncTheme(); renderAll();
+});
+mq.addEventListener("change", () => { syncTheme(); renderAll(); });
+syncTheme();
+
+let lastW = 0, rt = 0;
+new ResizeObserver(() => { const w = document.documentElement.clientWidth; if (w === lastW) return; lastW = w; clearTimeout(rt); rt = setTimeout(renderAll, 120); }).observe(document.body);
+renderAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll);
+})();
+</script>
+</body>
+</html>
