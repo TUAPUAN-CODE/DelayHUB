@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Fish, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Route as RouteIcon, Send, FlaskConical, ClipboardList, Truck, Beaker } from "lucide-react";
+import { Fish, Rows3, ShoppingCart, Users, ScanEye, Timer, LogOut, Route as RouteIcon, Send, FlaskConical, ClipboardList } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
 const SidebarSup = () => {
@@ -39,9 +39,7 @@ const SidebarSup = () => {
         { name: "Report", icon: Timer, href: "/sup/Report" },
         { name: "Traceback", icon: RouteIcon, href: "/sup/Traceback" },
         { name: "สูตรการผลิต", icon: FlaskConical, href: "/sup/ProductRecipe" },
-        { name: "ส่วนผสม (Ingredient)", icon: Beaker, href: "/sup/Ingredient" },
         { name: "ใบสั่งผลิต (WO)", icon: ClipboardList, href: "/sup/WorkOrder" },
-        { name: "ผู้ขาย / ลูกค้า", icon: Truck, href: "/sup/Supplier" },
         { name: "แจ้งเตือน LINE", icon: Send, href: "/sup/LineAlert" },
         { name: "ออกจากระบบ", icon: LogOut, href: "/logout" },
       ],

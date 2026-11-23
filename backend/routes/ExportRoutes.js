@@ -2,6 +2,7 @@
 //   GET /api/export/f3pfpf67?days=3                 แถวที่บรรจุเสร็จใน 3 วันล่าสุด (นับวันที่บรรจุเสร็จ รวมวันนี้)
 //   GET /api/export/f3pfpf67?date_from=&date_to=    ช่วงวันที่ (yyyy-mm-dd, ไม่เกิน 62 วัน)
 //   GET /api/export/f3pfpf67/template.xlsx           ไฟล์ต้นฉบับแบบฟอร์ม Excel F3PFPV04 (ให้ DocHUB ออก Excel แบบเดียวกับ DelayHUB)
+//   GET /api/export/pkg-reports?days=3              รายงานการใช้บรรจุภัณฑ์ (PackagingUsageReport) 3 วันล่าสุด หรือ ?date_from=&date_to= — DocHUB เช็คไลน์ตามแผนผลิต
 //   GET /api/export/mapping/:mapping_id              ข้อมูลของรายการ (mapping) หนึ่งรายการ ตาม mapping_id ใน QR สลีป: code / mat / mat_2x / batch / batch_2x
 //                                                    (DocHUB ใบตรวจ Metal Detector F3QCPF06 สแกน QR แล้วเติมช่อง Code · วัตถุดิบ · วัตถุดิบ 2X · Batch · Batch 2X) — อ่านอย่างเดียว
 // ไม่ใช้ token ของผู้ใช้: ต้องส่ง header x-export-key = EXPORT_API_KEY ใน .env (ไม่ตั้ง = ปิด API นี้) — อยู่ใน PUBLIC_ROUTES ของ lib/authMiddleware.js
@@ -77,37 +78,6 @@ router.get("/export/f3pfpf67", guard, async (req, res) => {
   }
 });
 
-router.get("/export/mapping/:mapping_id", guard, async (req, res) => {
-  try {
-    const id = parseInt(req.params.mapping_id, 10);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ success: false, error: "mapping_id must be a positive integer" });
-    const pool = await connectToDatabase();
-    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-    const r = await pool.request().input("id", sql.Int, id).query(`
-      SELECT TOP (1)
-        rmm.mapping_id,
-        p.code AS code,
-        rm.mat AS mat,
-        rm.mat_name AS mat_name,
-        (SELECT TOP (1) m.mat_2x FROM Mat m WITH (NOLOCK) WHERE m.mapping_id = rmm.mapping_id ORDER BY m.mat_2x DESC) AS mat_2x,
-        COALESCE(bt.batch_before, rmf.batch) AS batch,
-        bt.batch_after AS batch_2x
-      FROM TrolleyRMMapping rmm WITH (NOLOCK)
-      LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
-      LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
-      LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
-      LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
-      OUTER APPLY (SELECT TOP (1) b.batch_before, b.batch_after FROM Batch b WITH (NOLOCK) WHERE b.mapping_id = rmm.mapping_id ORDER BY b.batch_id DESC) bt
-      WHERE rmm.mapping_id = @id`);
-    if (!r.recordset.length) return res.status(404).json({ success: false, error: "mapping_id not found" });
-    res.json({ success: true, data: r.recordset[0] });
-  } catch (err) {
-    console.error("❌ [Route /export/mapping] Error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-//   GET /api/export/pkg-reports?days=3              รายงานการใช้บรรจุภัณฑ์ (PackagingUsageReport) 3 วันล่าสุด หรือ ?date_from=&date_to= — DocHUB เช็คไลน์ตามแผนผลิต
 // รายงานการใช้บรรจุภัณฑ์ (หน้า "ใช้บรรจุภัณฑ์" ทั้งแท็บกำลังดำเนินการและประวัติ) — DocHUB ใช้เช็คว่าไลน์ตามแผนผลิตมีรายงานครบไหม
 // 1 แถว = 1 เอกสาร (report_id) ของ วันที่ × กะ × ไลน์ · นับตาม report_date (ไม่ใช่ created_at) · ส่ง status ไปด้วย (done = ประวัติ)
 router.get("/export/pkg-reports", guard, async (req, res) => {
@@ -147,6 +117,36 @@ router.get("/export/pkg-reports", guard, async (req, res) => {
     res.type("application/json").send(json);
   } catch (err) {
     console.error("❌ [Route /export/pkg-reports] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get("/export/mapping/:mapping_id", guard, async (req, res) => {
+  try {
+    const id = parseInt(req.params.mapping_id, 10);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ success: false, error: "mapping_id must be a positive integer" });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+    const r = await pool.request().input("id", sql.Int, id).query(`
+      SELECT TOP (1)
+        rmm.mapping_id,
+        p.code AS code,
+        rm.mat AS mat,
+        rm.mat_name AS mat_name,
+        (SELECT TOP (1) m.mat_2x FROM Mat m WITH (NOLOCK) WHERE m.mapping_id = rmm.mapping_id ORDER BY m.mat_2x DESC) AS mat_2x,
+        COALESCE(bt.batch_before, rmf.batch) AS batch,
+        bt.batch_after AS batch_2x
+      FROM TrolleyRMMapping rmm WITH (NOLOCK)
+      LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
+      LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+      LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+      LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+      OUTER APPLY (SELECT TOP (1) b.batch_before, b.batch_after FROM Batch b WITH (NOLOCK) WHERE b.mapping_id = rmm.mapping_id ORDER BY b.batch_id DESC) bt
+      WHERE rmm.mapping_id = @id`);
+    if (!r.recordset.length) return res.status(404).json({ success: false, error: "mapping_id not found" });
+    res.json({ success: true, data: r.recordset[0] });
+  } catch (err) {
+    console.error("❌ [Route /export/mapping] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -1,4 +1,4 @@
-import { Warehouse, LogOut, Table2, CheckCircle2, LayoutDashboard } from "lucide-react";
+import { Warehouse, LogOut, Table2, CheckCircle2 } from "lucide-react";
 import { Search as MappingSearchIcon } from "lucide-react";
 import AppSidebar from "../Layout/AppSidebar";
 
@@ -7,10 +7,7 @@ const SECTIONS = [
       { name: "ดำเนินการเสร็จสิ้น", icon: CheckCircle2, href: "/ColdStorages/Sheet?view=done" }] },
   {
     title: "RM แปรรูป",
-    items: [
-      { name: "ห้องเย็นใหญ่", icon: Warehouse, href: "/ColdStorages/LargeRooms" },
-      { name: "สรุป Stock", icon: LayoutDashboard, href: "/ColdStorages/StockSummary" },
-    ],
+    items: [{ name: "ห้องเย็นใหญ่", icon: Warehouse, href: "/ColdStorages/LargeRooms" }],
   },
   { items: [{ name: "ค้นหา mapping_id", icon: MappingSearchIcon, href: "/ColdStorages/Mapping" }, { name: "ออกจากระบบ", icon: LogOut, href: "/logout" }] },
 ];

@@ -4450,7 +4450,6 @@ SELECT TOP (2000)
 
 
     htr.qccheck_cold,
-    htr.cold_dest,
     htr.remark_rework_cold,
     htr.receiver_out_cold,
     htr.receiver_out_cold_two,
@@ -4619,7 +4618,6 @@ SELECT
 
 
     htr.qccheck_cold,
-    htr.cold_dest,
     htr.remark_rework_cold,
     htr.receiver_out_cold,
     htr.receiver_out_cold_two,
@@ -4749,112 +4747,6 @@ ORDER BY rmm.mapping_id DESC
         } catch (error) {
             console.error("Error fetching data:", error);
             res.status(500).json({ error: "Internal Server Error" });
-        }
-    });
-
-    // History of the large cold rooms per day (page /ColdStorages/StockSummary): trolleys that came in, trolleys that were cleared (went out),
-    // and cleared trolleys that were late. Read only.
-    // - in / out = History.cs_come_cold_date* / cs_out_cold_date* (rounds 1-10) on that calendar day; a trolley = History.tro_id (the trolley of the
-    //   raw material), counted once per day
-    // - late = went out that day with TrolleyRMMapping.cold_time < 0: the large-room check-out saves the cold time left (negative = over the limit),
-    //   and does not save it for the rooms without DCS (cs_id 10,14,21,25,26,37,38), so those never count as late
-    // - in_late_items = raw materials that came in that day and are delayed: cold_time < 0 (left late), or still parked (this stay = their
-    //   latest entry) in a large room with DCS and red by the same rule as the LargeRooms table (RoomMonitor/Asset/csDelay.js):
-    //   cold = COALESCE(cold_time, group cold) <= 0, or the time in the room > cold, or >= the group standard (120 min when the group has none).
-    //   Hours are H.MM: 1.30 = 1 h 30 min
-    router.get("/coldstorages/stock/fetchHistory", async (req, res) => {
-        try {
-            const days = Math.min(31, Math.max(1, parseInt(req.query.days, 10) || 7));
-            const pool = await connectToDatabase();
-            if (!pool) {
-                return res.status(503).json({ success: false, error: "Database unavailable" });
-            }
-            const { cached } = require("../lib/sheetCache");
-            const rows = await cached(`coldstorages:stock-history:${days}`, async () => {
-                const result = await pool.request()
-                    .input("days", sql.Int, days)
-                    .query(`
-DECLARE @from DATETIME = DATEADD(DAY, 1 - @days, CAST(CAST(GETDATE() AS DATE) AS DATETIME));
-WITH ev AS (
-    SELECT h.mapping_id,
-           COALESCE(CAST(h.tro_id AS NVARCHAR(50)), CONCAT(N'm', h.mapping_id)) AS tro_key,
-           v.kind,
-           v.at,
-           CAST(v.at AS DATE) AS d,
-           (SELECT MAX(x) FROM (VALUES (h.cs_come_cold_date), (h.cs_come_cold_date_two), (h.cs_come_cold_date_three), (h.cs_come_cold_date_four),
-               (h.cs_come_cold_date_five), (h.cs_come_cold_date_six), (h.cs_come_cold_date_seven), (h.cs_come_cold_date_eight),
-               (h.cs_come_cold_date_nine), (h.cs_come_cold_date_ten)) t(x)) AS last_in
-    FROM History h WITH (NOLOCK)
-    CROSS APPLY (VALUES
-        ('in', h.cs_come_cold_date), ('in', h.cs_come_cold_date_two), ('in', h.cs_come_cold_date_three), ('in', h.cs_come_cold_date_four),
-        ('in', h.cs_come_cold_date_five), ('in', h.cs_come_cold_date_six), ('in', h.cs_come_cold_date_seven), ('in', h.cs_come_cold_date_eight),
-        ('in', h.cs_come_cold_date_nine), ('in', h.cs_come_cold_date_ten),
-        ('out', h.cs_out_cold_date), ('out', h.cs_out_cold_date_two), ('out', h.cs_out_cold_date_three), ('out', h.cs_out_cold_date_four),
-        ('out', h.cs_out_out_date_five), ('out', h.cs_out_cold_date_six), ('out', h.cs_out_cold_date_seven), ('out', h.cs_out_cold_date_eight),
-        ('out', h.cs_out_cold_date_nine), ('out', h.cs_out_cold_date_ten)
-    ) v(kind, at)
-    WHERE h.cs_come_cold_date IS NOT NULL
-      AND v.at >= @from
-)
-SELECT CONVERT(CHAR(10), ev.d, 23) AS day,
-       ev.kind,
-       COUNT(DISTINCT ev.tro_key) AS trolleys,
-       COUNT(DISTINCT ev.mapping_id) AS items,
-       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.tro_key END) AS late_trolleys,
-       COUNT(DISTINCT CASE WHEN ev.kind = 'out' AND rmm.cold_time < 0 THEN ev.mapping_id END) AS late_items,
-       COUNT(DISTINCT CASE WHEN ev.kind = 'in' AND z.is_late = 1 THEN ev.mapping_id END) AS in_late_items
-FROM ev
-LEFT JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = ev.mapping_id
-LEFT JOIN RMForProd rmf WITH (NOLOCK) ON rmf.rmfp_id = rmm.rmfp_id
-LEFT JOIN RawMatGroup rmg WITH (NOLOCK) ON rmg.rm_group_id = rmf.rm_group_id
-LEFT JOIN Slot s WITH (NOLOCK) ON s.tro_id = rmm.tro_id AND s.cs_id BETWEEN 10 AND 46
-CROSS APPLY (SELECT
-    COALESCE(rmm.cold_time, rmg.cold) AS ct,
-    CASE WHEN rmg.cold > 0 THEN FLOOR(rmg.cold) * 60 + (rmg.cold - FLOOR(rmg.cold)) * 100 ELSE 120 END AS std_min,
-    DATEDIFF(MINUTE, ev.at, GETDATE()) AS elapsed
-) c
-CROSS APPLY (SELECT CASE
-    WHEN rmm.cold_time < 0 THEN 1
-    WHEN ev.kind = 'in' AND ev.at = ev.last_in AND s.cs_id IS NOT NULL AND s.cs_id NOT IN (10, 14, 21, 25, 26, 37, 38)
-         AND (c.ct <= 0 OR c.elapsed > FLOOR(c.ct) * 60 + (c.ct - FLOOR(c.ct)) * 100 OR c.elapsed >= c.std_min) THEN 1
-    ELSE 0 END AS is_late
-) z
-GROUP BY ev.d, ev.kind
-ORDER BY ev.d;
-`);
-                return result.recordset;
-            });
-
-            // one entry per day, also the days without any movement
-            const byDay = new Map();
-            const start = new Date();
-            start.setHours(0, 0, 0, 0);
-            start.setDate(start.getDate() - (days - 1));
-            for (let i = 0; i < days; i++) {
-                const d = new Date(start);
-                d.setDate(start.getDate() + i);
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                byDay.set(key, { day: key, in_trolleys: 0, in_items: 0, in_late_items: 0, out_trolleys: 0, out_items: 0, late_trolleys: 0, late_items: 0 });
-            }
-            rows.forEach((r) => {
-                const e = byDay.get(r.day);
-                if (!e) return;
-                if (r.kind === "in") {
-                    e.in_trolleys = r.trolleys;
-                    e.in_items = r.items;
-                    e.in_late_items = r.in_late_items;
-                } else {
-                    e.out_trolleys = r.trolleys;
-                    e.out_items = r.items;
-                    e.late_trolleys = r.late_trolleys;
-                    e.late_items = r.late_items;
-                }
-            });
-
-            res.json({ success: true, data: [...byDay.values()] });
-        } catch (err) {
-            console.error("[Route /coldstorages/stock/fetchHistory] Error:", err);
-            res.status(500).json({ success: false, error: err.message });
         }
     });
 

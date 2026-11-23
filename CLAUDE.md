@@ -1020,8 +1020,6 @@ hotfix: แก้ Socket.IO disconnect ใน production cluster mode
 - Remark CS (`SAP_Receive.remark_cs` หนึ่งโน้ตต่อ HU, `lib/remarkCs.js`): พิมพ์ได้ตอน "รับ" HU (`POST /prep/checkin/sap`) และตอน "ใส่รถเข็น" ของแผน (`Prep/TimeStampMain/Asset/manage/Modal2.jsx` → บันทึกตอนยืนยันที่ `Modal3.jsx` ด้วย `PUT /api/prep/sap/remark-cs {hu, remark_cs}` เฉพาะเมื่อแก้) แผนที่ไม่มี HU ไม่มีช่องนี้; สลีปทุกใบอ่านผ่าน `Layout/RemarkCs.jsx`; หน้า Traceback แสดงเป็นคอลัมน์ Remark CS (`RemarkCsText` ใน `Traceback/Asset/TraceAtoms.jsx`)
 - collation ของฐานคือ `Thai_100_CI_AI`: `LIKE '%…%'` / `=` กับข้อความตายตัวบนตารางใหญ่ใส่ `COLLATE Thai_100_BIN2` (เร็วกว่ามาก) — ตรวจก่อนว่าจำนวนแถวเท่าเดิม (ดู `scripts/sheet-timing.js --probe`)
 
-**ส่งข้อมูลให้ DocHUB**: `GET /api/export/f3pfpf67` (`routes/ExportRoutes.js`, อ่านอย่างเดียว, header `x-export-key` = `EXPORT_API_KEY` ใน .env, ไม่ตั้ง = ปิด) — แถว Done + ค่าทุกช่องของ F3PFPF67 คำนวณด้วย `delayReportCore.js` ของหน้าเว็บผ่าน `lib/delayExport.js` (แก้สูตรที่หน้าเว็บ API เปลี่ยนตาม) · DocHUB ดึงวันละครั้ง 05:00 · ดู `docs/EXPORT_DOCHUB.md`
-
 **รันสองเครื่อง / ทนล่ม**: ดู `backend/HA_RUNBOOK.md` — Redis ตั้งค่าที่ `.env` (`REDIS_HOST` ฯลฯ ผ่าน `lib/redisClient.js`; Redis ล่มแล้ว API ต้องไม่ล่ม), งานที่ต้องมีตัวเดียว (delay-alert, RFID) ใช้ล็อกผู้นำ `lib/leaderLock.js`, rate limit นับร่วมผ่าน Redis (`lib/redisRateLimitStore.js`), `/health/ready` ตรวจเฉพาะ DB
 
 *อัปเดตล่าสุด: พฤษภาคม 2026 — หลังการทำ naming consistency refactor ครั้งแรก*

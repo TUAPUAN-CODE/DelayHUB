@@ -39,8 +39,6 @@ const ProductRecipePage = lazy(() => import("./ProductRecipe/ProductRecipePage")
 const WorkOrderPage = lazy(() => import("./WorkOrder/WorkOrderPage")); // production order (WOId) → formula, baskets x batches, solutions, weights, inspections, log
 const LineAlertPage = lazy(() => import("./LineAlert/LineAlertPage")); // send the LINE alerts now (no 1 hour wait)
 const ReportPage = lazy(() => import("./Report/ReportPage")); // one report: %Tie / Pareto / trend / table (replaces Delay %, Delay SC, Delay IP)
-const SupplierPage = lazy(() => import("./Supplier/SupplierPage")); // WISEUP: suppliers → goods receipts, incoming inspection results; customer summary
-const IngredientPage = lazy(() => import("./Ingredient/IngredientPage")); // every ingredient (WC): products that use it, what was weighed, alias / remark kept in PFCMv2
 
 
 // เก็บเส้นทางทั้งหมดไว้ใน Array เพื่อลดโค้ดซ้ำซ้อน
@@ -81,8 +79,6 @@ const routes = [
 { path: "/ProductRecipe", element: <ProductRecipePage /> },
 { path: "/WorkOrder", element: <WorkOrderPage /> },
 { path: "/LineAlert", element: <LineAlertPage /> },
-{ path: "/Supplier", element: <SupplierPage /> },
-{ path: "/Ingredient", element: <IngredientPage /> },
   // // จัดการการทำงาน
   // { path: "/Table/WorkPlace", element: <TableWorkPlaceSup /> },
   // { path: "/Table/Role", element: <TableRoleSup /> },
