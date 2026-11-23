@@ -1610,3 +1610,5 @@ router.get("/sheet/delay-alert/status", async (req, res) => {
 });
 
 module.exports = router;
+// the same query of the Done table for the export API (routes/ExportRoutes.js → DocHUB)
+module.exports.buildMappingQuery = buildMappingQuery;

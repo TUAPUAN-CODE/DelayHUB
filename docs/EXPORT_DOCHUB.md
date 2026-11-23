@@ -31,11 +31,3 @@ DocHUB ดึงแถวที่ **บรรจุเสร็จ** ของ 
 ## ข้อมูลรายการตามสลีป (สำหรับ DocHUB ใบตรวจ F3QCPF06)
 
 `GET /api/export/mapping/:mapping_id` (header `x-export-key` เดียวกัน, อ่านอย่างเดียว) → `{ success, data: { mapping_id, code, mat, mat_name, mat_2x, batch, batch_2x } }` · `code` = โค้ดสินค้าของแผน (Production.code) · `batch` = Batch ตั้งต้น · `batch_2x` = Batch 2X · ไม่พบ → 404 · DocHUB เรียกตอนผู้ตรวจสแกน QR สลีป (ช่อง 4 ของ QR = mapping_id)
-
-## รายงานการใช้บรรจุภัณฑ์ (ให้ DocHUB เช็คไลน์ตามแผนผลิต)
-
-`GET /api/export/pkg-reports?days=3` (หรือ `?date_from=2026-11-01&date_to=2026-11-30`, ไม่เกิน 62 วัน) · header `x-export-key` เดียวกับด้านบน · อ่านอย่างเดียว
-
-- ข้อมูลจากตาราง `PackagingUsageReport` (หน้า "ใช้บรรจุภัณฑ์" ทั้งแท็บกำลังดำเนินการและประวัติ) นับตาม `report_date`
-- 1 แถว = 1 เอกสาร: `report_id` (คีย์) · `report_date` (yyyy-mm-dd) · `shift` · `plant` · `package_type` · `line_name` · `machine_name` · `reported_by` · `qc_supervisor` · `status` (`done` = ประวัติ) · `created_at`
-- คำขอช่วงเดียวกันภายใน 5 นาทีใช้ผลเดิม
