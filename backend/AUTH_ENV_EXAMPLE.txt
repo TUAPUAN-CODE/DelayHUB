@@ -31,6 +31,9 @@ AUTH_JWT_SECRET=
 # ── Observability ─────────────────────────────────────────────────────────────
 # /metrics (รูปแบบ Prometheus) — ถ้าตั้ง METRICS_KEY ต้องส่ง header x-metrics-key; ไม่ตั้ง = เปิดเฉพาะ IP ภายใน
 # METRICS_KEY=
+# กุญแจของ API ส่งออก (อ่านอย่างเดียว) ให้ DocHUB ดึงรายงาน Delay F3PFPF67 วันละครั้ง: GET /api/export/f3pfpf67 + header x-export-key
+# ไม่ตั้ง = ปิด API นี้ · ยาวอย่างน้อย 16 ตัว (สร้าง: node -e "console.log(require('crypto').randomBytes(24).toString('hex'))") · ใส่ค่าเดียวกันใน DELAYHUB_EXPORT_KEY ของ DocHUB
+# EXPORT_API_KEY=
 # เกณฑ์ log: request ช้า (ms), query ช้า (ms)
 # SLOW_REQUEST_MS=3000
 # SLOW_QUERY_MS=1500
