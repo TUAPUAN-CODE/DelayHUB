@@ -46,7 +46,6 @@ const PUBLIC_ROUTES = [
   ["GET", /^\/metrics$/], // ตรวจกุญแจ METRICS_KEY / IP ภายในเองใน route
   ["GET", /^\/api-docs/],
   ["GET", /^\/api\/export\/mapping\/\d+$/], // DocHUB สแกน QR สลีป: ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
-  ["GET", /^\/api\/export\/pkg-reports$/], // DocHUB: รายงานการใช้บรรจุภัณฑ์ — ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
   ["GET", /^\/api\/export\/f3pfpf67(\/template\.xlsx)?$/], // DocHUB: ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
 ];
 const isPublic = (req) => PUBLIC_ROUTES.some(([m, re]) => m === req.method && re.test(req.path));
@@ -225,6 +224,8 @@ const RULES = [
   // Traceback: ล้าง cache และ debug เฉพาะผู้ดูแล
   { m: "POST", p: /^\/api\/traceback\/refs\/reload$/, check: adminOnly },
   { m: "GET", p: /^\/api\/traceback\/debug\//, check: adminOnly },
+  // หน้า /sup/Ingredient: บันทึกชื่อเรียก / หมายเหตุของส่วนผสม — เฉพาะหัวหน้า (6/8)
+  { m: "PUT", p: /^\/api\/ingredient\/update-ingredient-note$/, check: adminOnly, final: true },
   // ปลดกักสินค้า: หัวหน้า (6/8) หรือผู้ที่ใส่รหัสผ่าน Setting แล้ว
   { m: "PUT", p: /^\/api\/traceback\/holds\/\d+\/release$/, check: adminOrUnlock },
   // ส่งแจ้งเตือน LINE ทันที (หน้า Supervisor): เฉพาะหัวหน้า (6/8)
