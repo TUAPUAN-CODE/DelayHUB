@@ -46,10 +46,6 @@ const PUBLIC_ROUTES = [
   ["GET", /^\/metrics$/], // ตรวจกุญแจ METRICS_KEY / IP ภายในเองใน route
   ["GET", /^\/api-docs/],
   ["GET", /^\/api\/export\/mapping\/\d+$/], // DocHUB สแกน QR สลีป: ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
-<<<<<<< HEAD
-  ["GET", /^\/api\/export\/pkg-reports$/], // DocHUB: รายงานการใช้บรรจุภัณฑ์ — ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
-=======
->>>>>>> af10779e93e08e100a4c0e5780c272eacc8c0ccc
   ["GET", /^\/api\/export\/f3pfpf67(\/template\.xlsx)?$/], // DocHUB: ตรวจกุญแจ EXPORT_API_KEY เองใน routes/ExportRoutes.js
 ];
 const isPublic = (req) => PUBLIC_ROUTES.some(([m, re]) => m === req.method && re.test(req.path));

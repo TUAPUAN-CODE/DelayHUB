@@ -107,50 +107,6 @@ router.get("/export/mapping/:mapping_id", guard, async (req, res) => {
   }
 });
 
-//   GET /api/export/pkg-reports?days=3              รายงานการใช้บรรจุภัณฑ์ (PackagingUsageReport) 3 วันล่าสุด หรือ ?date_from=&date_to= — DocHUB เช็คไลน์ตามแผนผลิต
-// รายงานการใช้บรรจุภัณฑ์ (หน้า "ใช้บรรจุภัณฑ์" ทั้งแท็บกำลังดำเนินการและประวัติ) — DocHUB ใช้เช็คว่าไลน์ตามแผนผลิตมีรายงานครบไหม
-// 1 แถว = 1 เอกสาร (report_id) ของ วันที่ × กะ × ไลน์ · นับตาม report_date (ไม่ใช่ created_at) · ส่ง status ไปด้วย (done = ประวัติ)
-router.get("/export/pkg-reports", guard, async (req, res) => {
-  try {
-    let dateFrom; let dateTo;
-    if (DATE_RE.test(req.query.date_from || "") && DATE_RE.test(req.query.date_to || "")) {
-      dateFrom = req.query.date_from; dateTo = req.query.date_to;
-    } else {
-      const days = Math.min(Math.max(parseInt(req.query.days, 10) || 3, 1), 62);
-      const now = new Date();
-      dateTo = ymdLocal(now);
-      dateFrom = ymdLocal(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)));
-    }
-    if (dateFrom > dateTo) return res.status(400).json({ success: false, error: "date_from must not be after date_to" });
-    if ((new Date(dateTo) - new Date(dateFrom)) / 86400000 > 62) return res.status(400).json({ success: false, error: "range is limited to 62 days" });
-
-    const key = `pkg|${dateFrom}|${dateTo}`;
-    const hit = memo.get(key);
-    if (hit && Date.now() - hit.at < MEMO_MS) return res.type("application/json").send(hit.json);
-
-    const pool = await connectToDatabase();
-    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
-    const result = await pool.request()
-      .input("date_from", sql.Date, dateFrom)
-      .input("date_to", sql.Date, dateTo)
-      .query(`
-        SELECT report_id,
-               CONVERT(varchar(10), report_date, 23) AS report_date,
-               shift, plant, package_type, line_name, machine_name,
-               reported_by, qc_supervisor, status,
-               CONVERT(varchar(19), created_at, 120) AS created_at
-        FROM PackagingUsageReport WITH (NOLOCK)
-        WHERE report_date >= @date_from AND report_date < DATEADD(day, 1, @date_to)
-        ORDER BY report_date, shift, line_name, report_id`);
-    const json = JSON.stringify({ success: true, form: "PKG_USAGE", generated_at: new Date().toISOString(), date_from: dateFrom, date_to: dateTo, count: result.recordset.length, rows: result.recordset });
-    memo.set(key, { at: Date.now(), json });
-    res.type("application/json").send(json);
-  } catch (err) {
-    console.error("❌ [Route /export/pkg-reports] Error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 router.get("/export/f3pfpf67/template.xlsx", guard, (req, res) => {
   if (!fs.existsSync(TEMPLATE)) return res.status(404).json({ success: false, error: "template not found" });
   res.type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
