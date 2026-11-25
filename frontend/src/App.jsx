@@ -3,7 +3,6 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
-import RFIDSlipPrintService from "./component/ColdStorage/CheckOutWithRFID/Asset/RFIDSlipPrintService.jsx";
 
 import theme from "./theme/dochubTheme";
 import ErrorBoundary from "./component/Layout/ErrorBoundary.jsx";
@@ -57,7 +56,6 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <RFIDSlipPrintService />
       <MutationProgressBar />
       <ErrorBoundary resetKey={pathname}>
       <Suspense fallback={<Loading />}>

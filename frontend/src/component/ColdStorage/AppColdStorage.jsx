@@ -27,7 +27,6 @@ import WorkplaceSelector from "../User/WorkplaceSelector.jsx";
 import EmptyTrolley from "./EmptyTrolley/DeleteTrolleyPage"
 
 import RoomTableCS from "./RoomTable/RoomTable";
-import RFIDCSCheckOutPage from "./CheckOutWithRFID/CheckOutPage.jsx"
 
 import SheetPage from "../Sheet/SheetPage";
 import { lazy as lazyMapping, Suspense as SuspenseMapping } from "react";
@@ -58,6 +57,8 @@ function AppColdStorage() {
 				{['/CheckIn/*', '/CheckOut/*', '/Move/*'].map((p) => (
 					<Route key={p} path={p} element={<Navigate to='/coldStorage/Sheet' replace />} />
 				))}
+				{/* the RFID check-out page was closed (RFID UI removed): its address (bookmarks) goes to the Sheet */}
+				<Route path='/EmptyTrolley/RFIDCSCheckOutPage' element={<Navigate to='/coldStorage/Sheet' replace />} />
 
 
 				<Route path='/Room/4C/4CPage' element={<CS4CPageCO />} />
@@ -83,7 +84,6 @@ function AppColdStorage() {
 				<Route path='/WorkplaceSelector' element={<WorkplaceSelector />} />
 
 				<Route path='/EmptyTrolley/DeleteTrolleyPage' element={<EmptyTrolley />} />
-				<Route path='/EmptyTrolley/RFIDCSCheckOutPage' element={<RFIDCSCheckOutPage />} />
 			</Routes>
 		</div>
 	);

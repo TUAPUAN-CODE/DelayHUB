@@ -1,10 +1,35 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import axios from "axios";
 import { Alert, Box, CircularProgress, Dialog, DialogContent } from "@mui/material";
-import { indexByTrolley } from "../../../ColdStorage/CheckOutWithRFID/Asset/RFIDSlipPrintService";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
+
+// รวมแถวข้อมูล (1 แถว = 1 mapping_id) ของรถเข็นแบบปกติ + แบบผสม ให้เป็น 1 รายการต่อ tro_id
+// โดยใส่วัตถุดิบทุกตัวบนรถไว้ใน materials[] (print-agent พิมพ์ทุกตัวลงสลิปใบเดียว และย่อขนาดตามจำนวน)
+// — เหมือนที่หน้า Check Out จัดกลุ่มตาม tro_id ก่อนส่งไปพิมพ์
+const indexByTrolley = (regular, mixed) => {
+  const rows = [
+    ...(regular || []).map((i) => ({ ...i, rawMatType: "regular" })),
+    ...(mixed || []).map((i) => ({ ...i, rawMatType: "mixed" })),
+  ];
+  const map = new Map();
+  rows.forEach((item) => {
+    const key = String(item.tro_id);
+    if (!map.has(key)) map.set(key, { ...item, materials: [] });
+    const group = map.get(key);
+    if (group.materials.some((m) => m.mapping_id === item.mapping_id)) return;
+    // the whole row goes into the slip (QC / remark / date fields too): the slip is the same component as the one after a check-out on screen
+    const mixed = item.rawMatType === "mixed";
+    group.materials.push({
+      ...item,
+      material_code: mixed ? item.mix_code : item.mat,
+      materialName: mixed ? `Mixed: ${item.mix_code}` : item.mat_name,
+      levelEu: item.level_eu,
+    });
+  });
+  return map;
+};
 
 // the slip is the same component as the Check Out slip (PrintModal): lazy, it is only needed when a slip is printed
 const PrintModal = lazy(() => import("../../../ColdStorage/RoomTableSupervisor/Asset/checkout/PrintModal"));
