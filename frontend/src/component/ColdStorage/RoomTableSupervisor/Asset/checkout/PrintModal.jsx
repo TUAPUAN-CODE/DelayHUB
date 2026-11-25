@@ -1146,63 +1146,61 @@ const MaterialItem = ({
                     </Box>
                 )}
 
-                {/* Cold Storage History - ชุดที่ 2 (เข้าออกห้องเย็น2) */}
+                {/* Cold Storage History - ชุดที่ 2 (เข้าออกห้องเย็นใหญ่) — แสดงเฉพาะเมื่อมีข้อมูล */}
                 {history2 && history2.length > 0 && (
-                    history2.map((entry, idx) => (
-                        <Box key={`h2-${idx}`} sx={{
-                            mb: 1,
-                            py: 0.5,
-                            borderTop: '1px dotted #eee',
-                            '@media print': {
-                                marginBottom: '2px',
-                                paddingTop: '1px',
-                                paddingBottom: '1px',
-                            },
+                    <Box sx={{
+                        mt: 1,
+                        mb: 1,
+                        borderLeft: '3px solid #1552F0',
+                        borderRadius: '4px',
+                        backgroundColor: '#F5F8FF',
+                        padding: '6px 8px',
+                        '@media print': {
+                            marginTop: '3px',
+                            marginBottom: '3px',
+                            padding: '3px 5px',
+                            borderLeft: '2px solid #1552F0',
+                        },
+                    }}>
+                        <Typography variant="caption" sx={{
+                            color: '#1552F0',
+                            fontSize: fontSizes.label.screen,
+                            fontWeight: 'bold',
+                            display: 'block',
+                            mb: 0.5,
+                            '@media print': { fontSize: fontSizes.label.print, marginBottom: '2px' },
                         }}>
-                            <Box sx={{
+                            ห้องเย็นใหญ่
+                        </Typography>
+                        {history2.map((entry, idx) => (
+                            <Box key={`h2-${idx}`} sx={{
                                 mb: 0.5,
-                                '@media print': {
-                                    marginBottom: '1px',
-                                },
+                                pt: idx > 0 ? 0.5 : 0,
+                                borderTop: idx > 0 ? '1px dotted #ccc' : 'none',
+                                '@media print': { marginBottom: '2px', paddingTop: idx > 0 ? '2px' : 0 },
                             }}>
                                 <InlineInfoItem
-                                    label={`เวลาเข้า CS${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
+                                    label={`เข้าห้องเย็นใหญ่${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
                                     value={entry.come_date ? formatThaiDateTime(entry.come_date) + " น." : "-"}
                                     fontSizes={fontSizes}
                                 />
-                            </Box>
-
-                            {!hideExit && entry.out_date && (
-                                <Box sx={{
-                                    mb: 0.5,
-                                    '@media print': {
-                                        marginBottom: '1px',
-                                    },
-                                }}>
+                                {!hideExit && (
                                     <InlineInfoItem
-                                        label={`เวลาออก CS${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
-                                        value={formatThaiDateTime(entry.out_date) + " น."}
+                                        label={`ออกห้องเย็นใหญ่${history2.length > 1 ? ` (รอบ ${entry.round})` : ''}`}
+                                        value={entry.out_date ? formatThaiDateTime(entry.out_date) + " น." : "-"}
                                         fontSizes={fontSizes}
                                     />
-                                </Box>
-                            )}
-
-                            {entry.come_date && entry.out_date && (
-                                <Box sx={{
-                                    mb: 0.5,
-                                    '@media print': {
-                                        marginBottom: '1px',
-                                    },
-                                }}>
+                                )}
+                                {entry.come_date && entry.out_date && (
                                     <InlineInfoItem
-                                        label={`DCS CS ${history2.length > 1 ? `รอบ ${entry.round}` : ''}`}
+                                        label={`DCS ห้องเย็นใหญ่${history2.length > 1 ? ` รอบ ${entry.round}` : ''}`}
                                         value={calculateDCS(entry.come_date, entry.out_date) || "-"}
                                         fontSizes={fontSizes}
                                     />
-                                </Box>
-                            )}
-                        </Box>
-                    ))
+                                )}
+                            </Box>
+                        ))}
+                    </Box>
                 )}
 
                 {/* Packaging Deadline Section */}
@@ -1539,6 +1537,35 @@ const MaterialItem = ({
             <Box sx={{ mb: 0.5, fontSize: fontSizes.value.screen, '@media print': { fontSize: fontSizes.value.print } }}>
                 <RemarkCsLine mappingId={item.mapping_id} mat={item.material_code || item.mat} batch={item.batch} />
             </Box>
+            {/* Comment Box — กล่องสำหรับเขียนหมายเหตุหน้างาน */}
+            <Box sx={{
+                mt: 1.5,
+                mb: 1,
+                '@media print': { marginTop: '6px', marginBottom: '4px' },
+            }}>
+                <Typography variant="caption" sx={{
+                    color: '#666',
+                    fontSize: fontSizes.label.screen,
+                    display: 'block',
+                    mb: 0.5,
+                    '@media print': { fontSize: fontSizes.label.print, marginBottom: '2px' },
+                }}>
+                    หมายเหตุ / Comment
+                </Typography>
+                <Box sx={{
+                    border: '1px solid #000',
+                    borderRadius: '4px',
+                    minHeight: '56px',
+                    padding: '6px 8px',
+                    backgroundColor: '#fafafa',
+                    '@media print': {
+                        minHeight: '48px',
+                        padding: '4px 6px',
+                        backgroundColor: '#fff',
+                    },
+                }} />
+            </Box>
+
             {/* QR Code per material */}
             <Box
                 sx={{
