@@ -80,7 +80,7 @@ export default {
   "ปิดการบังคับแล้ว": ["Requirement turned off"],
   "เฉพาะ Supervisor / Master เปลี่ยนได้": ["Only a Supervisor / Master can change this"],
   "บันทึกไม่สำเร็จ": ["Could not save"],
-  "บังคับกรอก WONo ในหน้าบรรจุ": ["Require WONo in the packing page"],
+  "บังคับกรอก WONo": ["Require WONo"],
   "เปิดอยู่ — ยืนยันบรรจุไม่ได้ถ้าไม่กรอก WONo + Basket": ["On — packing cannot be confirmed without a WONo + Basket"],
   "ปิดอยู่ — กรอกหรือไม่กรอกก็ได้": ["Off — typing it is optional"],
   "พนักงานจะกดยืนยันบรรจุไม่ได้ ถ้าไม่กรอก WONo — ยืนยันเปิดการบังคับ?": ["Staff will not be able to confirm packing without a WONo — turn the requirement on?"],

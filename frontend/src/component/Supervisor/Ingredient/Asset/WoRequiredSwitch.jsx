@@ -70,7 +70,7 @@ const WoRequiredSwitch = () => {
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
       </button>
       <div className="min-w-0">
-        <div className="font-medium text-slate-800">บังคับกรอก WONo ในหน้าบรรจุ</div>
+        <div className="font-medium text-slate-800">บังคับกรอก WONo</div>
         <div className="text-xs text-slate-500">
           {loading ? "กำลังโหลด..." : on ? "เปิดอยู่ — ยืนยันบรรจุไม่ได้ถ้าไม่กรอก WONo + Basket" : "ปิดอยู่ — กรอกหรือไม่กรอกก็ได้"}
           {state?.updated_at ? ` · เปลี่ยนล่าสุด ${state.updated_at.slice(0, 16)}` : ""}
