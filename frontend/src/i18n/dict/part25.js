@@ -74,6 +74,22 @@ export default {
   "ใบสอบกลับ": ["Traceback sheet"],
   "ไม่มี lot ที่ผูก WO และใช้ส่วนผสมนี้ในช่วงนี้": ["No lot linked to a WO used this ingredient in this period"],
 
+  // switch: WONo required in the packing page
+  "โหลดการตั้งค่าไม่สำเร็จ": ["Could not load the setting"],
+  "เปิดการบังคับแล้ว": ["Requirement turned on"],
+  "ปิดการบังคับแล้ว": ["Requirement turned off"],
+  "เฉพาะ Supervisor / Master เปลี่ยนได้": ["Only a Supervisor / Master can change this"],
+  "บันทึกไม่สำเร็จ": ["Could not save"],
+  "บังคับกรอก WONo ในหน้าบรรจุ": ["Require WONo in the packing page"],
+  "เปิดอยู่ — ยืนยันบรรจุไม่ได้ถ้าไม่กรอก WONo + Basket": ["On — packing cannot be confirmed without a WONo + Basket"],
+  "ปิดอยู่ — กรอกหรือไม่กรอกก็ได้": ["Off — typing it is optional"],
+  "พนักงานจะกดยืนยันบรรจุไม่ได้ ถ้าไม่กรอก WONo — ยืนยันเปิดการบังคับ?": ["Staff will not be able to confirm packing without a WONo — turn the requirement on?"],
+  "· เปลี่ยนล่าสุด {x}": [" · last changed {x}"],
+  "required ต้องเป็น true หรือ false": ["required must be true or false"],
+  "ยืนยัน": ["Confirm"],
+  "ยกเลิก": ["Cancel"],
+  "ต้องกรอก WONo และ Basket (จาก) อย่างน้อย 1 ชุด (หัวหน้าเปิดการบังคับไว้)": ["Please enter at least 1 set of WONo and Basket (from) — required by the supervisor"],
+
   // messages from the API
   "เลือกช่วงวันที่ได้ไม่เกิน {x} วัน": ["You can pick at most {x} days"],
   "กรุณาระบุรหัสส่วนผสม": ["Please give the ingredient code"],
