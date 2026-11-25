@@ -38,6 +38,23 @@ export default {
   "ชั่งจริง": ["Weighed"],
   "ไม่มีการชั่งส่วนผสมนี้ในช่วงนี้": ["This ingredient was not weighed in this period"],
 
+  // batch / supplier tab
+  "Batch / ผู้ขาย": ["Batch / supplier"],
+  "โหลดข้อมูล Batch ไม่สำเร็จ": ["Could not load the batches"],
+  "ไม่พบใน WISEUP": ["Not found in WISEUP"],
+  "{x} — แสดงเฉพาะ Batch จาก WC ยังไม่มีข้อมูลผู้ขาย": ["{x} — showing the Batches from WC only, without supplier data"],
+  "พบข้อมูลรับเข้าใน WISEUP {x} จาก {x} Batch": ["Goods receipt found in WISEUP for {x} of {x} Batches"],
+  "· แสดง {x} Batch ล่าสุด เลือกช่วงวันที่ให้แคบลงเพื่อดูรายการอื่น": [" · showing the latest {x} Batches — narrow the date range to see others"],
+  "วันรับเข้า": ["Received"],
+  "ปริมาณรับ": ["Quantity received"],
+  "วันที่ผลิต": ["Production date"],
+  "หมดอายุ": ["Expires"],
+  "ชั่ง (ครั้ง)": ["Weighings"],
+  "น้ำหนักรวม (กก.)": ["Total weight (kg)"],
+  "ผสมล่าสุด": ["Last mixed"],
+  "ไม่มี Batch ของส่วนผสมนี้ในช่วงนี้": ["No Batch of this ingredient in this period"],
+  "ไม่สามารถเชื่อมต่อฐานข้อมูล WISEUP ได้": ["Cannot connect to the WISEUP database"],
+
   // messages from the API
   "เลือกช่วงวันที่ได้ไม่เกิน {x} วัน": ["You can pick at most {x} days"],
   "กรุณาระบุรหัสส่วนผสม": ["Please give the ingredient code"],

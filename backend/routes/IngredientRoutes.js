@@ -2,6 +2,7 @@
 // IngredientRoutes.js — เมนู ส่วนผสม (Ingredient) ของ Supervisor
 //   GET /api/ingredient/fetchIngredients?q=&limit=                    → รายการส่วนผสมทั้งหมด (+ จำนวนสินค้าที่ใช้ + ชื่อเรียก/หมายเหตุ)
 //   GET /api/ingredient/fetchIngredientDetail?code=&from=&to=         → ใช้ในสินค้าไหนบ้าง (สูตร) + การใช้งานจริงรายตะกร้า (ค่าที่ชั่งเทียบ min/max)
+//   GET /api/ingredient/fetchIngredientBatches?code=&from=&to=        → Batch ของส่วนผสมที่ใช้ในช่วงวันที่ (WC) + ผู้ขาย / วันรับ / วันหมดอายุของ Batch นั้น (WISEUP)
 //   PUT /api/ingredient/update-ingredient-note {ingdnt_code, alias_name, remark} → บันทึกชื่อเรียก / หมายเหตุ (Supervisor / Master เท่านั้น)
 //
 // ข้อมูลส่วนผสมมาจากฐาน WC (IV.TUNA) แบบอ่านอย่างเดียว — ตาราง TunaCodeIngredients (สูตร) และ view vw_ngdnt_listNgdnt (ค่าที่ชั่งจริง)
@@ -10,6 +11,7 @@
 const express = require("express");
 const sql = require("mssql");
 const { connectToDatabase, connectToDatabaseWC } = require("../database/db");
+const { fetchIntakeByBatch } = require("./Tracebackwiseup");
 
 const router = express.Router();
 
@@ -18,12 +20,14 @@ const DEFAULT_LIMIT = 300;
 const MAX_LIMIT = 2000;
 const PRODUCT_ROWS = 2000;
 const USAGE_ROWS = 500;
+const BATCH_ROWS = 300;
 const DEFAULT_RANGE_DAYS = 7;
 const MAX_RANGE_DAYS = 31;
 const LIST_CACHE_MS = 60 * 1000; // รายการส่วนผสมเปลี่ยนไม่บ่อย — พิมพ์ค้นหาทุกตัวอักษรไม่ต้องยิง WC ซ้ำ
 const NOTE_TABLE_MISSING = "ยังไม่มีตาราง IngredientNote ในฐาน PFCMv2 — ให้ DBA รัน backend/migrations/create_IngredientNote.sql ก่อน";
 
 const WC_DOWN = "ไม่สามารถเชื่อมต่อฐานข้อมูลสูตรได้";
+const WISEUP_DOWN = "ไม่สามารถเชื่อมต่อฐานข้อมูล WISEUP ได้";
 const isMissingTable = (err) => err && (err.number === 208 || /Invalid object name/i.test(err.message || ""));
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -169,6 +173,72 @@ router.get("/fetchIngredientDetail", async (req, res) => {
     });
   } catch (err) {
     console.error("[Route /ingredient/fetchIngredientDetail] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Batch ที่ใช้ผสมส่วนผสมนี้ในช่วงวันที่ (WC: vw_ngdnt_listNgdnt.BatchNo) → ผู้ขาย / วันรับ / วันหมดอายุ (WISEUP: PRD_Batch ← RMM_GuideLine ← SUP_Supplier)
+// สองฐานอยู่คนละเซิร์ฟเวอร์ จึงดึง WC ก่อนแล้วเอา Batch ไปถาม WISEUP; WISEUP ใช้ไม่ได้ = ยังเห็น Batch จาก WC (found = false, wiseupError ตั้งค่า)
+router.get("/fetchIngredientBatches", async (req, res) => {
+  try {
+    const code = trim(req.query.code, 50);
+    if (!code) return res.status(400).json({ success: false, error: "กรุณาระบุรหัสส่วนผสม" });
+    const range = parseRange(req.query);
+    if (range.error) return res.status(400).json({ success: false, error: range.error });
+
+    const pool = await connectToDatabaseWC();
+    if (!pool) return res.status(503).json({ success: false, error: WC_DOWN });
+
+    const wc = await pool.request()
+      .input("code", sql.NVarChar(50), code)
+      .input("from", sql.Date, range.from)
+      .input("to", sql.Date, range.to)
+      .query(`
+        SELECT TOP (${BATCH_ROWS}) v.BatchNo AS batchNo, COUNT(*) AS weighings, COUNT(DISTINCT v.WONo) AS workOrders,
+               SUM(TRY_CAST(v.NetWt AS FLOAT)) AS totalNetWt,
+               CONVERT(VARCHAR, MIN(v.MixingTime), 120) AS firstMix, CONVERT(VARCHAR, MAX(v.MixingTime), 120) AS lastMix
+        FROM dbo.vw_ngdnt_listNgdnt v
+        WHERE v.ngdntCode = @code AND v.BatchNo IS NOT NULL AND LTRIM(RTRIM(v.BatchNo)) <> ''
+          AND v.MixingTime >= @from AND v.MixingTime < DATEADD(day, 1, @to)
+        GROUP BY v.BatchNo
+        ORDER BY MAX(v.MixingTime) DESC`);
+
+    const batches = wc.recordset.map((b) => String(b.batchNo).trim());
+    let intake = new Map();
+    let wiseupError = null;
+    if (batches.length) {
+      try {
+        intake = await fetchIntakeByBatch(batches, { withFeatures: false, withReceipts: false });
+      } catch (err) {
+        console.error("[Route /ingredient/fetchIngredientBatches] WISEUP error:", err);
+        wiseupError = WISEUP_DOWN;
+      }
+    }
+    // the same Batch can be spelled in another letter case in the two systems
+    const byBatch = new Map([...intake.entries()].map(([k, v]) => [String(k).trim().toUpperCase(), v]));
+
+    const rows = wc.recordset.map((b) => {
+      const i = byBatch.get(String(b.batchNo).trim().toUpperCase());
+      return {
+        ...b,
+        found: !!i,
+        supplierCode: i?.supplier_code ?? null,
+        supplierName: i?.supplier_name ?? null,
+        receiveFirst: i?.receive_first ?? null,
+        receiveQty: i?.receive_qty ?? null,
+        receiveUnit: i?.receive_unit ?? null,
+        batchDate: i?.batch_date ?? null,
+        expirationDate: i?.expiration_date ?? null,
+        matExternal: i?.mat_external ?? null,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: { range, rows, capped: rows.length >= BATCH_ROWS, summary: { batches: rows.length, found: rows.filter((r) => r.found).length }, wiseupError },
+    });
+  } catch (err) {
+    console.error("[Route /ingredient/fetchIngredientBatches] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
