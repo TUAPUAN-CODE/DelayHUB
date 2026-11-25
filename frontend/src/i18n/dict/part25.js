@@ -55,6 +55,9 @@ export default {
   "ไม่มี Batch ของส่วนผสมนี้ในช่วงนี้": ["No Batch of this ingredient in this period"],
   "ไม่สามารถเชื่อมต่อฐานข้อมูล WISEUP ได้": ["Cannot connect to the WISEUP database"],
 
+  // packing confirm: WONo is required
+  "กรุณากรอก WONo และ Basket (จาก) อย่างน้อย 1 ชุด": ["Please enter at least 1 set of WONo and Basket (from)"],
+
   // messages from the API
   "เลือกช่วงวันที่ได้ไม่เกิน {x} วัน": ["You can pick at most {x} days"],
   "กรุณาระบุรหัสส่วนผสม": ["Please give the ingredient code"],

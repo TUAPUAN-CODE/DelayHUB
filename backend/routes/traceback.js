@@ -655,12 +655,12 @@ router.get('/detail', async (req, res) => {
     try {
       woRows = (await pool.request().query(`
         SELECT MIN(ingredient_wo_id) AS ingredient_wo_id,
-               mapping_id, wo_no, basket_no_start, basket_no_end,
+               mapping_id, wo_no, basket_from AS basket_no_start, basket_to AS basket_no_end,   -- real columns: basket_from, basket_to
                CONVERT(VARCHAR, MIN(created_at), 120) AS created_at,
                COUNT(*) AS dup_count
         FROM [PFCMv2].[dbo].[HistoryIngredientWO]
         WHERE mapping_id IN (${idList})
-        GROUP BY mapping_id, wo_no, basket_no_start, basket_no_end
+        GROUP BY mapping_id, wo_no, basket_from, basket_to
         ORDER BY mapping_id, ingredient_wo_id
       `)).recordset;
       meta.wo_rows_unique = woRows.length;
@@ -1273,7 +1273,7 @@ async function forwardING(pool, code) {
   const hw = await pool.request()
     .input('wos', sql.NVarChar(sql.MAX), [...byWo.keys()].join(','))
     .query(`
-      SELECT DISTINCT mapping_id, wo_no, basket_no_start, basket_no_end
+      SELECT DISTINCT mapping_id, wo_no, basket_from AS basket_no_start, basket_to AS basket_no_end
       FROM [PFCMv2].[dbo].[HistoryIngredientWO]
       WHERE wo_no IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@wos, ','))`);
 
@@ -1790,7 +1790,7 @@ router.get('/debug/trace/:mapping_id', async (req, res) => {
       SELECT * FROM [PFCMv2].[dbo].[HistoryIngredientWO] WHERE mapping_id = ${id}
     `);
     out.historyIngredientWO = wo.recordset;
-    const uniqWo = new Set(wo.recordset.map(w => `${w.wo_no}|${w.basket_no_start}|${w.basket_no_end}`));
+    const uniqWo = new Set(wo.recordset.map(w => `${w.wo_no}|${w.basket_from}|${w.basket_to}`));
     out.wo_source = wo.recordset.length
       ? `พบ ${wo.recordset.length} แถว (ไม่ซ้ำ ${uniqWo.size} รายการ)`
       : 'ไม่มีแถวใน HistoryIngredientWO → ส่วนผสมจะว่าง (ล็อตนี้ยังไม่ได้ผูก WO)';

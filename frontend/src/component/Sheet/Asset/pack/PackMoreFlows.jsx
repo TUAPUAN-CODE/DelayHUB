@@ -249,7 +249,7 @@ const MultiConfirmDialog = ({
         {/* รหัส Ingrediant (WONO) — รองรับหลายชุด แต่ละชุดมี WONo + ช่วง Basket */}
         <Box>
           <Box sx={{ marginBottom: 1, color: '#333', fontSize: '14px', fontWeight: '500' }}>
-            รหัส Ingrediant (WONO)
+            รหัส Ingrediant (WONO) <span style={{ color: '#f44336' }}>*</span>
           </Box>
           {woEntries.map((entry, index) => (
             <WoBasketEntryRow
@@ -344,6 +344,8 @@ const PackMoreFlows = forwardRef(({ onDone, onNotify }, ref) => {
     if (!prepDateTime) { e.prepDateTime = 'กรุณาระบุเวลา'; ok = false; } else if (new Date(prepDateTime) > new Date()) { e.prepDateTime = 'เวลาต้องไม่เป็นอนาคต'; ok = false; }
     if (remark && remark.length > 300) { e.remark = 'หมายเหตุต้องไม่เกิน 300 ตัวอักษร'; ok = false; }
     const filled = woEntries.filter((x) => x.wo_no || x.basket_from || x.basket_to);
+    // WONo + Basket is required (agreed with the packing floor): without it Traceback / the Ingredient page cannot link this lot to its ingredients
+    if (!filled.length) { e.woEntries = 'กรุณากรอก WONo และ Basket (จาก) อย่างน้อย 1 ชุด'; ok = false; }
     for (const x of filled) {
       if (!x.wo_no || x.basket_from === '' || x.basket_from == null) { e.woEntries = 'กรุณากรอก WONo และ Basket (จาก) ให้ครบทุกชุดที่เพิ่มไว้'; ok = false; break; }
       if (x.basket_to !== '' && x.basket_to != null && Number(x.basket_to) < Number(x.basket_from)) { e.woEntries = 'Basket (ถึง) ต้องมีค่ามากกว่าหรือเท่ากับ Basket (จาก)'; ok = false; break; }
