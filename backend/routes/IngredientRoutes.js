@@ -3,6 +3,7 @@
 //   GET /api/ingredient/fetchIngredients?q=&limit=                    → รายการส่วนผสมทั้งหมด (+ จำนวนสินค้าที่ใช้ + ชื่อเรียก/หมายเหตุ)
 //   GET /api/ingredient/fetchIngredientDetail?code=&from=&to=         → ใช้ในสินค้าไหนบ้าง (สูตร) + การใช้งานจริงรายตะกร้า (ค่าที่ชั่งเทียบ min/max)
 //   GET /api/ingredient/fetchIngredientBatches?code=&from=&to=        → Batch ของส่วนผสมที่ใช้ในช่วงวันที่ (WC) + ผู้ขาย / วันรับ / วันหมดอายุของ Batch นั้น (WISEUP)
+//   GET /api/ingredient/fetchIngredientLots?code=&from=&to=           → lot ใน PFCM ที่ใช้ส่วนผสมนี้ — ผ่าน WONo + ช่วงตะกร้าที่กรอกตอนยืนยันบรรจุ (PFCMv2.HistoryIngredientWO) จับกับตะกร้าของ WC
 //   PUT /api/ingredient/update-ingredient-note {ingdnt_code, alias_name, remark} → บันทึกชื่อเรียก / หมายเหตุ (Supervisor / Master เท่านั้น)
 //
 // ข้อมูลส่วนผสมมาจากฐาน WC (IV.TUNA) แบบอ่านอย่างเดียว — ตาราง TunaCodeIngredients (สูตร) และ view vw_ngdnt_listNgdnt (ค่าที่ชั่งจริง)
@@ -21,6 +22,7 @@ const MAX_LIMIT = 2000;
 const PRODUCT_ROWS = 2000;
 const USAGE_ROWS = 500;
 const BATCH_ROWS = 300;
+const LOT_ROWS = 2000; // WO links read per request (newest first); the WC lookup is limited by them
 const DEFAULT_RANGE_DAYS = 7;
 const MAX_RANGE_DAYS = 31;
 const LIST_CACHE_MS = 60 * 1000; // รายการส่วนผสมเปลี่ยนไม่บ่อย — พิมพ์ค้นหาทุกตัวอักษรไม่ต้องยิง WC ซ้ำ
@@ -239,6 +241,102 @@ router.get("/fetchIngredientBatches", async (req, res) => {
     });
   } catch (err) {
     console.error("[Route /ingredient/fetchIngredientBatches] Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// lot ใน PFCM ที่ใช้ส่วนผสมนี้: HistoryIngredientWO (mapping_id + wo_no + basket_from..basket_to, กรอกตอนยืนยันบรรจุ — ยังไม่บังคับ จึงอาจมีน้อย)
+// จับกับ WC: ตะกร้าของ WO นั้นที่มีส่วนผสมนี้ (vw_ngdnt_listNgdnt) ต้องอยู่ในช่วงตะกร้าที่กรอก
+// Basket (ถึง) ว่าง = มีตะกร้าเดียว (ตามที่หน้าจอบอกพนักงาน); ไม่มีทั้งสองค่า = ทุกตะกร้าของ WO นั้น
+router.get("/fetchIngredientLots", async (req, res) => {
+  try {
+    const code = trim(req.query.code, 50);
+    if (!code) return res.status(400).json({ success: false, error: "กรุณาระบุรหัสส่วนผสม" });
+    const range = parseRange(req.query);
+    if (range.error) return res.status(400).json({ success: false, error: range.error });
+
+    const poolWC = await connectToDatabaseWC();
+    if (!poolWC) return res.status(503).json({ success: false, error: WC_DOWN });
+    const pool = await connectToDatabase();
+    if (!pool) return res.status(503).json({ success: false, error: "Database unavailable" });
+
+    const [links, coverage] = await Promise.all([
+      pool.request()
+        .input("from", sql.Date, range.from)
+        .input("to", sql.Date, range.to)
+        .query(`
+          SELECT TOP (${LOT_ROWS}) w.mapping_id AS mappingId, w.wo_no AS woNo, w.basket_from AS basketFrom, w.basket_to AS basketTo,
+                 CONVERT(VARCHAR, w.created_at, 120) AS linkedAt,
+                 p.doc_no AS docNo, p.code AS productCode, pr.mat AS mat, rm.mat_name AS matName,
+                 rmm.tro_id AS troId, rmm.weight_RM AS weightRm,
+                 htr.rmm_line_name AS lineName, CONVERT(VARCHAR, htr.sc_pack_date, 120) AS packDate
+          FROM dbo.HistoryIngredientWO w WITH (NOLOCK)
+          LEFT JOIN TrolleyRMMapping rmm WITH (NOLOCK) ON rmm.mapping_id = w.mapping_id
+          LEFT JOIN ProdRawMat pr WITH (NOLOCK) ON rmm.tro_production_id = pr.prod_rm_id
+          LEFT JOIN RawMat rm WITH (NOLOCK) ON pr.mat = rm.mat
+          LEFT JOIN Production p WITH (NOLOCK) ON pr.prod_id = p.prod_id
+          OUTER APPLY (SELECT TOP 1 h.rmm_line_name, h.sc_pack_date FROM History h WITH (NOLOCK) WHERE h.mapping_id = rmm.mapping_id ORDER BY h.hist_id DESC) htr
+          WHERE w.created_at >= @from AND w.created_at < DATEADD(day, 1, @to)
+          ORDER BY w.ingredient_wo_id DESC`),
+      pool.request().query(`
+        SELECT COUNT(*) AS totalLinks, COUNT(DISTINCT mapping_id) AS linkedLots, CONVERT(VARCHAR, MAX(created_at), 120) AS latest
+        FROM dbo.HistoryIngredientWO WITH (NOLOCK)`),
+    ]);
+
+    // the same WO + basket range can be saved more than once for a lot
+    const seen = new Set();
+    const uniq = links.recordset.filter((l) => {
+      const k = [l.mappingId, String(l.woNo).trim(), l.basketFrom, l.basketTo].join("|");
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    const woList = [...new Set(uniq.map((l) => String(l.woNo ?? "").trim()).filter(Boolean))];
+    const byWo = new Map(); // WO -> baskets of WC that hold this ingredient
+    if (woList.length) {
+      const wc = await poolWC.request()
+        .input("code", sql.NVarChar(50), code)
+        .input("wos", sql.NVarChar(sql.MAX), woList.join(","))
+        .query(`
+          SELECT v.WONo AS woNo, v.BasketNumber AS basketNumber, v.BatchNo AS batchNo, TRY_CAST(v.NetWt AS FLOAT) AS netWt
+          FROM dbo.vw_ngdnt_listNgdnt v
+          WHERE v.ngdntCode = @code AND v.WONo IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@wos, ','))`);
+      for (const r of wc.recordset) {
+        const k = String(r.woNo).trim();
+        if (!byWo.has(k)) byWo.set(k, []);
+        byWo.get(k).push(r);
+      }
+    }
+
+    const rows = [];
+    for (const l of uniq) {
+      const baskets = byWo.get(String(l.woNo ?? "").trim());
+      if (!baskets) continue; // this WO does not use the ingredient
+      const from = l.basketFrom ?? null;
+      const to = l.basketTo ?? from;
+      const hit = baskets.filter((b) => (from === null && to === null) || (from !== null && Number(b.basketNumber) >= from && Number(b.basketNumber) <= to));
+      if (!hit.length) continue; // the ingredient is in other baskets of the WO, not in this lot's
+      rows.push({
+        ...l,
+        baskets: new Set(hit.map((b) => b.basketNumber)).size,
+        netWt: hit.reduce((a, b) => a + (Number.isFinite(b.netWt) ? b.netWt : 0), 0),
+        batches: [...new Set(hit.map((b) => String(b.batchNo ?? "").trim()).filter(Boolean))],
+      });
+    }
+
+    const c = coverage.recordset[0] || {};
+    res.json({
+      success: true,
+      data: {
+        range,
+        rows,
+        capped: links.recordset.length >= LOT_ROWS,
+        coverage: { totalLinks: c.totalLinks ?? 0, linkedLots: c.linkedLots ?? 0, latest: c.latest ?? null, scanned: uniq.length },
+      },
+    });
+  } catch (err) {
+    console.error("[Route /ingredient/fetchIngredientLots] Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

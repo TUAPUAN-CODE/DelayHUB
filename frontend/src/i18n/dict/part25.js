@@ -55,8 +55,24 @@ export default {
   "ไม่มี Batch ของส่วนผสมนี้ในช่วงนี้": ["No Batch of this ingredient in this period"],
   "ไม่สามารถเชื่อมต่อฐานข้อมูล WISEUP ได้": ["Cannot connect to the WISEUP database"],
 
-  // packing confirm: WONo is required
-  "กรุณากรอก WONo และ Basket (จาก) อย่างน้อย 1 ชุด": ["Please enter at least 1 set of WONo and Basket (from)"],
+  // lots in PFCM tab
+  "Lot ใน PFCM": ["Lots in PFCM"],
+  "ช่วงวันที่บันทึก WO": ["WO saved between"],
+  "โหลดข้อมูล lot ไม่สำเร็จ": ["Could not load the lots"],
+  "lot จะแสดงที่นี่เมื่อมีการกรอก WONo + Basket ในหน้ายืนยันบรรจุ — ตอนนี้ผูก WO ไว้แล้ว {x} lot{x}": ["Lots appear here when WONo + Basket are typed in the packing confirm screen — {x} lots are linked to a WO now{x}"],
+  "(ล่าสุด {x})": [" (latest {x})"],
+  "· อ่านรายการผูก WO ล่าสุด {x} รายการ เลือกช่วงวันที่ให้แคบลงเพื่อดูรายการอื่น": [" · read the latest {x} WO links — narrow the date range to see others"],
+  "บันทึก WO": ["WO saved"],
+  "เลขแผน": ["Plan no."],
+  "สินค้า": ["Product"],
+  "ไลน์": ["Line"],
+  "WO / ตะกร้า": ["WO / basket"],
+  "Batch ส่วนผสม": ["Ingredient Batch"],
+  "ตะกร้า": ["Baskets"],
+  "น้ำหนักส่วนผสม (กก.)": ["Ingredient weight (kg)"],
+  "บรรจุ": ["Packed"],
+  "ใบสอบกลับ": ["Traceback sheet"],
+  "ไม่มี lot ที่ผูก WO และใช้ส่วนผสมนี้ในช่วงนี้": ["No lot linked to a WO used this ingredient in this period"],
 
   // messages from the API
   "เลือกช่วงวันที่ได้ไม่เกิน {x} วัน": ["You can pick at most {x} days"],

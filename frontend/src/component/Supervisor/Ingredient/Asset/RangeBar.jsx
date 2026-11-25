@@ -7,8 +7,8 @@ const QUICK_RANGES = [
   { days: 31, label: "31 วัน" },
 ];
 
-// Date range of the mixing time (at most 31 days — the API refuses more); shared by the usage and the batch / supplier tabs.
-const RangeBar = ({ range, loading, onRangeChange }) => {
+// Date range (at most 31 days — the API refuses more) shared by the usage, batch / supplier and lot tabs; the label says which date it is.
+const RangeBar = ({ label = "ช่วงวันที่ผสม", range, loading, onRangeChange }) => {
   const setDay = (key) => (e) => {
     const value = e.target.value;
     if (value) onRangeChange({ ...range, [key]: value });
@@ -16,7 +16,7 @@ const RangeBar = ({ range, loading, onRangeChange }) => {
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-      <span className="text-slate-500">ช่วงวันที่ผสม</span>
+      <span className="text-slate-500">{label}</span>
       <input type="date" value={range.from} max={range.to} onChange={setDay("from")} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
       <span className="text-slate-500">-</span>
       <input type="date" value={range.to} min={range.from} onChange={setDay("to")} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />

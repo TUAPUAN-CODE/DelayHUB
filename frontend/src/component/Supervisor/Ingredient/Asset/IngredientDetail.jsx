@@ -6,6 +6,7 @@ import { mixTypeLabel } from "../../WorkOrder/Asset/woFormat";
 import { fmtNum } from "../../Supplier/Asset/supFormat";
 import IngredientUsage from "./IngredientUsage";
 import IngredientBatches from "./IngredientBatches";
+import IngredientLots from "./IngredientLots";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const NOTE_MAX = 1000;
@@ -15,6 +16,7 @@ const TABS = [
   { id: "products", label: "ใช้ในสินค้า" },
   { id: "usage", label: "การใช้งานจริง" },
   { id: "batches", label: "Batch / ผู้ขาย" },
+  { id: "lots", label: "Lot ใน PFCM" },
 ];
 
 const ProductsTab = ({ products }) => (
@@ -216,6 +218,7 @@ const IngredientDetail = ({ code, onSaved }) => {
         {tab === "products" && <ProductsTab products={detail.products} />}
         {tab === "usage" && <IngredientUsage usage={detail.usage} range={detail.range} loading={loading} onRangeChange={setRange} />}
         {tab === "batches" && <IngredientBatches code={code} range={detail.range} onRangeChange={setRange} />}
+        {tab === "lots" && <IngredientLots code={code} range={detail.range} onRangeChange={setRange} />}
       </div>
     </div>
   );
