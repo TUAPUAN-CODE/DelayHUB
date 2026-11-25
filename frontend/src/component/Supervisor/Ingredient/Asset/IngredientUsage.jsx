@@ -1,12 +1,6 @@
-import { Loader2 } from "lucide-react";
 import DataTable from "../../ProductRecipe/Asset/DataTable";
-import { fmtNum, lastDays } from "../../Supplier/Asset/supFormat";
-
-const QUICK_RANGES = [
-  { days: 7, label: "7 วัน" },
-  { days: 14, label: "14 วัน" },
-  { days: 31, label: "31 วัน" },
-];
+import { fmtNum } from "../../Supplier/Asset/supFormat";
+import RangeBar from "./RangeBar";
 
 const Tile = ({ label, value, tone }) => (
   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
@@ -28,31 +22,9 @@ const isOutOfRange = (r) => {
 const IngredientUsage = ({ usage, range, loading, onRangeChange }) => {
   const s = usage.summary;
 
-  const setDay = (key) => (e) => {
-    const value = e.target.value;
-    if (value) onRangeChange({ ...range, [key]: value });
-  };
-
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-        <span className="text-slate-500">ช่วงวันที่ผสม</span>
-        <input type="date" value={range.from} max={range.to} onChange={setDay("from")} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-        <span className="text-slate-500">-</span>
-        <input type="date" value={range.to} min={range.from} onChange={setDay("to")} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-        <div className="flex flex-wrap gap-1">
-          {QUICK_RANGES.map((q) => (
-            <button
-              key={q.days}
-              onClick={() => onRangeChange(lastDays(q.days))}
-              className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:border-blue-300 hover:text-blue-700"
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
-        {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
-      </div>
+      <RangeBar range={range} loading={loading} onRangeChange={onRangeChange} />
 
       <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
         <Tile label="ชั่งทั้งหมด (ครั้ง)" value={s.weighings.toLocaleString()} />
